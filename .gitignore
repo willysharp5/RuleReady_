@@ -42,3 +42,6 @@ next-env.d.ts
 
 # JWT keys
 jwt-key*.txt
+
+# Claude files
+CLAUDE.md
