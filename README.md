@@ -22,8 +22,8 @@ A web application for monitoring website changes using Firecrawl's change detect
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/fc-observer.git
-cd fc-observer
+git clone https://github.com/mendableai/firecrawl-observer.git
+cd firecrawl-observer
 ```
 
 2. Install dependencies:
