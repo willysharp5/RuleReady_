@@ -2,6 +2,8 @@
 
 Monitor websites for changes using Firecrawl. Get notified when content updates.
 
+Built with Next.js, Convex, and Firecrawl API. Track website changes with customizable intervals, view visual diffs, and export content as markdown.
+
 ## Setup
 
 1. Clone and install:

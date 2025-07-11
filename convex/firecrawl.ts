@@ -74,7 +74,7 @@ export const scrapeUrl = internalAction({
         } : undefined,
       }) as Id<"scrapeResults">;
 
-      // If content changed, create an alert
+      // If content changed, create an alert and send notifications
       if (changeTracking?.changeStatus === "changed") {
         const diffPreview = changeTracking?.diff?.text ? 
           changeTracking.diff.text.substring(0, 200) + (changeTracking.diff.text.length > 200 ? "..." : "") :
@@ -87,6 +87,53 @@ export const scrapeUrl = internalAction({
           changeType: "content_changed",
           summary: diffPreview,
         });
+
+        // Get website details for notifications
+        const website = await ctx.runQuery(internal.websites.getWebsite, {
+          websiteId: args.websiteId,
+          userId: args.userId,
+        });
+
+        if (website && website.notificationPreference !== "none") {
+          // Send webhook notification
+          if ((website.notificationPreference === "webhook" || website.notificationPreference === "both") && website.webhookUrl) {
+            await ctx.scheduler.runAfter(0, internal.notifications.sendWebhookNotification, {
+              webhookUrl: website.webhookUrl,
+              websiteId: args.websiteId,
+              websiteName: website.name,
+              websiteUrl: website.url,
+              scrapeResultId,
+              changeType: "content_changed",
+              changeStatus: changeTracking.changeStatus,
+              diff: changeTracking?.diff,
+              title: metadata?.title,
+              description: metadata?.description,
+              markdown: markdown,
+              scrapedAt: Date.now(),
+            });
+          }
+
+          // Send email notification
+          if (website.notificationPreference === "email" || website.notificationPreference === "both") {
+            // Get user's email config
+            const emailConfig = await ctx.runQuery(internal.emailConfig.getUserEmailConfig, {
+              userId: args.userId,
+            });
+
+            if (emailConfig && emailConfig.isVerified) {
+              await ctx.scheduler.runAfter(0, internal.notifications.sendEmailNotification, {
+                email: emailConfig.email,
+                websiteName: website.name,
+                websiteUrl: website.url,
+                changeType: "content_changed",
+                changeStatus: changeTracking.changeStatus,
+                diff: changeTracking?.diff,
+                title: metadata?.title,
+                scrapedAt: Date.now(),
+              });
+            }
+          }
+        }
       }
 
       return {

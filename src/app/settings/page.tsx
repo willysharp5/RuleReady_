@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import { Loader2, User, Key, Bell, Trash2, ArrowLeft } from 'lucide-react'
+import { Loader2, User, Key, Bell, Trash2, ArrowLeft, Mail, Check, AlertCircle } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
 
@@ -174,11 +174,79 @@ export default function SettingsPage() {
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6">Notification Settings</h2>
                   
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">
-                        Email notifications are coming soon! You'll be able to receive alerts when websites you're monitoring have changes.
-                      </p>
+                  <div className="space-y-6">
+                    {/* Email Configuration */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Email Notifications
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="notification-email">Notification Email</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="notification-email"
+                              type="email"
+                              placeholder="alerts@example.com"
+                              className="flex-1"
+                            />
+                            <Button variant="orange" size="sm">
+                              Save Email
+                            </Button>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            We'll send change notifications to this email address
+                          </p>
+                        </div>
+                        
+                        {/* Email verification status */}
+                        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
+                          <p className="text-sm text-amber-700">
+                            Please verify your email address to receive notifications
+                          </p>
+                        </div>
+                        
+                        {/* Email template preview */}
+                        <div>
+                          <h4 className="font-medium mb-2">Email Preview</h4>
+                          <div className="border rounded-lg p-4 bg-gray-50">
+                            <div className="space-y-2 text-sm">
+                              <p className="font-semibold">Subject: Changes detected on example.com</p>
+                              <div className="border-t pt-2">
+                                <p className="text-gray-600">Hi there,</p>
+                                <p className="text-gray-600 mt-2">
+                                  We've detected changes on the website you're monitoring:
+                                </p>
+                                <div className="mt-2 p-3 bg-white rounded border">
+                                  <p className="font-medium">example.com</p>
+                                  <p className="text-gray-500 text-xs mt-1">Changed at: {new Date().toLocaleString()}</p>
+                                </div>
+                                <p className="text-gray-600 mt-2">
+                                  <a href="#" className="text-orange-600 underline">View changes →</a>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Global email preferences */}
+                    <div className="border-t pt-6">
+                      <h4 className="font-medium mb-3">Email Preferences</h4>
+                      <div className="space-y-3">
+                        <label className="flex items-center gap-3">
+                          <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+                          <span className="text-sm">Send digest emails (daily summary of all changes)</span>
+                        </label>
+                        <label className="flex items-center gap-3">
+                          <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" defaultChecked />
+                          <span className="text-sm">Send instant notifications for each change</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>

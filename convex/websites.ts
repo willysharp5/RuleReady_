@@ -9,6 +9,13 @@ export const createWebsite = mutation({
     url: v.string(),
     name: v.string(),
     checkInterval: v.number(), // in minutes
+    notificationPreference: v.optional(v.union(
+      v.literal("none"),
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
+    )),
+    webhookUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
@@ -19,6 +26,8 @@ export const createWebsite = mutation({
       userId: user._id,
       isActive: true,
       checkInterval: args.checkInterval,
+      notificationPreference: args.notificationPreference || "none",
+      webhookUrl: args.webhookUrl,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -78,6 +87,42 @@ export const toggleWebsiteActive = mutation({
     });
 
     return !website.isActive;
+  },
+});
+
+// Update website settings
+export const updateWebsite = mutation({
+  args: {
+    websiteId: v.id("websites"),
+    notificationPreference: v.optional(v.union(
+      v.literal("none"),
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
+    )),
+    webhookUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireCurrentUser(ctx);
+
+    const website = await ctx.db.get(args.websiteId);
+    if (!website || website.userId !== user._id) {
+      throw new Error("Website not found");
+    }
+
+    const updates: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.notificationPreference !== undefined) {
+      updates.notificationPreference = args.notificationPreference;
+    }
+
+    if (args.webhookUrl !== undefined) {
+      updates.webhookUrl = args.webhookUrl;
+    }
+
+    await ctx.db.patch(args.websiteId, updates);
   },
 });
 

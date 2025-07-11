@@ -12,6 +12,13 @@ const schema = defineSchema({
     isActive: v.boolean(),
     checkInterval: v.number(), // in minutes
     lastChecked: v.optional(v.number()),
+    notificationPreference: v.optional(v.union(
+      v.literal("none"),
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
+    )),
+    webhookUrl: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -56,6 +63,29 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_website", ["websiteId"])
     .index("by_read_status", ["userId", "isRead"]),
+
+  emailConfig: defineTable({
+    userId: v.id("users"),
+    email: v.string(),
+    isVerified: v.boolean(),
+    verificationToken: v.optional(v.string()),
+    verificationExpiry: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_email", ["email"]),
+
+  webhookPlayground: defineTable({
+    payload: v.any(),
+    headers: v.any(),
+    method: v.string(),
+    url: v.string(),
+    receivedAt: v.number(),
+    status: v.string(),
+    response: v.optional(v.any()),
+  })
+    .index("by_time", ["receivedAt"]),
 });
 
 export default schema;

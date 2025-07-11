@@ -3,10 +3,11 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Check all active websites every 5 minutes
+// Check all active websites every 15 seconds (for testing)
+// Note: In production, this should be set to a more reasonable interval like 5 minutes
 crons.interval(
   "check active websites",
-  { minutes: 5 },
+  { seconds: 15 },
   internal.monitoring.checkActiveWebsites
 );
 
