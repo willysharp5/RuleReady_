@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Key, Trash2, Edit2, Check, AlertCircle, Coins, RefreshCw } from 'lucide-react'
@@ -20,14 +20,7 @@ export function FirecrawlKeyManager() {
   const deleteFirecrawlKey = useMutation(api.firecrawlKeys.deleteFirecrawlKey)
   const getTokenUsage = useAction(api.firecrawlKeys.getTokenUsage)
   
-  // Fetch token usage when component mounts and key exists
-  useEffect(() => {
-    if (firecrawlKey?.hasKey) {
-      fetchTokenUsage()
-    }
-  }, [firecrawlKey?.hasKey])
-  
-  const fetchTokenUsage = async () => {
+  const fetchTokenUsage = useCallback(async () => {
     setIsLoadingTokens(true)
     try {
       const result = await getTokenUsage()
@@ -36,12 +29,19 @@ export function FirecrawlKeyManager() {
       } else {
         setTokenUsage({ error: result.error })
       }
-    } catch (err) {
+    } catch (_err) {
       setTokenUsage({ error: 'Failed to fetch token usage' })
     } finally {
       setIsLoadingTokens(false)
     }
-  }
+  }, [getTokenUsage])
+  
+  // Fetch token usage when component mounts and key exists
+  useEffect(() => {
+    if (firecrawlKey?.hasKey) {
+      fetchTokenUsage()
+    }
+  }, [firecrawlKey?.hasKey, fetchTokenUsage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +64,7 @@ export function FirecrawlKeyManager() {
   }
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete your Firecrawl API key?')) {
+    if (confirm('Are you sure you want to delete your Firecrawl Auth?')) {
       try {
         await deleteFirecrawlKey()
       } catch (err) {
@@ -77,7 +77,7 @@ export function FirecrawlKeyManager() {
     return (
       <div className="p-6 border border-dashed border-gray-300 rounded-lg text-center">
         <Key className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-gray-900 mb-1">No Firecrawl API Key</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-1">No Firecrawl Auth</h3>
         <p className="text-sm text-gray-500 mb-4">
           Add your API key to enable website monitoring
         </p>
@@ -94,7 +94,7 @@ export function FirecrawlKeyManager() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-1">
-              Firecrawl API Key
+              Firecrawl Auth
             </label>
             <Input
               id="apiKey"
@@ -156,7 +156,7 @@ export function FirecrawlKeyManager() {
     <div className="p-6 border border-gray-200 rounded-lg">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">Firecrawl API Key</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-1">Firecrawl Auth</h3>
           <p className="text-sm text-gray-500">
             Key: {firecrawlKey?.maskedKey}
           </p>
@@ -181,9 +181,9 @@ export function FirecrawlKeyManager() {
                 </span>
                 <Button
                   onClick={fetchTokenUsage}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 border-0"
                 >
                   <RefreshCw className="h-3 w-3" />
                 </Button>

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, action, internalAction } from "./_generated/server";
+import { mutation, query, action, internalAction, internalQuery } from "./_generated/server";
 import { requireCurrentUser, getCurrentUser, requireCurrentUserForAction } from "./helpers";
 import { internal, api } from "./_generated/api";
 
@@ -207,7 +207,7 @@ export const resendVerificationEmail = action({
 });
 
 // Internal helpers
-export const getEmailConfigInternal = query({
+export const getEmailConfigInternal = internalQuery({
   args: {
     userId: v.id("users"),
   },

@@ -40,7 +40,7 @@ export function FirecrawlKeyBanner() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex-1 mr-4">
-                <h3 className="text-sm font-medium text-orange-900 mb-1">Add Your Firecrawl API Key</h3>
+                <h3 className="text-sm font-medium text-orange-900 mb-1">Add Your Firecrawl Auth</h3>
                 <p className="text-sm text-orange-700">
                   Get your API key from{' '}
                   <a 
@@ -55,7 +55,7 @@ export function FirecrawlKeyBanner() {
               </div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   setShowForm(false)

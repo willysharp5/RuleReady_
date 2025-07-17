@@ -4,7 +4,7 @@ import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { 
@@ -21,10 +21,7 @@ import {
   GitBranch,
   FileText,
   BookOpen,
-  Zap,
-  Settings,
-  Users,
-  Database
+  Settings
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -107,10 +104,10 @@ export default function DocsPage() {
               <div>
                 <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <Key className="h-5 w-5" />
-                  1. Set up Firecrawl API Key
+                  1. Set up Firecrawl Auth
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  First, you'll need a Firecrawl API key to start monitoring websites. This is required for all scraping operations.
+                  First, you&apos;ll need a Firecrawl API key to start monitoring websites. This is required for all scraping operations.
                 </p>
                 <Button variant="orange" asChild>
                   <Link href="/settings?section=firecrawl">
@@ -396,7 +393,7 @@ export default function DocsPage() {
                 <h3 className="text-xl font-semibold">Need Help?</h3>
               </div>
               <p className="text-gray-600 mb-4">
-                If you're having trouble with Firecrawl Observer, check out these resources:
+                If you&apos;re having trouble with Firecrawl Observer, check out these resources:
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button variant="outline" asChild>

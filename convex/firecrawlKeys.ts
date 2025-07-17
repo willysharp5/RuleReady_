@@ -159,7 +159,7 @@ import { requireCurrentUserForAction } from "./helpers";
 
 // Action to get token usage from Firecrawl API
 export const getTokenUsage = action({
-  handler: async (ctx): Promise<{ success: boolean; error?: string; data?: any }> => {
+  handler: async (ctx): Promise<{ success: boolean; error?: string; remaining_tokens?: number }> => {
     const user = await requireCurrentUserForAction(ctx);
     
     // Get user's API key
@@ -194,9 +194,7 @@ export const getTokenUsage = action({
       const data: any = await response.json();
       return {
         success: true,
-        data: {
-          remaining_tokens: data.data?.remaining_tokens
-        }
+        remaining_tokens: data.data?.remaining_tokens
       };
     } catch (error) {
       console.error("Failed to fetch token usage:", error);

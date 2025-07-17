@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Key, Copy, Trash2, Plus } from 'lucide-react'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
 
 export function ApiKeyManager() {
   const [showNewApiKey, setShowNewApiKey] = useState(false)
   const [newApiKeyName, setNewApiKeyName] = useState('')
   const [createdApiKey, setCreatedApiKey] = useState<string | null>(null)
-  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
+  const [_copiedKeyId, _setCopiedKeyId] = useState<string | null>(null)
   
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys) || []
   const createApiKey = useMutation(api.apiKeys.createApiKey)
@@ -30,17 +31,17 @@ export function ApiKeyManager() {
     }
   }
   
-  const handleCopyApiKey = (key: string, keyId: string) => {
+  const _handleCopyApiKey = (key: string, keyId: string) => {
     navigator.clipboard.writeText(key)
-    setCopiedKeyId(keyId)
-    setTimeout(() => setCopiedKeyId(null), 2000)
+    _setCopiedKeyId(keyId)
+    setTimeout(() => _setCopiedKeyId(null), 2000)
   }
   
   const handleDeleteApiKey = async (keyId: string) => {
     if (!confirm('Are you sure you want to delete this API key?')) return
     
     try {
-      await deleteApiKey({ keyId: keyId as any })
+      await deleteApiKey({ keyId: keyId as Id<"apiKeys"> })
     } catch (error) {
       console.error('Failed to delete API key:', error)
     }
@@ -53,7 +54,7 @@ export function ApiKeyManager() {
       {createdApiKey && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
           <h4 className="font-medium text-green-900 mb-2">API Key Created!</h4>
-          <p className="text-sm text-green-700 mb-3">Copy it now - you won't see it again!</p>
+          <p className="text-sm text-green-700 mb-3">Copy it now - you won&apos;t see it again!</p>
           <div className="flex gap-2">
             <code className="flex-1 p-2 bg-white border rounded text-xs font-mono break-all">
               {createdApiKey}

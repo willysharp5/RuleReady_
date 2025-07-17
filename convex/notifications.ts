@@ -20,6 +20,13 @@ export const sendWebhookNotification = internalAction({
     description: v.optional(v.string()),
     markdown: v.string(),
     scrapedAt: v.number(),
+    aiAnalysis: v.optional(v.object({
+      meaningfulChangeScore: v.number(),
+      isMeaningfulChange: v.boolean(),
+      reasoning: v.string(),
+      analyzedAt: v.number(),
+      model: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
     const payload = {
@@ -52,6 +59,13 @@ export const sendWebhookNotification = internalAction({
         description: args.description,
         markdown: args.markdown.substring(0, 1000) + (args.markdown.length > 1000 ? "..." : ""),
       },
+      aiAnalysis: args.aiAnalysis ? {
+        meaningfulChangeScore: args.aiAnalysis.meaningfulChangeScore,
+        isMeaningfulChange: args.aiAnalysis.isMeaningfulChange,
+        reasoning: args.aiAnalysis.reasoning,
+        analyzedAt: new Date(args.aiAnalysis.analyzedAt).toISOString(),
+        model: args.aiAnalysis.model,
+      } : undefined,
     };
 
     try {
@@ -132,13 +146,40 @@ export const sendEmailNotification = internalAction({
     })),
     title: v.optional(v.string()),
     scrapedAt: v.number(),
+    userId: v.id("users"),
+    aiAnalysis: v.optional(v.object({
+      meaningfulChangeScore: v.number(),
+      isMeaningfulChange: v.boolean(),
+      reasoning: v.string(),
+      analyzedAt: v.number(),
+      model: v.string(),
+    })),
   },
   handler: async (ctx, args) => {
-    await resend.sendEmail(ctx, {
-      from: "Firecrawl Observer <noreply@answer.website>",
-      to: args.email,
-      subject: `Changes detected on ${args.websiteName}`,
-      html: `
+    // Get user's custom email template
+    const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
+      userId: args.userId,
+    });
+
+    let htmlContent = '';
+    
+    if (userSettings?.emailTemplate) {
+      // Use custom template with variable replacements
+      htmlContent = userSettings.emailTemplate
+        .replace(/{{websiteName}}/g, args.websiteName)
+        .replace(/{{websiteUrl}}/g, args.websiteUrl)
+        .replace(/{{changeDate}}/g, new Date(args.scrapedAt).toLocaleString())
+        .replace(/{{changeType}}/g, args.changeStatus)
+        .replace(/{{pageTitle}}/g, args.title || 'N/A')
+        .replace(/{{viewChangesUrl}}/g, process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+        .replace(/{{aiMeaningfulScore}}/g, args.aiAnalysis?.meaningfulChangeScore?.toString() || 'N/A')
+        .replace(/{{aiIsMeaningful}}/g, args.aiAnalysis?.isMeaningfulChange ? 'Yes' : 'No')
+        .replace(/{{aiReasoning}}/g, args.aiAnalysis?.reasoning || 'N/A')
+        .replace(/{{aiModel}}/g, args.aiAnalysis?.model || 'N/A')
+        .replace(/{{aiAnalyzedAt}}/g, args.aiAnalysis?.analyzedAt ? new Date(args.aiAnalysis.analyzedAt).toLocaleString() : 'N/A');
+    } else {
+      // Use default template
+      htmlContent = `
         <h2>Website Change Alert</h2>
         <p>We've detected changes on the website you're monitoring:</p>
         <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
@@ -146,10 +187,25 @@ export const sendEmailNotification = internalAction({
           <p><a href="${args.websiteUrl}">${args.websiteUrl}</a></p>
           <p><strong>Changed at:</strong> ${new Date(args.scrapedAt).toLocaleString()}</p>
           ${args.title ? `<p><strong>Page Title:</strong> ${args.title}</p>` : ''}
+          ${args.aiAnalysis ? `
+            <div style="background: #e8f4f8; border-left: 4px solid #2196F3; padding: 12px; margin: 15px 0;">
+              <h4 style="margin: 0 0 8px 0; color: #1976D2;">AI Analysis</h4>
+              <p><strong>Meaningful Change:</strong> ${args.aiAnalysis.isMeaningfulChange ? 'Yes' : 'No'} (${args.aiAnalysis.meaningfulChangeScore}% score)</p>
+              <p><strong>Reasoning:</strong> ${args.aiAnalysis.reasoning}</p>
+              <p style="font-size: 12px; color: #666; margin: 8px 0 0 0;">Analyzed by ${args.aiAnalysis.model} at ${new Date(args.aiAnalysis.analyzedAt).toLocaleString()}</p>
+            </div>
+          ` : ''}
         </div>
         <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}" style="background: #ff6600; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Changes</a></p>
-      `
-    })
+      `;
+    }
+
+    await resend.sendEmail(ctx, {
+      from: "Firecrawl Observer <noreply@answer.website>",
+      to: args.email,
+      subject: `Changes detected on ${args.websiteName}`,
+      html: htmlContent,
+    });
   },
 });
 

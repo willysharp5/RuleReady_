@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Webhook, Code, Key, BookOpen } from 'lucide-react'
+import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -47,12 +47,6 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
         </Link>
         
         <div className="flex items-center gap-4">
-          <Link href="/docs">
-            <Button variant="outline" size="sm" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Docs</span>
-            </Button>
-          </Link>
           {isAuthenticated ? (
             <>
               <Link href="/api-docs">
@@ -80,15 +74,15 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/settings?section=firecrawl" className="flex items-center cursor-pointer">
-                    <Key className="mr-2 h-4 w-4" />
-                    <span>Firecrawl API Key</span>
+                  <Link href="/settings" className="flex items-center cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/webhook-playground" className="flex items-center cursor-pointer">
-                    <Webhook className="mr-2 h-4 w-4" />
-                    <span>Webhook Playground</span>
+                  <Link href="/docs" className="flex items-center cursor-pointer">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    <span>Documentation</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

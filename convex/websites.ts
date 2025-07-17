@@ -721,3 +721,32 @@ export const deleteWebsiteFromApi = internalMutation({
     return true;
   },
 });
+
+// Update scrape result with AI analysis
+export const updateScrapeResultAIAnalysis = internalMutation({
+  args: {
+    scrapeResultId: v.id("scrapeResults"),
+    analysis: v.object({
+      meaningfulChangeScore: v.number(),
+      isMeaningfulChange: v.boolean(),
+      reasoning: v.string(),
+      analyzedAt: v.number(),
+      model: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.scrapeResultId, {
+      aiAnalysis: args.analysis,
+    });
+  },
+});
+
+// Get a specific scrape result (internal)
+export const getScrapeResult = internalQuery({
+  args: {
+    scrapeResultId: v.id("scrapeResults"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.scrapeResultId);
+  },
+});

@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
@@ -74,12 +74,13 @@ export default function HomePage() {
   // Track scrape results
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(null)
   const [viewingSpecificScrape, setViewingSpecificScrape] = useState<string | null>(null)
-  const [checkLogFilter, setCheckLogFilter] = useState<'all' | 'changed'>('all')
+  const [checkLogFilter, setCheckLogFilter] = useState<'all' | 'changed' | 'meaningful'>('all')
   const [processingWebsites, setProcessingWebsites] = useState<Set<string>>(new Set())
   const [deletingWebsites, setDeletingWebsites] = useState<Set<string>>(new Set())
   const [newlyCreatedWebsites, setNewlyCreatedWebsites] = useState<Set<string>>(new Set())
   const [showAddedLines, setShowAddedLines] = useState(true)
   const [showRemovedLines, setShowRemovedLines] = useState(true)
+  const [onlyShowDiff, setOnlyShowDiff] = useState(true)
   
   // Pagination states
   const [websitesPage, setWebsitesPage] = useState(1)
@@ -606,14 +607,14 @@ export default function HomePage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="text-base font-medium text-gray-900">{website.name}</h4>
-                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border border-black ${
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
                                   website.monitorType === 'full_site' 
                                     ? 'bg-orange-100 text-orange-700' 
                                     : 'bg-gray-100 text-gray-700'
                                 }`}>
                                   {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
                                 </span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-black ${
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                   website.isPaused 
                                     ? 'bg-yellow-100 text-yellow-700'
                                     : website.isActive 
@@ -692,7 +693,7 @@ export default function HomePage() {
                                     }
                                   }}
                                   title="Remove"
-                                  className="w-8 h-8 p-0 hover:bg-red-50"
+                                  className="w-8 h-8 p-0"
                                   disabled={isDeleting}
                                 >
                                   {isDeleting ? (
@@ -803,29 +804,10 @@ export default function HomePage() {
 
             {/* Right Column - Changes */}
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm h-[calc(100vh-400px)] flex flex-col">
+            <div className="bg-white rounded-lg shadow-sm flex flex-col">
               <div className="p-6 border-b flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-semibold">Change Tracking Log</h3>
-                    {selectedWebsiteId && websites && (
-                      <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-black">
-                        <span>Filtered:</span>
-                        <span className="font-medium">
-                          {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setSelectedWebsiteId(null)
-                            setChangesPage(1)
-                          }}
-                          className="ml-1 hover:text-orange-900"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xl font-semibold">Change Tracking Log</h3>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={checkLogFilter === 'all' ? 'default' : 'outline'}
@@ -842,6 +824,15 @@ export default function HomePage() {
                       Changed Only
                     </Button>
                     <Button
+                      variant={checkLogFilter === 'meaningful' ? 'orange' : 'outline'}
+                      size="sm"
+                      onClick={() => setCheckLogFilter('meaningful')}
+                      className="flex items-center gap-1"
+                    >
+                      <Bot className="h-3 w-3" />
+                      Meaningful
+                    </Button>
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setExpandedPanel(expandedPanel === 'changes' ? null : 'changes')}
@@ -856,6 +847,23 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </div>
+                {selectedWebsiteId && websites && (
+                  <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit">
+                    <span>Filtered:</span>
+                    <span className="font-medium">
+                      {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setSelectedWebsiteId(null)
+                        setChangesPage(1)
+                      }}
+                      className="ml-1 hover:text-orange-900"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
                 
                 {/* Search Input */}
                 <div className="mt-4">
@@ -878,7 +886,7 @@ export default function HomePage() {
               </div>
               
               {/* Changes List */}
-              <div className="overflow-y-auto flex-1">
+              <div className="min-h-[600px]">
                 {(() => {
                   // Show loading state while scrape history is undefined
                   if (!allScrapeHistory) {
@@ -893,7 +901,9 @@ export default function HomePage() {
                   // Filter changes based on selected website, filter, and search query
                   const filteredHistory = allScrapeHistory.filter(scrape => {
                     const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
-                    const filterMatch = checkLogFilter === 'all' || scrape.changeStatus === 'changed';
+                    const filterMatch = checkLogFilter === 'all' || 
+                      (checkLogFilter === 'changed' && scrape.changeStatus === 'changed') ||
+                      (checkLogFilter === 'meaningful' && scrape.aiAnalysis?.isMeaningfulChange === true);
                     
                     // Search filter
                     const searchMatch = !changesSearchQuery || 
@@ -955,23 +965,33 @@ export default function HomePage() {
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                              <span className="text-xs text-gray-500">• {formatTimeAgo(scrape.scrapedAt)}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">{scrape.websiteUrl}</p>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xs text-gray-500 w-20 text-right">{formatTimeAgo(scrape.scrapedAt)}</span>
-                            <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 border border-black w-20 justify-center ${
-                              scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
-                              scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
-                              scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {scrape.changeStatus === 'checking' && (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              )}
-                              {scrape.changeStatus}
-                            </span>
-                            <div className="w-20 flex justify-center">
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            {scrape.aiAnalysis && (
+                              <div className="relative group">
+                                <Bot 
+                                  className={`h-5 w-5 cursor-help ${
+                                    scrape.aiAnalysis.isMeaningfulChange
+                                      ? 'text-green-600'
+                                      : 'text-red-500'
+                                  }`}
+                                />
+                                <div className="absolute bottom-full right-0 mb-2 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 w-80">
+                                  <div className="absolute -bottom-1 right-2 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                  <div className={`font-medium mb-1 ${scrape.aiAnalysis.isMeaningfulChange ? 'text-green-400' : 'text-red-400'}`}>
+                                    {scrape.aiAnalysis.meaningfulChangeScore}% {scrape.aiAnalysis.isMeaningfulChange ? 'Meaningful' : 'Not Meaningful'}
+                                  </div>
+                                  <div className="text-gray-300 whitespace-normal">{scrape.aiAnalysis.reasoning}</div>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
                               {scrape.changeStatus === 'changed' && scrape.diff ? (
                                 <Button
                                   variant="code"
@@ -980,18 +1000,16 @@ export default function HomePage() {
                                     e.stopPropagation();
                                     setViewingSpecificScrape(scrape._id);
                                   }}
-                                  className="text-xs px-2 h-7"
+                                  className="w-7 h-7 p-0"
                                 >
-                                  View Diff
+                                  <Eye className="h-3 w-3" />
                                 </Button>
                               ) : (
-                                <div className="w-20"></div>
+                                <div className="w-7 h-7"></div>
                               )}
-                            </div>
-                            <div className="w-7">
                               {scrape.changeStatus !== 'checking' && (
                                 <Button
-                                  variant="orange"
+                                  variant="code"
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1002,6 +1020,19 @@ export default function HomePage() {
                                   <Download className="h-3 w-3" />
                                 </Button>
                               )}
+                            </div>
+                            <div className="w-20 flex justify-end">
+                              <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 w-20 justify-center ${
+                                scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
+                                scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
+                                scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {scrape.changeStatus === 'checking' && (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                )}
+                                {scrape.changeStatus}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1167,14 +1198,14 @@ export default function HomePage() {
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
                                         <h4 className="text-lg font-medium text-gray-900">{website.name}</h4>
-                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border border-black ${
+                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
                                           website.monitorType === 'full_site' 
                                             ? 'bg-orange-100 text-orange-700' 
                                             : 'bg-gray-100 text-gray-700'
                                         }`}>
                                           {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
                                         </span>
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-black ${
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                           website.isPaused 
                                             ? 'bg-yellow-100 text-yellow-700'
                                             : website.isActive 
@@ -1251,7 +1282,7 @@ export default function HomePage() {
                                           }
                                         }}
                                         title="Remove"
-                                        className="w-8 h-8 p-0 hover:bg-red-50"
+                                        className="w-8 h-8 p-0"
                                         disabled={isDeleting}
                                       >
                                         {isDeleting ? (
@@ -1328,25 +1359,6 @@ export default function HomePage() {
                 <div className="h-full flex flex-col">
                   <div className="p-6 border-b">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        {selectedWebsiteId && websites && (
-                          <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-black">
-                            <span>Filtered:</span>
-                            <span className="font-medium">
-                              {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setSelectedWebsiteId(null)
-                                setChangesPage(1)
-                              }}
-                              className="ml-1 hover:text-orange-900"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant={checkLogFilter === 'all' ? 'default' : 'outline'}
@@ -1362,8 +1374,34 @@ export default function HomePage() {
                         >
                           Changed Only
                         </Button>
+                        <Button
+                          variant={checkLogFilter === 'meaningful' ? 'orange' : 'outline'}
+                          size="sm"
+                          onClick={() => setCheckLogFilter('meaningful')}
+                          className="flex items-center gap-1"
+                        >
+                          <Bot className="h-3 w-3" />
+                          Meaningful
+                        </Button>
                       </div>
                     </div>
+                    {selectedWebsiteId && websites && (
+                      <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit mb-4">
+                        <span>Filtered:</span>
+                        <span className="font-medium">
+                          {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedWebsiteId(null)
+                            setChangesPage(1)
+                          }}
+                          className="ml-1 hover:text-orange-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search className="h-4 w-4 text-gray-400" />
@@ -1396,7 +1434,9 @@ export default function HomePage() {
                         // Apply filters
                         const filteredHistory = allScrapeHistory.filter(scrape => {
                           const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
-                          const filterMatch = checkLogFilter === 'all' || scrape.changeStatus === 'changed';
+                          const filterMatch = checkLogFilter === 'all' || 
+                      (checkLogFilter === 'changed' && scrape.changeStatus === 'changed') ||
+                      (checkLogFilter === 'meaningful' && scrape.aiAnalysis?.isMeaningfulChange === true);
                           const searchMatch = !changesSearchQuery || 
                             scrape.websiteName?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
                             scrape.title?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
@@ -1428,23 +1468,33 @@ export default function HomePage() {
                                 </div>
                                 
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                                    <span className="text-xs text-gray-500">• {formatTimeAgo(scrape.scrapedAt)}</span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 truncate">{scrape.websiteUrl}</p>
                                 </div>
 
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <span className="text-xs text-gray-500 w-20 text-right">{formatTimeAgo(scrape.scrapedAt)}</span>
-                                  <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 border border-black w-20 justify-center ${
-                                    scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
-                                    scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
-                                    scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {scrape.changeStatus === 'checking' && (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    )}
-                                    {scrape.changeStatus}
-                                  </span>
-                                  <div className="w-20 flex justify-center">
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  {scrape.aiAnalysis && (
+                                    <div className="relative group">
+                                      <Bot 
+                                        className={`h-5 w-5 cursor-help ${
+                                          scrape.aiAnalysis.isMeaningfulChange
+                                            ? 'text-green-600'
+                                            : 'text-red-500'
+                                        }`}
+                                      />
+                                      <div className="absolute bottom-full right-0 mb-2 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 w-80">
+                                        <div className="absolute -bottom-1 right-2 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                        <div className={`font-medium mb-1 ${scrape.aiAnalysis.isMeaningfulChange ? 'text-green-400' : 'text-red-400'}`}>
+                                          {scrape.aiAnalysis.meaningfulChangeScore}% {scrape.aiAnalysis.isMeaningfulChange ? 'Meaningful' : 'Not Meaningful'}
+                                        </div>
+                                        <div className="text-gray-300 whitespace-normal">{scrape.aiAnalysis.reasoning}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1">
                                     {scrape.changeStatus === 'changed' && scrape.diff ? (
                                       <Button
                                         variant="code"
@@ -1453,18 +1503,16 @@ export default function HomePage() {
                                           e.stopPropagation();
                                           setViewingSpecificScrape(scrape._id);
                                         }}
-                                        className="text-xs px-2 h-7"
+                                        className="w-7 h-7 p-0"
                                       >
-                                        View Diff
+                                        <Eye className="h-3 w-3" />
                                       </Button>
                                     ) : (
-                                      <div className="w-20"></div>
+                                      <div className="w-7 h-7"></div>
                                     )}
-                                  </div>
-                                  <div className="w-7">
                                     {scrape.changeStatus !== 'checking' && (
                                       <Button
-                                        variant="orange"
+                                        variant="code"
                                         size="sm"
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -1476,10 +1524,23 @@ export default function HomePage() {
                                       </Button>
                                     )}
                                   </div>
+                                  <div className="w-20 flex justify-end">
+                                    <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 w-20 justify-center ${
+                                      scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
+                                      scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
+                                      scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {scrape.changeStatus === 'checking' && (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      )}
+                                      {scrape.changeStatus}
+                                    </span>
+                                  </div>
+                                </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
                         ))
                       })()}
                     </div>
@@ -1528,8 +1589,11 @@ export default function HomePage() {
                             const isFileHeader = line.startsWith('+++') || line.startsWith('---');
                             
                             // Filter based on checkboxes
-                            if (isAddition && !showAddedLines) return null;
-                            if (isDeletion && !showRemovedLines) return null;
+                            if (onlyShowDiff && !isAddition && !isDeletion) return null;
+                            if (!onlyShowDiff) {
+                              if (isAddition && !showAddedLines) return null;
+                              if (isDeletion && !showRemovedLines) return null;
+                            }
                             
                             return (
                               <div
@@ -1562,11 +1626,21 @@ export default function HomePage() {
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
+                          checked={onlyShowDiff}
+                          onChange={(e) => setOnlyShowDiff(e.target.checked)}
+                          className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-orange-700">Only Show Diff</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
                           checked={showAddedLines}
                           onChange={(e) => setShowAddedLines(e.target.checked)}
                           className="h-4 w-4 text-green-600 rounded focus:ring-green-500"
+                          disabled={onlyShowDiff}
                         />
-                        <span className="text-green-700">Added</span>
+                        <span className={`text-green-700 ${onlyShowDiff ? 'opacity-50' : ''}`}>Show Added</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1574,8 +1648,9 @@ export default function HomePage() {
                           checked={showRemovedLines}
                           onChange={(e) => setShowRemovedLines(e.target.checked)}
                           className="h-4 w-4 text-red-600 rounded focus:ring-red-500"
+                          disabled={onlyShowDiff}
                         />
-                        <span className="text-red-700">Removed</span>
+                        <span className={`text-red-700 ${onlyShowDiff ? 'opacity-50' : ''}`}>Show Removed</span>
                       </label>
                     </div>
                     <Button variant="code" size="sm" onClick={() => setViewingSpecificScrape(null)}>

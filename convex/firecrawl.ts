@@ -105,45 +105,73 @@ export const scrapeUrl = internalAction({
           summary: diffPreview,
         });
 
-        // Get website details for notifications
-        const website = await ctx.runQuery(internal.websites.getWebsite, {
-          websiteId: args.websiteId,
+        // Trigger AI analysis if enabled and there's a diff
+        if (changeTracking?.diff) {
+          await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeChange, {
+            userId: args.userId,
+            scrapeResultId,
+            websiteName: metadata?.title || args.url,
+            websiteUrl: args.url,
+            diff: changeTracking.diff,
+          });
+        }
+
+        // Get user settings to check if AI analysis is enabled
+        const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
           userId: args.userId,
         });
 
-        if (website && website.notificationPreference !== "none") {
-          // Send webhook notification
-          if ((website.notificationPreference === "webhook" || website.notificationPreference === "both") && website.webhookUrl) {
-            await ctx.scheduler.runAfter(0, internal.notifications.sendWebhookNotification, {
-              webhookUrl: website.webhookUrl,
-              websiteId: args.websiteId,
-              websiteName: website.name,
-              websiteUrl: args.url, // Use the actual page URL, not the root website URL
-              scrapeResultId,
-              changeType: "content_changed",
-              changeStatus: changeTracking.changeStatus,
-              diff: changeTracking?.diff,
-              title: metadata?.title,
-              description: metadata?.description,
-              markdown: markdown,
-              scrapedAt: Date.now(),
-            });
-          }
+        // If AI analysis is NOT enabled, send notifications immediately
+        if (!userSettings?.aiAnalysisEnabled || !changeTracking?.diff) {
+          // Get website details for notifications
+          const website = await ctx.runQuery(internal.websites.getWebsite, {
+            websiteId: args.websiteId,
+            userId: args.userId,
+          });
 
-          // Send email notification
-          if (website.notificationPreference === "email" || website.notificationPreference === "both") {
-            await ctx.scheduler.runAfter(0, internal.notifications.sendEmailNotification, {
-              email: "developers.digest.ai@gmail.com", 
-              websiteName: website.name,
-              websiteUrl: args.url,
-              changeType: "content_changed",
-              changeStatus: changeTracking.changeStatus,
-              diff: changeTracking?.diff,
-              title: metadata?.title,
-              scrapedAt: Date.now(),
-            });
+          if (website && website.notificationPreference !== "none") {
+            // Send webhook notification
+            if ((website.notificationPreference === "webhook" || website.notificationPreference === "both") && website.webhookUrl) {
+              await ctx.scheduler.runAfter(0, internal.notifications.sendWebhookNotification, {
+                webhookUrl: website.webhookUrl,
+                websiteId: args.websiteId,
+                websiteName: website.name,
+                websiteUrl: args.url, // Use the actual page URL, not the root website URL
+                scrapeResultId,
+                changeType: "content_changed",
+                changeStatus: changeTracking.changeStatus,
+                diff: changeTracking?.diff,
+                title: metadata?.title,
+                description: metadata?.description,
+                markdown: markdown,
+                scrapedAt: Date.now(),
+              });
+            }
+
+            // Send email notification
+            if (website.notificationPreference === "email" || website.notificationPreference === "both") {
+              // Get user's email configuration
+              const emailConfig = await ctx.runQuery(internal.emailManager.getEmailConfigInternal, {
+                userId: args.userId,
+              });
+              
+              if (emailConfig?.email && emailConfig.isVerified) {
+                await ctx.scheduler.runAfter(0, internal.notifications.sendEmailNotification, {
+                  email: emailConfig.email,
+                  websiteName: website.name,
+                  websiteUrl: args.url,
+                  changeType: "content_changed",
+                  changeStatus: changeTracking.changeStatus,
+                  diff: changeTracking?.diff,
+                  title: metadata?.title,
+                  scrapedAt: Date.now(),
+                  userId: args.userId,
+                });
+              }
+            }
           }
         }
+        // If AI analysis IS enabled, notifications will be handled by the AI analysis callback
       }
 
       return {

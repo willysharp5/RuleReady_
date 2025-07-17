@@ -16,7 +16,7 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_key", ["key"]),
 
-  // Firecrawl API Keys
+  // Firecrawl Auth
   firecrawlApiKeys: defineTable({
     userId: v.id("users"),
     encryptedKey: v.string(),
@@ -78,6 +78,14 @@ const schema = defineSchema({
       text: v.string(),
       json: v.any(),
     })),
+    // AI Analysis results
+    aiAnalysis: v.optional(v.object({
+      meaningfulChangeScore: v.number(), // 0-100
+      isMeaningfulChange: v.boolean(),
+      reasoning: v.string(),
+      analyzedAt: v.number(),
+      model: v.string(),
+    })),
   })
     .index("by_website", ["websiteId"])
     .index("by_website_time", ["websiteId", "scrapedAt"])
@@ -114,6 +122,19 @@ const schema = defineSchema({
     userId: v.id("users"),
     defaultWebhookUrl: v.optional(v.string()),
     emailNotificationsEnabled: v.boolean(),
+    emailTemplate: v.optional(v.string()),
+    // AI Analysis settings
+    aiAnalysisEnabled: v.optional(v.boolean()),
+    aiModel: v.optional(v.union(
+      v.literal("gpt-4o"),
+      v.literal("gpt-4o-mini")
+    )),
+    aiSystemPrompt: v.optional(v.string()),
+    aiMeaningfulChangeThreshold: v.optional(v.number()), // 0-100 score threshold
+    aiApiKey: v.optional(v.string()), // encrypted OpenAI API key
+    // AI-based notification filtering
+    emailOnlyIfMeaningful: v.optional(v.boolean()), // only send email if AI deems meaningful
+    webhookOnlyIfMeaningful: v.optional(v.boolean()), // only send webhook if AI deems meaningful
     createdAt: v.number(),
     updatedAt: v.number(),
   })

@@ -184,7 +184,7 @@ export default function ApiDocsPage() {
       <Header />
       
       <MainContent maxWidth="7xl" className="py-12">
-        <div className="max-w-4xl mx-auto">
+        <div>
           <div className="flex items-center gap-4 mb-8">
             <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <ArrowLeft className="h-5 w-5" />
@@ -289,46 +289,46 @@ export default function ApiDocsPage() {
             )}
             
             {apiKeys && apiKeys.length > 0 ? (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {apiKeys.map((key) => (
                   <div
                     key={key._id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                    className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{key.name}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs text-gray-500 font-mono">
-                          {key.keyPreview}
-                        </code>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCopyApiKey(key.keyPreview, key._id)}
-                          className="h-6 px-2"
-                        >
-                          {copiedKeyId === key._id ? (
-                            <span className="text-green-600 text-xs">Copied!</span>
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Created {new Date(key.createdAt).toLocaleDateString()}
-                        {key.lastUsed && (
-                          <> • Last used {new Date(key.lastUsed).toLocaleDateString()}</>
-                        )}
-                      </div>
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-medium text-sm">{key.name}</h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteApiKey(key._id)}
+                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteApiKey(key._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1 mb-2">
+                      <code className="text-xs text-gray-500 font-mono flex-1 truncate">
+                        {key.keyPreview}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyApiKey(key.keyPreview, key._id)}
+                        className="h-6 w-6 p-0 border-0"
+                      >
+                        {copiedKeyId === key._id ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(key.createdAt).toLocaleDateString()}
+                      {key.lastUsed && (
+                        <span className="block">Used: {new Date(key.lastUsed).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
