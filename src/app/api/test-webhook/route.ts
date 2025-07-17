@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Also handle GET requests for easy testing
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     message: 'Test webhook endpoint is working!',
     usage: 'Send a POST request to this endpoint with your webhook payload',

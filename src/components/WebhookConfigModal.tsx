@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Globe, Mail, Webhook, Copy, Check } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { X, Mail, Copy, Check, Network, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,10 +13,18 @@ interface WebhookConfigModalProps {
   onSave: (config: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
     webhookUrl?: string
+    checkInterval?: number
+    monitorType?: 'single_page' | 'full_site'
+    crawlLimit?: number
+    crawlDepth?: number
   }) => void
   initialConfig?: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
     webhookUrl?: string
+    checkInterval?: number
+    monitorType?: 'single_page' | 'full_site'
+    crawlLimit?: number
+    crawlDepth?: number
   }
   websiteName: string
 }
@@ -24,16 +32,41 @@ interface WebhookConfigModalProps {
 export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, websiteName }: WebhookConfigModalProps) {
   const [notificationPreference, setNotificationPreference] = useState(initialConfig?.notificationPreference || 'none')
   const [webhookUrl, setWebhookUrl] = useState(initialConfig?.webhookUrl || '')
+  const [checkInterval, setCheckInterval] = useState(String(initialConfig?.checkInterval || 60))
+  const [monitorType, setMonitorType] = useState(initialConfig?.monitorType || 'single_page')
+  const [crawlLimit, setCrawlLimit] = useState(String(initialConfig?.crawlLimit || 5))
+  const [crawlDepth, setCrawlDepth] = useState(String(initialConfig?.crawlDepth || 3))
   const [copied, setCopied] = useState(false)
 
-  if (!isOpen) return null
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     onSave({
       notificationPreference: notificationPreference as 'none' | 'email' | 'webhook' | 'both',
-      webhookUrl: (notificationPreference === 'webhook' || notificationPreference === 'both') ? webhookUrl : undefined
+      webhookUrl: (notificationPreference === 'webhook' || notificationPreference === 'both') ? webhookUrl : undefined,
+      checkInterval: parseInt(checkInterval),
+      monitorType: monitorType as 'single_page' | 'full_site',
+      crawlLimit: monitorType === 'full_site' ? parseInt(crawlLimit) : undefined,
+      crawlDepth: monitorType === 'full_site' ? parseInt(crawlDepth) : undefined
     })
-  }
+  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, onSave])
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return
+      
+      if (e.key === 'Escape') {
+        onClose()
+      } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        // Cmd/Ctrl + Enter to submit
+        handleSave()
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose, handleSave])
+
+  if (!isOpen) return null
 
   const copyPayloadExample = () => {
     const payload = JSON.stringify({
@@ -68,9 +101,9 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Notification Settings</h2>
+          <h2 className="text-xl font-semibold">Website Settings</h2>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={onClose}
             className="w-8 h-8 p-0"
@@ -79,14 +112,127 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
           </Button>
         </div>
 
-        <div className="space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+          <div className="space-y-6">
+          {/* Monitoring Configuration */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-medium mb-4">Monitoring Configuration</h3>
+            
+            {/* Check Interval */}
+            <div className="mb-4">
+              <Label htmlFor="check-interval">Check Interval</Label>
+              <Select
+                id="check-interval"
+                value={checkInterval}
+                onChange={(e) => setCheckInterval(e.target.value)}
+                className="w-full mt-1"
+              >
+                <option value="0.25">15 seconds (Testing only)</option>
+                <option value="5">5 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="180">3 hours</option>
+                <option value="360">6 hours</option>
+                <option value="720">12 hours</option>
+                <option value="1440">24 hours</option>
+                <option value="4320">3 days</option>
+                <option value="10080">7 days</option>
+              </Select>
+            </div>
+
+            {/* Monitor Type */}
+            <div className="mb-4">
+              <Label htmlFor="monitor-type">Monitor Type</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setMonitorType('single_page')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    monitorType === 'single_page'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <FileText className={`h-5 w-5 mx-auto mb-1 ${
+                    monitorType === 'single_page' ? 'text-orange-600' : 'text-gray-500'
+                  }`} />
+                  <span className={`text-sm font-medium ${
+                    monitorType === 'single_page' ? 'text-orange-900' : 'text-gray-700'
+                  }`}>Single Page</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setMonitorType('full_site')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    monitorType === 'full_site'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Network className={`h-5 w-5 mx-auto mb-1 ${
+                    monitorType === 'full_site' ? 'text-orange-600' : 'text-gray-500'
+                  }`} />
+                  <span className={`text-sm font-medium ${
+                    monitorType === 'full_site' ? 'text-orange-900' : 'text-gray-700'
+                  }`}>Full Site</span>
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                {monitorType === 'single_page' 
+                  ? 'Monitor changes on a specific page URL' 
+                  : 'Crawl and monitor multiple pages across the entire website'}
+              </p>
+            </div>
+
+            {/* Crawl Configuration */}
+            {monitorType === 'full_site' && (
+              <div className="space-y-4 mt-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <Label htmlFor="crawl-limit">Maximum Pages to Crawl</Label>
+                  <Input
+                    id="crawl-limit"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={crawlLimit}
+                    onChange={(e) => setCrawlLimit(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    className="mt-1"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Limit the number of pages to crawl (default: 5)
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="crawl-depth">Maximum Crawl Depth</Label>
+                  <Input
+                    id="crawl-depth"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={crawlDepth}
+                    onChange={(e) => setCrawlDepth(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    className="mt-1"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    How many levels deep to crawl from the starting page (default: 3)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Notification Type Selection */}
           <div>
             <Label htmlFor="notification-type">Notification Type</Label>
             <Select
               id="notification-type"
               value={notificationPreference}
-              onChange={(e) => setNotificationPreference(e.target.value)}
+              onChange={(e) => setNotificationPreference(e.target.value as 'none' | 'email' | 'webhook' | 'both')}
               className="w-full mt-1"
             >
               <option value="none">No notifications</option>
@@ -98,12 +244,12 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
 
           {/* Email Configuration Info */}
           {(notificationPreference === 'email' || notificationPreference === 'both') && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+                <Mail className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900">Email Notifications</p>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-sm font-medium text-orange-900">Email Notifications</p>
+                  <p className="text-sm text-orange-700 mt-1">
                     Configure your email address in the <a href="/settings" className="underline font-medium">settings page</a> to receive change notifications.
                   </p>
                 </div>
@@ -122,10 +268,11 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                   placeholder="https://your-server.com/webhook"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                   className="mt-1"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  We'll send a POST request to this URL when changes are detected
+                  We&apos;ll send a POST request to this URL when changes are detected
                 </p>
               </div>
 
@@ -134,7 +281,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 <div className="flex items-center justify-between mb-2">
                   <Label>Webhook Payload Example</Label>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={copyPayloadExample}
                     className="text-xs"
@@ -181,16 +328,22 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
               </div>
             </div>
           )}
-        </div>
+          </div>
 
-        <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="orange" onClick={handleSave}>
-            Save Settings
-          </Button>
-        </div>
+          <div className="flex items-center justify-between mt-6">
+            <p className="text-xs text-gray-500">
+              Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">⌘</kbd>+<kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> to save
+            </p>
+            <div className="flex gap-3">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="orange">
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   )

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { useConvexAuth, useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import { Loader2, ArrowLeft, Webhook, Copy, Check, Trash2, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, HelpCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, Webhook, Copy, Check, Trash2, CheckCircle, XCircle, Clock, AlertCircle, HelpCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
 export default function WebhookPlaygroundPage() {
@@ -124,7 +124,7 @@ export default function WebhookPlaygroundPage() {
                   <ol className="space-y-1 list-decimal list-inside">
                     <li>Copy the webhook URL above</li>
                     <li>Go to your website settings and click the settings icon</li>
-                    <li>Select "Webhook only" or "Email and Webhook" as the notification type</li>
+                    <li>Select &quot;Webhook only&quot; or &quot;Email and Webhook&quot; as the notification type</li>
                     <li>Paste the webhook URL and save</li>
                     <li>When changes are detected, webhooks will appear here in real-time</li>
                   </ol>
@@ -133,16 +133,16 @@ export default function WebhookPlaygroundPage() {
             </div>
             
             {webhookUrl.includes('localhost') && (
-              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-amber-900">Localhost URLs won't work!</p>
-                    <p className="text-sm text-amber-700 mt-1">
+                    <p className="text-sm font-medium text-black">Localhost URLs won&apos;t work!</p>
+                    <p className="text-sm text-black mt-1">
                       Convex runs in the cloud and cannot access localhost. Use one of these options:
                     </p>
-                    <ul className="text-sm text-amber-700 mt-2 space-y-1 list-disc list-inside">
-                      <li>Use <a href="https://ngrok.com" target="_blank" className="underline font-medium">ngrok</a> to expose your local server: <code className="bg-amber-100 px-1 rounded">ngrok http 3000</code></li>
+                    <ul className="text-sm text-black mt-2 space-y-1 list-disc list-inside">
+                      <li>Use <a href="https://ngrok.com" target="_blank" className="underline font-medium">ngrok</a> to expose your local server: <code className="bg-orange-100 px-1 rounded">ngrok http 3000</code></li>
                       <li>Deploy your app to Vercel, Netlify, or another hosting service</li>
                       <li>Use a webhook testing service like <a href="https://webhook.site" target="_blank" className="underline font-medium">webhook.site</a></li>
                     </ul>
@@ -190,8 +190,8 @@ export default function WebhookPlaygroundPage() {
                     ({webhookPayloads.length} total)
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-xs text-green-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="flex items-center gap-1 text-xs text-orange-600">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
                   Live
                 </span>
               </h2>
@@ -221,28 +221,42 @@ export default function WebhookPlaygroundPage() {
                   <div 
                     key={payload._id} 
                     className={`p-4 hover:bg-gray-50 transition-all ${
-                      newWebhooks.has(payload._id) ? 'bg-green-50 border-l-4 border-green-500' : ''
+                      newWebhooks.has(payload._id) ? 'bg-orange-50 border-l-4 border-orange-500' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          {payload.status === 'success' ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <XCircle className="h-5 w-5 text-red-500" />
-                          )}
-                          <span className="font-medium">
-                            {payload.payload?.event || 'Webhook Event'}
-                          </span>
-                          <span className="text-sm text-gray-500 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTimeAgo(payload.receivedAt)}
-                          </span>
-                          {newWebhooks.has(payload._id) && (
-                            <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
-                              New
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            {payload.status === 'success' ? (
+                              <CheckCircle className="h-5 w-5 text-black" />
+                            ) : (
+                              <XCircle className="h-5 w-5 text-orange-500" />
+                            )}
+                            <span className="font-medium">
+                              {payload.payload?.event || 'Webhook Event'}
                             </span>
+                            <span className="text-sm text-gray-500 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTimeAgo(payload.receivedAt)}
+                            </span>
+                            {newWebhooks.has(payload._id) && (
+                              <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                                New
+                              </span>
+                            )}
+                          </div>
+                          {/* Website URL on the right */}
+                          {payload.payload?.website?.url && (
+                            <a 
+                              href={payload.payload.website.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-black hover:text-gray-700 hover:underline flex items-center gap-1"
+                            >
+                              {payload.payload.website.url}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           )}
                         </div>
 

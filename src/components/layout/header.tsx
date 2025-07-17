@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Github, LogOut, User, Loader2, Settings, ChevronDown, Webhook } from 'lucide-react'
+import { Github, LogOut, User, Loader2, ChevronDown, Webhook, Code, Key, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -47,8 +47,21 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
         </Link>
         
         <div className="flex items-center gap-4">
+          <Link href="/docs">
+            <Button variant="outline" size="sm" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Docs</span>
+            </Button>
+          </Link>
           {isAuthenticated ? (
-            <DropdownMenu>
+            <>
+              <Link href="/api-docs">
+                <Button variant="orange" size="sm" className="gap-2">
+                  <Code className="h-4 w-4" />
+                  <span className="hidden sm:inline">API</span>
+                </Button>
+              </Link>
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="code" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
@@ -61,19 +74,19 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Account</p>
                     <p className="text-xs leading-none text-zinc-500">
-                      {currentUser?.email || 'Loading...'}
+                      {currentUser?.email || ''}
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                  <Link href="/settings?section=firecrawl" className="flex items-center cursor-pointer">
+                    <Key className="mr-2 h-4 w-4" />
+                    <span>Firecrawl API Key</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/webhook-playground" className="cursor-pointer">
+                  <Link href="/webhook-playground" className="flex items-center cursor-pointer">
                     <Webhook className="mr-2 h-4 w-4" />
                     <span>Webhook Playground</span>
                   </Link>
@@ -98,6 +111,7 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           ) : (
             showCTA && (
               <Button

@@ -1,28 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Loader2, Clock, ExternalLink, LogIn, Eye, Download, Grid, List, X, Play, Pause, ChevronLeft, ChevronRight, Globe, Activity, CheckCircle, AlertCircle, BarChart3, RefreshCw, Settings2 } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
+import { FirecrawlKeyBanner } from '@/components/FirecrawlKeyBanner'
 
 // Helper function to format interval display
-function formatInterval(minutes: number): string {
-  if (minutes < 1) return `${minutes * 60} seconds`;
+function formatInterval(minutes: number | undefined): string {
+  if (!minutes || minutes === 0) return 'Not set';
+  if (minutes < 1) return `${Math.round(minutes * 60)} seconds`;
+  if (minutes === 1) return '1 minute';
   if (minutes < 60) return `${minutes} minutes`;
+  if (minutes === 60) return '1 hour';
   if (minutes < 1440) {
     const hours = minutes / 60;
-    return hours === 1 ? '1 hour' : `${hours} hours`;
+    return hours === 1 ? '1 hour' : `${Math.floor(hours)} hours`;
   }
   const days = minutes / 1440;
-  return days === 1 ? '1 day' : `${days} days`;
+  return days === 1 ? '1 day' : `${Math.floor(days)} days`;
+}
+
+// Helper function to get favicon URL
+function getFaviconUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch {
+    return '';
+  }
 }
 
 export default function HomePage() {
@@ -38,53 +51,80 @@ export default function HomePage() {
   
   // Website monitoring state
   const [url, setUrl] = useState('')
-  const [checkInterval, setCheckInterval] = useState('60') // default 60 minutes
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
-  const [checkingWebsiteId, setCheckingWebsiteId] = useState<string | null>(null)
   
   // Convex queries and mutations
   const websites = useQuery(api.websites.getUserWebsites)
+  const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
+  
+  // Debug websites list
+  useEffect(() => {
+    if (websites) {
+      console.log('Websites list updated:', websites.length, 'websites')
+      console.log('Website IDs:', websites.map(w => ({ id: w._id, name: w.name })))
+    }
+  }, [websites])
   const createWebsite = useMutation(api.websites.createWebsite)
   const deleteWebsite = useMutation(api.websites.deleteWebsite)
-  const toggleWebsite = useMutation(api.websites.toggleWebsiteActive)
+  const pauseWebsite = useMutation(api.websites.pauseWebsite)
   const updateWebsite = useMutation(api.websites.updateWebsite)
   const triggerScrape = useAction(api.firecrawl.triggerScrape)
 
   // Track scrape results
-  const [scrapeResults, setScrapeResults] = useState<Record<string, { status: string, message: string }>>({})
-  const [viewingChangesFor, setViewingChangesFor] = useState<string | null>(null)
+  const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(null)
   const [viewingSpecificScrape, setViewingSpecificScrape] = useState<string | null>(null)
-  const [expandedDiffId, setExpandedDiffId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'checkLog'>('monitoring')
   const [checkLogFilter, setCheckLogFilter] = useState<'all' | 'changed'>('all')
-  const [checkLogView, setCheckLogView] = useState<'list' | 'tile'>('list')
   const [processingWebsites, setProcessingWebsites] = useState<Set<string>>(new Set())
+  const [deletingWebsites, setDeletingWebsites] = useState<Set<string>>(new Set())
+  const [newlyCreatedWebsites, setNewlyCreatedWebsites] = useState<Set<string>>(new Set())
   const [showAddedLines, setShowAddedLines] = useState(true)
   const [showRemovedLines, setShowRemovedLines] = useState(true)
-  const [checkLogPage, setCheckLogPage] = useState(1)
-  const ITEMS_PER_PAGE_TILE = 9
-  const ITEMS_PER_PAGE_LIST = 10
+  
+  // Pagination states
+  const [websitesPage, setWebsitesPage] = useState(1)
+  const [changesPage, setChangesPage] = useState(1)
+  const ITEMS_PER_PAGE_WEBSITES = 5
+  const ITEMS_PER_PAGE_CHANGES = 10
+  
+  // Expanded panel state
+  const [expandedPanel, setExpandedPanel] = useState<'websites' | 'changes' | null>(null)
   
   // Webhook configuration modal state
   const [showWebhookModal, setShowWebhookModal] = useState(false)
   const [editingWebsiteId, setEditingWebsiteId] = useState<string | null>(null)
-  const [pendingNotificationConfig, setPendingNotificationConfig] = useState<{
-    notificationPreference: 'none' | 'email' | 'webhook' | 'both'
-    webhookUrl?: string
+  const [pendingWebsite, setPendingWebsite] = useState<{
+    url: string
+    name: string
   } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [changesSearchQuery, setChangesSearchQuery] = useState('')
   
-  // Get latest scrape with changes for the selected website
-  const latestScrapeHistory = useQuery(
-    api.websites.getWebsiteScrapeHistory, 
-    viewingChangesFor ? { websiteId: viewingChangesFor as any, limit: 5 } : "skip" // eslint-disable-line @typescript-eslint/no-explicit-any
-  )
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
   
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
+
+  // Handle escape key for modals
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (viewingSpecificScrape) {
+          setViewingSpecificScrape(null)
+        }
+        if (showWebhookModal) {
+          setShowWebhookModal(false)
+          setEditingWebsiteId(null)
+          setPendingWebsite(null)
+        }
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [viewingSpecificScrape, showWebhookModal])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,7 +146,7 @@ export default function HomePage() {
     }
   }
 
-  const handleAddWebsite = async () => {
+  const handleAddWebsite = () => {
     if (!url) {
       setError('Please enter a URL')
       return
@@ -132,38 +172,15 @@ export default function HomePage() {
       return
     }
 
-    const interval = parseFloat(checkInterval)
-    if (isNaN(interval) || (interval < 5 && interval !== 0.25)) {
-      setError('Check interval must be at least 5 minutes (except for 15-second test mode)')
-      return
-    }
-
     setError('')
-    setIsAdding(true)
-
-    try {
-      const websiteId = await createWebsite({
-        url: processedUrl,
-        name: autoGeneratedName,
-        checkInterval: interval,
-        notificationPreference: pendingNotificationConfig?.notificationPreference || 'none',
-        webhookUrl: pendingNotificationConfig?.webhookUrl,
-      })
-      
-      setUrl('')
-      setCheckInterval('60')
-      setPendingNotificationConfig(null)
-      
-      // Show webhook configuration modal for the newly created website
-      if (websiteId) {
-        setEditingWebsiteId(websiteId)
-        setShowWebhookModal(true)
-      }
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      setError(error.message || 'Failed to add website')
-    } finally {
-      setIsAdding(false)
-    }
+    
+    // Store the pending website data and show the modal
+    setPendingWebsite({
+      url: processedUrl,
+      name: autoGeneratedName
+    })
+    setShowWebhookModal(true)
+    setUrl('')
   }
 
   const formatTimeAgo = (timestamp: number | undefined) => {
@@ -194,13 +211,11 @@ export default function HomePage() {
   }
 
   const handleCheckNow = async (websiteId: string) => {
-    setCheckingWebsiteId(websiteId)
     setProcessingWebsites(prev => new Set([...prev, websiteId]))
     
     try {
-      await triggerScrape({ websiteId })
+      await triggerScrape({ websiteId: websiteId as any }) // eslint-disable-line @typescript-eslint/no-explicit-any
       // The UI will automatically update via Convex reactive queries
-      setCheckingWebsiteId(null)
       
       // Keep processing indicator for a bit to show the scrape is running
       setTimeout(() => {
@@ -212,28 +227,11 @@ export default function HomePage() {
       }, 5000) // Increased to 5 seconds
     } catch (error) {
       console.error('Failed to trigger scrape:', error)
-      setScrapeResults(prev => ({ 
-        ...prev, 
-        [websiteId]: { 
-          status: 'error', 
-          message: 'Failed to check website: ' + (error as any).message // eslint-disable-line @typescript-eslint/no-explicit-any 
-        } 
-      }))
-      setCheckingWebsiteId(null)
       setProcessingWebsites(prev => {
         const newSet = new Set(prev)
         newSet.delete(websiteId)
         return newSet
       })
-      
-      // Clear error after 5 seconds
-      setTimeout(() => {
-        setScrapeResults(prev => {
-          const newResults = { ...prev }
-          delete newResults[websiteId]
-          return newResults
-        })
-      }, 5000)
     }
   }
 
@@ -250,8 +248,8 @@ export default function HomePage() {
   if (!isAuthenticated) {
     return (
       <Layout>
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl w-full mx-auto">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-6xl mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               {/* Left side - Hero content */}
               <div className="text-center lg:text-left">
@@ -271,97 +269,97 @@ export default function HomePage() {
               {/* Right side - Sign in form */}
               <div className="w-full max-w-md mx-auto lg:mx-0">
                 <div className="bg-white rounded-lg p-8 shadow-sm">
-            <div className="flex items-center justify-center mb-6">
-              <h2 className="text-2xl font-semibold">
-                {authMode === 'signIn' ? 'Welcome Back' : 'Get Started'}
-              </h2>
-            </div>
-            <p className="text-center text-zinc-600 mb-6">
-              {authMode === 'signIn' 
-                ? 'Sign in to your account to continue monitoring websites' 
-                : 'Create an account to start monitoring website changes'}
-            </p>
-            
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-zinc-700">
-                  Email
-                </label>
-                <Input 
-                  id="email"
-                  type="email" 
-                  placeholder="you@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-zinc-700">
-                  Password
-                </label>
-                <Input 
-                  id="password"
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={authMode === 'signIn' ? 'current-password' : 'new-password'}
-                />
-              </div>
-              
-              {authError && (
-                <p className="text-sm text-red-500">{authError}</p>
-              )}
-              
-              <Button 
-                type="submit" 
-                variant="orange" 
-                className="w-full"
-                disabled={isAuthenticating}
-              >
-                {isAuthenticating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {authMode === 'signIn' ? 'Signing in...' : 'Creating account...'}
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    {authMode === 'signIn' ? 'Sign In' : 'Sign Up'}
-                  </>
-                )}
-              </Button>
-            </form>
-            
-            <p className="text-center text-sm text-zinc-600 mt-4">
-              {authMode === 'signIn' ? (
-                <>
-                  Don't have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('signUp')}
-                    className="text-orange-600 hover:text-orange-700 font-medium"
-                  >
-                    Sign up
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('signIn')}
-                    className="text-orange-600 hover:text-orange-700 font-medium"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </p>
+                  <div className="flex items-center justify-center mb-6">
+                    <h2 className="text-2xl font-semibold">
+                      {authMode === 'signIn' ? 'Welcome Back' : 'Get Started'}
+                    </h2>
+                  </div>
+                  <p className="text-center text-zinc-600 mb-6">
+                    {authMode === 'signIn' 
+                      ? 'Sign in to your account to continue monitoring websites' 
+                      : 'Create an account to start monitoring website changes'}
+                  </p>
+                  
+                  <form onSubmit={handleAuth} className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium text-zinc-700">
+                        Email
+                      </label>
+                      <Input 
+                        id="email"
+                        type="email" 
+                        placeholder="you@example.com" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label htmlFor="password" className="text-sm font-medium text-zinc-700">
+                        Password
+                      </label>
+                      <Input 
+                        id="password"
+                        type="password" 
+                        placeholder="••••••••" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        autoComplete={authMode === 'signIn' ? 'current-password' : 'new-password'}
+                      />
+                    </div>
+                    
+                    {authError && (
+                      <p className="text-sm text-orange-500">{authError}</p>
+                    )}
+                    
+                    <Button 
+                      type="submit" 
+                      variant="orange" 
+                      className="w-full"
+                      disabled={isAuthenticating}
+                    >
+                      {isAuthenticating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {authMode === 'signIn' ? 'Signing in...' : 'Creating account...'}
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="mr-2 h-4 w-4" />
+                          {authMode === 'signIn' ? 'Sign In' : 'Sign Up'}
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                  
+                  <p className="text-center text-sm text-zinc-600 mt-4">
+                    {authMode === 'signIn' ? (
+                      <>
+                        Don&apos;t have an account?{' '}
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode('signUp')}
+                          className="text-orange-600 hover:text-orange-700 font-medium"
+                        >
+                          Sign up
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        Already have an account?{' '}
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode('signIn')}
+                          className="text-orange-600 hover:text-orange-700 font-medium"
+                        >
+                          Sign in
+                        </button>
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
@@ -372,10 +370,14 @@ export default function HomePage() {
       </Layout>
     )
   }
-
+  
+  // Main authenticated view (when isAuthenticated = true)
   return (
     <Layout>
       <Header ctaHref="https://github.com/new?template_name=firecrawl-observer&template_owner=your-org" />
+      
+      {/* Show banner if no Firecrawl API key is set */}
+      {!firecrawlKey?.hasKey && <FirecrawlKeyBanner />}
       
       <Hero 
         title={
@@ -392,288 +394,362 @@ export default function HomePage() {
       />
       
       <MainContent maxWidth="7xl" className="py-12">
-        <div className="space-y-8">
-          {/* Tab Navigation */}
-          <div className="flex space-x-1 border-b">
-            <button
-              onClick={() => setActiveTab('monitoring')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'monitoring'
-                  ? 'text-orange-600 border-orange-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-800'
-              }`}
-            >
-              Websites
-            </button>
-            <button
-              onClick={() => setActiveTab('checkLog')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors relative ${
-                activeTab === 'checkLog'
-                  ? 'text-orange-600 border-orange-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-800'
-              }`}
-            >
-              Check Log
-            </button>
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'monitoring' ? (
-            <>
-              {/* Websites Section */}
-              <div className="space-y-4">
-                {/* Header with Add Form */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold">Monitored Websites</h3>
-                    {websites && websites.length > 0 && (
-                      <Button
-                        variant="orange"
-                        size="sm"
-                        onClick={async () => {
-                          const activeWebsites = websites.filter(w => w.isActive);
-                          for (const website of activeWebsites) {
-                            await handleCheckNow(website._id);
-                          }
-                        }}
-                      >
-                        Check All Active Sites
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {/* Add Website Form */}
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Add New Website</label>
+        <div className="space-y-6">
+          {/* Add Website Form - Full Width */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Add New Website</h3>
+            </div>
+                    
                     <form onSubmit={(e) => {
                       e.preventDefault();
                       handleAddWebsite();
-                    }} className="flex items-center gap-3">
-                      <Input 
-                        type="text" 
-                        placeholder="example.com" 
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        disabled={isAdding}
-                        className="flex-1"
-                      />
+                    }} className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-zinc-600 whitespace-nowrap">Check every</span>
-                        <Select 
-                          value={checkInterval}
-                          onChange={(e) => setCheckInterval(e.target.value)}
-                          className="w-32"
+                        <Input 
+                          type="text" 
+                          placeholder="https://example.com" 
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
                           disabled={isAdding}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="submit"
+                          variant="orange"
+                          size="sm"
+                          disabled={isAdding || !url.trim()}
                         >
-                          <option value="0.25">15 seconds (TEST)</option>
-                          <option value="5">5 minutes</option>
-                          <option value="15">15 minutes</option>
-                          <option value="30">30 minutes</option>
-                          <option value="60">1 hour</option>
-                          <option value="180">3 hours</option>
-                          <option value="360">6 hours</option>
-                          <option value="720">12 hours</option>
-                          <option value="1440">24 hours</option>
-                          <option value="4320">3 days</option>
-                          <option value="10080">7 days</option>
-                        </Select>
+                          {isAdding ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Adding...
+                            </>
+                          ) : (
+                            'Start Observing'
+                          )}
+                        </Button>
                       </div>
-                      <Button 
-                        type="submit"
-                        variant="orange"
-                        size="sm"
-                        disabled={isAdding}
-                        className="whitespace-nowrap"
-                      >
-                        {isAdding ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Adding...
-                          </>
-                        ) : (
-                          'Start Observing'
-                        )}
-                      </Button>
                     </form>
                     {error && (
-                      <p className="text-sm text-red-500 mt-2">{error}</p>
+                      <p className="text-sm text-orange-500 mt-2">{error}</p>
                     )}
+                    <p className="text-xs text-gray-500 mt-2">
+                      Configure monitor type, check intervals, and notifications after adding
+                    </p>
+          </div>
+          
+          {/* Two Column Layout */}
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
+            {/* Left Column - Websites */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow-sm flex flex-col">
+                {/* Search Header */}
+                <div className="p-6 border-b flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold">Currently Tracked Websites</h3>
+                    <div className="flex items-center gap-3">
+                      {websites ? (
+                        <>
+                          <span className="text-sm text-gray-500">{websites.length} site{websites.length !== 1 ? 's' : ''}</span>
+                          {websites.length > 0 && (
+                            <Button
+                              variant="orange"
+                              size="sm"
+                              onClick={async () => {
+                                const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
+                                for (const website of activeWebsites) {
+                                  await handleCheckNow(website._id);
+                                }
+                              }}
+                              className="gap-2"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                              Check All
+                            </Button>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400">Loading...</span>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpandedPanel(expandedPanel === 'websites' ? null : 'websites')}
+                        className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
+                        title={expandedPanel === 'websites' ? "Minimize" : "Expand"}
+                      >
+                        {expandedPanel === 'websites' ? (
+                          <Minimize2 className="h-4 w-4 text-white" />
+                        ) : (
+                          <Maximize2 className="h-4 w-4 text-white" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Search by name or URL..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                        disabled={!websites}
+                      />
+                    </div>
                   </div>
                 </div>
+                    
+                    {/* Website List */}
+                    <div className="divide-y divide-gray-100">
+                      {(() => {
+                        // Show loading state while websites is undefined
+                        if (!websites) {
+                          return (
+                            <div className="p-8 text-center">
+                              <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                              <p className="text-gray-500">Loading websites...</p>
+                            </div>
+                          )
+                        }
 
-                {/* Monitored Websites List */}
-                {websites && websites.length > 0 && (
-                  
-                  <div className="grid gap-4">
-                {websites
-                  .sort((a, b) => b._creationTime - a._creationTime)
-                  .map((website) => {
+                        const filteredWebsites = websites
+                          .filter(website => {
+                            const query = searchQuery.toLowerCase()
+                            return website.name.toLowerCase().includes(query) || 
+                                   website.url.toLowerCase().includes(query)
+                          })
+                          .sort((a, b) => b._creationTime - a._creationTime)
+                        
+                        // Pagination calculations
+                        const totalPages = Math.ceil(filteredWebsites.length / ITEMS_PER_PAGE_WEBSITES)
+                        const startIndex = (websitesPage - 1) * ITEMS_PER_PAGE_WEBSITES
+                        const endIndex = startIndex + ITEMS_PER_PAGE_WEBSITES
+                        const paginatedWebsites = filteredWebsites.slice(startIndex, endIndex)
+                        
+                        // Reset to page 1 if current page is out of bounds
+                        if (websitesPage > totalPages && totalPages > 0) {
+                          setWebsitesPage(1)
+                        }
+                        
+                        if (filteredWebsites.length === 0 && searchQuery) {
+                          return (
+                            <div className="text-center py-8 text-gray-500">
+                              <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                              <p className="text-lg font-medium">No websites found</p>
+                              <p className="text-sm mt-1">Try searching with different keywords</p>
+                            </div>
+                          )
+                        }
+                        
+                        if (websites.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-gray-500">
+                              <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                              <p className="text-lg font-medium">No websites yet</p>
+                              <p className="text-sm mt-1">Add your first website above to start monitoring</p>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <>
+                            {paginatedWebsites.map((website) => {
                   const latestScrape = latestScrapes?.[website._id];
                   const isProcessing = processingWebsites.has(website._id);
+                  const isDeleting = deletingWebsites.has(website._id);
                   const hasChanged = latestScrape?.changeStatus === 'changed';
                   
                   return (
                     <div 
                       key={website._id}
-                      className={`rounded-lg shadow-sm hover:shadow-md transition-all ${
+                      className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
                         isProcessing 
-                          ? 'bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300' 
-                          : 'bg-white border border-gray-200'
+                          ? 'bg-orange-50' 
+                          : isDeleting
+                          ? 'bg-red-50 opacity-50'
+                          : selectedWebsiteId === website._id
+                          ? 'bg-orange-50 border-l-4 border-orange-500'
+                          : ''
                       }`}
+                      onClick={() => {
+                        setSelectedWebsiteId(website._id)
+                        setChangesPage(1) // Reset changes page when selecting a website
+                      }}
                     >
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          {/* Website image or icon */}
-                          <div className="flex-shrink-0">
-                            {latestScrape?.ogImage ? (
-                              <img 
-                                src={latestScrape.ogImage} 
-                                alt={website.name}
-                                className="w-16 h-16 object-cover rounded-lg"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  e.currentTarget.parentElement!.innerHTML = '<div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center"><svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>';
-                                }}
-                              />
-                            ) : (
-                              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                                <Globe className="w-8 h-8 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            {/* Header with name and status */}
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-lg font-semibold text-gray-900">{website.name}</h4>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                  website.isActive 
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                    : 'bg-gray-50 text-gray-600 border border-gray-200'
+                      <div className="flex items-center gap-4">
+                        {/* Website favicon */}
+                        <div className="flex-shrink-0">
+                          {getFaviconUrl(website.url) ? (
+                            <img 
+                              src={getFaviconUrl(website.url)} 
+                              alt={website.name}
+                              className="w-12 h-12 object-contain rounded-lg bg-gray-50 p-2"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = '<div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Globe className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-base font-medium text-gray-900">{website.name}</h4>
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border border-black ${
+                                  website.monitorType === 'full_site' 
+                                    ? 'bg-orange-100 text-orange-700' 
+                                    : 'bg-gray-100 text-gray-700'
                                 }`}>
-                                  {website.isActive ? (
-                                    <>
-                                      <Activity className="w-3 h-3 mr-1" />
-                                      Active
-                                    </>
-                                  ) : (
-                                    'Paused'
-                                  )}
+                                  {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-black ${
+                                  website.isPaused 
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : website.isActive 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                  {website.isPaused ? 'Paused' : website.isActive ? 'Active' : 'Inactive'}
                                 </span>
                               </div>
-                              
-                              {/* Action buttons */}
-                              <div className="flex items-center gap-1">
+                              <a 
+                                href={website.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
+                              >
+                                {website.url}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1">
                                 <Button 
-                                  variant="code"
+                                  variant="default" 
                                   size="sm"
-                                  onClick={() => setViewingChangesFor(website._id)}
-                                  title="View history"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    pauseWebsite({ 
+                                      websiteId: website._id, 
+                                      isPaused: !website.isPaused 
+                                    })
+                                  }}
+                                  title={website.isPaused ? "Resume monitoring" : "Pause monitoring"}
+                                  className="w-8 h-8 p-0"
                                 >
-                                  <BarChart3 className="h-4 w-4 mr-1" />
-                                  History
+                                  {website.isPaused ? (
+                                    <Play className="h-4 w-4" />
+                                  ) : (
+                                    <Pause className="h-4 w-4" />
+                                  )}
                                 </Button>
                                 <Button 
-                                  variant="code" 
+                                  variant="default" 
                                   size="sm"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setEditingWebsiteId(website._id)
                                     setShowWebhookModal(true)
                                   }}
-                                  title="Configure notifications"
+                                  title="Settings"
                                   className="w-8 h-8 p-0"
                                 >
                                   <Settings2 className="h-4 w-4" />
                                 </Button>
                                 <Button 
-                                  variant="code" 
+                                  variant="default" 
                                   size="sm"
-                                  onClick={() => toggleWebsite({ websiteId: website._id })}
-                                  title={website.isActive ? 'Pause monitoring' : 'Resume monitoring'}
-                                  className="w-8 h-8 p-0"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone.`)) {
+                                      setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                      try {
+                                        console.log('Deleting website:', website._id, website.name)
+                                        await deleteWebsite({ websiteId: website._id })
+                                        console.log('Website deleted successfully:', website._id)
+                                      } catch (error) {
+                                        console.error('Failed to delete website:', error)
+                                        alert('Failed to delete website. Please try again.')
+                                      } finally {
+                                        setDeletingWebsites(prev => {
+                                          const newSet = new Set(prev)
+                                          newSet.delete(website._id)
+                                          return newSet
+                                        })
+                                      }
+                                    }
+                                  }}
+                                  title="Remove"
+                                  className="w-8 h-8 p-0 hover:bg-red-50"
+                                  disabled={isDeleting}
                                 >
-                                  {website.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                                </Button>
-                                <Button 
-                                  variant="code" 
-                                  size="sm"
-                                  onClick={() => deleteWebsite({ websiteId: website._id })}
-                                  title="Remove website"
-                                  className="w-8 h-8 p-0"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            {/* URL */}
-                            <a 
-                              href={website.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 mb-3"
-                            >
-                              <Globe className="w-3 h-3" />
-                              {website.url}
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                            
-                            {/* Status and title */}
-                            {isProcessing ? (
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="flex items-center gap-2 text-orange-600">
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                  <span className="text-sm font-medium">Checking for changes...</span>
-                                </div>
-                              </div>
-                            ) : latestScrape && latestScrape.changeStatus !== 'new' ? (
-                              <div className="mb-3">
-                                <div className="flex items-start gap-2">
-                                  {hasChanged ? (
-                                    <div className="flex items-center gap-2 text-orange-600">
-                                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                                      <span className="text-sm font-medium">Changes detected</span>
-                                    </div>
+                                  {isDeleting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                                      <span className="text-sm">No changes</span>
-                                    </div>
+                                    <X className="h-4 w-4" />
                                   )}
-                                </div>
-                                {latestScrape.title && (
-                                  <p className="text-sm text-gray-600 mt-1 line-clamp-1">
-                                    {latestScrape.title}
-                                  </p>
+                                </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Bottom row with status */}
+                          {isProcessing ? (
+                            <div className="mt-2 flex items-center gap-2 text-orange-600">
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              <span className="text-xs">
+                                {newlyCreatedWebsites.has(website._id) 
+                                  ? 'Setting up monitoring...' 
+                                  : 'Checking for changes...'
+                                }
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                              <div className="flex items-center gap-3">
+                                {latestScrape && latestScrape.changeStatus !== 'new' && (
+                                  <div className="flex items-center gap-1">
+                                    {hasChanged ? (
+                                      <>
+                                        <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                        <span>Changes detected</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                        <span>No changes</span>
+                                      </>
+                                    )}
+                                  </div>
                                 )}
+                                <span>Checked {formatTimeAgo(website.lastChecked)}</span>
+                                <span>Every {formatInterval(website.checkInterval)}</span>
                               </div>
-                            ) : null}
-                            
-                            {/* Meta info and check button */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 text-xs text-gray-500">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {formatTimeAgo(website.lastChecked)}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <RefreshCw className="w-3 h-3" />
-                                  Every {formatInterval(website.checkInterval)}
-                                </div>
-                              </div>
-                              
                               <Button 
-                                variant={isProcessing ? "outline" : "orange"}
+                                variant="orange"
                                 size="sm"
-                                onClick={() => handleCheckNow(website._id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCheckNow(website._id)
+                                }}
                                 disabled={isProcessing}
                                 className="text-xs"
                               >
                                 {isProcessing ? (
                                   <>
                                     <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    Checking
+                                    {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
                                   </>
                                 ) : (
                                   <>
@@ -683,586 +759,737 @@ export default function HomePage() {
                                 )}
                               </Button>
                             </div>
-                            
-                            {/* Error messages */}
-                            {scrapeResults[website._id] && (
-                              <div className={`mt-2 text-xs ${
-                                scrapeResults[website._id].status === 'error' ? 'text-red-600' : 
-                                'text-gray-600'
-                              }`}>
-                                {scrapeResults[website._id].message}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
-                })}
-                  </div>
-                )}
-              </div>
-
-          {/* Changes Modal */}
-          {viewingChangesFor && latestScrapeHistory && latestScrapeHistory.length > 0 && (
-            <div 
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setViewingChangesFor(null)
-                  setExpandedDiffId(null)
-                }
-              }}
-            >
-              <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
-                <div className="p-6 border-b">
-                  <h3 className="text-xl font-semibold">Scrape History</h3>
-                  <p className="text-sm text-zinc-600 mt-1">
-                    Showing recent checks and changes for this website
-                  </p>
-                </div>
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                  {/* Show history of scrapes */}
-                  <div className="space-y-4">
-                    {latestScrapeHistory.map((scrape, index) => (
-                      <div key={scrape._id} className="border-b pb-4 last:border-0">
-                        <div className="flex items-start gap-4">
-                          {/* Scrape image thumbnail */}
-                          {scrape.ogImage && index === 0 && (
-                            <img 
-                              src={scrape.ogImage}
-                              alt="Page preview"
-                              className="w-20 h-20 object-cover rounded flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium">
-                                {formatTimeAgo(scrape.scrapedAt)}
-                              </span>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
-                                scrape.changeStatus === 'new' ? 'bg-blue-100 text-blue-800' :
-                                scrape.changeStatus === 'same' ? 'bg-gray-100 text-gray-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {scrape.changeStatus}
-                              </span>
-                            </div>
+                        })}
                             
-                            {scrape.title && index === 0 && (
-                              <p className="text-sm font-medium mb-1">{scrape.title}</p>
-                            )}
-                            
-                            {scrape.description && index === 0 && (
-                              <p className="text-xs text-zinc-600 mb-2">{scrape.description}</p>
-                            )}
-                        
-                        {scrape.changeStatus === 'changed' && scrape.diff ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-2"
-                              onClick={() => setExpandedDiffId(expandedDiffId === scrape._id ? null : scrape._id)}
-                            >
-                              {expandedDiffId === scrape._id ? 'Hide diff' : 'View diff'}
-                            </Button>
-                            
-                            {expandedDiffId === scrape._id && (
-                              <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                                <div className="bg-gray-900 p-4 max-h-96 overflow-y-auto">
-                                  <div className="font-mono text-sm">
-                                    {(scrape.diff.text || '').split('\n').map((line, lineIndex) => {
-                                      const isAddition = line.startsWith('+') && !line.startsWith('+++');
-                                      const isDeletion = line.startsWith('-') && !line.startsWith('---');
-                                      const isContext = line.startsWith('@@');
-                                      const isFileHeader = line.startsWith('+++') || line.startsWith('---');
-                                      
-                                      // Filter based on checkboxes
-                                      if (isAddition && !showAddedLines) return null;
-                                      if (isDeletion && !showRemovedLines) return null;
-                                      
-                                      return (
-                                        <div
-                                          key={lineIndex}
-                                          className={`px-2 py-0.5 ${
-                                            isAddition ? 'bg-green-900/30 text-green-300' :
-                                            isDeletion ? 'bg-red-900/30 text-red-300' :
-                                            isContext ? 'bg-blue-900/30 text-blue-300 font-bold' :
-                                            isFileHeader ? 'text-gray-400' :
-                                            'text-gray-300'
-                                          }`}
-                                        >
-                                          <span className="select-none text-gray-500 mr-2">
-                                            {String(lineIndex + 1).padStart(4, ' ')}
-                                          </span>
-                                          <span>{line || ' '}</span>
-                                        </div>
-                                      );
-                                    })}
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                              <div className="sticky bottom-0 bg-white border-t p-3">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-600">
+                                    Page {websitesPage} of {totalPages}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="orange"
+                                      size="sm"
+                                      onClick={() => setWebsitesPage(websitesPage - 1)}
+                                      disabled={websitesPage === 1}
+                                    >
+                                      <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="orange"
+                                      size="sm"
+                                      onClick={() => setWebsitesPage(websitesPage + 1)}
+                                      disabled={websitesPage === totalPages}
+                                    >
+                                      <ChevronRight className="h-4 w-4" />
+                                    </Button>
                                   </div>
-                                </div>
-                                <div className="bg-gray-50 px-4 py-2 border-t flex items-center gap-4 text-sm">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={showAddedLines}
-                                      onChange={(e) => setShowAddedLines(e.target.checked)}
-                                      className="h-4 w-4 text-green-600 rounded focus:ring-green-500"
-                                    />
-                                    <span className="text-green-700">Show added</span>
-                                  </label>
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={showRemovedLines}
-                                      onChange={(e) => setShowRemovedLines(e.target.checked)}
-                                      className="h-4 w-4 text-red-600 rounded focus:ring-red-500"
-                                    />
-                                    <span className="text-red-700">Show removed</span>
-                                  </label>
                                 </div>
                               </div>
                             )}
                           </>
-                        ) : scrape.changeStatus === 'new' && index === latestScrapeHistory.length - 1 ? (
-                          <p className="text-sm text-zinc-600">Initial scrape - baseline established</p>
-                        ) : scrape.changeStatus === 'same' ? (
-                          <p className="text-sm text-zinc-600">No changes from previous scrape</p>
-                        ) : null}
-                          </div>
-                        </div>
+                        )
+                      })()}
+                    </div>
+                  </div>
+            </div>
+
+            {/* Right Column - Changes */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm h-[calc(100vh-400px)] flex flex-col">
+              <div className="p-6 border-b flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-semibold">Change Tracking Log</h3>
+                    {selectedWebsiteId && websites && (
+                      <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-black">
+                        <span>Filtered:</span>
+                        <span className="font-medium">
+                          {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedWebsiteId(null)
+                            setChangesPage(1)
+                          }}
+                          className="ml-1 hover:text-orange-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
-                    ))}
-                    
-                    {latestScrapeHistory.length === 0 && (
-                      <p className="text-center text-zinc-600">No scrape history available yet.</p>
                     )}
                   </div>
-                </div>
-                <div className="p-6 border-t flex justify-end">
-                  <Button size="sm" onClick={() => {
-                    setViewingChangesFor(null)
-                    setExpandedDiffId(null)
-                  }}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-            </>
-          ) : (
-            /* Check Log Tab */
-            <div className="space-y-4">
-              {/* Filter and view controls */}
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button
-                    variant={checkLogFilter === 'all' ? 'orange' : 'code'}
-                    size="sm"
-                    onClick={() => {
-                      setCheckLogFilter('all')
-                      setCheckLogPage(1)
-                    }}
-                  >
-                    All Checks
-                  </Button>
-                  <Button
-                    variant={checkLogFilter === 'changed' ? 'orange' : 'code'}
-                    size="sm"
-                    onClick={() => {
-                      setCheckLogFilter('changed')
-                      setCheckLogPage(1)
-                    }}
-                  >
-                    Changed Only
-                  </Button>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  {processingWebsites.size > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-orange-600">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Processing {processingWebsites.size} check{processingWebsites.size > 1 ? 's' : ''}...</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant={checkLogView === 'list' ? 'code' : 'outline'}
+                      variant={checkLogFilter === 'all' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => {
-                        setCheckLogView('list')
-                        setCheckLogPage(1)
-                      }}
-                      className="px-2"
+                      onClick={() => setCheckLogFilter('all')}
                     >
-                      <List className="h-4 w-4" />
+                      All
                     </Button>
                     <Button
-                      variant={checkLogView === 'tile' ? 'code' : 'outline'}
+                      variant={checkLogFilter === 'changed' ? 'orange' : 'outline'}
                       size="sm"
-                      onClick={() => {
-                        setCheckLogView('tile')
-                        setCheckLogPage(1)
-                      }}
-                      className="px-2"
+                      onClick={() => setCheckLogFilter('changed')}
                     >
-                      <Grid className="h-4 w-4" />
+                      Changed Only
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setExpandedPanel(expandedPanel === 'changes' ? null : 'changes')}
+                      className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
+                      title={expandedPanel === 'changes' ? "Minimize" : "Expand"}
+                    >
+                      {expandedPanel === 'changes' ? (
+                        <Minimize2 className="h-4 w-4 text-white" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4 text-white" />
+                      )}
                     </Button>
                   </div>
                 </div>
+                
+                {/* Search Input */}
+                <div className="mt-4">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Search changes by website name, title, or description..."
+                      value={changesSearchQuery}
+                      onChange={(e) => {
+                        setChangesSearchQuery(e.target.value)
+                        setChangesPage(1) // Reset to first page when searching
+                      }}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
               </div>
+              
+              {/* Changes List */}
+              <div className="overflow-y-auto flex-1">
+                {(() => {
+                  // Show loading state while scrape history is undefined
+                  if (!allScrapeHistory) {
+                    return (
+                      <div className="p-8 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                        <p className="text-gray-500">Loading change history...</p>
+                      </div>
+                    )
+                  }
 
-              {/* Check log entries */}
-              {(() => {
-                // Filter and paginate data
-                const filteredData = allScrapeHistory?.filter(scrape => 
-                  checkLogFilter === 'all' || scrape.changeStatus === 'changed'
-                ) || []
-                
-                const itemsPerPage = checkLogView === 'tile' ? ITEMS_PER_PAGE_TILE : ITEMS_PER_PAGE_LIST
-                const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-                const startIndex = (checkLogPage - 1) * itemsPerPage
-                const endIndex = startIndex + itemsPerPage
-                const paginatedData = filteredData.slice(startIndex, endIndex)
-                
-                // Reset to page 1 if current page is out of bounds
-                if (checkLogPage > totalPages && totalPages > 0) {
-                  setCheckLogPage(1)
-                }
-                
-                return (
-                  <>
-                    {checkLogView === 'list' ? (
-                      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Website
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Time
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Page Title
-                            </th>
-                            <th className="relative px-6 py-3">
-                              <span className="sr-only">Actions</span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {/* Show loading entries for websites being processed */}
-                          {websites && Array.from(processingWebsites).map(websiteId => {
-                            const website = websites.find(w => w._id === websiteId)
-                            if (!website) return null
-                            return (
-                              <tr key={`loading-${websiteId}`} className="bg-orange-50 animate-pulse">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-800">
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    Checking...
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="text-sm font-medium text-gray-900">{website.name}</div>
-                                  <div className="text-xs text-gray-500 truncate max-w-xs">{website.url}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  Now
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-500">
-                                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                                </td>
-                                <td className="px-6 py-4 text-right text-sm font-medium">
-                                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                          {paginatedData.map((scrape) => (
-                        <tr key={scrape._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex text-xs px-2 py-1 rounded-full ${
+                  // Filter changes based on selected website, filter, and search query
+                  const filteredHistory = allScrapeHistory.filter(scrape => {
+                    const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
+                    const filterMatch = checkLogFilter === 'all' || scrape.changeStatus === 'changed';
+                    
+                    // Search filter
+                    const searchMatch = !changesSearchQuery || 
+                      scrape.websiteName?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
+                      scrape.title?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
+                      scrape.description?.toLowerCase().includes(changesSearchQuery.toLowerCase());
+                    
+                    return websiteMatch && filterMatch && searchMatch;
+                  });
+                  
+                  // Pagination calculations for changes
+                  const totalChangesPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE_CHANGES)
+                  const changesStartIndex = (changesPage - 1) * ITEMS_PER_PAGE_CHANGES
+                  const changesEndIndex = changesStartIndex + ITEMS_PER_PAGE_CHANGES
+                  const paginatedChanges = filteredHistory.slice(changesStartIndex, changesEndIndex)
+                  
+                  // Reset to page 1 if current page is out of bounds
+                  if (changesPage > totalChangesPages && totalChangesPages > 0) {
+                    setChangesPage(1)
+                  }
+
+                  if (filteredHistory.length === 0) {
+                    return (
+                      <div className="text-center py-8 text-gray-500">
+                        <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p className="text-lg font-medium">No changes found</p>
+                        {selectedWebsiteId ? (
+                          <p className="text-sm mt-1">Select a different website or clear the filter</p>
+                        ) : (
+                          <p className="text-sm mt-1">Click on a website to filter changes</p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {paginatedChanges.map((scrape) => (
+                    <div key={scrape._id} className="border-b hover:bg-gray-50">
+                      <div className="p-3">
+                        <div className="flex items-center gap-3">
+                          {/* Website favicon */}
+                          <div className="flex-shrink-0">
+                            {scrape.websiteUrl && getFaviconUrl(scrape.websiteUrl) ? (
+                              <img 
+                                src={getFaviconUrl(scrape.websiteUrl)} 
+                                alt={scrape.websiteName}
+                                className="w-8 h-8 object-contain rounded bg-gray-50 p-1"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement!.innerHTML = '<div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                <Globe className="w-4 h-4 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-xs text-gray-500 w-20 text-right">{formatTimeAgo(scrape.scrapedAt)}</span>
+                            <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 border border-black w-20 justify-center ${
                               scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
-                              scrape.changeStatus === 'new' ? 'bg-blue-100 text-blue-800' :
-                              scrape.changeStatus === 'same' ? 'bg-gray-100 text-gray-800' :
-                              'bg-red-100 text-red-800'
+                              scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
+                              scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
+                              'bg-gray-100 text-gray-800'
                             }`}>
-                              {scrape.changeStatus === 'changed' ? 'Changed' :
-                               scrape.changeStatus === 'new' ? 'Initial' :
-                               scrape.changeStatus === 'same' ? 'Same' :
-                               'Removed'}
+                              {scrape.changeStatus === 'checking' && (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              )}
+                              {scrape.changeStatus}
                             </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-medium text-gray-900">{scrape.websiteName}</div>
-                            <div className="text-xs text-gray-500 truncate max-w-xs">{scrape.websiteUrl}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatTimeAgo(scrape.scrapedAt)}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            <div className="truncate max-w-xs">
-                              {scrape.title || '-'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex gap-2 justify-end">
-                              {scrape.changeStatus === 'changed' && scrape.diff && (
+                            <div className="w-20 flex justify-center">
+                              {scrape.changeStatus === 'changed' && scrape.diff ? (
                                 <Button
                                   variant="code"
                                   size="sm"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setViewingSpecificScrape(scrape._id);
                                   }}
+                                  className="text-xs px-2 h-7"
                                 >
                                   View Diff
                                 </Button>
+                              ) : (
+                                <div className="w-20"></div>
                               )}
+                            </div>
+                            <div className="w-7">
+                              {scrape.changeStatus !== 'checking' && (
+                                <Button
+                                  variant="orange"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)
+                                  }}
+                                  className="w-7 h-7 p-0"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                      
+                      {/* Pagination Controls for Changes */}
+                      {totalChangesPages > 1 && (
+                        <div className="sticky bottom-0 bg-white border-t p-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">
+                              Page {changesPage} of {totalChangesPages}
+                            </span>
+                            <div className="flex items-center gap-2">
                               <Button
-                                variant="outline"
+                                variant="orange"
                                 size="sm"
-                                onClick={() => downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)}
-                                title="Download Markdown"
+                                onClick={() => setChangesPage(changesPage - 1)}
+                                disabled={changesPage === 1}
                               >
-                                <Download className="h-3 w-3" />
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="orange"
+                                size="sm"
+                                onClick={() => setChangesPage(changesPage + 1)}
+                                disabled={changesPage === totalChangesPages}
+                              >
+                                <ChevronRight className="h-4 w-4" />
                               </Button>
                             </div>
-                          </td>
-                        </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      
-                      {(!allScrapeHistory || allScrapeHistory.length === 0) && (
-                        <div className="text-center py-12">
-                          <Clock className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                          <p className="text-zinc-500">No checks recorded yet. Start monitoring websites to see the check log.</p>
+                          </div>
                         </div>
                       )}
-                      
-                      {filteredData.length === 0 && allScrapeHistory && allScrapeHistory.length > 0 && (
-                        <div className="text-center py-12">
-                          <p className="text-zinc-500">No changes detected in the check log.</p>
-                        </div>
-                      )}
+                    </>
+                  )
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </MainContent>
+      
+      {/* Expanded Panel Modal */}
+      {expandedPanel && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 transition-opacity duration-300"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setExpandedPanel(null)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col animate-in zoom-in-95 duration-300">
+            {/* Modal Header */}
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">
+                {expandedPanel === 'websites' ? 'Currently Tracked Websites' : 'Change Tracking Log'}
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExpandedPanel(null)}
+                className="w-8 h-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="flex-1 overflow-hidden">
+              {expandedPanel === 'websites' ? (
+                // Websites expanded view - reuse the existing websites list logic
+                <div className="h-full flex flex-col">
+                  <div className="p-6 border-b">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {websites && (
+                          <span className="text-sm text-gray-500">{websites.length} site{websites.length !== 1 ? 's' : ''}</span>
+                        )}
+                        {websites && websites.length > 0 && (
+                          <Button
+                            variant="orange"
+                            size="sm"
+                            onClick={async () => {
+                              const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
+                              for (const website of activeWebsites) {
+                                await handleCheckNow(website._id);
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Check All
+                          </Button>
+                        )}
+                      </div>
                     </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Search by name or URL..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                        disabled={!websites}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {!websites ? (
+                      <div className="p-8 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                        <p className="text-gray-500">Loading websites...</p>
+                      </div>
+                    ) : websites.length === 0 ? (
+                      <div className="p-8 text-center text-gray-500">
+                        <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium mb-2">No websites tracked yet</p>
+                        <p className="text-sm">Add a website URL above to start monitoring</p>
+                      </div>
                     ) : (
-                      /* Tile View */
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {/* Show loading tiles for websites being processed */}
-                        {websites && Array.from(processingWebsites).map(websiteId => {
-                          const website = websites.find(w => w._id === websiteId)
-                          if (!website) return null
+                      <div className="divide-y">
+                        {websites.filter(website => {
+                          const query = searchQuery.toLowerCase()
+                          return website.name.toLowerCase().includes(query) || 
+                                 website.url.toLowerCase().includes(query)
+                        }).map((website) => {
+                          const latestScrape = latestScrapes ? latestScrapes[website._id] : null;
+                          const hasChanged = latestScrape?.changeStatus === 'changed';
+                          const isProcessing = processingWebsites.has(website._id);
+                          const isDeleting = deletingWebsites.has(website._id);
+                          
                           return (
-                            <div key={`loading-tile-${websiteId}`} className="bg-white rounded-lg shadow-sm overflow-hidden border border-orange-200 animate-pulse">
-                              {/* Loading image placeholder */}
-                              <div className="h-48 bg-gray-200"></div>
-                              
-                              <div className="p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="font-medium text-gray-900 truncate flex-1">{website.name}</h3>
-                                  <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 bg-orange-100 text-orange-800 flex items-center">
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    Checking
-                                  </span>
+                            <div key={website._id} className="p-6 hover:bg-gray-50">
+                              <div className="flex items-center gap-4">
+                                {/* Website favicon */}
+                                <div className="flex-shrink-0">
+                                  {getFaviconUrl(website.url) ? (
+                                    <img 
+                                      src={getFaviconUrl(website.url)} 
+                                      alt={website.name}
+                                      className="w-12 h-12 object-contain rounded-lg bg-gray-50 p-2"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement!.innerHTML = '<div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                      <Globe className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
                                 </div>
                                 
-                                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                                <div className="h-3 bg-gray-200 rounded w-3/4 mb-3"></div>
-                                
-                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                                  <span>Now</span>
-                                  <a href={website.url} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 truncate max-w-[200px]">
-                                    {website.url}
-                                  </a>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="text-lg font-medium text-gray-900">{website.name}</h4>
+                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium border border-black ${
+                                          website.monitorType === 'full_site' 
+                                            ? 'bg-orange-100 text-orange-700' 
+                                            : 'bg-gray-100 text-gray-700'
+                                        }`}>
+                                          {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
+                                        </span>
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-black ${
+                                          website.isPaused 
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : website.isActive 
+                                            ? 'bg-green-100 text-green-700' 
+                                            : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                          {website.isPaused ? 'Paused' : website.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                      </div>
+                                      <a 
+                                        href={website.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
+                                      >
+                                        {website.url}
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    </div>
+                                    
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-1">
+                                      <Button 
+                                        variant="default" 
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          pauseWebsite({ 
+                                            websiteId: website._id, 
+                                            isPaused: !website.isPaused 
+                                          })
+                                        }}
+                                        title={website.isPaused ? "Resume monitoring" : "Pause monitoring"}
+                                        className="w-8 h-8 p-0"
+                                      >
+                                        {website.isPaused ? (
+                                          <Play className="h-4 w-4" />
+                                        ) : (
+                                          <Pause className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                      <Button 
+                                        variant="default" 
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingWebsiteId(website._id)
+                                          setShowWebhookModal(true)
+                                        }}
+                                        title="Settings"
+                                        className="w-8 h-8 p-0"
+                                      >
+                                        <Settings2 className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="default" 
+                                        size="sm"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone.`)) {
+                                            setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                            try {
+                                              await deleteWebsite({ websiteId: website._id })
+                                            } catch (error) {
+                                              console.error('Failed to delete website:', error)
+                                              alert('Failed to delete website. Please try again.')
+                                            } finally {
+                                              setDeletingWebsites(prev => {
+                                                const newSet = new Set(prev)
+                                                newSet.delete(website._id)
+                                                return newSet
+                                              })
+                                            }
+                                          }
+                                        }}
+                                        title="Remove"
+                                        className="w-8 h-8 p-0 hover:bg-red-50"
+                                        disabled={isDeleting}
+                                      >
+                                        {isDeleting ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <X className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Status info */}
+                                  {(!website.isPaused && latestScrape) && (
+                                    <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                                      <div className="flex items-center gap-3">
+                                        {(newlyCreatedWebsites.has(website._id) || isProcessing) ? (
+                                          <div className="flex items-center gap-1">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <span>{newlyCreatedWebsites.has(website._id) ? 'Setting up monitoring...' : 'Checking for changes...'}</span>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-1">
+                                            {hasChanged ? (
+                                              <>
+                                                <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                                                <span>Changes detected</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                                                <span>No changes</span>
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+                                        <span>Checked {formatTimeAgo(website.lastChecked)}</span>
+                                        <span>Every {formatInterval(website.checkInterval)}</span>
+                                      </div>
+                                      <Button 
+                                        variant="orange"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCheckNow(website._id)
+                                        }}
+                                        disabled={isProcessing}
+                                        className="text-xs"
+                                      >
+                                        {isProcessing ? (
+                                          <>
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                            {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
+                                          </>
+                                        ) : (
+                                          <>
+                                            <RefreshCw className="mr-1 h-3 w-3" />
+                                            Check Now
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
-                                
-                                <div className="h-8 bg-gray-200 rounded"></div>
                               </div>
                             </div>
                           )
                         })}
-                        {paginatedData.map((scrape) => (
-                      <div key={scrape._id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full">
-                        {/* OG Image */}
-                        {scrape.ogImage ? (
-                          <div className="aspect-video w-full bg-gray-100">
-                            <img 
-                              src={scrape.ogImage} 
-                              alt={scrape.websiteName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.parentElement!.style.display = 'none'
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-48 bg-gray-100 flex items-center justify-center">
-                            <ExternalLink className="h-12 w-12 text-gray-300" />
-                          </div>
-                        )}
-                        
-                        {/* Content */}
-                        <div className="p-4 flex flex-col flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <h3 className="font-medium text-gray-900 truncate flex-1">{scrape.websiteName}</h3>
-                            <span className={`flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 ${
-                              scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
-                              scrape.changeStatus === 'new' ? 'bg-blue-100 text-blue-800' :
-                              scrape.changeStatus === 'same' ? 'bg-gray-100 text-gray-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {scrape.changeStatus === 'changed' ? 'Changed' :
-                               scrape.changeStatus === 'new' ? 'Initial' :
-                               scrape.changeStatus === 'same' ? 'Same' :
-                               'Removed'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Changes expanded view - reuse the existing changes list logic
+                <div className="h-full flex flex-col">
+                  <div className="p-6 border-b">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {selectedWebsiteId && websites && (
+                          <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-black">
+                            <span>Filtered:</span>
+                            <span className="font-medium">
+                              {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
                             </span>
-                          </div>
-                          
-                          <div className="flex-1">
-                            {scrape.title && (
-                              <p className="text-sm text-gray-700 mb-2 line-clamp-2">{scrape.title}</p>
-                            )}
-                            
-                            {scrape.description && (
-                              <p className="text-xs text-gray-500 mb-3 line-clamp-2">{scrape.description}</p>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                            <span>{formatTimeAgo(scrape.scrapedAt)}</span>
-                            <a 
-                              href={scrape.websiteUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="hover:text-gray-700"
+                            <button
+                              onClick={() => {
+                                setSelectedWebsiteId(null)
+                                setChangesPage(1)
+                              }}
+                              className="ml-1 hover:text-orange-900"
                             >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              variant="orange"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)}
-                            >
-                              <Download className="h-3 w-3 mr-1" />
-                              Download
-                            </Button>
-                            {scrape.changeStatus === 'changed' && scrape.diff && (
-                              <Button
-                                variant="code"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => {
-                                  setViewingSpecificScrape(scrape._id);
-                                }}
-                              >
-                                View Diff
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                        ))}
-                        
-                        {(!allScrapeHistory || allScrapeHistory.length === 0) && (
-                          <div className="col-span-full text-center py-12">
-                            <Clock className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                            <p className="text-zinc-500">No checks recorded yet. Start monitoring websites to see the check log.</p>
-                          </div>
-                        )}
-                        
-                        {filteredData.length === 0 && allScrapeHistory && allScrapeHistory.length > 0 && (
-                          <div className="col-span-full text-center py-12">
-                            <p className="text-zinc-500">No changes detected in the check log.</p>
+                              <X className="h-3 w-3" />
+                            </button>
                           </div>
                         )}
                       </div>
-                    )}
-                    
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="mt-6 flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
-                          Showing {startIndex + 1}-{Math.min(endIndex, filteredData.length)} of {filteredData.length} checks
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCheckLogPage(checkLogPage - 1)}
-                            disabled={checkLogPage === 1}
-                            className="gap-1"
-                          >
-                            <ChevronLeft className="h-3 w-3" />
-                            Previous
-                          </Button>
-                          
-                          {/* Page numbers */}
-                          <div className="flex gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                              // Show first page, last page, and pages around current
-                              if (
-                                page === 1 ||
-                                page === totalPages ||
-                                (page >= checkLogPage - 1 && page <= checkLogPage + 1)
-                              ) {
-                                return (
-                                  <Button
-                                    key={page}
-                                    variant={page === checkLogPage ? 'code' : 'outline'}
-                                    size="sm"
-                                    onClick={() => setCheckLogPage(page)}
-                                    className="min-w-[40px]"
-                                  >
-                                    {page}
-                                  </Button>
-                                )
-                              } else if (
-                                page === checkLogPage - 2 || 
-                                page === checkLogPage + 2
-                              ) {
-                                return <span key={page} className="px-2">...</span>
-                              }
-                              return null
-                            })}
-                          </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCheckLogPage(checkLogPage + 1)}
-                            disabled={checkLogPage === totalPages}
-                            className="gap-1"
-                          >
-                            Next
-                            <ChevronRight className="h-3 w-3" />
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={checkLogFilter === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCheckLogFilter('all')}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={checkLogFilter === 'changed' ? 'orange' : 'outline'}
+                          size="sm"
+                          onClick={() => setCheckLogFilter('changed')}
+                        >
+                          Changed Only
+                        </Button>
                       </div>
-                    )}
-                  </>
-                )
-              })()}
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Search changes by website name, title, or description..."
+                        value={changesSearchQuery}
+                        onChange={(e) => {
+                          setChangesSearchQuery(e.target.value)
+                          setChangesPage(1)
+                        }}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {/* Changes list with filtering */}
+                    <div className="divide-y">
+                      {(() => {
+                        if (!allScrapeHistory) {
+                          return (
+                            <div className="p-8 text-center">
+                              <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                              <p className="text-gray-500">Loading change history...</p>
+                            </div>
+                          )
+                        }
+                        
+                        // Apply filters
+                        const filteredHistory = allScrapeHistory.filter(scrape => {
+                          const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
+                          const filterMatch = checkLogFilter === 'all' || scrape.changeStatus === 'changed';
+                          const searchMatch = !changesSearchQuery || 
+                            scrape.websiteName?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
+                            scrape.title?.toLowerCase().includes(changesSearchQuery.toLowerCase()) ||
+                            scrape.description?.toLowerCase().includes(changesSearchQuery.toLowerCase());
+                          return websiteMatch && filterMatch && searchMatch;
+                        });
+                        
+                        return filteredHistory.map((scrape) => (
+                          <div key={scrape._id} className="border-b hover:bg-gray-50">
+                            <div className="p-3">
+                              <div className="flex items-center gap-3">
+                                {/* Website favicon */}
+                                <div className="flex-shrink-0">
+                                  {scrape.websiteUrl && getFaviconUrl(scrape.websiteUrl) ? (
+                                    <img 
+                                      src={getFaviconUrl(scrape.websiteUrl)} 
+                                      alt={scrape.websiteName}
+                                      className="w-8 h-8 object-contain rounded bg-gray-50 p-1"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement!.innerHTML = '<div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></div>';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                                      <Globe className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate">{scrape.websiteName}</h4>
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="text-xs text-gray-500 w-20 text-right">{formatTimeAgo(scrape.scrapedAt)}</span>
+                                  <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 border border-black w-20 justify-center ${
+                                    scrape.changeStatus === 'changed' ? 'bg-orange-100 text-orange-800' :
+                                    scrape.changeStatus === 'checking' ? 'bg-blue-100 text-blue-800' :
+                                    scrape.changeStatus === 'new' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {scrape.changeStatus === 'checking' && (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    )}
+                                    {scrape.changeStatus}
+                                  </span>
+                                  <div className="w-20 flex justify-center">
+                                    {scrape.changeStatus === 'changed' && scrape.diff ? (
+                                      <Button
+                                        variant="code"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setViewingSpecificScrape(scrape._id);
+                                        }}
+                                        className="text-xs px-2 h-7"
+                                      >
+                                        View Diff
+                                      </Button>
+                                    ) : (
+                                      <div className="w-20"></div>
+                                    )}
+                                  </div>
+                                  <div className="w-7">
+                                    {scrape.changeStatus !== 'checking' && (
+                                      <Button
+                                        variant="orange"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)
+                                        }}
+                                        className="w-7 h-7 p-0"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </MainContent>
+      )}
       
       {/* Specific Diff Modal - Outside tab content */}
       {viewingSpecificScrape && allScrapeHistory && (
@@ -1293,7 +1520,7 @@ export default function HomePage() {
                   <div className="overflow-y-auto max-h-[70vh] bg-gray-900">
                     {scrape.diff && scrape.diff.text ? (
                       <div className="p-4">
-                        <div className="font-mono text-sm">
+                        <div className="font-mono text-sm text-gray-100">
                           {diffLines.map((line, index) => {
                             const isAddition = line.startsWith('+') && !line.startsWith('+++');
                             const isDeletion = line.startsWith('-') && !line.startsWith('---');
@@ -1308,17 +1535,17 @@ export default function HomePage() {
                               <div
                                 key={index}
                                 className={`px-2 py-0.5 ${
-                                  isAddition ? 'bg-green-900/30 text-green-300' :
-                                  isDeletion ? 'bg-red-900/30 text-red-300' :
-                                  isContext ? 'bg-blue-900/30 text-blue-300 font-bold' :
+                                  isAddition ? 'bg-green-900/30 text-green-400' :
+                                  isDeletion ? 'bg-red-900/30 text-red-400' :
+                                  isContext ? 'bg-gray-800/50 text-gray-300 font-bold' :
                                   isFileHeader ? 'text-gray-400' :
-                                  'text-gray-300'
+                                  'text-gray-200'
                                 }`}
                               >
                                 <span className="select-none text-gray-500 mr-2">
                                   {String(index + 1).padStart(4, ' ')}
                                 </span>
-                                <span>{line || ' '}</span>
+                                <span className="break-all">{line || ' '}</span>
                               </div>
                             );
                           })}
@@ -1363,30 +1590,87 @@ export default function HomePage() {
       )}
       
       {/* Webhook Configuration Modal */}
-      {editingWebsiteId && (
+      {(editingWebsiteId || pendingWebsite) && (
         <WebhookConfigModal
           isOpen={showWebhookModal}
           onClose={() => {
             setShowWebhookModal(false)
             setEditingWebsiteId(null)
+            setPendingWebsite(null)
           }}
           onSave={async (config) => {
-            // Update website with notification preferences
-            if (editingWebsiteId) {
+            if (pendingWebsite) {
+              // Create new website with configured settings
+              setIsAdding(true)
+              try {
+                const websiteId = await createWebsite({
+                  url: pendingWebsite.url,
+                  name: pendingWebsite.name,
+                  checkInterval: config.checkInterval || 60,
+                  notificationPreference: config.notificationPreference,
+                  webhookUrl: config.webhookUrl,
+                  monitorType: config.monitorType,
+                  crawlLimit: config.crawlLimit,
+                  crawlDepth: config.crawlDepth
+                })
+                
+                // Add to processing state to show initial setup is happening
+                setProcessingWebsites(prev => new Set([...prev, websiteId]))
+                setNewlyCreatedWebsites(prev => new Set([...prev, websiteId]))
+                
+                // Remove from processing after initial setup time
+                setTimeout(() => {
+                  setProcessingWebsites(prev => {
+                    const newSet = new Set(prev)
+                    newSet.delete(websiteId)
+                    return newSet
+                  })
+                  setNewlyCreatedWebsites(prev => {
+                    const newSet = new Set(prev)
+                    newSet.delete(websiteId)
+                    return newSet
+                  })
+                }, config.monitorType === 'full_site' ? 15000 : 8000) // Longer for full site crawls
+                
+                setPendingWebsite(null)
+              } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+                setError(error.message || 'Failed to add website')
+              } finally {
+                setIsAdding(false)
+              }
+            } else if (editingWebsiteId) {
+              // Update existing website
               await updateWebsite({
-                websiteId: editingWebsiteId,
+                websiteId: editingWebsiteId as any, // eslint-disable-line @typescript-eslint/no-explicit-any
                 notificationPreference: config.notificationPreference,
-                webhookUrl: config.webhookUrl
+                webhookUrl: config.webhookUrl,
+                checkInterval: config.checkInterval,
+                monitorType: config.monitorType,
+                crawlLimit: config.crawlLimit,
+                crawlDepth: config.crawlDepth
               })
             }
             setShowWebhookModal(false)
             setEditingWebsiteId(null)
+            setPendingWebsite(null)
           }}
-          initialConfig={{
-            notificationPreference: websites?.find(w => w._id === editingWebsiteId)?.notificationPreference || 'none',
-            webhookUrl: websites?.find(w => w._id === editingWebsiteId)?.webhookUrl
-          }}
-          websiteName={websites?.find(w => w._id === editingWebsiteId)?.name || 'Website'}
+          initialConfig={
+            editingWebsiteId ? {
+              notificationPreference: websites?.find(w => w._id === editingWebsiteId)?.notificationPreference || 'none',
+              webhookUrl: websites?.find(w => w._id === editingWebsiteId)?.webhookUrl,
+              checkInterval: websites?.find(w => w._id === editingWebsiteId)?.checkInterval || 60,
+              monitorType: websites?.find(w => w._id === editingWebsiteId)?.monitorType || 'single_page',
+              crawlLimit: websites?.find(w => w._id === editingWebsiteId)?.crawlLimit || 5,
+              crawlDepth: websites?.find(w => w._id === editingWebsiteId)?.crawlDepth || 3
+            } : {
+              notificationPreference: 'none',
+              checkInterval: 60,
+              monitorType: 'single_page',
+              crawlLimit: 5,
+              crawlDepth: 3
+            }
+          }
+          websiteName={pendingWebsite?.name || websites?.find(w => w._id === editingWebsiteId)?.name || 'Website'}
         />
       )}
       

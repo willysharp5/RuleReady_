@@ -11,13 +11,22 @@ export const checkActiveWebsites = internalAction({
     // Schedule scrapes for each website
     for (const website of websites) {
       try {
-        await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
-          websiteId: website._id,
-          url: website.url,
-          userId: website.userId,
-        });
+        if (website.monitorType === "full_site") {
+          // For full site monitors, check all crawled pages
+          await ctx.scheduler.runAfter(0, internal.crawl.checkCrawledPages, {
+            websiteId: website._id,
+            userId: website.userId,
+          });
+        } else {
+          // For single page monitors, just check the URL
+          await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
+            websiteId: website._id,
+            url: website.url,
+            userId: website.userId,
+          });
+        }
       } catch (error) {
-        console.error(`Failed to schedule scrape for ${website.url}:`, error);
+        console.error(`Failed to schedule check for ${website.url}:`, error);
       }
     }
   },
@@ -36,6 +45,11 @@ export const getWebsitesToCheck = internalQuery({
 
     // Filter websites that need checking based on their interval
     const websitesToCheck = activeWebsites.filter((website) => {
+      // Skip paused websites
+      if (website.isPaused) {
+        return false;
+      }
+      
       if (!website.lastChecked) {
         // Never checked before
         return true;

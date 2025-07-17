@@ -4,12 +4,35 @@ import { v } from "convex/values";
 
 const schema = defineSchema({
   ...authTables,
+  
+  // API Keys
+  apiKeys: defineTable({
+    userId: v.id("users"),
+    key: v.string(),
+    name: v.string(),
+    lastUsed: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key", ["key"]),
+
+  // Firecrawl API Keys
+  firecrawlApiKeys: defineTable({
+    userId: v.id("users"),
+    encryptedKey: v.string(),
+    lastUsed: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
+
   // Website monitoring tables
   websites: defineTable({
     url: v.string(),
     name: v.string(),
     userId: v.id("users"),
     isActive: v.boolean(),
+    isPaused: v.optional(v.boolean()), // For manual pause separate from isActive
     checkInterval: v.number(), // in minutes
     lastChecked: v.optional(v.number()),
     notificationPreference: v.optional(v.union(
@@ -19,6 +42,14 @@ const schema = defineSchema({
       v.literal("both")
     )),
     webhookUrl: v.optional(v.string()),
+    monitorType: v.optional(v.union(
+      v.literal("single_page"),
+      v.literal("full_site")
+    )),
+    crawlLimit: v.optional(v.number()), // max pages to crawl
+    crawlDepth: v.optional(v.number()), // max depth to crawl
+    lastCrawlAt: v.optional(v.number()),
+    totalPages: v.optional(v.number()), // total pages found in last crawl
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -33,7 +64,8 @@ const schema = defineSchema({
       v.literal("new"),
       v.literal("same"),
       v.literal("changed"),
-      v.literal("removed")
+      v.literal("removed"),
+      v.literal("checking")
     ),
     visibility: v.union(v.literal("visible"), v.literal("hidden")),
     previousScrapeAt: v.optional(v.number()),
@@ -74,7 +106,18 @@ const schema = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_token", ["verificationToken"]),
+    
+  // User settings for defaults
+  userSettings: defineTable({
+    userId: v.id("users"),
+    defaultWebhookUrl: v.optional(v.string()),
+    emailNotificationsEnabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
 
   webhookPlayground: defineTable({
     payload: v.any(),
@@ -86,6 +129,45 @@ const schema = defineSchema({
     response: v.optional(v.any()),
   })
     .index("by_time", ["receivedAt"]),
+
+  crawlSessions: defineTable({
+    websiteId: v.id("websites"),
+    userId: v.id("users"),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    pagesFound: v.number(),
+    pagesChanged: v.optional(v.number()),
+    pagesAdded: v.optional(v.number()),
+    pagesRemoved: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_website", ["websiteId"])
+    .index("by_user_time", ["userId", "startedAt"]),
+
+  crawledPages: defineTable({
+    websiteId: v.id("websites"),
+    crawlSessionId: v.id("crawlSessions"),
+    url: v.string(),
+    path: v.string(), // relative path from root
+    depth: v.number(),
+    status: v.union(
+      v.literal("found"),
+      v.literal("changed"),
+      v.literal("removed"),
+      v.literal("new")
+    ),
+    lastChecked: v.number(),
+    title: v.optional(v.string()),
+    lastScrapeResultId: v.optional(v.id("scrapeResults")),
+  })
+    .index("by_website", ["websiteId"])
+    .index("by_session", ["crawlSessionId"])
+    .index("by_url", ["websiteId", "url"]),
 });
 
 export default schema;
