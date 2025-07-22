@@ -11,7 +11,7 @@ export const getFirecrawlClient = async (ctx: any, userId: string) => {
   const userKeyData = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKey, { userId });
   
   if (userKeyData && userKeyData.key) {
-    console.log("Using user's Firecrawl API key (masked):", userKeyData.key.slice(0, 8) + "..." + userKeyData.key.slice(-4));
+    // Using user's Firecrawl API key
     // Update last used timestamp
     await ctx.runMutation(internal.firecrawlKeys.updateLastUsed, { keyId: userKeyData.keyId });
     return new FirecrawlApp({ apiKey: userKeyData.key });
@@ -23,7 +23,7 @@ export const getFirecrawlClient = async (ctx: any, userId: string) => {
     console.error("No Firecrawl API key found in environment or user settings");
     throw new Error("No Firecrawl API key found. Please add your API key in settings.");
   }
-  console.log("Using environment Firecrawl API key");
+  // Using environment Firecrawl API key
   return new FirecrawlApp({ apiKey });
 };
 
@@ -44,7 +44,7 @@ export const scrapeUrl = internalAction({
     const firecrawl = await getFirecrawlClient(ctx, args.userId);
 
     try {
-      console.log("Attempting to scrape URL:", args.url);
+      // Scraping URL with change tracking
       // Scrape with change tracking - markdown is required for changeTracking
       const result = await firecrawl.scrapeUrl(args.url, {
         formats: ["markdown", "changeTracking"],
@@ -57,18 +57,17 @@ export const scrapeUrl = internalAction({
         throw new Error(`Firecrawl scrape failed: ${result.error}`);
       }
 
-      console.log("Full Firecrawl response:", JSON.stringify(result, null, 2));
+      // Log only essential info, not the full response
       
       // Firecrawl returns markdown directly on the result object
       const markdown = result?.markdown || "";
       const changeTracking = result?.changeTracking;
       const metadata = result?.metadata;
       
-      console.log("Extracted markdown:", markdown ? `${markdown.substring(0, 100)}...` : "No markdown");
-      console.log("Markdown length:", markdown.length);
-      console.log("Change tracking status:", changeTracking?.changeStatus);
-      console.log("Has diff:", !!changeTracking?.diff);
-      console.log("Diff text length:", changeTracking?.diff?.text?.length || 0);
+      // Log only essential change status
+      if (changeTracking?.changeStatus === "changed") {
+        console.log(`Change detected for ${args.url}: ${changeTracking.changeStatus}`);
+      }
 
       // Store the scrape result
       const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
@@ -85,6 +84,7 @@ export const scrapeUrl = internalAction({
         ogImage: metadata?.ogImage || undefined,
         title: metadata?.title || undefined,
         description: metadata?.description || undefined,
+        url: args.url, // Pass the actual URL that was scraped
         diff: changeTracking?.diff ? {
           text: changeTracking.diff.text || "",
           json: changeTracking.diff.json || null,
@@ -212,12 +212,26 @@ export const triggerScrape = action({
       userId: userId,
     });
 
-    // Trigger the scrape
-    await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
+    // Update lastChecked immediately to prevent duplicate checks
+    await ctx.runMutation(internal.websites.updateLastChecked, {
       websiteId: args.websiteId,
-      url: website.url,
-      userId: userId,
     });
+
+    // Trigger the appropriate check based on monitor type
+    if (website.monitorType === "full_site") {
+      // For full site, perform a crawl
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+        websiteId: args.websiteId,
+        userId: userId,
+      });
+    } else {
+      // For single page, just scrape the URL
+      await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
+        websiteId: args.websiteId,
+        url: website.url,
+        userId: userId,
+      });
+    }
 
     return { success: true };
   },

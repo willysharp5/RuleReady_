@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Coins } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuthActions } from "@convex-dev/auth/react"
-import { useConvexAuth, useQuery } from "convex/react"
+import { useConvexAuth, useQuery, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 
 interface HeaderProps {
@@ -27,6 +27,31 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
   const { signOut } = useAuthActions()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const currentUser = useQuery(api.users.getCurrentUser)
+  const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
+  const getTokenUsage = useAction(api.firecrawlKeys.getTokenUsage)
+  const [tokenUsage, setTokenUsage] = useState<{ remaining_tokens?: number; error?: string } | null>(null)
+  
+  const fetchTokenUsage = useCallback(async () => {
+    try {
+      const result = await getTokenUsage()
+      if (result.success) {
+        setTokenUsage({ remaining_tokens: result.remaining_tokens })
+      } else {
+        setTokenUsage({ error: result.error })
+      }
+    } catch {
+      setTokenUsage({ error: 'Failed to fetch token usage' })
+    }
+  }, [getTokenUsage])
+  
+  useEffect(() => {
+    if (firecrawlKey?.hasKey && isAuthenticated) {
+      fetchTokenUsage()
+      // Refresh credits every 30 seconds
+      const interval = setInterval(fetchTokenUsage, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [firecrawlKey?.hasKey, isAuthenticated, fetchTokenUsage])
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -47,6 +72,12 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
         </Link>
         
         <div className="flex items-center gap-4">
+          {isAuthenticated && tokenUsage?.remaining_tokens !== undefined && (
+            <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+              <Coins className="h-4 w-4" />
+              <span>{tokenUsage.remaining_tokens.toLocaleString()} credits remaining</span>
+            </div>
+          )}
           {isAuthenticated ? (
             <>
               <Link href="/api-docs">

@@ -57,7 +57,7 @@ export const createWebsite = mutation({
 
     // If it's a full site monitor, trigger initial crawl
     if (args.monitorType === "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performInitialCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId,
         userId: user._id,
       });
@@ -203,7 +203,7 @@ export const updateWebsite = mutation({
 
     // If changing to full site monitoring, trigger initial crawl
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performInitialCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId: args.websiteId,
         userId: user._id,
       });
@@ -229,6 +229,19 @@ export const createCheckingStatus = internalMutation({
     });
 
     return scrapeResultId;
+  },
+});
+
+// Update lastChecked timestamp immediately (to prevent duplicate checks)
+export const updateLastChecked = internalMutation({
+  args: {
+    websiteId: v.id("websites"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.websiteId, {
+      lastChecked: Date.now(),
+      updatedAt: Date.now(),
+    });
   },
 });
 
@@ -272,6 +285,7 @@ export const storeScrapeResult = internalMutation({
     ogImage: v.optional(v.string()),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    url: v.optional(v.string()), // Add URL parameter
     diff: v.optional(v.object({
       text: v.string(),
       json: v.any(),
@@ -297,6 +311,7 @@ export const storeScrapeResult = internalMutation({
       ogImage: args.ogImage,
       title: args.title,
       description: args.description,
+      url: args.url,
       diff: args.diff,
     });
 
@@ -458,7 +473,7 @@ export const getAllScrapeHistory = query({
       return {
         ...scrape,
         websiteName: websiteMap.get(scrape.websiteId)?.name || "Unknown",
-        websiteUrl: websiteMap.get(scrape.websiteId)?.url || "",
+        websiteUrl: scrape.url || websiteMap.get(scrape.websiteId)?.url || "",
         isFirstScrape: isFirstScrape,
         scrapeNumber: websiteScrapes.length - scrapeIndex,
         totalScrapes: websiteScrapes.length,
@@ -528,12 +543,6 @@ export const deleteWebsite = mutation({
       await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
         websiteId: args.websiteId,
         userId: user._id,
-        dataType: "crawledPages"
-      });
-      
-      await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
-        websiteId: args.websiteId,
-        userId: user._id,
         dataType: "crawlSessions"
       });
     }
@@ -551,7 +560,6 @@ export const deleteWebsiteData = internalMutation({
     dataType: v.union(
       v.literal("scrapeResults"),
       v.literal("changeAlerts"),
-      v.literal("crawledPages"),
       v.literal("crawlSessions")
     ),
   },
@@ -572,12 +580,6 @@ export const deleteWebsiteData = internalMutation({
         case "changeAlerts":
           items = await ctx.db
             .query("changeAlerts")
-            .withIndex("by_website", (q) => q.eq("websiteId", args.websiteId))
-            .take(BATCH_SIZE);
-          break;
-        case "crawledPages":
-          items = await ctx.db
-            .query("crawledPages")
             .withIndex("by_website", (q) => q.eq("websiteId", args.websiteId))
             .take(BATCH_SIZE);
           break;
@@ -637,7 +639,7 @@ export const createWebsiteFromApi = internalMutation({
 
     // If it's a full site monitor, trigger initial crawl
     if (args.monitorType === "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performInitialCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId,
         userId: args.userId,
       });
@@ -702,12 +704,6 @@ export const deleteWebsiteFromApi = internalMutation({
     });
     
     if (website.monitorType === "full_site") {
-      await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
-        websiteId: websiteId,
-        userId: args.userId,
-        dataType: "crawledPages"
-      });
-      
       await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
         websiteId: websiteId,
         userId: args.userId,

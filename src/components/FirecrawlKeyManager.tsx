@@ -29,7 +29,7 @@ export function FirecrawlKeyManager() {
       } else {
         setTokenUsage({ error: result.error })
       }
-    } catch (_err) {
+    } catch {
       setTokenUsage({ error: 'Failed to fetch token usage' })
     } finally {
       setIsLoadingTokens(false)

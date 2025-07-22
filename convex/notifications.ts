@@ -2,6 +2,7 @@ import { internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { resend } from "./alertEmail";
+import { sanitizeHtml } from "./lib/sanitize";
 
 export const sendWebhookNotification = internalAction({
   args: {
@@ -165,7 +166,7 @@ export const sendEmailNotification = internalAction({
     
     if (userSettings?.emailTemplate) {
       // Use custom template with variable replacements
-      htmlContent = userSettings.emailTemplate
+      let processedTemplate = userSettings.emailTemplate
         .replace(/{{websiteName}}/g, args.websiteName)
         .replace(/{{websiteUrl}}/g, args.websiteUrl)
         .replace(/{{changeDate}}/g, new Date(args.scrapedAt).toLocaleString())
@@ -177,6 +178,9 @@ export const sendEmailNotification = internalAction({
         .replace(/{{aiReasoning}}/g, args.aiAnalysis?.reasoning || 'N/A')
         .replace(/{{aiModel}}/g, args.aiAnalysis?.model || 'N/A')
         .replace(/{{aiAnalyzedAt}}/g, args.aiAnalysis?.analyzedAt ? new Date(args.aiAnalysis.analyzedAt).toLocaleString() : 'N/A');
+      
+      // Sanitize the HTML to prevent XSS
+      htmlContent = sanitizeHtml(processedTemplate);
     } else {
       // Use default template
       htmlContent = `
@@ -201,7 +205,7 @@ export const sendEmailNotification = internalAction({
     }
 
     await resend.sendEmail(ctx, {
-      from: "Firecrawl Observer <noreply@answer.website>",
+      from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@answer.website'}>`,
       to: args.email,
       subject: `Changes detected on ${args.websiteName}`,
       html: htmlContent,
@@ -226,15 +230,6 @@ export const sendCrawlWebhook = internalAction({
 
     if (!session) return;
 
-    // Get summary of changes
-    const crawledPages = await ctx.runQuery(internal.crawl.getCrawledPagesForSession, {
-      sessionId: args.sessionId,
-    });
-
-    const changedPages = crawledPages.filter((p: any) => p.status === "changed");
-    const newPages = crawledPages.filter((p: any) => p.status === "new");
-    const removedPages = crawledPages.filter((p: any) => p.status === "removed");
-
     const payload = {
       event: "crawl_completed",
       timestamp: new Date().toISOString(),
@@ -248,32 +243,11 @@ export const sendCrawlWebhook = internalAction({
         sessionId: args.sessionId,
         startedAt: new Date(session.startedAt).toISOString(),
         completedAt: session.completedAt ? new Date(session.completedAt).toISOString() : null,
-        pagesChecked: args.pagesFound,
-        pagesChanged: changedPages.length,
-        pagesAdded: newPages.length,
-        pagesRemoved: removedPages.length,
+        pagesFound: args.pagesFound,
         duration: session.completedAt ? `${Math.round((session.completedAt - session.startedAt) / 1000)}s` : null,
       },
-      changes: [
-        ...changedPages.map((p: any) => ({
-          url: p.url,
-          path: p.path,
-          status: "changed",
-          title: p.title,
-        })),
-        ...newPages.map((p: any) => ({
-          url: p.url,
-          path: p.path,
-          status: "added",
-          title: p.title,
-        })),
-        ...removedPages.map((p: any) => ({
-          url: p.url,
-          path: p.path,
-          status: "removed",
-          title: p.title,
-        })),
-      ],
+      // Individual page changes are now tracked separately via change alerts
+      note: "Individual page changes trigger separate notifications with detailed diffs",
     };
 
     try {

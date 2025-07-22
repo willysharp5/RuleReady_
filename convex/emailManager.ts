@@ -101,7 +101,7 @@ export const sendVerificationEmail = internalAction({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Firecrawl Observer <noreply@firecrawl-observer.com>',
+          from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@answer.website'}>`,
           to: args.email,
           subject: 'Verify your email for Firecrawl Observer',
           html: `

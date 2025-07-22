@@ -74,6 +74,7 @@ const schema = defineSchema({
     ogImage: v.optional(v.string()),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+    url: v.optional(v.string()), // The actual URL that was scraped
     diff: v.optional(v.object({
       text: v.string(),
       json: v.any(),
@@ -125,13 +126,11 @@ const schema = defineSchema({
     emailTemplate: v.optional(v.string()),
     // AI Analysis settings
     aiAnalysisEnabled: v.optional(v.boolean()),
-    aiModel: v.optional(v.union(
-      v.literal("gpt-4o"),
-      v.literal("gpt-4o-mini")
-    )),
+    aiModel: v.optional(v.string()), // Changed to string to support any model name
+    aiBaseUrl: v.optional(v.string()), // Custom base URL for OpenAI-compatible APIs
     aiSystemPrompt: v.optional(v.string()),
     aiMeaningfulChangeThreshold: v.optional(v.number()), // 0-100 score threshold
-    aiApiKey: v.optional(v.string()), // encrypted OpenAI API key
+    aiApiKey: v.optional(v.string()), // encrypted API key
     // AI-based notification filtering
     emailOnlyIfMeaningful: v.optional(v.boolean()), // only send email if AI deems meaningful
     webhookOnlyIfMeaningful: v.optional(v.boolean()), // only send webhook if AI deems meaningful
@@ -166,29 +165,10 @@ const schema = defineSchema({
     pagesAdded: v.optional(v.number()),
     pagesRemoved: v.optional(v.number()),
     error: v.optional(v.string()),
+    jobId: v.optional(v.string()), // Firecrawl async job ID
   })
     .index("by_website", ["websiteId"])
     .index("by_user_time", ["userId", "startedAt"]),
-
-  crawledPages: defineTable({
-    websiteId: v.id("websites"),
-    crawlSessionId: v.id("crawlSessions"),
-    url: v.string(),
-    path: v.string(), // relative path from root
-    depth: v.number(),
-    status: v.union(
-      v.literal("found"),
-      v.literal("changed"),
-      v.literal("removed"),
-      v.literal("new")
-    ),
-    lastChecked: v.number(),
-    title: v.optional(v.string()),
-    lastScrapeResultId: v.optional(v.id("scrapeResults")),
-  })
-    .index("by_website", ["websiteId"])
-    .index("by_session", ["crawlSessionId"])
-    .index("by_url", ["websiteId", "url"]),
 });
 
 export default schema;

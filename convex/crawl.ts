@@ -4,13 +4,15 @@ import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { getFirecrawlClient } from "./firecrawl";
 
-// Perform initial crawl when a full site monitor is created
-export const performInitialCrawl = internalAction({
+// Perform a crawl for a full site monitor
+export const performCrawl = internalAction({
   args: {
     websiteId: v.id("websites"),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Starting crawl for website
+    
     // Get website details
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
@@ -20,6 +22,13 @@ export const performInitialCrawl = internalAction({
     if (!website || website.monitorType !== "full_site") {
       throw new Error("Website not found or not a full site monitor");
     }
+    
+    // Starting full crawl with configured settings
+
+    // Update lastChecked immediately to prevent duplicate crawls
+    await ctx.runMutation(internal.websites.updateLastChecked, {
+      websiteId: args.websiteId,
+    });
 
     // Create crawl session
     const sessionId = await ctx.runMutation(internal.crawl.createCrawlSession, {
@@ -30,7 +39,11 @@ export const performInitialCrawl = internalAction({
     try {
       // Perform the crawl using Firecrawl
       const firecrawl = await getFirecrawlClient(ctx, args.userId);
-      const crawlResult = await firecrawl.crawlUrl(website.url, {
+      
+      // Initiating Firecrawl crawl
+      
+      // Start the crawl - this might return a job ID instead of immediate results
+      const crawlResponse = await firecrawl.crawlUrl(website.url, {
         limit: website.crawlLimit || 10,
         maxDepth: website.crawlDepth || 3,
         scrapeOptions: {
@@ -38,37 +51,46 @@ export const performInitialCrawl = internalAction({
         },
       }) as any;
 
-      if (!crawlResult.success) {
-        throw new Error(`Firecrawl crawl failed: ${crawlResult.error}`);
+      console.log(`Crawl response received, jobId: ${crawlResponse.jobId || crawlResponse.id || 'N/A'}`);
+
+      // Check if it's an async crawl job
+      if (crawlResponse.jobId || crawlResponse.id) {
+        const jobId = crawlResponse.jobId || crawlResponse.id;
+        console.log(`Crawl started with job ID: ${jobId}`);
+        
+        // Store the job ID in the crawl session
+        await ctx.runMutation(internal.crawl.updateCrawlSessionJobId, {
+          sessionId,
+          jobId,
+        });
+        
+        // Schedule job status checking
+        await ctx.scheduler.runAfter(5000, internal.crawl.checkCrawlJobStatus, {
+          sessionId,
+          jobId,
+          websiteId: args.websiteId,
+          userId: args.userId,
+          attempt: 1,
+        });
+        
+        return { success: true, pagesFound: 0, jobId };
       }
 
-      const pages = crawlResult.data || [];
+      // If we got immediate results (synchronous crawl)
+      if (!crawlResponse.success) {
+        throw new Error(`Firecrawl crawl failed: ${crawlResponse.error}`);
+      }
+
+      const pages = crawlResponse.data || [];
       
-      // Store all crawled pages
+      // Process each page from the crawl
       for (const page of pages) {
         const pageUrl = page.url || page.metadata?.url;
         if (!pageUrl) continue;
 
-        // Calculate relative path and depth
-        const baseUrl = new URL(website.url);
-        const pageUrlObj = new URL(pageUrl);
-        const relativePath = pageUrlObj.pathname;
-        const depth = relativePath.split('/').filter(p => p).length;
-
-        // Store the page
-        await ctx.runMutation(internal.crawl.storeCrawledPage, {
-          websiteId: args.websiteId,
-          crawlSessionId: sessionId,
-          url: pageUrl,
-          path: relativePath,
-          depth: depth,
-          status: "found",
-          title: page.metadata?.title,
-        });
-
-        // Store the scrape result
+        // Only store if there's actual content
         if (page.markdown) {
-          await ctx.runMutation(internal.websites.storeScrapeResult, {
+          const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
             websiteId: args.websiteId,
             userId: args.userId,
             markdown: page.markdown,
@@ -82,11 +104,23 @@ export const performInitialCrawl = internalAction({
             ogImage: page.metadata?.ogImage,
             title: page.metadata?.title,
             description: page.metadata?.description,
+            url: pageUrl, // Pass the actual URL
             diff: page.changeTracking?.diff ? {
               text: page.changeTracking.diff.text || "",
               json: page.changeTracking.diff.json || null,
             } : undefined,
           });
+          
+          // Handle notifications for changed pages
+          if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
+            await ctx.runMutation(internal.websites.createChangeAlert, {
+              websiteId: args.websiteId,
+              userId: args.userId,
+              scrapeResultId: scrapeResultId,
+              changeType: "content_changed",
+              summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
+            });
+          }
         }
       }
 
@@ -128,52 +162,7 @@ export const createCrawlSession = internalMutation({
   },
 });
 
-// Store a crawled page
-export const storeCrawledPage = internalMutation({
-  args: {
-    websiteId: v.id("websites"),
-    crawlSessionId: v.id("crawlSessions"),
-    url: v.string(),
-    path: v.string(),
-    depth: v.number(),
-    status: v.union(
-      v.literal("found"),
-      v.literal("changed"),
-      v.literal("removed"),
-      v.literal("new")
-    ),
-    title: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    // Check if page already exists
-    const existingPage = await ctx.db
-      .query("crawledPages")
-      .withIndex("by_url", (q) => q.eq("websiteId", args.websiteId).eq("url", args.url))
-      .first();
-
-    if (existingPage) {
-      // Update existing page
-      await ctx.db.patch(existingPage._id, {
-        crawlSessionId: args.crawlSessionId,
-        status: args.status,
-        lastChecked: Date.now(),
-        title: args.title,
-      });
-    } else {
-      // Create new page
-      await ctx.db.insert("crawledPages", {
-        websiteId: args.websiteId,
-        crawlSessionId: args.crawlSessionId,
-        url: args.url,
-        path: args.path,
-        depth: args.depth,
-        status: args.status,
-        lastChecked: Date.now(),
-        title: args.title,
-      });
-    }
-  },
-});
+// Removed storeCrawledPage - no longer needed since we re-crawl each time
 
 // Complete a crawl session
 export const completeCrawlSession = internalMutation({
@@ -220,11 +209,6 @@ export const checkCrawledPages = internalAction({
     userId: v.id("users"),
   },
   handler: async (ctx, args): Promise<{ pagesChecked: number; errors: number } | undefined> => {
-    // Get all crawled pages for this website
-    const pages = await ctx.runQuery(internal.crawl.getCrawledPages, {
-      websiteId: args.websiteId,
-    });
-
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
       userId: args.userId,
@@ -232,57 +216,32 @@ export const checkCrawledPages = internalAction({
 
     if (!website) return;
 
-    // Create a new crawl session for this check
-    const sessionId = await ctx.runMutation(internal.crawl.createCrawlSession, {
+    // For full site monitors, we should re-crawl to find new pages
+    // instead of just checking existing pages
+    if (website.monitorType === "full_site") {
+      // Perform a full crawl to discover any new pages
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+        websiteId: args.websiteId,
+        userId: args.userId,
+      });
+      
+      return { 
+        pagesChecked: 0, // Will be updated by the crawl
+        errors: 0,
+      };
+    }
+
+    // For single page monitors (shouldn't reach here but just in case)
+    await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
       websiteId: args.websiteId,
+      url: website.url,
       userId: args.userId,
     });
 
-    let changedCount = 0;
-    let errors = 0;
-
-    // Check each page
-    for (const page of pages) {
-      try {
-        // Trigger scrape for each page
-        await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
-          websiteId: args.websiteId,
-          url: page.url,
-          userId: args.userId,
-        });
-        
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Error checking page ${page.url}:`, error);
-        errors++;
-      }
-    }
-
-    // Complete the session
-    await ctx.runMutation(internal.crawl.completeCrawlSession, {
-      sessionId,
-      pagesFound: pages.length,
-      websiteId: args.websiteId,
-    });
-
     return { 
-      pagesChecked: pages.length,
-      errors,
+      pagesChecked: 1,
+      errors: 0,
     };
-  },
-});
-
-// Get all crawled pages for a website
-export const getCrawledPages = internalQuery({
-  args: {
-    websiteId: v.id("websites"),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("crawledPages")
-      .withIndex("by_website", (q) => q.eq("websiteId", args.websiteId))
-      .collect();
   },
 });
 
@@ -296,15 +255,118 @@ export const getCrawlSession = internalQuery({
   },
 });
 
-// Get crawled pages for a specific session
-export const getCrawledPagesForSession = internalQuery({
+// Update crawl session with job ID
+export const updateCrawlSessionJobId = internalMutation({
   args: {
     sessionId: v.id("crawlSessions"),
+    jobId: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("crawledPages")
-      .withIndex("by_session", (q) => q.eq("crawlSessionId", args.sessionId))
-      .collect();
+    await ctx.db.patch(args.sessionId, {
+      jobId: args.jobId,
+    });
+  },
+});
+
+// Check the status of an async crawl job
+export const checkCrawlJobStatus = internalAction({
+  args: {
+    sessionId: v.id("crawlSessions"),
+    jobId: v.string(),
+    websiteId: v.id("websites"),
+    userId: v.id("users"),
+    attempt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    console.log(`Checking crawl job status: ${args.jobId} (attempt ${args.attempt})`);
+    
+    try {
+      const firecrawl = await getFirecrawlClient(ctx, args.userId);
+      
+      // Check job status
+      const status = await firecrawl.checkCrawlStatus(args.jobId) as any;
+      
+      // Check if crawl is complete
+      console.log(`Crawl job ${args.jobId} status: ${status.status}`);
+      
+      if (status.status === "completed" && status.data) {
+        console.log(`Crawl completed with ${status.data.length} pages`);
+        
+        // Process each page from the crawl
+        for (const page of status.data) {
+          const pageUrl = page.url || page.metadata?.url;
+          if (!pageUrl) continue;
+
+          // Only store if there's actual content
+          if (page.markdown) {
+            const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
+              websiteId: args.websiteId,
+              userId: args.userId,
+              markdown: page.markdown,
+              changeStatus: page.changeTracking?.changeStatus || "new",
+              visibility: page.changeTracking?.visibility || "visible",
+              previousScrapeAt: page.changeTracking?.previousScrapeAt
+                ? new Date(page.changeTracking.previousScrapeAt).getTime()
+                : undefined,
+              scrapedAt: Date.now(),
+              firecrawlMetadata: page.metadata,
+              ogImage: page.metadata?.ogImage,
+              title: page.metadata?.title,
+              description: page.metadata?.description,
+              url: pageUrl, // Pass the actual URL
+              diff: page.changeTracking?.diff ? {
+                text: page.changeTracking.diff.text || "",
+                json: page.changeTracking.diff.json || null,
+              } : undefined,
+            });
+            
+            // Handle notifications for changed pages
+            if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
+              await ctx.runMutation(internal.websites.createChangeAlert, {
+                websiteId: args.websiteId,
+                userId: args.userId,
+                scrapeResultId: scrapeResultId,
+                changeType: "content_changed",
+                summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
+              });
+            }
+          }
+        }
+
+        // Complete the crawl session
+        await ctx.runMutation(internal.crawl.completeCrawlSession, {
+          sessionId: args.sessionId,
+          pagesFound: status.data.length,
+          websiteId: args.websiteId,
+        });
+        
+        return { success: true, pagesFound: status.data.length };
+      } else if (status.status === "failed" || status.status === "error") {
+        throw new Error(`Crawl job failed: ${status.error || "Unknown error"}`);
+      } else {
+        // Still in progress, check again later
+        // Still in progress, will check again
+        
+        // Limit retries to prevent infinite loops
+        if (args.attempt < 60) { // Max 10 minutes of checking
+          await ctx.scheduler.runAfter(10000, internal.crawl.checkCrawlJobStatus, {
+            sessionId: args.sessionId,
+            jobId: args.jobId,
+            websiteId: args.websiteId,
+            userId: args.userId,
+            attempt: args.attempt + 1,
+          });
+        } else {
+          throw new Error("Crawl job timed out after 10 minutes");
+        }
+      }
+    } catch (error) {
+      // Mark session as failed
+      await ctx.runMutation(internal.crawl.failCrawlSession, {
+        sessionId: args.sessionId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      throw error;
+    }
   },
 });

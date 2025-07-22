@@ -12,6 +12,7 @@ import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
 import { FirecrawlKeyBanner } from '@/components/FirecrawlKeyBanner'
+import { APP_CONFIG } from '@/config/app.config'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -58,11 +59,10 @@ export default function HomePage() {
   const websites = useQuery(api.websites.getUserWebsites)
   const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
   
-  // Debug websites list
+  // Track website list updates
   useEffect(() => {
-    if (websites) {
-      console.log('Websites list updated:', websites.length, 'websites')
-      console.log('Website IDs:', websites.map(w => ({ id: w._id, name: w.name })))
+    if (websites && websites.length > 0) {
+      console.log(`Monitoring ${websites.length} website${websites.length !== 1 ? 's' : ''}`)
     }
   }, [websites])
   const createWebsite = useMutation(api.websites.createWebsite)
@@ -138,10 +138,30 @@ export default function HomePage() {
         password,
         flow: authMode,
       })
+      // Clear form on successful auth
       setEmail('')
       setPassword('')
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      setAuthError(error.message || 'Authentication failed')
+      // Check for InvalidAccountId in various ways
+      const errorMessage = error.message || error.toString() || '';
+      const isInvalidAccount = errorMessage.includes('InvalidAccountId') || 
+                              errorMessage.includes('Invalid account') ||
+                              errorMessage.includes('No account found');
+      
+      if (isInvalidAccount && authMode === 'signIn') {
+        // Auto-switch to signup mode for unregistered users
+        setAuthMode('signUp')
+        setAuthError('')  // Clear error since we're handling it gracefully
+        setPassword('') // Clear password for security
+        // Show a success-style message instead of error
+        setTimeout(() => {
+          setAuthError('Ready to create your account! Enter a password and click Sign Up.')
+        }, 100)
+      } else if (errorMessage.includes('password') || errorMessage.includes('credentials')) {
+        setAuthError('Incorrect password. Please try again.')
+      } else {
+        setAuthError(errorMessage || 'Authentication failed')
+      }
     } finally {
       setIsAuthenticating(false)
     }
@@ -289,7 +309,7 @@ export default function HomePage() {
                       <Input 
                         id="email"
                         type="email" 
-                        placeholder="you@example.com" 
+                        placeholder={APP_CONFIG.email.placeholderEmail} 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -313,7 +333,9 @@ export default function HomePage() {
                     </div>
                     
                     {authError && (
-                      <p className="text-sm text-orange-500">{authError}</p>
+                      <p className={`text-sm ${authError.includes('Ready to create') ? 'text-green-600 font-medium' : 'text-orange-500'}`}>
+                        {authError}
+                      </p>
                     )}
                     
                     <Button 
@@ -1692,6 +1714,15 @@ export default function HomePage() {
                 // Add to processing state to show initial setup is happening
                 setProcessingWebsites(prev => new Set([...prev, websiteId]))
                 setNewlyCreatedWebsites(prev => new Set([...prev, websiteId]))
+                
+                // If checkNow is true, trigger an immediate check
+                if (config.checkNow) {
+                  try {
+                    await triggerScrape({ websiteId })
+                  } catch (error) {
+                    console.error('Failed to trigger initial check:', error)
+                  }
+                }
                 
                 // Remove from processing after initial setup time
                 setTimeout(() => {

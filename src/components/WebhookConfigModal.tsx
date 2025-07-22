@@ -17,6 +17,7 @@ interface WebhookConfigModalProps {
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
     crawlDepth?: number
+    checkNow?: boolean
   }) => void
   initialConfig?: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
@@ -37,6 +38,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
   const [crawlLimit, setCrawlLimit] = useState(String(initialConfig?.crawlLimit || 5))
   const [crawlDepth, setCrawlDepth] = useState(String(initialConfig?.crawlDepth || 3))
   const [copied, setCopied] = useState(false)
+  const [checkNow, setCheckNow] = useState(true) // Default to true for new websites
 
   const handleSave = useCallback(() => {
     onSave({
@@ -45,9 +47,10 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
       checkInterval: parseInt(checkInterval),
       monitorType: monitorType as 'single_page' | 'full_site',
       crawlLimit: monitorType === 'full_site' ? parseInt(crawlLimit) : undefined,
-      crawlDepth: monitorType === 'full_site' ? parseInt(crawlDepth) : undefined
+      crawlDepth: monitorType === 'full_site' ? parseInt(crawlDepth) : undefined,
+      checkNow: checkNow
     })
-  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, onSave])
+  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, onSave])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -140,6 +143,26 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 <option value="10080">7 days</option>
               </Select>
             </div>
+
+            {/* Check Now Option - Only show for new websites */}
+            {!initialConfig && (
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={checkNow}
+                    onChange={(e) => setCheckNow(e.target.checked)}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <span className="text-sm font-medium">
+                    Check immediately after adding
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Perform an initial check right after adding this website
+                </p>
+              </div>
+            )}
 
             {/* Monitor Type */}
             <div className="mb-4">

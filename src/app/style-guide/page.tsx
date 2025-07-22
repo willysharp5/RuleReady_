@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { APP_CONFIG } from '@/config/app.config'
 
 export default function StyleGuidePage() {
   return (
@@ -86,7 +87,7 @@ export default function StyleGuidePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="input-email">Email</Label>
-                    <Input id="input-email" type="email" placeholder="email@example.com" />
+                    <Input id="input-email" type="email" placeholder={`email@${APP_CONFIG.domain}`} />
                   </div>
                   
                   <div className="space-y-2">
@@ -170,7 +171,7 @@ export default function StyleGuidePage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="form-email">Email</Label>
-                  <Input id="form-email" type="email" placeholder="john@example.com" />
+                  <Input id="form-email" type="email" placeholder={`john@${APP_CONFIG.domain}`} />
                 </div>
 
                 <div className="space-y-2">

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalQuery } from "./_generated/server";
 import { requireCurrentUser, getCurrentUser } from "./helpers";
+import { encrypt, decrypt, isEncrypted } from "./lib/encryption";
 
 // Get user settings
 export const getUserSettings = query({
@@ -23,12 +24,31 @@ export const getUserSettings = query({
         emailTemplate: null,
         aiAnalysisEnabled: false,
         aiModel: null,
+        aiBaseUrl: null,
         aiSystemPrompt: null,
         aiMeaningfulChangeThreshold: 70,
         aiApiKey: null,
         emailOnlyIfMeaningful: false,
         webhookOnlyIfMeaningful: false,
       };
+    }
+
+    // Decrypt API key if it exists and is encrypted
+    if (settings.aiApiKey && isEncrypted(settings.aiApiKey)) {
+      try {
+        const decryptedKey = await decrypt(settings.aiApiKey);
+        return {
+          ...settings,
+          aiApiKey: decryptedKey
+        };
+      } catch (error) {
+        console.error("Failed to decrypt API key:", error);
+        // Return settings without the API key if decryption fails
+        return {
+          ...settings,
+          aiApiKey: null
+        };
+      }
     }
 
     return settings;
@@ -151,10 +171,8 @@ export const updateEmailTemplate = mutation({
 export const updateAISettings = mutation({
   args: {
     enabled: v.boolean(),
-    model: v.optional(v.union(
-      v.literal("gpt-4o"),
-      v.literal("gpt-4o-mini")
-    )),
+    model: v.optional(v.string()), // Now accepts any model string
+    baseUrl: v.optional(v.string()), // Custom base URL for OpenAI-compatible APIs
     systemPrompt: v.optional(v.string()),
     threshold: v.optional(v.number()),
     apiKey: v.optional(v.string()),
@@ -196,12 +214,29 @@ Analyze the provided diff and return a JSON response with:
   "reasoning": "Brief explanation of your decision"
 }`;
 
+    // Encrypt API key if provided
+    let encryptedApiKey: string | undefined;
+    if (args.apiKey !== undefined) {
+      if (args.apiKey) {
+        try {
+          encryptedApiKey = await encrypt(args.apiKey);
+        } catch (error) {
+          console.error("Failed to encrypt API key:", error);
+          throw new Error("Failed to secure API key. Please check server configuration.");
+        }
+      } else {
+        // If empty string, store as empty (user is clearing the key)
+        encryptedApiKey = "";
+      }
+    }
+
     const updateData = {
       aiAnalysisEnabled: args.enabled,
       ...(args.model && { aiModel: args.model }),
+      ...(args.baseUrl !== undefined && { aiBaseUrl: args.baseUrl }),
       ...(args.systemPrompt !== undefined && { aiSystemPrompt: args.systemPrompt || defaultPrompt }),
       ...(args.threshold !== undefined && { aiMeaningfulChangeThreshold: args.threshold }),
-      ...(args.apiKey !== undefined && { aiApiKey: args.apiKey }),
+      ...(encryptedApiKey !== undefined && { aiApiKey: encryptedApiKey }),
       updatedAt: now,
     };
 
@@ -279,6 +314,24 @@ export const getUserSettingsInternal = internalQuery({
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .first();
+
+    // Decrypt API key if it exists and is encrypted
+    if (settings?.aiApiKey && isEncrypted(settings.aiApiKey)) {
+      try {
+        const decryptedKey = await decrypt(settings.aiApiKey);
+        return {
+          ...settings,
+          aiApiKey: decryptedKey
+        };
+      } catch (error) {
+        console.error("Failed to decrypt API key:", error);
+        // Return settings without the API key if decryption fails
+        return {
+          ...settings,
+          aiApiKey: null
+        };
+      }
+    }
 
     return settings;
   },

@@ -1,4 +1,4 @@
-import { internalAction } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 export const checkActiveWebsites = internalAction({
@@ -6,14 +6,19 @@ export const checkActiveWebsites = internalAction({
     // Get all active websites that need checking
     const websites = await ctx.runQuery(internal.monitoring.getWebsitesToCheck);
 
-    console.log(`Checking ${websites.length} websites`);
+    // Only log if there are websites to check
+    if (websites.length > 0) {
+      console.log(`Checking ${websites.length} websites`);
+    }
 
     // Schedule scrapes for each website
     for (const website of websites) {
       try {
+        // Remove verbose per-website logging
+        
         if (website.monitorType === "full_site") {
-          // For full site monitors, check all crawled pages
-          await ctx.scheduler.runAfter(0, internal.crawl.checkCrawledPages, {
+          // For full site monitors, perform a crawl
+          await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
             websiteId: website._id,
             userId: website.userId,
           });
@@ -65,4 +70,3 @@ export const getWebsitesToCheck = internalQuery({
   },
 });
 
-import { internalQuery } from "./_generated/server";

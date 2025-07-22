@@ -52,8 +52,12 @@ Analyze the provided diff and return a JSON response with:
 }`;
 
     try {
-      // Call OpenAI API
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      // Use custom base URL if provided, otherwise default to OpenAI
+      const baseUrl = userSettings.aiBaseUrl || "https://api.openai.com/v1";
+      const apiUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+      
+      // Call AI API
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${userSettings.aiApiKey}`,
@@ -84,7 +88,7 @@ Please analyze these changes and determine if they are meaningful.`,
 
       if (!response.ok) {
         const error = await response.text();
-        console.error("OpenAI API error:", error);
+        console.error("AI API error:", error);
         return;
       }
 

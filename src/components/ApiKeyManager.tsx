@@ -12,7 +12,6 @@ export function ApiKeyManager() {
   const [showNewApiKey, setShowNewApiKey] = useState(false)
   const [newApiKeyName, setNewApiKeyName] = useState('')
   const [createdApiKey, setCreatedApiKey] = useState<string | null>(null)
-  const [_copiedKeyId, _setCopiedKeyId] = useState<string | null>(null)
   
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys) || []
   const createApiKey = useMutation(api.apiKeys.createApiKey)
@@ -31,11 +30,6 @@ export function ApiKeyManager() {
     }
   }
   
-  const _handleCopyApiKey = (key: string, keyId: string) => {
-    navigator.clipboard.writeText(key)
-    _setCopiedKeyId(keyId)
-    setTimeout(() => _setCopiedKeyId(null), 2000)
-  }
   
   const handleDeleteApiKey = async (keyId: string) => {
     if (!confirm('Are you sure you want to delete this API key?')) return

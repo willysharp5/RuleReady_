@@ -175,7 +175,7 @@ export const getTokenUsage = action({
     }
 
     try {
-      const response: Response = await fetch('https://api.firecrawl.dev/v1/team/token-usage', {
+      const response: Response = await fetch('https://api.firecrawl.dev/v1/team/credit-usage', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${keyData.key}`,
@@ -194,7 +194,7 @@ export const getTokenUsage = action({
       const data: any = await response.json();
       return {
         success: true,
-        remaining_tokens: data.data?.remaining_tokens
+        remaining_tokens: data.data?.remaining_credits
       };
     } catch (error) {
       console.error("Failed to fetch token usage:", error);

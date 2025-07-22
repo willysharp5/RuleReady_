@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useConvexAuth, useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
@@ -15,6 +16,8 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
 import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
 import dynamic from 'next/dynamic'
+import { validateEmailTemplate } from '@/lib/validateTemplate'
+import { APP_CONFIG, getFromEmail } from '@/config/app.config'
 
 // Dynamic import to avoid SSR issues with TipTap
 const EmailTemplateEditor = dynamic(
@@ -51,13 +54,17 @@ function SettingsContent() {
   const [isUpdatingWebhook, setIsUpdatingWebhook] = useState(false)
   const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false)
   const [emailSuccess, setEmailSuccess] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
   const [webhookSuccess, setWebhookSuccess] = useState(false)
   const [templateSuccess, setTemplateSuccess] = useState(false)
-  const [showHtmlSource, setShowHtmlSource] = useState(false)
+  const [showHtmlSource, setShowHtmlSource] = useState(true)
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false)
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null)
   
   // AI settings state
   const [aiEnabled, setAiEnabled] = useState(false)
-  const [aiModel, setAiModel] = useState<'gpt-4o' | 'gpt-4o-mini'>('gpt-4o-mini')
+  const [aiModel, setAiModel] = useState('gpt-4o-mini') // Default to OpenAI's gpt-4o-mini
+  const [aiBaseUrl, setAiBaseUrl] = useState('')
   const [aiSystemPrompt, setAiSystemPrompt] = useState('')
   const [aiThreshold, setAiThreshold] = useState(70)
   const [aiApiKey, setAiApiKey] = useState('')
@@ -65,6 +72,8 @@ function SettingsContent() {
   const [webhookOnlyIfMeaningful, setWebhookOnlyIfMeaningful] = useState(false)
   const [isUpdatingAI, setIsUpdatingAI] = useState(false)
   const [aiSuccess, setAiSuccess] = useState(false)
+  const [isTestingAI, setIsTestingAI] = useState(false)
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null)
   
   // API Key queries and mutations
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
@@ -84,6 +93,8 @@ function SettingsContent() {
   const resendVerificationEmail = useAction(api.emailManager.resendVerificationEmail)
   const updateAISettings = useMutation(api.userSettings.updateAISettings)
   const updateNotificationFiltering = useMutation(api.userSettings.updateNotificationFiltering)
+  const testAIModel = useAction(api.testActions.testAIModel)
+  const testEmailSending = useAction(api.testActions.testEmailSending)
   
   // Query currentUser - it will return null if not authenticated
   // const currentUser = useQuery(api.users.getCurrentUser)
@@ -101,6 +112,31 @@ function SettingsContent() {
     if (searchParams.get('verified') === 'true') {
       setEmailSuccess(true)
       setTimeout(() => setEmailSuccess(false), 5000)
+    }
+    
+    // Handle verification errors
+    const error = searchParams.get('error')
+    if (error) {
+      let errorMessage = 'Verification failed'
+      switch (error) {
+        case 'missing-token':
+          errorMessage = 'Verification link is invalid'
+          break
+        case 'token-expired':
+          errorMessage = 'Verification link has expired'
+          break
+        case 'invalid-token':
+          errorMessage = 'Invalid verification token'
+          break
+        case 'verification-failed':
+          errorMessage = 'Email verification failed'
+          break
+        case 'verification-error':
+          errorMessage = 'An error occurred during verification'
+          break
+      }
+      setEmailError(errorMessage)
+      setTimeout(() => setEmailError(null), 10000)
     }
   }, [searchParams])
   
@@ -131,7 +167,36 @@ function SettingsContent() {
     if (userSettings) {
       setAiEnabled(userSettings.aiAnalysisEnabled || false)
       setAiModel(userSettings.aiModel || 'gpt-4o-mini')
-      setAiSystemPrompt(userSettings.aiSystemPrompt || '')
+      setAiBaseUrl(userSettings.aiBaseUrl || '')
+      
+      // Set system prompt with default if not provided
+      const defaultSystemPrompt = `You are an AI assistant specialized in analyzing website changes. Your task is to determine if a detected change is "meaningful" or just noise.
+
+Meaningful changes include:
+- Content updates (text, images, prices)
+- New features or sections
+- Important announcements
+- Product availability changes
+- Policy updates
+
+NOT meaningful (ignore these):
+- Rotating banners/carousels
+- Dynamic timestamps
+- View counters
+- Session IDs
+- Random promotional codes
+- Cookie consent banners
+- Advertising content
+- Social media feed updates
+
+Analyze the provided diff and return a JSON response with:
+{
+  "score": 0-100 (how meaningful the change is),
+  "isMeaningful": true/false,
+  "reasoning": "Brief explanation of your decision"
+}`;
+      
+      setAiSystemPrompt(userSettings.aiSystemPrompt || defaultSystemPrompt)
       setAiThreshold(userSettings.aiMeaningfulChangeThreshold || 70)
       setAiApiKey(userSettings.aiApiKey || '')
       setEmailOnlyIfMeaningful(userSettings.emailOnlyIfMeaningful || false)
@@ -282,6 +347,16 @@ function SettingsContent() {
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6">Email Notifications</h2>
                   
+                  {/* Error message */}
+                  {emailError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="h-5 w-5 text-red-600" />
+                        <p className="text-sm text-red-700">{emailError}</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="space-y-8">
                     {/* Email Configuration */}
                     <div>
@@ -297,7 +372,7 @@ function SettingsContent() {
                             <Input
                               id="notification-email"
                               type="email"
-                              placeholder="alerts@example.com"
+                              placeholder={APP_CONFIG.email.defaultRecipient}
                               value={notificationEmail}
                               onChange={(e) => setNotificationEmail(e.target.value)}
                               className="flex-1"
@@ -357,23 +432,67 @@ function SettingsContent() {
                                 </>
                               )}
                             </div>
-                            {!emailConfig.isVerified && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={async () => {
-                                  try {
-                                    await resendVerificationEmail()
-                                    alert('Verification email sent!')
-                                  } catch (error) {
-                                    console.error('Failed to resend email:', error)
-                                    alert('Failed to resend verification email')
-                                  }
-                                }}
-                              >
-                                Resend
-                              </Button>
-                            )}
+                            <div className="flex gap-2">
+                              {emailConfig.isVerified && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    setIsSendingTestEmail(true)
+                                    setTestEmailResult(null)
+                                    try {
+                                      const result = await testEmailSending()
+                                      setTestEmailResult({
+                                        success: result.success,
+                                        message: result.message
+                                      })
+                                    } catch (error) {
+                                      setTestEmailResult({
+                                        success: false,
+                                        message: (error as Error).message || 'Failed to send test email'
+                                      })
+                                    } finally {
+                                      setIsSendingTestEmail(false)
+                                    }
+                                  }}
+                                  disabled={isSendingTestEmail}
+                                >
+                                  {isSendingTestEmail ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Send Test Email'
+                                  )}
+                                </Button>
+                              )}
+                              {!emailConfig.isVerified && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await resendVerificationEmail()
+                                      alert('Verification email sent!')
+                                    } catch (error) {
+                                      console.error('Failed to resend email:', error)
+                                      alert('Failed to resend verification email')
+                                    }
+                                  }}
+                                >
+                                  Resend
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Test email result */}
+                        {testEmailResult && (
+                          <div className={`p-3 rounded-lg text-sm ${
+                            testEmailResult.success 
+                              ? 'bg-green-50 text-green-700 border border-green-200' 
+                              : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                            {testEmailResult.success ? '✅' : '❌'} {testEmailResult.message}
                           </div>
                         )}
                         
@@ -410,50 +529,50 @@ function SettingsContent() {
                       </p>
                       
                       {/* Available Variables */}
-                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h5 className="font-medium text-black mb-2">Available Variables</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-black">
+                      <div className="mb-4 p-3 border rounded-lg">
+                        <h5 className="font-medium mb-2">Available Variables</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{websiteName}}"}</span> - Website name
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{websiteName}}"}</span> - Website name
                           </div>
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{websiteUrl}}"}</span> - Website URL
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{websiteUrl}}"}</span> - Website URL
                           </div>
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{changeDate}}"}</span> - When change was detected
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{changeDate}}"}</span> - When change was detected
                           </div>
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{changeType}}"}</span> - Type of change
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{changeType}}"}</span> - Type of change
                           </div>
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{pageTitle}}"}</span> - Page title
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{pageTitle}}"}</span> - Page title
                           </div>
                           <div>
-                            <span className="font-mono bg-blue-100 px-1 rounded">{"{{viewChangesUrl}}"}</span> - Link to view changes
+                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{viewChangesUrl}}"}</span> - Link to view changes
                           </div>
                           {aiEnabled && (
                             <>
                               <div>
-                                <span className="font-mono bg-purple-100 px-1 rounded">{"{{aiMeaningfulScore}}"}</span> - AI score (0-100)
+                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiMeaningfulScore}}"}</span> - AI score (0-100)
                               </div>
                               <div>
-                                <span className="font-mono bg-purple-100 px-1 rounded">{"{{aiIsMeaningful}}"}</span> - Yes/No meaningful
+                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiIsMeaningful}}"}</span> - Yes/No meaningful
                               </div>
                               <div>
-                                <span className="font-mono bg-purple-100 px-1 rounded">{"{{aiReasoning}}"}</span> - AI reasoning
+                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiReasoning}}"}</span> - AI reasoning
                               </div>
                               <div>
-                                <span className="font-mono bg-purple-100 px-1 rounded">{"{{aiModel}}"}</span> - AI model used
+                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiModel}}"}</span> - AI model used
                               </div>
                               <div>
-                                <span className="font-mono bg-purple-100 px-1 rounded">{"{{aiAnalyzedAt}}"}</span> - AI analysis time
+                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiAnalyzedAt}}"}</span> - AI analysis time
                               </div>
                             </>
                           )}
                         </div>
                         {aiEnabled && (
-                          <p className="text-xs text-black mt-2">
-                            Purple variables are only available when AI analysis is enabled and a change is analyzed.
+                          <p className="text-xs text-gray-500 mt-2">
+                            AI variables are only available when AI analysis is enabled and a change is analyzed.
                           </p>
                         )}
                       </div>
@@ -500,8 +619,8 @@ function SettingsContent() {
                         <div className="border rounded-lg p-6 bg-gray-50">
                           <div className="max-w-xl mx-auto bg-white rounded-lg shadow-sm p-6">
                             <div className="mb-4 text-sm text-gray-500 border-b pb-2">
-                              <p><strong>From:</strong> Firecrawl Observer &lt;noreply@firecrawl-observer.com&gt;</p>
-                              <p><strong>To:</strong> {notificationEmail || 'alerts@example.com'}</p>
+                              <p><strong>From:</strong> {getFromEmail()}</p>
+                              <p><strong>To:</strong> {notificationEmail || APP_CONFIG.email.defaultRecipient}</p>
                               <p><strong>Subject:</strong> Changes detected on Example Website</p>
                             </div>
                             <div 
@@ -552,6 +671,13 @@ function SettingsContent() {
                           variant="orange"
                           size="sm"
                           onClick={async () => {
+                            // Validate template first
+                            const validation = validateEmailTemplate(emailTemplate)
+                            if (!validation.isValid) {
+                              alert('Template validation failed:\n\n' + validation.errors.join('\n'))
+                              return
+                            }
+                            
                             setIsUpdatingTemplate(true)
                             try {
                               await updateEmailTemplate({ template: emailTemplate })
@@ -559,6 +685,7 @@ function SettingsContent() {
                               setTimeout(() => setTemplateSuccess(false), 3000)
                             } catch (error) {
                               console.error('Failed to update template:', error)
+                              alert('Failed to save template. Please try again.')
                             } finally {
                               setIsUpdatingTemplate(false)
                             }
@@ -678,16 +805,16 @@ function SettingsContent() {
                           </div>
                           
                           {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-                            <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div className="mb-4 p-4 border border-orange-200 rounded-lg">
                               <div className="flex items-start gap-3">
                                 <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
                                 <div>
-                                  <p className="text-sm font-medium text-black">Localhost URLs won&apos;t work!</p>
-                                  <p className="text-sm text-black mt-1">
+                                  <p className="text-sm font-medium">Localhost URLs won&apos;t work!</p>
+                                  <p className="text-sm text-gray-600 mt-1">
                                     Convex runs in the cloud and cannot access localhost. Use one of these options:
                                   </p>
-                                  <ul className="text-sm text-black mt-2 space-y-1 list-disc list-inside">
-                                    <li>Use <a href="https://ngrok.com" target="_blank" className="underline font-medium">ngrok</a> to expose your local server: <code className="bg-orange-100 px-1 rounded">ngrok http 3000</code></li>
+                                  <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc list-inside">
+                                    <li>Use <a href="https://ngrok.com" target="_blank" className="underline font-medium">ngrok</a> to expose your local server: <code className="bg-gray-100 px-1 rounded">ngrok http {window.location.port || 3000}</code></li>
                                     <li>Deploy your app to Vercel, Netlify, or another hosting service</li>
                                     <li>Use a webhook testing service like <a href="https://webhook.site" target="_blank" className="underline font-medium">webhook.site</a></li>
                                   </ul>
@@ -894,9 +1021,9 @@ function SettingsContent() {
                     
                     {/* Created API key alert */}
                     {createdApiKey && (
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <h4 className="font-medium text-green-900 mb-2">API Key Created Successfully</h4>
-                        <p className="text-sm text-green-700 mb-3">
+                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-2">API Key Created</h4>
+                        <p className="text-sm text-gray-700 mb-3">
                           Make sure to copy your API key now. You won&apos;t be able to see it again!
                         </p>
                         <div className="flex gap-2">
@@ -1029,14 +1156,11 @@ function SettingsContent() {
               
               {activeSection === 'ai' && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                    <Bot className="h-6 w-6 text-orange-500" />
-                    AI Analysis Settings
-                  </h2>
+                  <h2 className="text-xl font-semibold mb-6">AI Analysis Settings</h2>
                   
                   <div className="space-y-6">
                     {/* AI Enable Toggle */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <h3 className="font-medium mb-1">Enable AI Analysis</h3>
                         <p className="text-sm text-gray-600">
@@ -1056,39 +1180,118 @@ function SettingsContent() {
                     
                     {aiEnabled && (
                       <>
-                        {/* OpenAI API Key */}
-                        <div>
-                          <Label htmlFor="ai-api-key">OpenAI API Key</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Input
-                              id="ai-api-key"
-                              type="password"
-                              placeholder="sk-..."
-                              value={aiApiKey}
-                              onChange={(e) => setAiApiKey(e.target.value)}
-                              className="flex-1 font-mono"
-                            />
+                        {/* LLM Configuration */}
+                        <div className="border rounded-lg p-6 space-y-6">
+                          <h4 className="font-medium text-lg">LLM Configuration</h4>
+                          
+                          {/* API Key */}
+                          <div>
+                            <Label htmlFor="ai-api-key">API Key</Label>
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                id="ai-api-key"
+                                type="password"
+                                placeholder="sk-... or your provider's API key"
+                                value={aiApiKey}
+                                onChange={(e) => setAiApiKey(e.target.value)}
+                                className="flex-1 font-mono"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  setIsTestingAI(true)
+                                  setAiTestResult(null)
+                                  try {
+                                    // First save the settings
+                                    await updateAISettings({
+                                      enabled: true,
+                                      model: aiModel,
+                                      baseUrl: aiBaseUrl,
+                                      systemPrompt: aiSystemPrompt,
+                                      threshold: aiThreshold,
+                                      apiKey: aiApiKey,
+                                    })
+                                    // Then test the connection
+                                    const result = await testAIModel()
+                                    setAiTestResult({
+                                      success: result.success,
+                                      message: result.success ? (result.message || 'Success') : (result.error || 'Test failed')
+                                    })
+                                  } catch (error) {
+                                    setAiTestResult({
+                                      success: false,
+                                      message: (error as Error).message || 'Test failed'
+                                    })
+                                  } finally {
+                                    setIsTestingAI(false)
+                                  }
+                                }}
+                                disabled={!aiApiKey || isTestingAI}
+                              >
+                                {isTestingAI ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Test'
+                                )}
+                              </Button>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Your API key from OpenAI or any compatible provider
+                            </p>
+                            {aiTestResult && (
+                              <div className={`mt-2 p-2 rounded text-sm ${
+                                aiTestResult.success 
+                                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                                  : 'bg-red-50 text-red-700 border border-red-200'
+                              }`}>
+                                {aiTestResult.success ? '✅' : '❌'} {aiTestResult.message}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Your OpenAI API key for AI analysis. <a href="https://platform.openai.com/api-keys" target="_blank" className="text-orange-600 hover:underline">Get API key →</a>
-                          </p>
-                        </div>
-                        
-                        {/* Model Selection */}
-                        <div>
-                          <Label htmlFor="ai-model">AI Model</Label>
-                          <select
-                            id="ai-model"
-                            value={aiModel}
-                            onChange={(e) => setAiModel(e.target.value as 'gpt-4o' | 'gpt-4o-mini')}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
-                          >
-                            <option value="gpt-4o-mini">GPT-4o Mini (Faster & Cheaper)</option>
-                            <option value="gpt-4o">GPT-4o (More Accurate)</option>
-                          </select>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Choose the AI model based on your needs and budget
-                          </p>
+                          
+                          {/* Model */}
+                          <div>
+                            <Label htmlFor="ai-model">Model</Label>
+                            <Input
+                              id="ai-model"
+                              type="text"
+                              placeholder="gpt-4o-mini"
+                              value={aiModel}
+                              onChange={(e) => setAiModel(e.target.value)}
+                              className="mt-1 font-mono"
+                            />
+                            <p className="text-sm text-gray-500 mt-1">
+                              Model identifier (e.g., gpt-4o-mini, llama-3.3-70b-versatile, claude-3-5-sonnet)
+                            </p>
+                          </div>
+                          
+                          {/* Base URL */}
+                          <div>
+                            <Label htmlFor="ai-base-url">Base URL (Optional)</Label>
+                            <Input
+                              id="ai-base-url"
+                              type="url"
+                              placeholder="https://api.openai.com/v1"
+                              value={aiBaseUrl}
+                              onChange={(e) => setAiBaseUrl(e.target.value)}
+                              className="mt-1 font-mono"
+                            />
+                            <p className="text-sm text-gray-500 mt-1">
+                              Custom endpoint for OpenAI-compatible APIs. Leave empty for OpenAI.
+                            </p>
+                          </div>
+                          
+                          {/* Provider Examples */}
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p className="font-medium">Provider Examples:</p>
+                            <ul className="space-y-1 ml-4">
+                              <li>• <a href="https://platform.openai.com/api-keys" target="_blank" className="text-orange-600 hover:underline">OpenAI</a>: gpt-4o, gpt-4o-mini (default)</li>
+                              <li>• <a href="https://console.groq.com/keys" target="_blank" className="text-orange-600 hover:underline">Groq</a>: llama-3.3-70b-versatile, mixtral-8x7b-32768</li>
+                              <li>• <a href="https://console.anthropic.com/settings/keys" target="_blank" className="text-orange-600 hover:underline">Anthropic</a>: claude-3-5-sonnet, claude-3-haiku</li>
+                              <li>• <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-orange-600 hover:underline">Google</a>: gemini-1.5-pro, gemini-1.5-flash</li>
+                            </ul>
+                          </div>
                         </div>
                         
                         {/* System Prompt */}
@@ -1130,12 +1333,12 @@ Analyze the provided diff and return a JSON response with:
                               Use Default
                             </Button>
                           </div>
-                          <textarea
+                          <Textarea
                             id="ai-prompt"
                             value={aiSystemPrompt}
                             onChange={(e) => setAiSystemPrompt(e.target.value)}
                             rows={10}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm font-mono text-xs"
+                            className="mt-1 font-mono text-xs min-h-[240px]"
                             placeholder="Enter your custom system prompt..."
                           />
                           <p className="text-sm text-gray-500 mt-1">
@@ -1154,10 +1357,10 @@ Analyze the provided diff and return a JSON response with:
                               max="100"
                               value={aiThreshold}
                               onChange={(e) => setAiThreshold(parseInt(e.target.value))}
-                              className="flex-1"
+                              className="flex-1 accent-orange-500"
                             />
                             <div className="w-16 text-center">
-                              <span className="text-lg font-medium">{aiThreshold}%</span>
+                              <span className="text-lg font-medium text-orange-600">{aiThreshold}%</span>
                             </div>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">
@@ -1166,12 +1369,12 @@ Analyze the provided diff and return a JSON response with:
                         </div>
                         
                         {/* Info Box */}
-                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="border rounded-lg p-4">
                           <div className="flex items-start gap-3">
-                            <Info className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                            <div className="text-sm text-black">
-                              <p className="font-medium mb-1 text-black">How AI Analysis Works</p>
-                              <ul className="space-y-1 list-disc list-inside text-black">
+                            <Info className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-gray-600">
+                              <p className="font-medium mb-1">How AI Analysis Works</p>
+                              <ul className="space-y-1 list-disc list-inside">
                                 <li>When a change is detected, the AI analyzes the diff</li>
                                 <li>The AI assigns a score (0-100) based on meaningfulness</li>
                                 <li>Changes above your threshold are marked as meaningful</li>
@@ -1185,20 +1388,20 @@ Analyze the provided diff and return a JSON response with:
                     
                     {/* AI-based Notification Filtering */}
                     {aiEnabled && (
-                      <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                        <h3 className="font-medium mb-3 flex items-center gap-2 text-black">
+                      <div className="border rounded-lg p-4">
+                        <h3 className="font-medium mb-3 flex items-center gap-2">
                           <Mail className="h-4 w-4" />
                           AI-Based Notification Filtering
                         </h3>
-                        <p className="text-sm text-black mb-4">
+                        <p className="text-sm text-gray-600 mb-4">
                           Only send notifications when AI determines changes are meaningful
                         </p>
                         
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <label className="text-sm font-medium text-black">Email notifications only for meaningful changes</label>
-                              <p className="text-xs text-black">Skip email notifications for changes AI marks as noise</p>
+                              <label className="text-sm font-medium">Email notifications only for meaningful changes</label>
+                              <p className="text-xs text-gray-500">Skip email notifications for changes AI marks as noise</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input
@@ -1213,8 +1416,8 @@ Analyze the provided diff and return a JSON response with:
                           
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <label className="text-sm font-medium text-black">Webhook notifications only for meaningful changes</label>
-                              <p className="text-xs text-black">Skip webhook notifications for changes AI marks as noise</p>
+                              <label className="text-sm font-medium">Webhook notifications only for meaningful changes</label>
+                              <p className="text-xs text-gray-500">Skip webhook notifications for changes AI marks as noise</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input
@@ -1240,6 +1443,7 @@ Analyze the provided diff and return a JSON response with:
                             await updateAISettings({
                               enabled: aiEnabled,
                               model: aiEnabled ? aiModel : undefined,
+                              baseUrl: aiEnabled ? aiBaseUrl : undefined,
                               systemPrompt: aiEnabled ? aiSystemPrompt : undefined,
                               threshold: aiEnabled ? aiThreshold : undefined,
                               apiKey: aiEnabled ? aiApiKey : undefined,
