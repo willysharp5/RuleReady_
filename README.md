@@ -21,20 +21,20 @@ A powerful website monitoring application that tracks changes on websites and se
 
 ## Quick Start
 
-### 1. Clone the Repository
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/mendableai/fc-observer.git
 cd fc-observer
 ```
 
-### 2. Install Dependencies
+### Step 2: Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Run Automated Setup
+### Step 3: Run Automated Setup
 
 ```bash
 npm run setup
@@ -45,7 +45,7 @@ This will:
 - Generate a secure encryption key
 - Check for required configurations
 
-### 4. Set Up Convex Backend
+### Step 4: Set Up Convex Backend
 
 In a new terminal, start Convex:
 
@@ -58,7 +58,7 @@ Keep this running during development. On first run, it will:
 - Create a new project or link to existing one
 - Set up your database schema
 
-### 5. Generate JWT Keys for Authentication
+### Step 5: Generate JWT Keys for Authentication
 
 ```bash
 node scripts/generate-jwt-keys.js
@@ -66,7 +66,7 @@ node scripts/generate-jwt-keys.js
 
 Follow the prompts to generate and configure JWT keys for authentication.
 
-### 6. Configure Environment Variables
+### Step 6: Configure Environment Variables
 
 Set the required Convex environment variables:
 
@@ -84,7 +84,7 @@ npx convex env set RESEND_API_KEY "your_resend_api_key"
 npx convex env set FIRECRAWL_API_KEY "your_firecrawl_api_key"
 ```
 
-### 7. Start the Development Server
+### Step 7: Start the Development Server
 
 ```bash
 npm run dev
