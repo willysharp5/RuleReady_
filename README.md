@@ -15,7 +15,7 @@ A powerful website monitoring application that tracks changes on websites and se
 
 - Node.js 18+ and npm
 - A [Convex](https://convex.dev) account (free tier available)
-- (Optional) [Firecrawl](https://firecrawl.dev) API key
+- A [Firecrawl](https://firecrawl.dev) API key (required for website monitoring)
 - (Optional) [Resend](https://resend.com) API key for email notifications
 - (Optional) OpenAI or compatible AI API key for intelligent filtering
 
@@ -24,8 +24,8 @@ A powerful website monitoring application that tracks changes on websites and se
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/mendableai/fc-observer.git
-cd fc-observer
+git clone https://github.com/mendableai/firecrawl-observer.git
+cd firecrawl-observer
 ```
 
 ### Step 2: Install Dependencies
@@ -80,7 +80,7 @@ npx convex env set SITE_URL "http://localhost:3000"
 # Optional: Email notifications
 npx convex env set RESEND_API_KEY "your_resend_api_key"
 
-# Optional: Default Firecrawl API key (users can add their own)
+# Required: Firecrawl API key (or users can add their own in the app)
 npx convex env set FIRECRAWL_API_KEY "your_firecrawl_api_key"
 ```
 
@@ -119,8 +119,8 @@ Required variables in Convex dashboard:
 
 - `ENCRYPTION_KEY` - Same as in .env.local (required)
 - `SITE_URL` - Your application URL (required)
+- `FIRECRAWL_API_KEY` - For website monitoring (required, or users can add their own)
 - `RESEND_API_KEY` - For email notifications (optional)
-- `FIRECRAWL_API_KEY` - Default API key (optional, users can add their own)
 
 ## Usage
 
@@ -262,6 +262,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-- [Report Issues](https://github.com/mendableai/fc-observer/issues)
+- [Report Issues](https://github.com/mendableai/firecrawl-observer/issues)
 - [Firecrawl Documentation](https://docs.firecrawl.dev)
 - [Convex Documentation](https://docs.convex.dev)
