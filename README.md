@@ -1,6 +1,8 @@
 # Firecrawl Observer
 
-![Firecrawl Observer Demo](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYm94OHU0a3MxM2d4Zm5zb2tseTF4bDdmZWZpcmFlaDYxMzZod3VmbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pBQeHEiQiR25n8rd9J/giphy.gif)
+<p align="center">
+  <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYm94OHU0a3MxM2d4Zm5zb2tseTF4bDdmZWZpcmFlaDYxMzZod3VmbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pBQeHEiQiR25n8rd9J/giphy.gif" alt="Firecrawl Observer Demo" width="100%" />
+</p>
 
 A powerful website monitoring application that tracks changes on websites and sends intelligent notifications. Built with Next.js, Convex, and Firecrawl API.
 
