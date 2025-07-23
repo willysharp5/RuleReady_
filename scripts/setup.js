@@ -9,18 +9,18 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🚀 Firecrawl Observer Setup\n');
+console.log('Firecrawl Observer Setup\n');
 
 // Check if .env.local exists
 const envPath = path.join(process.cwd(), '.env.local');
 const envExamplePath = path.join(process.cwd(), '.env.local.example');
 
 if (!fs.existsSync(envPath)) {
-  console.log('📝 Creating .env.local file...');
+  console.log('Creating .env.local file...');
   
   if (fs.existsSync(envExamplePath)) {
     fs.copyFileSync(envExamplePath, envPath);
-    console.log('✅ Copied .env.local.example to .env.local');
+    console.log('Copied .env.local.example to .env.local');
   } else {
     // Create a basic .env.local
     const basicEnv = `# Convex deployment URL (will be set after deployment)
@@ -33,14 +33,14 @@ RESEND_API_KEY=
 ENCRYPTION_KEY=
 `;
     fs.writeFileSync(envPath, basicEnv);
-    console.log('✅ Created .env.local file');
+    console.log('Created .env.local file');
   }
 }
 
 // Generate encryption key if not present
 const envContent = fs.readFileSync(envPath, 'utf8');
 if (!envContent.includes('ENCRYPTION_KEY=') || envContent.match(/ENCRYPTION_KEY=\s*$/m)) {
-  console.log('\n🔐 Generating encryption key...');
+  console.log('\nGenerating encryption key...');
   const encryptionKey = crypto.randomBytes(32).toString('base64');
   
   const updatedEnv = envContent.replace(
@@ -49,29 +49,29 @@ if (!envContent.includes('ENCRYPTION_KEY=') || envContent.match(/ENCRYPTION_KEY=
   );
   
   fs.writeFileSync(envPath, updatedEnv);
-  console.log('✅ Generated and saved encryption key');
+  console.log('Generated and saved encryption key');
 }
 
 // Check for JWT keys
-console.log('\n🔑 Checking JWT keys...');
+console.log('\nChecking JWT keys...');
 const jwtKeyPath = path.join(process.cwd(), 'jwt-private-key.txt');
 if (!fs.existsSync(jwtKeyPath)) {
   console.log('JWT keys not found. Generating...');
   try {
     execSync('node scripts/generate-jwt-keys.js', { stdio: 'inherit' });
   } catch (error) {
-    console.log('⚠️  JWT key generation requires manual setup. Run: node scripts/generate-jwt-keys.js');
+    console.log('Warning: JWT key generation requires manual setup. Run: node scripts/generate-jwt-keys.js');
   }
 } else {
-  console.log('✅ JWT keys already generated');
+  console.log('JWT keys already generated');
 }
 
-console.log('\n📋 Next Steps:');
+console.log('\nNext Steps:');
 console.log('1. Run "npx convex dev" in one terminal');
 console.log('2. Set Convex environment variables:');
 console.log('   npx convex env set ENCRYPTION_KEY "$(grep ENCRYPTION_KEY .env.local | cut -d\'=\' -f2)"');
 console.log('   npx convex env set RESEND_API_KEY "your_resend_api_key" (if you have one)');
 console.log('3. Run "npm run dev" in another terminal');
 console.log('4. Visit http://localhost:3000');
-console.log('\n📚 Full setup guide: https://github.com/yourusername/firecrawl-observer#quick-start');
-console.log('\n✨ Happy monitoring!');
+console.log('\nFull setup guide: https://github.com/yourusername/firecrawl-observer#quick-start');
+console.log('\nHappy monitoring!');
