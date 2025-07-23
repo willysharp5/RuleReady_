@@ -19,7 +19,7 @@ A powerful website monitoring application that tracks changes on websites and se
 - A [Convex](https://convex.dev) account (free tier available)
 - A [Firecrawl](https://firecrawl.dev) API key (required for website monitoring)
 - (Optional) [Resend](https://resend.com) API key for email notifications
-- (Optional) [OpenAI](https://platform.openai.com) or [Groq](https://console.groq.com) API key for intelligent filtering
+- (Optional) AI API key for intelligent filtering ([OpenAI](https://platform.openai.com), [Anthropic](https://console.anthropic.com), [Google](https://aistudio.google.com), or [Moonshot](https://platform.moonshot.cn))
 
 ## Quick Start
 
@@ -167,7 +167,7 @@ fc-observer/
 │   ├── components/     # React components
 │   ├── config/         # App configuration
 │   └── lib/            # Utilities and helpers
-└── scripts/            # Setup and utility scripts
+└── scripts/            # Test scripts (optional)
 ```
 
 ### Available Scripts

@@ -1262,7 +1262,7 @@ Analyze the provided diff and return a JSON response with:
                               className="mt-1 font-mono"
                             />
                             <p className="text-sm text-gray-500 mt-1">
-                              Model identifier (e.g., gpt-4o-mini, llama-3.3-70b-versatile, claude-3-5-sonnet)
+                              Model identifier (e.g., gpt-4o-mini, claude-4-sonnet, etc.)
                             </p>
                           </div>
                           
@@ -1286,10 +1286,11 @@ Analyze the provided diff and return a JSON response with:
                           <div className="text-sm text-gray-600 space-y-1">
                             <p className="font-medium">Provider Examples:</p>
                             <ul className="space-y-1 ml-4">
-                              <li>• <a href="https://platform.openai.com/api-keys" target="_blank" className="text-orange-600 hover:underline">OpenAI</a>: gpt-4o, gpt-4o-mini (default)</li>
-                              <li>• <a href="https://console.groq.com/keys" target="_blank" className="text-orange-600 hover:underline">Groq</a>: llama-3.3-70b-versatile, mixtral-8x7b-32768</li>
-                              <li>• <a href="https://console.anthropic.com/settings/keys" target="_blank" className="text-orange-600 hover:underline">Anthropic</a>: claude-3-5-sonnet, claude-3-haiku</li>
-                              <li>• <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-orange-600 hover:underline">Google</a>: gemini-1.5-pro, gemini-1.5-flash</li>
+                              <li>• <a href="https://platform.openai.com/api-keys" target="_blank" className="text-orange-600 hover:underline">OpenAI</a>: gpt-4o-mini</li>
+                              <li>• <a href="https://console.anthropic.com/settings/keys" target="_blank" className="text-orange-600 hover:underline">Anthropic</a>: claude-4-sonnet</li>
+                              <li>• <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-orange-600 hover:underline">Google</a>: gemini-2.5-flash-lite</li>
+                              <li>• <a href="https://console.groq.com/keys" target="_blank" className="text-orange-600 hover:underline">Groq</a>: moonshotai/kimi-k2-instruct</li>
+                              <li>• And more...</li>
                             </ul>
                           </div>
                         </div>
