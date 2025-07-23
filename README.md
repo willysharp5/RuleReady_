@@ -1,5 +1,7 @@
 # Firecrawl Observer
 
+![Firecrawl Observer Demo](https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYm94OHU0a3MxM2d4Zm5zb2tseTF4bDdmZWZpcmFlaDYxMzZod3VmbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pBQeHEiQiR25n8rd9J/giphy.gif)
+
 A powerful website monitoring application that tracks changes on websites and sends intelligent notifications. Built with Next.js, Convex, and Firecrawl API.
 
 ## Features
@@ -40,63 +42,16 @@ npm install
 npm run setup
 ```
 
-This will:
-- Create `.env.local` from template
-- Generate a secure encryption key
-- Check for required configurations
+This automated script will:
+- Create `.env.local` with a secure encryption key
+- Initialize Convex (opens browser for authentication)
+- Generate JWT keys for authentication
+- Automatically set all required Convex environment variables
+- Configure everything needed to run the app
 
-### Step 4: Set Up Convex Backend
+**Note**: The setup script will handle all the JWT configuration automatically. No manual steps required!
 
-In a new terminal, start Convex:
-
-```bash
-npx convex dev
-```
-
-Keep this running during development. On first run, it will:
-- Prompt you to create a Convex account (if needed)
-- Create a new project or link to existing one
-- Set up your database schema
-
-### Step 5: Generate JWT Keys for Authentication
-
-```bash
-node scripts/generate-jwt-keys.js
-```
-
-This will output two commands that you MUST run to set up authentication:
-
-1. Copy and run the `JWT_PRIVATE_KEY` command (it will be one long string):
-   ```bash
-   npx convex env set JWT_PRIVATE_KEY "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BA..."
-   ```
-
-2. Copy and run the `JWKS` command:
-   ```bash
-   npx convex env set JWKS '{"keys":[{"kty":"RSA","alg":"RS256"...}]}'
-   ```
-
-**Important**: Authentication will not work without these environment variables. The error "Missing environment variable `JWT_PRIVATE_KEY`" indicates these commands haven't been run.
-
-### Step 6: Configure Environment Variables
-
-Set the required Convex environment variables:
-
-```bash
-# Copy encryption key from .env.local
-npx convex env set ENCRYPTION_KEY "$(grep ENCRYPTION_KEY .env.local | cut -d'=' -f2)"
-
-# Set your site URL
-npx convex env set SITE_URL "http://localhost:3000"
-
-# Optional: Email notifications
-npx convex env set RESEND_API_KEY "your_resend_api_key"
-
-# Required: Firecrawl API key (or users can add their own in the app)
-npx convex env set FIRECRAWL_API_KEY "your_firecrawl_api_key"
-```
-
-### Step 7: Start the Development Server
+### Step 4: Start the Development Server
 
 ```bash
 npm run dev
