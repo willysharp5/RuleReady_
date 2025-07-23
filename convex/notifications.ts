@@ -205,7 +205,7 @@ export const sendEmailNotification = internalAction({
     }
 
     await resend.sendEmail(ctx, {
-      from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@answer.website'}>`,
+      from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@example.com'}>`,
       to: args.email,
       subject: `Changes detected on ${args.websiteName}`,
       html: htmlContent,

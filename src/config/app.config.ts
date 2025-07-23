@@ -6,14 +6,14 @@ export const APP_CONFIG = {
   description: 'Monitor websites for changes with AI-powered analysis',
   
   // Domain configuration
-  domain: 'answer.website',
+  domain: 'example.com',
   
   // Email configuration
   email: {
     fromName: 'Firecrawl Observer',
-    fromAddress: 'noreply@answer.website',
-    defaultRecipient: 'alerts@answer.website',
-    placeholderEmail: 'you@answer.website',
+    fromAddress: 'noreply@example.com',
+    defaultRecipient: 'alerts@example.com',
+    placeholderEmail: 'you@example.com',
   },
   
   // URLs

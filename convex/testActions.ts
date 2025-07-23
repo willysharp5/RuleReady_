@@ -161,7 +161,7 @@ export const sendTestEmailInternal = internalAction({
     }
     
     await resend.sendEmail(ctx, {
-      from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@answer.website'}>`,
+      from: `${process.env.APP_NAME || 'Firecrawl Observer'} <${process.env.FROM_EMAIL || 'noreply@example.com'}>`,
       to: args.email,
       subject: "Test Email - Firecrawl Observer",
       html: htmlContent,

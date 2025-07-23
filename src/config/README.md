@@ -29,7 +29,7 @@ For Convex functions, use environment variables:
 ```typescript
 // Set these environment variables in Convex:
 // APP_NAME="Firecrawl Observer"
-// FROM_EMAIL="noreply@answer.website"
+// FROM_EMAIL="noreply@example.com"
 
 const fromEmail = `${process.env.APP_NAME} <${process.env.FROM_EMAIL}>`
 ```
