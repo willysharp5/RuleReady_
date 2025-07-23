@@ -11,20 +11,12 @@ async function generateKeys() {
   publicKeyJWK.use = 'sig';
   publicKeyJWK.kid = 'default-kid';
   
-  // Replace newlines with spaces for environment variable
-  const privateKeyForEnv = privateKeyPKCS8.replace(/\n/g, ' ');
+  // Keep the private key as one string with escaped newlines
+  const privateKeyForEnv = privateKeyPKCS8.replace(/\n/g, '\\n');
   
-  // Also provide base64 version as alternative
-  const privateKeyBase64 = Buffer.from(privateKeyPKCS8).toString('base64');
-  
-  console.log('=== JWT_PRIVATE_KEY (with spaces) ===');
-  console.log('Run this command:');
+  console.log('=== JWT_PRIVATE_KEY ===');
+  console.log('Copy and run this command:');
   console.log(`npx convex env set JWT_PRIVATE_KEY "${privateKeyForEnv}"`);
-  console.log();
-  
-  console.log('=== JWT_PRIVATE_KEY (base64 encoded) ===');
-  console.log('Alternative - if the above doesn\'t work, try:');
-  console.log(`npx convex env set JWT_PRIVATE_KEY "${privateKeyBase64}"`);
   console.log();
   
   console.log('=== JWKS ===');

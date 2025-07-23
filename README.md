@@ -66,9 +66,9 @@ node scripts/generate-jwt-keys.js
 
 This will output two commands that you MUST run to set up authentication:
 
-1. Copy and run the `JWT_PRIVATE_KEY` command:
+1. Copy and run the `JWT_PRIVATE_KEY` command (it will be one long string):
    ```bash
-   npx convex env set JWT_PRIVATE_KEY "-----BEGIN PRIVATE KEY----- ..."
+   npx convex env set JWT_PRIVATE_KEY "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BA..."
    ```
 
 2. Copy and run the `JWKS` command:
