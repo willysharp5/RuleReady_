@@ -10,42 +10,39 @@ import { generateKeyPair, exportPKCS8, exportJWK } from 'jose';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('Firecrawl Observer Setup\n');
-
-// Check if .env.local exists
-const envPath = path.join(process.cwd(), '.env.local');
-const envExamplePath = path.join(process.cwd(), '.env.local.example');
+console.log('Firecrawl Observer Setup - JWT Configuration\n');
 
 async function setup() {
-  // Step 1: Create .env.local
+  // Check if Convex is initialized
+  try {
+    execSync('npx convex env list', { stdio: 'ignore' });
+  } catch (error) {
+    console.error('Error: Convex is not initialized!');
+    console.log('\nPlease run "npx convex dev" first to initialize your Convex project.');
+    console.log('After Convex is set up, run this setup script again.');
+    process.exit(1);
+  }
+
+  // Check if .env.local exists and create if needed
+  const envPath = path.join(process.cwd(), '.env.local');
+  let encryptionKey = '';
+  
   if (!fs.existsSync(envPath)) {
     console.log('Creating .env.local file...');
-    
-    if (fs.existsSync(envExamplePath)) {
-      fs.copyFileSync(envExamplePath, envPath);
-      console.log('Copied .env.local.example to .env.local');
-    } else {
-      // Create a basic .env.local
-      const basicEnv = `# Convex deployment URL (will be set after deployment)
+    const basicEnv = `# Convex deployment URL (set by Convex)
 NEXT_PUBLIC_CONVEX_URL=
-
-# Email provider (Resend)
-RESEND_API_KEY=
 
 # Encryption key for securing API keys in database
 ENCRYPTION_KEY=
 `;
-      fs.writeFileSync(envPath, basicEnv);
-      console.log('Created .env.local file');
-    }
+    fs.writeFileSync(envPath, basicEnv);
   }
 
-  // Step 2: Generate encryption key if not present
+  // Generate or get encryption key
   const envContent = fs.readFileSync(envPath, 'utf8');
-  let encryptionKey = '';
   
   if (!envContent.includes('ENCRYPTION_KEY=') || envContent.match(/ENCRYPTION_KEY=\s*$/m)) {
-    console.log('\nGenerating encryption key...');
+    console.log('Generating encryption key...');
     encryptionKey = crypto.randomBytes(32).toString('base64');
     
     const updatedEnv = envContent.replace(
@@ -54,7 +51,7 @@ ENCRYPTION_KEY=
     );
     
     fs.writeFileSync(envPath, updatedEnv);
-    console.log('Generated and saved encryption key');
+    console.log('Generated and saved encryption key to .env.local');
   } else {
     // Extract existing encryption key
     const match = envContent.match(/ENCRYPTION_KEY=(.+)$/m);
@@ -63,28 +60,7 @@ ENCRYPTION_KEY=
     }
   }
 
-  // Step 3: Initialize Convex
-  console.log('\nInitializing Convex...');
-  console.log('This will open your browser to authenticate with Convex.\n');
-  
-  try {
-    // First, try to deploy to initialize the project
-    console.log('Attempting to initialize Convex project...');
-    execSync('npx convex deploy --cmd "npx convex env list" 2>/dev/null', { stdio: 'pipe' });
-    console.log('Convex project already initialized!');
-  } catch (error) {
-    // If that fails, we need to run convex dev to set up the project
-    console.log('Setting up new Convex project...');
-    console.log('Note: This will open your browser for authentication.');
-    try {
-      execSync('npx convex dev --until-success --run "npx convex dashboard"', { stdio: 'inherit' });
-    } catch (e) {
-      // Ignore errors here as convex dev might exit after setup
-    }
-    console.log('\nConvex initialized!');
-  }
-
-  // Step 4: Generate JWT keys
+  // Generate JWT keys
   console.log('\nGenerating JWT keys for authentication...');
   
   const { publicKey, privateKey } = await generateKeyPair('RS256');
@@ -101,59 +77,39 @@ ENCRYPTION_KEY=
 
   console.log('Generated JWT keys successfully!');
 
-  // Step 5: Set Convex environment variables
-  console.log('\nSetting Convex environment variables...');
+  // Set Convex environment variables
+  console.log('\nSetting Convex environment variables...\n');
   
-  // Wait a moment for Convex to be fully initialized
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  const envVarsToSet = [
-    { name: 'ENCRYPTION_KEY', value: encryptionKey },
-    { name: 'JWT_PRIVATE_KEY', value: privateKeyForEnv },
-    { name: 'JWKS', value: jwks },
-    { name: 'SITE_URL', value: 'http://localhost:3000' }
+  const commands = [
+    { name: 'ENCRYPTION_KEY', value: encryptionKey, quotes: '"' },
+    { name: 'JWT_PRIVATE_KEY', value: privateKeyForEnv, quotes: '"' },
+    { name: 'JWKS', value: jwks, quotes: "'" },
+    { name: 'SITE_URL', value: 'http://localhost:3000', quotes: '"' }
   ];
   
-  let failedVars = [];
+  let success = true;
   
-  for (const { name, value } of envVarsToSet) {
+  for (const { name, value, quotes } of commands) {
     try {
       console.log(`Setting ${name}...`);
-      // Use stdio: 'ignore' to suppress output but still get errors
-      execSync(`npx convex env set ${name} '${value}'`, { 
-        stdio: 'ignore',
-        shell: true 
-      });
+      const cmd = `npx convex env set ${name} ${quotes}${value}${quotes}`;
+      execSync(cmd, { stdio: 'ignore' });
       console.log(`Successfully set ${name}`);
     } catch (error) {
-      console.log(`Failed to set ${name}`);
-      failedVars.push({ name, value });
+      console.error(`Failed to set ${name}`);
+      console.log(`Run manually: npx convex env set ${name} ${quotes}${value}${quotes}\n`);
+      success = false;
     }
   }
   
-  if (failedVars.length > 0) {
-    console.log('\nSome environment variables failed to set automatically.');
-    console.log('Please run these commands manually:\n');
-    
-    for (const { name, value } of failedVars) {
-      if (name === 'JWKS') {
-        console.log(`npx convex env set ${name} '${value}'`);
-      } else {
-        console.log(`npx convex env set ${name} "${value}"`);
-      }
-    }
-  } else {
+  if (success) {
     console.log('\nAll environment variables set successfully!');
+    console.log('\nSetup complete! You can now run:');
+    console.log('  npm run dev');
+  } else {
+    console.log('\nSome environment variables failed to set.');
+    console.log('Please run the commands shown above manually.');
   }
-
-  console.log('\nSetup Complete!');
-  console.log('\nNext Steps:');
-  console.log('1. Run "npm run dev" to start the development server');
-  console.log('2. Visit http://localhost:3000');
-  console.log('3. (Optional) Set up email notifications:');
-  console.log('   npx convex env set RESEND_API_KEY "your_resend_api_key"');
-  console.log('\nFull documentation: https://github.com/mendableai/firecrawl-observer#quick-start');
-  console.log('\nHappy monitoring!');
 }
 
 // Run the setup

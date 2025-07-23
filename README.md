@@ -36,22 +36,33 @@ cd firecrawl-observer
 npm install
 ```
 
-### Step 3: Run Automated Setup
+### Step 3: Initialize Convex
+
+```bash
+npx convex dev
+```
+
+This will:
+- Open your browser to authenticate with Convex
+- Create a new project (or link to an existing one)
+- Set up your database schema
+
+Keep this terminal running.
+
+### Step 4: Run Setup Script (in a new terminal)
 
 ```bash
 npm run setup
 ```
 
-This automated script will:
-- Create `.env.local` with a secure encryption key
-- Initialize Convex (opens browser for authentication)
+This script will:
+- Generate encryption keys
 - Generate JWT keys for authentication
 - Automatically set all required Convex environment variables
-- Configure everything needed to run the app
 
-**Note**: The setup script will handle all the JWT configuration automatically. No manual steps required!
+**Note**: Make sure Convex is initialized (Step 3) before running this script!
 
-### Step 4: Start the Development Server
+### Step 5: Start the Development Server
 
 ```bash
 npm run dev
