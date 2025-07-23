@@ -80,26 +80,52 @@ ENCRYPTION_KEY=
   // Set Convex environment variables
   console.log('\nSetting Convex environment variables...\n');
   
-  const commands = [
-    { name: 'ENCRYPTION_KEY', value: encryptionKey, quotes: '"' },
-    { name: 'JWT_PRIVATE_KEY', value: privateKeyForEnv, quotes: '"' },
-    { name: 'JWKS', value: jwks, quotes: "'" },
-    { name: 'SITE_URL', value: 'http://localhost:3000', quotes: '"' }
-  ];
-  
   let success = true;
   
-  for (const { name, value, quotes } of commands) {
-    try {
-      console.log(`Setting ${name}...`);
-      const cmd = `npx convex env set ${name} ${quotes}${value}${quotes}`;
-      execSync(cmd, { stdio: 'ignore' });
-      console.log(`Successfully set ${name}`);
-    } catch (error) {
-      console.error(`Failed to set ${name}`);
-      console.log(`Run manually: npx convex env set ${name} ${quotes}${value}${quotes}\n`);
-      success = false;
-    }
+  // Set each environment variable
+  try {
+    console.log('Setting ENCRYPTION_KEY...');
+    execSync(`npx convex env set ENCRYPTION_KEY "${encryptionKey}"`, { stdio: 'ignore' });
+    console.log('Successfully set ENCRYPTION_KEY');
+  } catch (error) {
+    console.error('Failed to set ENCRYPTION_KEY');
+    console.log(`Run manually: npx convex env set ENCRYPTION_KEY "${encryptionKey}"\n`);
+    success = false;
+  }
+  
+  try {
+    console.log('Setting JWT_PRIVATE_KEY...');
+    // Write the private key to a temp file to avoid shell escaping issues
+    const tempFile = path.join(process.cwd(), '.jwt-private-key-temp');
+    fs.writeFileSync(tempFile, privateKeyForEnv);
+    execSync(`npx convex env set JWT_PRIVATE_KEY "$(cat ${tempFile})"`, { stdio: 'ignore', shell: true });
+    fs.unlinkSync(tempFile);
+    console.log('Successfully set JWT_PRIVATE_KEY');
+  } catch (error) {
+    console.error('Failed to set JWT_PRIVATE_KEY');
+    console.log('Run manually:');
+    console.log(`echo '${privateKeyForEnv}' | npx convex env set JWT_PRIVATE_KEY -\n`);
+    success = false;
+  }
+  
+  try {
+    console.log('Setting JWKS...');
+    execSync(`npx convex env set JWKS '${jwks}'`, { stdio: 'ignore' });
+    console.log('Successfully set JWKS');
+  } catch (error) {
+    console.error('Failed to set JWKS');
+    console.log(`Run manually: npx convex env set JWKS '${jwks}'\n`);
+    success = false;
+  }
+  
+  try {
+    console.log('Setting SITE_URL...');
+    execSync('npx convex env set SITE_URL "http://localhost:3000"', { stdio: 'ignore' });
+    console.log('Successfully set SITE_URL');
+  } catch (error) {
+    console.error('Failed to set SITE_URL');
+    console.log('Run manually: npx convex env set SITE_URL "http://localhost:3000"\n');
+    success = false;
   }
   
   if (success) {
