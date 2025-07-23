@@ -71,8 +71,7 @@ ENCRYPTION_KEY=
   publicKeyJWK.use = 'sig';
   publicKeyJWK.kid = 'default-kid';
   
-  // Keep the private key as one string with escaped newlines
-  const privateKeyForEnv = privateKeyPKCS8.replace(/\n/g, '\\n');
+  // Keep the private key in its original format
   const jwks = JSON.stringify({ keys: [publicKeyJWK] });
 
   console.log('Generated JWT keys successfully!');
@@ -95,16 +94,29 @@ ENCRYPTION_KEY=
   
   try {
     console.log('Setting JWT_PRIVATE_KEY...');
-    // Write the private key to a temp file to avoid shell escaping issues
-    const tempFile = path.join(process.cwd(), '.jwt-private-key-temp');
-    fs.writeFileSync(tempFile, privateKeyForEnv);
-    execSync(`npx convex env set JWT_PRIVATE_KEY "$(cat ${tempFile})"`, { stdio: 'ignore', shell: true });
+    // Save private key to a file, then use stdin to set it
+    const tempFile = path.join(process.cwd(), '.jwt-private-key-temp.txt');
+    fs.writeFileSync(tempFile, privateKeyPKCS8);
+    
+    // Use stdin to pass the key to avoid escaping issues
+    const keyContent = fs.readFileSync(tempFile, 'utf8');
+    execSync('npx convex env set JWT_PRIVATE_KEY', {
+      input: keyContent,
+      stdio: ['pipe', 'ignore', 'ignore']
+    });
+    
     fs.unlinkSync(tempFile);
     console.log('Successfully set JWT_PRIVATE_KEY');
   } catch (error) {
     console.error('Failed to set JWT_PRIVATE_KEY');
-    console.log('Run manually:');
-    console.log(`echo '${privateKeyForEnv}' | npx convex env set JWT_PRIVATE_KEY -\n`);
+    console.log('The private key contains special characters that need manual handling.');
+    console.log('\nOption 1 - Save to file and use:');
+    console.log('1. Create a file called jwt-key.txt with the private key');
+    console.log('2. Run: npx convex env set JWT_PRIVATE_KEY "$(cat jwt-key.txt)"');
+    console.log('3. Delete jwt-key.txt\n');
+    console.log('Option 2 - Use the escaped version:');
+    const escapedKey = privateKeyPKCS8.replace(/\n/g, '\\n');
+    console.log(`npx convex env set JWT_PRIVATE_KEY "${escapedKey}"\n`);
     success = false;
   }
   
