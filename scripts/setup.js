@@ -92,32 +92,56 @@ ENCRYPTION_KEY=
     success = false;
   }
   
+  console.log('Setting JWT_PRIVATE_KEY...');
+  let jwtKeySet = false;
+  
+  // Try method 1: Using stdin
   try {
-    console.log('Setting JWT_PRIVATE_KEY...');
-    // Save private key to a file, then use stdin to set it
-    const tempFile = path.join(process.cwd(), '.jwt-private-key-temp.txt');
-    fs.writeFileSync(tempFile, privateKeyPKCS8);
-    
-    // Use stdin to pass the key to avoid escaping issues
-    const keyContent = fs.readFileSync(tempFile, 'utf8');
+    const keyContent = privateKeyPKCS8;
     execSync('npx convex env set JWT_PRIVATE_KEY', {
       input: keyContent,
       stdio: ['pipe', 'ignore', 'ignore']
     });
-    
-    fs.unlinkSync(tempFile);
-    console.log('Successfully set JWT_PRIVATE_KEY');
+    jwtKeySet = true;
+    console.log('Successfully set JWT_PRIVATE_KEY (via stdin)');
   } catch (error) {
-    console.error('Failed to set JWT_PRIVATE_KEY');
-    console.log('The private key contains special characters that need manual handling.');
-    console.log('\nOption 1 - Save to file and use:');
-    console.log('1. Create a file called jwt-key.txt with the private key');
-    console.log('2. Run: npx convex env set JWT_PRIVATE_KEY "$(cat jwt-key.txt)"');
-    console.log('3. Delete jwt-key.txt\n');
-    console.log('Option 2 - Use the escaped version:');
-    const escapedKey = privateKeyPKCS8.replace(/\n/g, '\\n');
-    console.log(`npx convex env set JWT_PRIVATE_KEY "${escapedKey}"\n`);
-    success = false;
+    // If stdin fails, try method 2: Using a temp file with cat
+    console.log('Stdin method failed, trying file method...');
+    try {
+      const tempFile = path.join(process.cwd(), '.jwt-private-key-temp.txt');
+      fs.writeFileSync(tempFile, privateKeyPKCS8);
+      
+      // Use cat with command substitution
+      execSync(`npx convex env set JWT_PRIVATE_KEY "$(cat ${tempFile})"`, {
+        stdio: 'ignore',
+        shell: true
+      });
+      
+      fs.unlinkSync(tempFile);
+      jwtKeySet = true;
+      console.log('Successfully set JWT_PRIVATE_KEY (via file)');
+    } catch (fileError) {
+      // If that also fails, try the escaped version
+      console.log('File method failed, trying escaped version...');
+      try {
+        const escapedKey = privateKeyPKCS8.replace(/\n/g, '\\n');
+        execSync(`npx convex env set JWT_PRIVATE_KEY "${escapedKey}"`, {
+          stdio: 'ignore'
+        });
+        jwtKeySet = true;
+        console.log('Successfully set JWT_PRIVATE_KEY (escaped)');
+      } catch (escapedError) {
+        console.error('Failed to set JWT_PRIVATE_KEY');
+        console.log('All automatic methods failed. Please set it manually:');
+        console.log('\nSave this to a file called jwt-key.txt:');
+        console.log('---BEGIN KEY---');
+        console.log(privateKeyPKCS8);
+        console.log('---END KEY---');
+        console.log('\nThen run: npx convex env set JWT_PRIVATE_KEY "$(cat jwt-key.txt)"');
+        console.log('Then delete jwt-key.txt\n');
+        success = false;
+      }
+    }
   }
   
   try {
