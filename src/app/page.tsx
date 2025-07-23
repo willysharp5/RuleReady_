@@ -10,6 +10,7 @@ import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, R
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
+import { useRouter } from 'next/navigation'
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
 import { FirecrawlKeyBanner } from '@/components/FirecrawlKeyBanner'
 import { APP_CONFIG } from '@/config/app.config'
@@ -46,6 +47,12 @@ export default function HomePage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const { signIn } = useAuthActions()
   const { addToast } = useToast()
+  const router = useRouter()
+  
+  // Debug auth state changes
+  useEffect(() => {
+    console.log('Auth state:', { isAuthenticated, authLoading })
+  }, [isAuthenticated, authLoading])
   
   // Auth state
   const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn')
@@ -183,6 +190,11 @@ export default function HomePage() {
           : 'Your account has been created successfully.',
         duration: 3000
       })
+      
+      // Force a router refresh to ensure auth state is updated
+      setTimeout(() => {
+        router.refresh()
+      }, 100)
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // Check for InvalidAccountId in various ways
       const errorMessage = error.message || error.toString() || '';
