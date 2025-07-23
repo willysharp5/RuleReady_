@@ -68,11 +68,20 @@ ENCRYPTION_KEY=
   console.log('This will open your browser to authenticate with Convex.\n');
   
   try {
-    // Run convex dev in a way that allows it to initialize but then we can continue
-    execSync('npx convex dev --once', { stdio: 'inherit' });
-    console.log('\nConvex initialized successfully!');
+    // First, try to deploy to initialize the project
+    console.log('Attempting to initialize Convex project...');
+    execSync('npx convex deploy --cmd "npx convex env list" 2>/dev/null', { stdio: 'pipe' });
+    console.log('Convex project already initialized!');
   } catch (error) {
-    console.log('\nNote: If Convex is already initialized, you can ignore the above error.');
+    // If that fails, we need to run convex dev to set up the project
+    console.log('Setting up new Convex project...');
+    console.log('Note: This will open your browser for authentication.');
+    try {
+      execSync('npx convex dev --until-success --run "npx convex dashboard"', { stdio: 'inherit' });
+    } catch (e) {
+      // Ignore errors here as convex dev might exit after setup
+    }
+    console.log('\nConvex initialized!');
   }
 
   // Step 4: Generate JWT keys
@@ -95,32 +104,46 @@ ENCRYPTION_KEY=
   // Step 5: Set Convex environment variables
   console.log('\nSetting Convex environment variables...');
   
-  try {
-    // Set encryption key
-    if (encryptionKey) {
-      execSync(`npx convex env set ENCRYPTION_KEY "${encryptionKey}"`, { stdio: 'pipe' });
-      console.log('Set ENCRYPTION_KEY');
+  // Wait a moment for Convex to be fully initialized
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const envVarsToSet = [
+    { name: 'ENCRYPTION_KEY', value: encryptionKey },
+    { name: 'JWT_PRIVATE_KEY', value: privateKeyForEnv },
+    { name: 'JWKS', value: jwks },
+    { name: 'SITE_URL', value: 'http://localhost:3000' }
+  ];
+  
+  let failedVars = [];
+  
+  for (const { name, value } of envVarsToSet) {
+    try {
+      console.log(`Setting ${name}...`);
+      // Use stdio: 'ignore' to suppress output but still get errors
+      execSync(`npx convex env set ${name} '${value}'`, { 
+        stdio: 'ignore',
+        shell: true 
+      });
+      console.log(`Successfully set ${name}`);
+    } catch (error) {
+      console.log(`Failed to set ${name}`);
+      failedVars.push({ name, value });
     }
+  }
+  
+  if (failedVars.length > 0) {
+    console.log('\nSome environment variables failed to set automatically.');
+    console.log('Please run these commands manually:\n');
     
-    // Set JWT keys
-    execSync(`npx convex env set JWT_PRIVATE_KEY "${privateKeyForEnv}"`, { stdio: 'pipe' });
-    console.log('Set JWT_PRIVATE_KEY');
-    
-    execSync(`npx convex env set JWKS '${jwks}'`, { stdio: 'pipe' });
-    console.log('Set JWKS');
-    
-    // Set site URL
-    execSync('npx convex env set SITE_URL "http://localhost:3000"', { stdio: 'pipe' });
-    console.log('Set SITE_URL');
-    
+    for (const { name, value } of failedVars) {
+      if (name === 'JWKS') {
+        console.log(`npx convex env set ${name} '${value}'`);
+      } else {
+        console.log(`npx convex env set ${name} "${value}"`);
+      }
+    }
+  } else {
     console.log('\nAll environment variables set successfully!');
-  } catch (error) {
-    console.error('\nError setting environment variables:', error.message);
-    console.log('\nIf the above failed, you can manually set them:');
-    console.log(`npx convex env set ENCRYPTION_KEY "${encryptionKey}"`);
-    console.log(`npx convex env set JWT_PRIVATE_KEY "${privateKeyForEnv}"`);
-    console.log(`npx convex env set JWKS '${jwks}'`);
-    console.log('npx convex env set SITE_URL "http://localhost:3000"');
   }
 
   console.log('\nSetup Complete!');
