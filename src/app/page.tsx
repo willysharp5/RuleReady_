@@ -13,6 +13,9 @@ import { api } from "../../convex/_generated/api"
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
 import { FirecrawlKeyBanner } from '@/components/FirecrawlKeyBanner'
 import { APP_CONFIG } from '@/config/app.config'
+import { validateEmail, validatePassword } from '@/lib/validation'
+import { useToast } from '@/hooks/use-toast'
+import { LoadingOverlay } from '@/components/ui/loading-overlay'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -42,13 +45,14 @@ function getFaviconUrl(url: string): string {
 export default function HomePage() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const { signIn } = useAuthActions()
+  const { addToast } = useToast()
   
   // Auth state
   const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState('')
   const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [helperText, setHelperText] = useState('')
   
   // Website monitoring state
   const [url, setUrl] = useState('')
@@ -129,38 +133,132 @@ export default function HomePage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    setAuthError('')
     setIsAuthenticating(true)
+
+    // Trim email before validation and use
+    const trimmedEmail = email.trim()
+    
+    // Validate email format first
+    const emailValidation = validateEmail(trimmedEmail)
+    if (!emailValidation.isValid) {
+      addToast({
+        variant: 'error',
+        title: 'Invalid Email',
+        description: emailValidation.error || 'Please enter a valid email address',
+        duration: 4000
+      })
+      setIsAuthenticating(false)
+      return
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password, authMode)
+    if (!passwordValidation.isValid) {
+      addToast({
+        variant: 'error',
+        title: 'Invalid Password',
+        description: passwordValidation.error || 'Please check your password requirements',
+        duration: 4000
+      })
+      setIsAuthenticating(false)
+      return
+    }
 
     try {
       await signIn("password", {
-        email,
+        email: trimmedEmail,
         password,
         flow: authMode,
       })
       // Clear form on successful auth
       setEmail('')
       setPassword('')
+      setHelperText('')
+      // Show success message
+      addToast({
+        variant: 'success',
+        title: authMode === 'signIn' ? 'Welcome Back!' : 'Account Created!',
+        description: authMode === 'signIn' 
+          ? 'You have successfully signed in.' 
+          : 'Your account has been created successfully.',
+        duration: 3000
+      })
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // Check for InvalidAccountId in various ways
       const errorMessage = error.message || error.toString() || '';
-      const isInvalidAccount = errorMessage.includes('InvalidAccountId') || 
-                              errorMessage.includes('Invalid account') ||
-                              errorMessage.includes('No account found');
+      const errorLower = errorMessage.toLowerCase();
+      
+      // More comprehensive invalid account detection
+      const isInvalidAccount = errorLower.includes('invalidaccountid') || 
+                              errorLower.includes('invalid account') ||
+                              errorLower.includes('no account') ||
+                              errorLower.includes('account not found') ||
+                              errorLower.includes('user not found') ||
+                              errorLower.includes('does not exist');
+      
+      // Check for existing account errors
+      const isExistingAccount = errorLower.includes('already exists') || 
+                               errorLower.includes('already registered') ||
+                               errorLower.includes('account exists') ||
+                               errorLower.includes('email already');
+      
+      // Check for password errors
+      const isPasswordError = errorLower.includes('password') || 
+                             errorLower.includes('credentials') ||
+                             errorLower.includes('authentication failed');
       
       if (isInvalidAccount && authMode === 'signIn') {
         // Auto-switch to signup mode for unregistered users
         setAuthMode('signUp')
-        setAuthError('')  // Clear error since we're handling it gracefully
         setPassword('') // Clear password for security
-        // Show a success-style message instead of error
-        setTimeout(() => {
-          setAuthError('Ready to create your account! Enter a password and click Sign Up.')
-        }, 100)
-      } else if (errorMessage.includes('password') || errorMessage.includes('credentials')) {
-        setAuthError('Incorrect password. Please try again.')
+        setHelperText('No account found. Enter a password to create one.')
+        setIsAuthenticating(false)
+        return
+      } else if (isExistingAccount && authMode === 'signUp') {
+        setAuthMode('signIn')
+        setHelperText('Account already exists. Enter your password to sign in.')
+        setIsAuthenticating(false)
+        return
+      } else if (isPasswordError) {
+        if (authMode === 'signIn') {
+          addToast({
+            variant: 'error',
+            title: 'Authentication Failed',
+            description: 'The password you entered is incorrect. Please try again.',
+            duration: 4000
+          })
+        } else {
+          addToast({
+            variant: 'error',
+            title: 'Account Creation Failed',
+            description: 'Unable to create your account. Please check your password and try again.',
+            duration: 4000
+          })
+        }
+      } else if (errorLower.includes('network') || errorLower.includes('connection')) {
+        addToast({
+          variant: 'error',
+          title: 'Connection Error',
+          description: 'Please check your internet connection and try again.',
+          duration: 5000
+        })
+      } else if (errorLower.includes('rate limit') || errorLower.includes('too many')) {
+        addToast({
+          variant: 'warning',
+          title: 'Too Many Attempts',
+          description: 'Please wait a few minutes before trying again.',
+          duration: 6000
+        })
       } else {
-        setAuthError(errorMessage || 'Authentication failed')
+        // Generic fallback with more helpful message
+        addToast({
+          variant: 'error',
+          title: authMode === 'signIn' ? 'Sign In Failed' : 'Sign Up Failed',
+          description: authMode === 'signIn' 
+            ? 'Please check your email and password.' 
+            : 'Please try again or contact support.',
+          duration: 4000
+        })
       }
     } finally {
       setIsAuthenticating(false)
@@ -289,7 +387,11 @@ export default function HomePage() {
               
               {/* Right side - Sign in form */}
               <div className="w-full max-w-md mx-auto lg:mx-0">
-                <div className="bg-white rounded-lg p-8 shadow-sm">
+                <div className="bg-white rounded-lg p-8 shadow-sm relative">
+                  <LoadingOverlay 
+                    visible={isAuthenticating} 
+                    message={authMode === 'signIn' ? 'Signing you in...' : 'Creating your account...'}
+                  />
                   <div className="flex items-center justify-center mb-6">
                     <h2 className="text-2xl font-semibold">
                       {authMode === 'signIn' ? 'Welcome Back' : 'Get Started'}
@@ -311,7 +413,10 @@ export default function HomePage() {
                         type="email" 
                         placeholder={APP_CONFIG.email.placeholderEmail} 
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value)
+                          if (helperText) setHelperText('')
+                        }}
                         required
                         autoComplete="email"
                       />
@@ -324,19 +429,21 @@ export default function HomePage() {
                       <Input 
                         id="password"
                         type="password" 
-                        placeholder="••••••••" 
+                        placeholder={authMode === 'signUp' ? 'Minimum 6 characters' : '••••••••'} 
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value)
+                          if (helperText) setHelperText('')
+                        }}
                         required
                         autoComplete={authMode === 'signIn' ? 'current-password' : 'new-password'}
                       />
+                      {helperText && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {helperText}
+                        </p>
+                      )}
                     </div>
-                    
-                    {authError && (
-                      <p className={`text-sm ${authError.includes('Ready to create') ? 'text-green-600 font-medium' : 'text-orange-500'}`}>
-                        {authError}
-                      </p>
-                    )}
                     
                     <Button 
                       type="submit" 
@@ -364,7 +471,10 @@ export default function HomePage() {
                         Don&apos;t have an account?{' '}
                         <button
                           type="button"
-                          onClick={() => setAuthMode('signUp')}
+                          onClick={() => {
+                            setAuthMode('signUp')
+                            setHelperText('')
+                          }}
                           className="text-orange-600 hover:text-orange-700 font-medium"
                         >
                           Sign up
@@ -375,7 +485,10 @@ export default function HomePage() {
                         Already have an account?{' '}
                         <button
                           type="button"
-                          onClick={() => setAuthMode('signIn')}
+                          onClick={() => {
+                            setAuthMode('signIn')
+                            setHelperText('')
+                          }}
                           className="text-orange-600 hover:text-orange-700 font-medium"
                         >
                           Sign in

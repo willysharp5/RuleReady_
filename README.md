@@ -17,7 +17,7 @@ A powerful website monitoring application that tracks changes on websites and se
 - A [Convex](https://convex.dev) account (free tier available)
 - A [Firecrawl](https://firecrawl.dev) API key (required for website monitoring)
 - (Optional) [Resend](https://resend.com) API key for email notifications
-- (Optional) OpenAI or compatible AI API key for intelligent filtering
+- (Optional) [OpenAI](https://platform.openai.com) or [Groq](https://console.groq.com) API key for intelligent filtering
 
 ## Quick Start
 
