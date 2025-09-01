@@ -511,10 +511,9 @@ export const getAllScrapeHistory = query({
 
     const websiteMap = new Map(websites.map(w => [w._id, w]));
 
-    // Get all scrape results for user's websites
+    // Get all scrape results (single-user mode)
     const allScrapes = await ctx.db
       .query("scrapeResults")
-      .withIndex("by_user_time", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(100); // Limit to last 100 scrapes
 
