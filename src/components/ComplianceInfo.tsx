@@ -1,4 +1,4 @@
-import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, Timer, Turtle, FlaskConical } from "lucide-react"
+import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical } from "lucide-react"
 import { Tooltip } from "./ui/tooltip"
 import { Badge } from "./ui/badge"
 
