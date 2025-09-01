@@ -1,0 +1,56 @@
+Washington Non-Compete Enforcement Rules
+
+Overview
+Washington’s [non-competition agreement](https://app.leg.wa.gov/RCW/default.aspx?cite=49.62) law governs when a non-competition agreement may be considered valid or enforceable under state law.
+One aspect to the restrictions in Washington’s non-competition law is related to earnings. Only employees or independent contractors who earn more than the thresholds established by law can be held to non-competition agreements. If an employee or independent contractor has earnings less than the threshold specified under law, the non-compete agreements is considered void and unenforceable under RCW 49.62. These thresholds are established in RCW 49.62.020 (for employees) and RCW 49.62.030 (for independent contractors).
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+One aspect to the restrictions in Washington’s non-competition law is related to earnings. Only employees or independent contractors who earn more than the thresholds established by law can be held to non-competition agreements. If an employee or independent contractor has earnings less than the threshold specified under law, the non-compete agreements is considered void and unenforceable under RCW 49.62. These thresholds are established in RCW 49.62.020 (for employees) and RCW 49.62.030 (for independent contractors).
+| Employees | $ 100,000.00 | $116,593.18​ | $120,559.99​ | $123,394.17 |
+
+What Should Employers Do?
+Pursuant to RCW 49.62.040, the Department of Labor & Industries must adjust these thresholds for inflation each year.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+Washington’s [non-competition agreement](https://app.leg.wa.gov/RCW/default.aspx?cite=49.62) law governs when a non-competition agreement may be considered valid or enforceable under state law.
+
+Employer Responsibilities & Deadlines
+Pursuant to RCW 49.62.040, the Department of Labor & Industries must adjust these thresholds for inflation each year.
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.lni.wa.gov/workers-rights/workplace-policies/non-compete-agreements
+
+---
+Generated on: 2025-07-31 18:53:02
+Original content length: 1,170 characters
+Processing method: Unified template structure

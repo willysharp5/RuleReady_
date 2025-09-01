@@ -1,0 +1,62 @@
+Massachusetts Non-Compete Enforcement Rules
+
+Overview
+[MGL c. 149, § 24L](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXXI/Chapter149/Section24l) Massachusetts Noncompetition Agreement Act
+These laws ban noncompetition agreements for certain professions:
+
+Covered Employers
+An "anti-raiding" restrictive covenant is “only reasonable, and thus enforceable, if it is (1) necessary to protect a legitimate business interest, (2) reasonably limited in time and space, and (3) consonant with the public interest.”
+[F. A. Bartlett Tree Expert Company vs. Barrington](https://scholar.google.com/scholar_case?case=4521927265214574074), 353 Mass. 585 (1968)
+"It has been long settled in this Commonwealth that a covenant inserted in a contract for personal service restricting trade or competition or freedom of employment is not invalid and may be enforced in equity provided it is necessary for the protection of the employer, is reasonably limited in time and space, and is consonant with the public interest. What is reasonable depends on the facts in each case."
+
+Covered Employees
+- [MGL c. 112, § 135C](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXVI/Chapter112/Section135C) Social workers
+"...\[T\]he Chair of the FTC is encouraged to consider working with the rest of the Commission to exercise the FTC’s statutory rulemaking authority under the Federal Trade Commission Act to curtail the unfair use of non-compete clauses and other clauses or agreements that may unfairly limit worker mobility."
+"The final rule provides that it is an unfair method of competition for persons to, among other things, enter into non-compete clauses (“non-competes”) with workers on or after the final rule's effective date." For more information and documentation, visit the FTC's [Noncompete rule page](https://www.ftc.gov/legal-library/browse/rules/noncompete-rule).
+
+What Should Employers Do?
+**Decision staying the effective date of the FTC's noncompete rule.** "The Court sets aside the Non-Compete rule. Consequently, the Rule shall not be enforced or otherwise take effect on its effective date of September 4, 2024 or thereafter.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+This source keeps close tabs on noncompetition law changes across the country and especially Massachusetts. Includes 50-state surveys, and [_The Changing Landscape of Trade Secrets Laws and Noncompete Laws Around the Country_](https://faircompetitionlaw.com/changing-trade-secrets-noncompete-laws/) _._
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+This source keeps close tabs on noncompetition law changes across the country and especially Massachusetts. Includes 50-state surveys, and [_The Changing Landscape of Trade Secrets Laws and Noncompete Laws Around the Country_](https://faircompetitionlaw.com/changing-trade-secrets-noncompete-laws/) _._
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+**NOTE:** On August 20, 2024, a decision out of the District Court for the Northern District of Texas set aside the Federal Trade Commission's Non-Compete Rule, which was to go into effect on September 4, 2024. However, the FTC can still address noncompetes through case-by-case enforcement actions ( [source](https://www.ftc.gov/news-events/features/noncompetes)). For more information, see:
+"The final rule provides that it is an unfair method of competition for persons to, among other things, enter into non-compete clauses (“non-competes”) with workers on or after the final rule's effective date." For more information and documentation, visit the FTC's [Noncompete rule page](https://www.ftc.gov/legal-library/browse/rules/noncompete-rule).
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+[Non-compete clause rule](https://www.federalregister.gov/documents/2024/05/07/2024-09171/non-compete-clause-rule), Federal Trade Commission.
+"The final rule provides that it is an unfair method of competition for persons to, among other things, enter into non-compete clauses (“non-competes”) with workers on or after the final rule's effective date." For more information and documentation, visit the FTC's [Noncompete rule page](https://www.ftc.gov/legal-library/browse/rules/noncompete-rule).
+This source keeps close tabs on noncompetition law changes across the country and especially Massachusetts. Includes 50-state surveys, and [_The Changing Landscape of Trade Secrets Laws and Noncompete Laws Around the Country_](https://faircompetitionlaw.com/changing-trade-secrets-noncompete-laws/) _._
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.mass.gov/info-details/massachusetts-law-about-noncompetition-agreements
+
+---
+Generated on: 2025-07-31 18:04:32
+Original content length: 8,455 characters
+Processing method: Unified template structure

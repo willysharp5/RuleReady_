@@ -1,0 +1,83 @@
+Louisiana Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+Contact Information...................................................................................................................................................3
+Purpose .............................................................................................................................................................................11
+
+Covered Employers
+Cross Audit Organizational Auditing .................................................................................................................................73
+Agreement (NDA), Business Associate Agreement (BAA), Data Sharing Agreement (DSA), Memorandum of
+Control - The means of managing risk, including policies, procedures, guidelines, organizational structures, which can be
+
+Covered Employees
+This policy is designed to clearly inform State Agencies, Employees, third parties and applicable operational entities of
+Employee - Any full-time, part-time, or temporary employee of the State, including interns and student workers
+Independent Contractor - Any person or entity that is not an Employee of the State and who provides services to an
+
+What Should Employers Do?
+Network Connection Paths and Configuration Requirements .........................................................................................32
+Wireless Network Requirements......................................................................................................................................33
+Software and Process Requirements................................................................................................................................37
+Device Requirements........................................................................................................................................................40
+
+Training Requirements
+Education, Awareness, and Training.................................................................................................................................15
+Training and Awareness...........................................................................................................................................65
+Training Records ...............................................................................................................................................................65
+
+Training Deadlines
+Citizenship Requirement Check - validate an individual’s eligibility to work legally within the United States. Utilizes Form
+Data Center - Any State owned, managed, or leased facility, or area within, hosting one or more servers that store,
+data encryption are located within the Encryption policy section.
+
+Qualified Trainers
+Only qualified resources approved by the Chief Information Security Officer (CISO), with the expertise required for
+Only qualified resources approved by the Chief Information Security Officer (CISO), with the expertise required for
+
+Special Requirements
+Policy Exceptions...............................................................................................................................................................16
+Exception Request Form...........................................................................................................................................81
+Additional Requirements................................................................................................................................................101
+
+Coverage Election
+Computing Systems - Includes all electronic systems, in addition to all computers, servers, network devices, and other
+Data - Includes all information in electronic or in paper format that can be created, stored, used, received or
+
+Reciprocity/Extraterritorial Coverage
+Statewide Chief Information Security Officer (CISO)........................................................................................................17
+The State of Louisiana is committed to defining and managing the information security requirements for maintaining
+
+Employer Responsibilities & Deadlines
+Background Check - necessary investigations and checks required in order to have access to restricted data, including
+but not limited to CJIS, FTI, HIPPA, PII or other regulatory compliance. Checks must include, at a minimum, fingerprint
+without the specific key in order to protect its confidentiality. Data encryption can be required during data transmission
+or data storage depending on the level of protection required data classification. Technical details and requirements for
+
+Employer Notification Requirements
+Information Security Policy
+Information Security Policy Division of Administration
+The Information Security Policy was reviewed, approved, and published on October 24, 2022.
+
+Posting Requirements
+application entry points should display the Classification Level within the logon banner where deemed feasible by the
+Team (IST) must perform pre and post evaluation and validation of the security configurations of all such systems.
+communication of network devices or systems shall not be posted on any public bulletin boards, listed in telephone
+
+Recordkeeping Requirements
+Requests for Public Records..............................................................................................................................................23
+Training Records ...............................................................................................................................................................65
+Restricted Data File Transfers...........................................................................................................................................93
+
+Penalties for Non-Compliance
+safety, or public property under emergency conditions as defined in accordance with regulations.
+data; interference with information technology operations; or a violation of End User Agreement.
+Incident Response Team (IRT) - Lead by the Chief Information Security Officer (CISO), or designee, and further defined
+defined by the organization.
+
+Sources
+https://www.doa.la.gov/media/wvmhsr1r/informationsecuritypolicy-v-1-0-3.pdf
+
+---
+Generated on: 2025-07-31 17:59:17
+Original content length: 271,616 characters
+Processing method: Unified template structure

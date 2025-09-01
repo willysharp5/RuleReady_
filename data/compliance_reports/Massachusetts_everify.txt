@@ -1,0 +1,74 @@
+Massachusetts E-Verify / Employment Verification
+
+Overview
+![Massachusetts State Seal](https://www.mass.gov/libraries/mayflower-artifacts/assets/images/logo/stateseal.png)An official website of the Commonwealth of Massachusetts
+- This page, Massachusetts law about hiring employees, is
+
+Covered Employers
+A .mass.gov website belongs to an official government organization in Massachusetts.
+- [MGL c. 149, §§ 105A-105D](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXXI/Chapter149/Section105a) Equal pay; employers may not ask about wage or salary history until after an offer of employment with compensation has been made
+- [MGL c. 151B, § 4 (9-1/2)](https://www.mass.gov/info-details/mass-general-laws-c151b-ss-4) An employer may not "request on its initial written application form criminal record information," unless very specific conditions apply
+
+Covered Employees
+- This page, Massachusetts law about hiring employees, is
+- [Employee privacy](https://www.mass.gov/info-details/massachusetts-law-about-employee-privacy)
+- [Hiring](https://www.mass.gov/info-details/massachusetts-law-about-hiring-employees)
+
+What Should Employers Do?
+- Your social security number, but if they do, they must follow the strict limits of the [Mass. data privacy law (201 CMR 17)](https://www.mass.gov/regulations/201-CMR-1700-standards-for-the-protection-of-personal-information-of-residents-of-the-commonwealth) to keep it private
+- Credit report, but if they do, they must follow the rules in the [Fair Credit Reporting Act](https://www.law.cornell.edu/uscode/text/15/chapter-41/subchapter-III)
+Form required of new employees to verify identity and employment eligibility — can be filled out online and saved or printed. Includes a list of acceptable forms of identification.
+"Federal law requires all employers to follow their state's New Hire Reporting requirements. In Massachusetts, the new hire reporting requirements apply to all employers and payors of income regardless of the number of employees or independent contractors they employ."
+
+Training Requirements
+### Pre-employment training
+[Determining whether employees should be paid for training time under Massachusetts and federal laws](https://www.steffanslegal.com/training-time-under-the-massachusetts-wage-act), Steffans Legal.
+Explains the Massachusetts courts' "six factors when determining whether an individual is a 'trainee' or an 'employee'" in order to determine if a person is eligible to be compensated for pre-employment training.
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+If you are unable to find the information you are looking for, or if you have a specific question, please [contact our law librarians](https://www.mass.gov/ask-a-law-librarian) for assistance.
+- [MGL c. 151B, § 4 (9-1/2)](https://www.mass.gov/info-details/mass-general-laws-c151b-ss-4) An employer may not "request on its initial written application form criminal record information," unless very specific conditions apply
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+![Massachusetts State Seal](https://www.mass.gov/libraries/mayflower-artifacts/assets/images/logo/stateseal.png)An official website of the Commonwealth of Massachusetts
+"Here is an overview of the general state of the law in Massachusetts, highlighting the recent changes. Employers may want to take this opportunity to review their background check policies and practices to ensure they comply with the law, as amended."
+
+Employer Responsibilities & Deadlines
+- Your social security number, but if they do, they must follow the strict limits of the [Mass. data privacy law (201 CMR 17)](https://www.mass.gov/regulations/201-CMR-1700-standards-for-the-protection-of-personal-information-of-residents-of-the-commonwealth) to keep it private
+- Credit report, but if they do, they must follow the rules in the [Fair Credit Reporting Act](https://www.law.cornell.edu/uscode/text/15/chapter-41/subchapter-III)
+Form required of new employees to verify identity and employment eligibility — can be filled out online and saved or printed. Includes a list of acceptable forms of identification.
+
+Employer Notification Requirements
+) or https:// means you’ve safely connected to the official website. Share sensitive information only on official, secure websites.
+- This page is only about the hiring process. For information on any other aspect of employment law, see [Massachusetts law about employment and work leave](https://www.mass.gov/law-library/massachusetts-law-about-employment-and-employment-leave).
+If you are unable to find the information you are looking for, or if you have a specific question, please [contact our law librarians](https://www.mass.gov/ask-a-law-librarian) for assistance.
+
+Posting Requirements
+## Forms and notices for newly-hired employees
+### Notices and information to be provided to new employee
+- [Domestic workers notice](https://www.mass.gov/doc/notice-of-rights-for-domestic-workers/download) (for household workers only) ( [MGL c. 149, § 190(m)](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXXI/Chapter149/Section190))
+
+Recordkeeping Requirements
+- [Criminal records (CORI)](https://www.mass.gov/info-details/massachusetts-law-about-criminal-records)
+- [MGL c. 151B, § 4 (9-1/2)](https://www.mass.gov/info-details/mass-general-laws-c151b-ss-4) An employer may not "request on its initial written application form criminal record information," unless very specific conditions apply
+- Criminal record information, except in very limited circumstances ( [MGL c. 151B, § 4](https://www.mass.gov/info-details/mass-general-laws-c151b-ss-4))
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.mass.gov/info-details/massachusetts-law-about-hiring-employees
+
+---
+Generated on: 2025-07-31 18:04:45
+Original content length: 19,543 characters
+Processing method: Unified template structure

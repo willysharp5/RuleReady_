@@ -18,6 +18,10 @@ interface WebhookConfigModalProps {
     crawlLimit?: number
     crawlDepth?: number
     checkNow?: boolean
+    // NEW: Compliance priority fields
+    compliancePriority?: 'critical' | 'high' | 'medium' | 'low'
+    overrideComplianceInterval?: boolean
+    priorityChangeReason?: string
   }) => void
   initialConfig?: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
@@ -26,6 +30,16 @@ interface WebhookConfigModalProps {
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
     crawlDepth?: number
+    // NEW: Compliance metadata
+    complianceMetadata?: {
+      priority: 'critical' | 'high' | 'medium' | 'low'
+      isComplianceWebsite: boolean
+      jurisdiction: string
+      topicKey: string
+      ruleId: string
+      hasManualOverride?: boolean
+      originalPriority?: string
+    }
   }
   websiteName: string
 }
@@ -39,6 +53,14 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
   const [crawlDepth, setCrawlDepth] = useState(String(initialConfig?.crawlDepth || 3))
   const [copied, setCopied] = useState(false)
   const [checkNow, setCheckNow] = useState(true) // Default to true for new websites
+  
+  // NEW: Compliance priority state
+  const [compliancePriority, setCompliancePriority] = useState(initialConfig?.complianceMetadata?.priority || 'medium')
+  const [overrideInterval, setOverrideInterval] = useState(initialConfig?.complianceMetadata?.hasManualOverride || false)
+  const [priorityChangeReason, setPriorityChangeReason] = useState('')
+  
+  // Check if this is a compliance website
+  const isComplianceWebsite = initialConfig?.complianceMetadata?.isComplianceWebsite || false
 
   const handleSave = useCallback(() => {
     onSave({
@@ -48,9 +70,13 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
       monitorType: monitorType as 'single_page' | 'full_site',
       crawlLimit: monitorType === 'full_site' ? parseInt(crawlLimit) : undefined,
       crawlDepth: monitorType === 'full_site' ? parseInt(crawlDepth) : undefined,
-      checkNow: checkNow
+      checkNow: checkNow,
+      // NEW: Include compliance priority data
+      compliancePriority: isComplianceWebsite ? compliancePriority as 'critical' | 'high' | 'medium' | 'low' : undefined,
+      overrideComplianceInterval: isComplianceWebsite ? overrideInterval : undefined,
+      priorityChangeReason: isComplianceWebsite && priorityChangeReason ? priorityChangeReason : undefined,
     })
-  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, onSave])
+  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -117,18 +143,120 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
 
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
           <div className="space-y-6">
+          
+          {/* Compliance Priority Section - Only show for compliance websites */}
+          {isComplianceWebsite && (
+            <div className="border-b pb-6">
+              <h3 className="text-lg font-medium mb-4 flex items-center">
+                <span className="text-blue-600 mr-2">🏛️</span>
+                Compliance Priority
+              </h3>
+              
+              {/* Website Type Indicator */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-blue-600">ℹ️</span>
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-900">Compliance Website</p>
+                    <p className="text-blue-700">
+                      📍 {initialConfig?.complianceMetadata?.jurisdiction} - 
+                      📋 {initialConfig?.complianceMetadata?.topicKey?.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Priority Selection */}
+              <div className="mb-4">
+                <Label htmlFor="compliance-priority">Compliance Priority Level</Label>
+                <Select
+                  id="compliance-priority"
+                  value={compliancePriority}
+                  onChange={(e) => setCompliancePriority(e.target.value)}
+                  className="w-full mt-1"
+                >
+                  <option value="critical">🔴 Critical - Daily monitoring (High-impact rules)</option>
+                  <option value="high">🟠 High - Every 2 days (Important requirements)</option>
+                  <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
+                  <option value="low">🟢 Low - Monthly (Stable rules)</option>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Priority determines monitoring frequency and alert urgency
+                </p>
+              </div>
+              
+              {/* Priority Impact Explanation */}
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-4">
+                <h4 className="font-medium text-gray-900 mb-2">Priority Impact:</h4>
+                <div className="text-xs text-gray-700 space-y-1">
+                  <div>• <strong>🔴 Critical:</strong> Daily checks, immediate alerts, high business impact</div>
+                  <div>• <strong>🟠 High:</strong> Every 2 days, priority alerts, significant impact</div>
+                  <div>• <strong>🟡 Medium:</strong> Weekly checks, standard alerts, moderate impact</div>
+                  <div>• <strong>🟢 Low:</strong> Monthly checks, low-priority alerts, minimal impact</div>
+                </div>
+              </div>
+              
+              {/* Manual Override Option */}
+              <div className="mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={overrideInterval}
+                    onChange={(e) => setOverrideInterval(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Override automatic interval (advanced)</span>
+                </label>
+                {overrideInterval && (
+                  <div className="mt-2">
+                    <p className="text-xs text-orange-600 mb-2">
+                      ⚠️ Manual override may affect compliance monitoring effectiveness
+                    </p>
+                    <Label htmlFor="priority-reason">Reason for Override</Label>
+                    <Input
+                      id="priority-reason"
+                      placeholder="e.g., Client-specific requirements, business needs..."
+                      value={priorityChangeReason}
+                      onChange={(e) => setPriorityChangeReason(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+              
+              {/* Original Priority Info */}
+              {initialConfig?.complianceMetadata?.originalPriority && 
+               initialConfig.complianceMetadata.originalPriority !== compliancePriority && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Original Priority:</strong> {initialConfig.complianceMetadata.originalPriority}
+                    {initialConfig.complianceMetadata.hasManualOverride && (
+                      <span className="ml-2">(Previously overridden)</span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Monitoring Configuration */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-medium mb-4">Monitoring Configuration</h3>
             
             {/* Check Interval */}
             <div className="mb-4">
-              <Label htmlFor="check-interval">Check Interval</Label>
+              <Label htmlFor="check-interval">
+                Check Interval 
+                {isComplianceWebsite && !overrideInterval && (
+                  <span className="text-xs text-gray-500 ml-1">(Set by compliance priority)</span>
+                )}
+              </Label>
               <Select
                 id="check-interval"
                 value={checkInterval}
                 onChange={(e) => setCheckInterval(e.target.value)}
-                className="w-full mt-1"
+                disabled={isComplianceWebsite && !overrideInterval}
+                className={`w-full mt-1 ${isComplianceWebsite && !overrideInterval ? 'bg-gray-50' : ''}`}
               >
                 <option value="0.25">15 seconds (Testing only)</option>
                 <option value="5">5 minutes</option>
@@ -142,6 +270,16 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 <option value="4320">3 days</option>
                 <option value="10080">7 days</option>
               </Select>
+              {isComplianceWebsite && !overrideInterval && (
+                <p className="text-xs text-blue-600 mt-1">
+                  ℹ️ Interval automatically set based on compliance priority above
+                </p>
+              )}
+              {isComplianceWebsite && overrideInterval && (
+                <p className="text-xs text-orange-600 mt-1">
+                  ⚠️ Using manual interval override - ensure appropriate for compliance monitoring
+                </p>
+              )}
             </div>
 
             {/* Check Now Option - Only show for new websites */}

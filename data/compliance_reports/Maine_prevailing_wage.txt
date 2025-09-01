@@ -1,0 +1,55 @@
+Maine Prevailing Wage Laws (public contracts)
+
+Overview
+This is the first year the Bureau has included the federal Davis-Bacon rates in its calculation of Maine’s prevailing wage and benefits rates. This is due to a statutory change enacted in the first session of the 131st Legislature (26 MRS § 1308(1)(C)). To do this, the Bureau first compiled 2,400 county-level prevailing wage rates through the regular process detailed in the [Rules Governing the Establishment and Use of Fair Minimum Wage Rates on State Construction Projects](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.maine.gov%2Fsos%2Fcec%2Frules%2F12%2F170%2F170c013.docx&data=05%7C02%7CKip.Mitchell%40maine.gov%7C88fea903ad59467238ac08dc12b22aff%7C413fa8ab207d4b629bcdea1a8f2f864e%7C0%7C0%7C638405804322575189%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=PACKHgzl5tgWbdxxSioNIQOtvH9HZ%2Bv79oiu6k5FMrw%3D&reserved=0). We then obtained the 773 county-level prevailing wage rates the Federal Department of Labor publishes for Maine under the Davis-Bacon Act for the three construction categories which we compile prevailing wages for (building, heavy, highway). After translating the federal trades to match our occupational classification system, we increased 133 State prevailing wage rates to match their corresponding federal Davis-Bacon prevailing wage rate _._
+
+Covered Employers
+- **Building 1 - As of 2022, the Bureau no longer collects data from businesses classified as performing the work in the Building 1 subcategory. For projects in the Building 1 subcategory, please use the Building 2 rates.**
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Prevailing wage rates can be found below. You can select the **county** and identify the **category** for the project:
+
+Reciprocity/Extraterritorial Coverage
+- [Agencies](https://www.maine.gov/portal/government/state-agencies.php) \|
+This is the first year the Bureau has included the federal Davis-Bacon rates in its calculation of Maine’s prevailing wage and benefits rates. This is due to a statutory change enacted in the first session of the 131st Legislature (26 MRS § 1308(1)(C)). To do this, the Bureau first compiled 2,400 county-level prevailing wage rates through the regular process detailed in the [Rules Governing the Establishment and Use of Fair Minimum Wage Rates on State Construction Projects](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.maine.gov%2Fsos%2Fcec%2Frules%2F12%2F170%2F170c013.docx&data=05%7C02%7CKip.Mitchell%40maine.gov%7C88fea903ad59467238ac08dc12b22aff%7C413fa8ab207d4b629bcdea1a8f2f864e%7C0%7C0%7C638405804322575189%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=PACKHgzl5tgWbdxxSioNIQOtvH9HZ%2Bv79oiu6k5FMrw%3D&reserved=0). We then obtained the 773 county-level prevailing wage rates the Federal Department of Labor publishes for Maine under the Davis-Bacon Act for the three construction categories which we compile prevailing wages for (building, heavy, highway). After translating the federal trades to match our occupational classification system, we increased 133 State prevailing wage rates to match their corresponding federal Davis-Bacon prevailing wage rate _._
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.maine.gov/labor/labor_stats/publications/wagerateconst/prevailingwage/index.shtml
+
+---
+Generated on: 2025-07-31 18:01:09
+Original content length: 11,550 characters
+Processing method: Unified template structure

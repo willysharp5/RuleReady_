@@ -1,0 +1,59 @@
+Rhode Island Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+Established by Governor Dan McKee’s [Executive Order 24-06 “Artificial Intelligence and Data Centers of Excellence”](https://governor.ri.gov/executive-orders/executive-order-24-06), the Task Force is aimed at understanding AI’s potential impact on various sectors, including business, education, healthcare, and government.
+
+Covered Employers
+Established by Governor Dan McKee’s [Executive Order 24-06 “Artificial Intelligence and Data Centers of Excellence”](https://governor.ri.gov/executive-orders/executive-order-24-06), the Task Force is aimed at understanding AI’s potential impact on various sectors, including business, education, healthcare, and government.
+- **Promoting AI Development:** Fostering innovation in AI technologies, supporting research, and encouraging businesses and educational institutions to engage with AI.
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+Established by Governor Dan McKee’s [Executive Order 24-06 “Artificial Intelligence and Data Centers of Excellence”](https://governor.ri.gov/executive-orders/executive-order-24-06), the Task Force is aimed at understanding AI’s potential impact on various sectors, including business, education, healthcare, and government.
+- **Promoting AI Development:** Fostering innovation in AI technologies, supporting research, and encouraging businesses and educational institutions to engage with AI.
+- **Workforce Development:** Promoting education and training programs to ensure that Rhode Island’s workforce is prepared for the changes AI will bring, and to fill emerging skill gaps in the field.
+
+Training Deadlines
+The Rhode Island Artificial Intelligence (AI) Task Force is a state-level initiative which is assessing and promoting the development, implementation, and regulation of artificial intelligence technologies within Rhode Island.
+- **Regulation and Policy:** Developing recommendations for regulations or frameworks to ensure AI is used responsibly, safely, and equitably within the state. This includes addressing issues like algorithmic bias, data privacy, and accountability.
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+# State of Rhode Island AI Task Force
+[Take the State of Rhode Island AI Task Force Public Input Survey](https://etss.ri.gov/data-and-ai/rhode-island-ai-task-force/public-input-survey)
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+![Governor Dan McKee signs Executive Order 24-06 Artificial Intelligence and Data Centers of Excellence](https://etss.ri.gov/sites/g/files/xkgbur466/files/styles/max_2600x2600/public/2025-02/Signing-Photo-scaled.jpg?itok=8iSAorOB)Governor Dan McKee signs Executive Order 24-06, establishing the Artificial Intelligence and Data Centers of Excellence
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://etss.ri.gov/data-and-ai/rhode-island-ai-task-force
+
+---
+Generated on: 2025-07-31 18:38:35
+Original content length: 2,510 characters
+Processing method: Unified template structure

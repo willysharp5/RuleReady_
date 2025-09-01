@@ -1,0 +1,58 @@
+Tennessee Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+“As artificial intelligence platforms emerge and this technology landscape evolves, there is growing concern regarding data protection and the threat of influence from foreign adversaries,” **said Gov. Lee.**“Tennessee has taken consistent action to mitigate risk from platforms with ties to the Chinese Communist Party, including TikTok, and banning Manus and DeepSeek on state devices will further reduce security risks to Tennesseans.”
+·        **Data Privacy:** Collects sensitive user information, including IP addresses, keystrokes, and behavior patterns. This data is stored on Chinese servers for unspecified purposes, raising the potential for espionage or targeted influence campaigns.
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+**NASHVILLE, Tenn.**– Today, Gov. Bill Lee announced that two artificial intelligence (AI) tools with direct ties to the Chinese Communist Party are now banned on the state network. Manus and DeepSeek have been added to a list of foreign-owned platforms that are now strictly prohibited due to serious threats regarding data privacy and cyber security. Tennessee becomes the first state in the Nation to ban the Alibaba-owned Manus platform, which launched earlier today.
+“As artificial intelligence platforms emerge and this technology landscape evolves, there is growing concern regarding data protection and the threat of influence from foreign adversaries,” **said Gov. Lee.**“Tennessee has taken consistent action to mitigate risk from platforms with ties to the Chinese Communist Party, including TikTok, and banning Manus and DeepSeek on state devices will further reduce security risks to Tennesseans.”
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+The Chinese-owned platforms collect sensitive information and pose security threats
+·        **Censorship and Propaganda**: Integrating Chinese political values into its output, which could lead to the spread of misinformation.
+·        **Data Privacy:** Collects sensitive user information, including IP addresses, keystrokes, and behavior patterns. This data is stored on Chinese servers for unspecified purposes, raising the potential for espionage or targeted influence campaigns.
+
+Posting Requirements
+·        **Bias & Discrimination:** Generates output that displays biases in areas such as race, gender, health, and religion, leading to discriminatory results.
+
+Recordkeeping Requirements
+**Tennessee has a strong [track record](https://x.com/GovBillLee/status/1801686676298715307) on data protection and cybersecurity:**
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.tn.gov/governor/news/2025/3/6/gov--lee-bans-manus--deepseek-ai-platforms-on-tennessee-state-network.html
+
+---
+Generated on: 2025-07-31 18:44:05
+Original content length: 2,693 characters
+Processing method: Unified template structure

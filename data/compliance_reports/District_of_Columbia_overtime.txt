@@ -1,0 +1,82 @@
+District of Columbia Overtime & Hours
+
+Overview
+### Wage and Hour Laws
+- [Who is protected under the law?](http://oag.dc.gov/oag.dc.gov#Protected)
+
+Covered Employers
+- **Salaried Employees:** Salaried Employees are entitled to receive a salary that is equal to or greater than the amount they would receive if paid hourly at the minimum wage rate.  Employers must also pay overtime on hours worked over 40 hours a week ( [see below](http://oag.dc.gov/oag.dc.gov#Overtime)) unless a worker’s job function fits within a [specific exemption](https://code.dccouncil.gov/us/dc/council/code/sections/32-1004).
+In addition to paying the minimum hourly wage, District employers must:
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+
+Covered Employees
+- [Tipped Employee Minimum Hourly Wages](http://oag.dc.gov/oag.dc.gov#TippedWages)
+- [Split Shift Wages](https://oag.dc.gov/worker-rights/SplitShift)
+- [Worker Misclassification](http://oag.dc.gov/oag.dc.gov#WorkerMisclassification)
+
+What Should Employers Do?
+- [Who is required to pay minimum wage?](http://oag.dc.gov/oag.dc.gov#Required)
+- **Regular Employees**: Employees who do not receive tips must be paid at least the minimum wage, as indicated in the table below, which is $17.50 per hour beginning on July 1, 2024. The minimum wage generally increases every year on July 1st.
+- **Salaried Employees:** Salaried Employees are entitled to receive a salary that is equal to or greater than the amount they would receive if paid hourly at the minimum wage rate.  Employers must also pay overtime on hours worked over 40 hours a week ( [see below](http://oag.dc.gov/oag.dc.gov#Overtime)) unless a worker’s job function fits within a [specific exemption](https://code.dccouncil.gov/us/dc/council/code/sections/32-1004).
+In addition to paying the minimum hourly wage, District employers must:
+
+Training Requirements
+- **Training**: Time spent in training that is required by the employer.
+- **9:00 AM – 12:00 PM**. Hospital training session **(3 hours)**.
+In contrast to an “independent contractor,” generally employees are individuals who regularly performwork within that employer’s ordinary course of business. Workers are not independent contractors simply because they work offsite, or work remotely, or have flexibility over their hours and responsibilities.
+
+Training Deadlines
+- **Salaried Employees:** Salaried Employees are entitled to receive a salary that is equal to or greater than the amount they would receive if paid hourly at the minimum wage rate.  Employers must also pay overtime on hours worked over 40 hours a week ( [see below](http://oag.dc.gov/oag.dc.gov#Overtime)) unless a worker’s job function fits within a [specific exemption](https://code.dccouncil.gov/us/dc/council/code/sections/32-1004).
+**The D.C. tipped minimum wage is being phased out over time.** In November 2022, Ballot Initiative 82, or the “District of Columbia Tip Credit Elimination Act,” was passed by District voters. Under this law, the tipped minimum wage will increase annually until 2027, when it will become the full minimum wage. During the transition period, employers must continue to comply with all of the above requirements. After this change, the law will still require that employees keep all tips they receive, in addition to the minimum wage.
+| **If your employer has this many employees:** | **Then you earn one hour of accrued paid sick leave per this number of hours worked:** | **Up to a maximum of this many days per year:** |
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+- **Salaried Employees:** Salaried Employees are entitled to receive a salary that is equal to or greater than the amount they would receive if paid hourly at the minimum wage rate.  Employers must also pay overtime on hours worked over 40 hours a week ( [see below](http://oag.dc.gov/oag.dc.gov#Overtime)) unless a worker’s job function fits within a [specific exemption](https://code.dccouncil.gov/us/dc/council/code/sections/32-1004).
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+
+Coverage Election
+An independent contractor is engaged by a company or a person to perform a certain service. Generally, independent contractors are self-employed businesspeople who offer specialized skills and perform a service that is not part of the company’s overall business. True independent contractors have the ability to set their job duties, hours, and wages, as well as select their own customers. They are responsible for paying their own taxes and have to get their own insurance in order to be protected if they are injured on the job or become unemployed. Independent contractors receive a Form 1099 for paying their federal taxes, while employees receive a Form W-2.
+In 2018, OAG worked with the D.C. Council on legislation that grants OAG independent authority to investigate and bring wage theft cases, including misclassification cases. Since gaining independent authority, OAG has launched more than 40 investigations into wage theft and payroll fraud. In 2020, [OAG secured it’s largest wage theft settlement to date](https://oag.dc.gov/release/ag-racine-announces-national-electrical-contractor), requiring Power Design—a major electrical contractor—to pay $2.75 million to hundreds of harmed workers and the District over wage theft and worker misclassification claims. [OAG also resolved a case against Capitol Drywall, Inc.](https://oag.dc.gov/release/ag-racine-announces-capitol-drywall-must-pay-200k)—a Maryland construction company—penalizing them $200K for cheating 100+ District workers out of wages and benefits by misclassifying them as Independent Contractors.
+
+Reciprocity/Extraterritorial Coverage
+All employers, with the exception of the United States federal government, are required to abide by the District’s minimum wage laws. Employers include the District of Columbia government, and any individual, partnership, general contractor, subcontractor, association, corporation, business trust, or any person acting directly or indirectly in the interest of an employer in relation to an employee. See [D.C Code §§ 32-1002(3)](https://code.dccouncil.gov/us/dc/council/code/sections/32-1002), [1003](https://code.dccouncil.gov/us/dc/council/code/sections/32-1003).
+- the person’s employment is based in the District of Columbia and the person regularly spends a substantial amount of their working time in the District of Columbia and not more than 50% of their working time in any particular state. See [D.C. Code § 32-1003(b)](https://code.dccouncil.gov/us/dc/council/code/sections/32-1003).
+
+Employer Responsibilities & Deadlines
+- [Who is required to pay minimum wage?](http://oag.dc.gov/oag.dc.gov#Required)
+- **Regular Employees**: Employees who do not receive tips must be paid at least the minimum wage, as indicated in the table below, which is $17.50 per hour beginning on July 1, 2024. The minimum wage generally increases every year on July 1st.
+- **Salaried Employees:** Salaried Employees are entitled to receive a salary that is equal to or greater than the amount they would receive if paid hourly at the minimum wage rate.  Employers must also pay overtime on hours worked over 40 hours a week ( [see below](http://oag.dc.gov/oag.dc.gov#Overtime)) unless a worker’s job function fits within a [specific exemption](https://code.dccouncil.gov/us/dc/council/code/sections/32-1004).
+In addition to paying the minimum hourly wage, District employers must:
+
+Employer Notification Requirements
+- Provide employees with itemized pay stubs each payday that separately report the following information:
+- Maintain compliant payroll records including the following information:
+- Provide employees with written notice any time there is a change to their rate of pay; and
+
+Posting Requirements
+- Provide employees with written notice any time there is a change to their rate of pay; and
+- Provide employees with written notice of any claimed overtime exemptions.
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+
+Recordkeeping Requirements
+- [Fair Criminal Record Screening Act (Ban the Box)](http://oag.dc.gov/oag.dc.gov#BanTheBox)
+- Maintain compliant payroll records including the following information:
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+
+Penalties for Non-Compliance
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+Workers can report suspected violations to OAG at (202) 724-7730, [workers@dc.gov](mailto:workers@dc.gov), or [trabajadores@dc.gov](http://trabajadores@dc.gov).
+Where employers fail to follow these rules, they are liable for damages in the amount of wages owed, liquidated damages equal to three times the amount of wages owed, and penalties of $50-$100 per each violation. Employers may face additional penalties for recordkeeping and notice violations.
+Workers can report suspected violations to OAG at (202) 724-7730, [workers@dc.gov](mailto:workers@dc.gov), or [trabajadores@dc.gov](http://trabajadores@dc.gov).
+
+Sources
+https://oag.dc.gov/worker-rights/wage-and-hour-laws
+
+---
+Generated on: 2025-07-31 18:59:38
+Original content length: 35,257 characters
+Processing method: Unified template structure

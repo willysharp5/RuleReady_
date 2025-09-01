@@ -1,0 +1,62 @@
+Montana Overtime & Hours
+
+Overview
+- The regular rate of an employee paid on a commission, piece rate, or flat book rate basis is arrived at by dividing the total weekly earnings by the total number of hours actually worked in the week. The employee is entitled to payment of one-half this regular rate for each hour worked over 40 - in addition to the full commission or piecework earnings.
+[Back To Top](https://erd.dli.mt.gov/labor-standards/wage-and-hour-payment-act/overtime)
+
+Covered Employers
+This spreadsheet is a tool you can download to assist in calculating weighted average overtime; it contains embedded calculations which, if altered, will populate incorrect results. The responsibility to properly pay employees solely rests with the business. The Montana Department of Labor and Industry highly recommends users verify results.
+**EXAMPLE:** _One week an employee works 36 hours entering data into the computer data base for which $10.25 per hour is paid. The employee then spends 6 hours preparing payroll for which $13.50 per hour is paid. This same worker performs janitorial services in the evenings for the employer and is paid $9.60 per hour for those 4 hours worked per week. The wages are computed as follows:_
+
+Covered Employees
+Unless exempt from the overtime provisions, an employee must be paid at a rate of one and one-half their regular (hourly) rate for all hours worked over 40 per week. Employees who perform different types of work for which they receive varying rates of pay must be paid overtime at a weighted average hourly rate.
+This spreadsheet is a tool you can download to assist in calculating weighted average overtime; it contains embedded calculations which, if altered, will populate incorrect results. The responsibility to properly pay employees solely rests with the business. The Montana Department of Labor and Industry highly recommends users verify results.
+**EXAMPLE:** _One week an employee works 36 hours entering data into the computer data base for which $10.25 per hour is paid. The employee then spends 6 hours preparing payroll for which $13.50 per hour is paid. This same worker performs janitorial services in the evenings for the employer and is paid $9.60 per hour for those 4 hours worked per week. The wages are computed as follows:_
+
+What Should Employers Do?
+Unless exempt from the overtime provisions, an employee must be paid at a rate of one and one-half their regular (hourly) rate for all hours worked over 40 per week. Employees who perform different types of work for which they receive varying rates of pay must be paid overtime at a weighted average hourly rate.
+This spreadsheet is a tool you can download to assist in calculating weighted average overtime; it contains embedded calculations which, if altered, will populate incorrect results. The responsibility to properly pay employees solely rests with the business. The Montana Department of Labor and Industry highly recommends users verify results.
+#### **Holiday pay, sick leave, and vacation hours do not count toward the 40 working hours required for overtime pay.**
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+_**EXAMPLE:** Ann works 45½ hours and earns $432.25. Her regular rate is $9.50 per hour ($432.25 divided by 45½ hours). She is entitled to her regular earnings ($432.25) plus an additional half of her regular rate of $4.75 for each hour worked over 40. In this case, she is due an additional $26.13 or a total of $458.38 for that workweek._
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+[Privacy & Security](https://mt.gov/1240-X06.pdf) [Accessibility](https://mt.gov/discover/disclaimer.aspx#accessibility) [Services](https://directory.mt.gov/online-services) [Agencies](https://mt.gov/govt/agencylisting.aspx) [Official Montana State Website](https://mt.gov)
+
+Employer Responsibilities & Deadlines
+Unless exempt from the overtime provisions, an employee must be paid at a rate of one and one-half their regular (hourly) rate for all hours worked over 40 per week. Employees who perform different types of work for which they receive varying rates of pay must be paid overtime at a weighted average hourly rate.
+This spreadsheet is a tool you can download to assist in calculating weighted average overtime; it contains embedded calculations which, if altered, will populate incorrect results. The responsibility to properly pay employees solely rests with the business. The Montana Department of Labor and Industry highly recommends users verify results.
+#### **Holiday pay, sick leave, and vacation hours do not count toward the 40 working hours required for overtime pay.**
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://erd.dli.mt.gov/labor-standards/wage-and-hour-payment-act/overtime
+
+---
+Generated on: 2025-07-31 18:12:59
+Original content length: 3,490 characters
+Processing method: Unified template structure

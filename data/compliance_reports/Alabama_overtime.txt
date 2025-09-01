@@ -1,0 +1,76 @@
+Alabama Overtime & Hours
+
+Overview
+**The following FAQ’s apply to original Overtime Exemption Act 2023-421 which has been amended by Act 2024-437. The original overtime exemption terminates September 30, 2024, as amended by Act 2024-437. For overtime exemption reporting, guidance, and FAQs effective for the tax period beginning on or after October 1, 2024 and ending on June 30, 2025 [click here](https://www.revenue.alabama.gov/individual-corporate/overtime-pay-exemption-amended/)\*.**
+- Overtime pay based on the act is amounts received by a full-time hourly wage paid employee as compensation for work performed in excess of 40 hours in a week, regardless of the rate paid for the hours over 40 in a week or how it is calculated
+
+Covered Employers
+For the tax year beginning on or after January 1, 2024, overtime pay received by a full-time hourly wage paid employee for hours worked above 40 in any given week are excluded from gross income and therefore exempt from Alabama state income tax. Tied with this exemption are employer reporting requirements to ALDOR. Employers are required to report the total aggregate amount of overtime paid and the total number employees who received overtime pay.
+**Existing Forms for Employers to Report**
+**Employers are required to report to ALDOR in two ways:**
+
+Covered Employees
+For the tax year beginning on or after January 1, 2024, overtime pay received by a full-time hourly wage paid employee for hours worked above 40 in any given week are excluded from gross income and therefore exempt from Alabama state income tax. Tied with this exemption are employer reporting requirements to ALDOR. Employers are required to report the total aggregate amount of overtime paid and the total number employees who received overtime pay.
+- A one-time report which includes the aggregate amount of overtime paid during 2023 along with the number of full-time hourly employees who received the pay.
+- All employers that are required to withhold Alabama tax from the wages of their employees.
+
+What Should Employers Do?
+For the tax year beginning on or after January 1, 2024, overtime pay received by a full-time hourly wage paid employee for hours worked above 40 in any given week are excluded from gross income and therefore exempt from Alabama state income tax. Tied with this exemption are employer reporting requirements to ALDOR. Employers are required to report the total aggregate amount of overtime paid and the total number employees who received overtime pay.
+**Employers are required to report to ALDOR in two ways:**
+- A monthly/quarterly report of the same data requirement beginning with the 2024 tax year tied to the employer’s reporting of withholding tax.
+**WHO must report to ALDOR?**
+
+Training Requirements
+- _If you ARE a Bulk Filer:_ A one-time bulk file process separate from the current Form A-3 bulk file process will be needed. _\*For layout instructions, please click on the following links:_
+- _If you ARE a Bulk Filer:_ You will input the data utilizing the current bulk file for the A-6 and A-1 return by adding two new required text fields. _\*For layout instructions, please click on the following link:_
+| Wage amount to be used in Step 1 of the Formula for Computing Alabama Withholding Tax. Please see the Withholding Tax Tables and Instructions for Employers for additional information. | | $ 3,977 |
+
+Training Deadlines
+- _If you ARE NOT a Bulk Filer (your typical employer):_ A link will be provided within Form A-3 that routes you to manually enter the required data.
+- **For reporting purposes, if an employee receives exempt overtime wages multiple times within a reporting period, (ex: paid weekly and receives overtime 4 times within the monthly reporting period) is the employee reported once for the period or multiple times?**
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+No, a mileage basis compensation is not covered under this legislation. Only wages earned by full time hourly employees will qualify for exemption and reporting  purposes. Additionally, commissions and bonuses paid in addition to an hourly wage are not exempt.
+| Wage amount to be used in Step 1 of the Formula for Computing Alabama Withholding Tax. Please see the Withholding Tax Tables and Instructions for Employers for additional information. | | $ 3,977 |
+There is no specific penalty associated with the overtime exemption data reporting. However, normal penalties apply to the filing requirements of the A3, A1, and A6 returns which house the overtime exemption data fields.
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+For the tax year beginning on or after January 1, 2024, overtime pay received by a full-time hourly wage paid employee for hours worked above 40 in any given week are excluded from gross income and therefore exempt from Alabama state income tax. Tied with this exemption are employer reporting requirements to ALDOR. Employers are required to report the total aggregate amount of overtime paid and the total number employees who received overtime pay.
+- **If an Alabama employee (resident) works in multiple states which require withholding and the employees’ wages exceed 40 hours, would the exemption apply?**
+
+Employer Responsibilities & Deadlines
+For the tax year beginning on or after January 1, 2024, overtime pay received by a full-time hourly wage paid employee for hours worked above 40 in any given week are excluded from gross income and therefore exempt from Alabama state income tax. Tied with this exemption are employer reporting requirements to ALDOR. Employers are required to report the total aggregate amount of overtime paid and the total number employees who received overtime pay.
+**Employers are required to report to ALDOR in two ways:**
+**WHO must report to ALDOR?**
+- All employers that are required to withhold Alabama tax from the wages of their employees.
+
+Employer Notification Requirements
+- Due to the small number of manual paper forms received by ALDOR, the A-3, A-6, and A-1 paper forms will not be adjusted for this reporting. We encourage all employers to utilize and file through My Alabama Taxes. For information on registering for a My Alabama Taxes account, please visit [myalabamataxes.alabama.gov](https://myalabamataxes.alabama.gov/_/).
+| Computation of withholding tax when an employee has exempt overtime wages. The amounts used in this example are for informational purposes only and do not reflect actual amounts. |
+| Wage amount to be used in Step 1 of the Formula for Computing Alabama Withholding Tax. Please see the Withholding Tax Tables and Instructions for Employers for additional information. | | $ 3,977 |
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+- _If you ARE NOT a Bulk Filer (your typical employer):_ A link will be provided within Form A-3 that routes you to manually enter the required data.
+- _If you ARE a Bulk Filer:_ A one-time bulk file process separate from the current Form A-3 bulk file process will be needed. _\*For layout instructions, please click on the following links:_
+- _If you ARE NOT a Bulk Filer (your typical employer):_ You will input the data into the new field boxes on the Form A-6 and A-1 withholding returns.
+
+Penalties for Non-Compliance
+- **Will I be assessed a penalty if I don’t file the 2023 historical overtime exemption data?**
+There is no specific penalty associated with the overtime exemption data reporting. However, normal penalties apply to the filing requirements of the A3, A1, and A6 returns which house the overtime exemption data fields.
+
+Sources
+https://www.revenue.alabama.gov/individual-corporate/overtime-exemption
+
+---
+Generated on: 2025-07-31 17:16:27
+Original content length: 14,897 characters
+Processing method: Unified template structure

@@ -1,0 +1,80 @@
+South Carolina Day-of-Rest / Predetermined Break Laws
+
+Overview
+### No Law For Lunch Breaks
+South Carolina labor laws **[do not require employers to provide meal breaks](https://llr.sc.gov/wage/faq.aspx)** for employees.
+
+Covered Employers
+South Carolina labor laws **[do not require employers to provide meal breaks](https://llr.sc.gov/wage/faq.aspx)** for employees.
+- Businesses voluntarily offer short rest breaks to improve employee productivity.
+South Carolina **does not have a state law** that requires private employers to provide paid or unpaid sick leave.
+
+Covered Employees
+South Carolina labor laws **[do not require employers to provide meal breaks](https://llr.sc.gov/wage/faq.aspx)** for employees.
+South Carolina **[does not have any specific laws mandating rest breaks](https://www.nolo.com/legal-encyclopedia/south-carolina-laws-meal-rest-breaks.html)** for employees.
+- Businesses voluntarily offer short rest breaks to improve employee productivity.
+
+What Should Employers Do?
+South Carolina labor laws **[do not require employers to provide meal breaks](https://llr.sc.gov/wage/faq.aspx)** for employees.
+- Must be completely relieved from their duties; otherwise, break time must be paid​.
+South Carolina **does not have a state law** that requires private employers to provide paid or unpaid sick leave.
+- If a private employer in South Carolina offers sick leave, they must adhere to the terms outlined in their own company policies or employment contracts.
+
+Training Requirements
+- Employers are required to **provide unpaid leave to employees** who are called to active duty, military training, or other military obligations. Employees have the right to return to their jobs without penalty after completing their service.
+- **Youth Minimum Wage**: Workers under the age of 20 can be paid a **training wage of $4.25 per hour** for the first **90 days** of employment. After this period, they must be paid the standard minimum wage of $7.25 per hour​.
+- Provide necessary **training and equipment** to ensure workers can perform their tasks safely, particularly in hazardous industries like construction and manufacturing​.
+
+Training Deadlines
+- Full-time state employees earn **1.25 days of sick leave per month**, or [15 days per year.](https://law.justia.com/codes/south-carolina/title-8/chapter-11/section-8-11-40/) There is no limit to the amount of sick leave state employees can accumulate over time, and unused sick leave can be carried over into subsequent years​.
+- To be eligible for FMLA, employees must have worked for their employer for at least **12 months** and have completed at least **1,250 hours of work** in the past year.
+- The employer must have at least **50 employees** within a 75-mile radius to be covered by FMLA provisions​
+
+Qualified Trainers
+- **Enforcement**: Federal contractors must submit weekly certified payroll records to ensure compliance with the prevailing wage requirements. Failure to comply can result in penalties or being barred from future government contracts​.
+- **Disability**: Employers must provide reasonable accommodations to qualified workers with disabilities unless doing so would cause undue hardship. This is protected under the **Americans with Disabilities Act (ADA)**.
+
+Special Requirements
+South Carolina **[does not have any specific laws mandating rest breaks](https://www.nolo.com/legal-encyclopedia/south-carolina-laws-meal-rest-breaks.html)** for employees.
+If more than 40 hours are necessary due to medical complications or additional recovery time, additional leave may be granted at the employer’s discretion, but the law only mandates 40 hours of paid leave.
+Learn more about state-specific labor laws:
+
+Coverage Election
+Employees can choose whether or not to join a union, and employers cannot require union membership for hiring or firing​.
+
+Reciprocity/Extraterritorial Coverage
+- The state follows federal guidelines: >20 minutes of break time is unpaid.
+- Similar to meal breaks, the state relies on the federal guidelines established by the FLSA.
+
+Employer Responsibilities & Deadlines
+- Must be completely relieved from their duties; otherwise, break time must be paid​.
+- If a private employer in South Carolina offers sick leave, they must adhere to the terms outlined in their own company policies or employment contracts.
+- To be eligible for FMLA, employees must have worked for their employer for at least **12 months** and have completed at least **1,250 hours of work** in the past year.
+- The employer must have at least **50 employees** within a 75-mile radius to be covered by FMLA provisions​
+
+Employer Notification Requirements
+Employers may request official documentation, such as a court summons or subpoena, to verify the employee’s obligation to serve as a witness. It is advisable for employees to provide this information promptly to avoid disruptions in work scheduling​
+- **[South Carolina Energy Office – Davis-Bacon Resources](https://energy.sc.gov/sites/energy/files/Documents/Davis%20Bacon%20Compliance%20Handout_0.pdf)**: A state resource providing guidelines and information on how South Carolina construction projects must comply with federal prevailing wage laws under the Davis-Bacon Act.
+South Carolina complies with federal **Equal Employment Opportunity (EEO)** laws, prohibiting discrimination based on race, color, religion, sex, national origin, age (40 or older), disability, or genetic information.
+
+Posting Requirements
+When an employee resigns, they are not required to provide advanced notice unless stipulated in their employment contract. Conversely, employers are also not required to give notice prior to terminating an employee, except in cases covered by the **Worker Adjustment and Retraining Notification (WARN) Act**, which mandates 60 days’ notice for large layoffs at companies with 100 or more employees.
+
+Recordkeeping Requirements
+Employers may request official documentation, such as a court summons or subpoena, to verify the employee’s obligation to serve as a witness. It is advisable for employees to provide this information promptly to avoid disruptions in work scheduling​
+-  Employees on military leave may continue their employer-sponsored health insurance for up to **24 months**, though they may be required to pay up to 102% of the premium costs to maintain the coverage​.
+- The salary cap for highly compensated employees (HCEs) will also [rise to $151,164 annually](https://blog.dol.gov/2024/04/23/what-the-new-overtime-rule-means-for-workers), keeping them exempted from overtime.
+
+Penalties for Non-Compliance
+- Employers are required to **provide unpaid leave to employees** who are called to active duty, military training, or other military obligations. Employees have the right to return to their jobs without penalty after completing their service.
+#### **Report health and safety violations (unsafe working conditions) in South Carolina to:**
+### $100 /offense Wage Violations
+Repeated violations can accumulate fines, and employees may sue to recover the unpaid wages along with additional damages​.
+
+Sources
+https://www.workyard.com/us-labor-laws/south-carolina-labor-laws
+
+---
+Generated on: 2025-07-31 18:40:20
+Original content length: 34,799 characters
+Processing method: Unified template structure

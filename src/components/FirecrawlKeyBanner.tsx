@@ -8,7 +8,7 @@ import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import Link from 'next/link'
 
-export function FirecrawlKeyBanner() {
+export function ApiKeyBanner() {
   const [showForm, setShowForm] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState('')
@@ -104,7 +104,7 @@ export function FirecrawlKeyBanner() {
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-orange-600 mr-3 flex-shrink-0" />
             <p className="text-sm text-orange-800">
-              Add your Firecrawl API key to start monitoring websites
+              Add your FireCrawl API key to enable compliance monitoring and change detection
             </p>
           </div>
           <div className="flex gap-2">

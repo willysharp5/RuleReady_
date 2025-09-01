@@ -1,0 +1,69 @@
+Idaho Paid Family / Medical Leave (PFML)
+
+Overview
+[Turn on more accessible mode](https://www.sco.idaho.gov/LivePages/family%20medical%20leave%20act.aspx)
+[Turn off more accessible mode](https://www.sco.idaho.gov/LivePages/family%20medical%20leave%20act.aspx)
+
+Covered Employers
+The Family Medical Leave Act of 1993 requires covered employers to provide up to 12 weeks (480.00 hours) of unpaid, job protected leave to 'eligible' employees for certain family and medical reasons. Family medical leave may be used to meet family responsibilities such as:
+The National Defense Authorization Act (H.R. 4986) (2008) (effective January 16, 2009) requires covered employers to provide up to 12 weeks (480.00 hours) for certain qualifying exigencies and 26 weeks (1040.00 hours) of unpaid, job protected leave to 'eligible' employees who have military family members.  Military family medical leave entitlements for eligible family members are:
+Employees are 'eligible' if they have worked for a covered employer for at least one year and worked at least 1,250 hours during the previous 12 months.  The State of Idaho is considered a covered employer.  The EIS Payroll System goes through the following steps to determine eligibility:
+
+Covered Employees
+The Family Medical Leave Act of 1993 requires covered employers to provide up to 12 weeks (480.00 hours) of unpaid, job protected leave to 'eligible' employees for certain family and medical reasons. Family medical leave may be used to meet family responsibilities such as:
+I.Birth and care of an employee's newborn child.
+II.Placement of a foster child or adopted child in the employee's home.
+
+What Should Employers Do?
+The Family Medical Leave Act of 1993 requires covered employers to provide up to 12 weeks (480.00 hours) of unpaid, job protected leave to 'eligible' employees for certain family and medical reasons. Family medical leave may be used to meet family responsibilities such as:
+The National Defense Authorization Act (H.R. 4986) (2008) (effective January 16, 2009) requires covered employers to provide up to 12 weeks (480.00 hours) for certain qualifying exigencies and 26 weeks (1040.00 hours) of unpaid, job protected leave to 'eligible' employees who have military family members.  Military family medical leave entitlements for eligible family members are:
+I.The employee's Original Hire Date must be at least 12 months prior to the transaction date of the FML earnings.
+III.If no FML earnings are found in the past 12 months, the employee must have worked at least 1250 hours in the last 12 months. If any of the hours are overtime hours (extended hours) they are reduced to straight time hours before accumulating to the hours worked field.
+
+Training Requirements
+If an agency becomes aware of the need to use FML before an employee's return to work, their time sheets may be corrected to show FML.  Of course, it is much easier to change a time sheet to show FML before the payroll has been processed, but if it becomes necessary to change after the payroll is processed please contact the DSP Help Desk.
+
+Training Deadlines
+Employees are 'eligible' if they have worked for a covered employer for at least one year and worked at least 1,250 hours during the previous 12 months.  The State of Idaho is considered a covered employer.  The EIS Payroll System goes through the following steps to determine eligibility:
+I.The employee's Original Hire Date must be at least 12 months prior to the transaction date of the FML earnings.
+II.    If an FML earnings is found within the past 12 months (the first Pay Date equal or greater than the current Pay Date minus one year), the employee is eligible to take additional FML earnings up to the 480 hour 12 month maximum.
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+II.    If an FML earnings is found within the past 12 months (the first Pay Date equal or greater than the current Pay Date minus one year), the employee is eligible to take additional FML earnings up to the 480 hour 12 month maximum.
+
+Coverage Election
+- [SCO WebsiteCurrently selected](https://www.sco.idaho.gov/Pages/SCOHome.aspx)
+
+Reciprocity/Extraterritorial Coverage
+The following material includes FMLA information that is related to how the Division of Statewide Payroll reports eligibility and leave taken.  In no way is the following information used to incorporate the complex details of the federal regulations that apply.  For information that is more complete refer to the Division of Human Resources HR Policy and Procedures Manual and the FMLA regulations at 29 CFR Part 825 (Title 29 = Labor, CFR = Code of Federal Regulations, Part 825 = The Family and Medical Leave Act of 1993).  The US Dept of Labor Fact Sheet 28 series are applicable to the Family and Medical Leave Act.  The following link is to the fact sheet index -  [http://www.dol.gov/whd/regs/compliance/whdfs28.pdf](http://www.dol.gov/whd/regs/compliance/whdfs28.pdf)
+Employees are 'eligible' if they have worked for a covered employer for at least one year and worked at least 1,250 hours during the previous 12 months.  The State of Idaho is considered a covered employer.  The EIS Payroll System goes through the following steps to determine eligibility:
+
+Employer Responsibilities & Deadlines
+I.The employee's Original Hire Date must be at least 12 months prior to the transaction date of the FML earnings.
+III.If no FML earnings are found in the past 12 months, the employee must have worked at least 1250 hours in the last 12 months. If any of the hours are overtime hours (extended hours) they are reduced to straight time hours before accumulating to the hours worked field.
+requirements, the employee must be eligible for benefits in order to use FMP.
+The insurance deductions through the Office of Group Insurance are to continue while the employee is on FML.  The employee must be active on the database during the pay period, and hours must be submitted with earnings codes for Family Medical Leave.  The employee's health insurance deduction will be taken as long as the employee's leave balances are sufficient to cover the deduction amount, otherwise the employee will need to self-pay their portion.
+
+Employer Notification Requirements
+The following material includes FMLA information that is related to how the Division of Statewide Payroll reports eligibility and leave taken.  In no way is the following information used to incorporate the complex details of the federal regulations that apply.  For information that is more complete refer to the Division of Human Resources HR Policy and Procedures Manual and the FMLA regulations at 29 CFR Part 825 (Title 29 = Labor, CFR = Code of Federal Regulations, Part 825 = The Family and Medical Leave Act of 1993).  The US Dept of Labor Fact Sheet 28 series are applicable to the Family and Medical Leave Act.  The following link is to the fact sheet index -  [http://www.dol.gov/whd/regs/compliance/whdfs28.pdf](http://www.dol.gov/whd/regs/compliance/whdfs28.pdf)
+I.Up to (12) weeks of Standard FML may be used by employees for qualifying exigencies arising out of a covered military member’s active duty status or notification of an impending call to active duty.  Use earnings codes FML, FMS or FMV.
+
+Posting Requirements
+- IFM (Employee FML - Statewide) - This inquiry screen displays all standard and servicemember FML. This screen has the total hours of FML taken in the prior 12 months and the total number of hours worked including MDF and MDS for the prior 12 months.
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.sco.idaho.gov/LivePages/family%20medical%20leave%20act.aspx
+
+---
+Generated on: 2025-07-31 17:46:47
+Original content length: 7,785 characters
+Processing method: Unified template structure

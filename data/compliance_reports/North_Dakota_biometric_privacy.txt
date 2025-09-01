@@ -1,0 +1,67 @@
+North Dakota Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+Outline best practices for secure, private, applicable, and ethical use of artificial intelligence (AI) technologies, so that state entities can feel comfortable exploring innovative ways to enhance the citizen experience and productivity.
+- The State of North Dakota will consult the National Institute of Standards and Technology (NIST) Special Publication (SP) 1270 [Towards a Standard for Identifying and Managing Bias in Artificial Intelligence](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1270.pdf), NIST AI 100-1 [Artificial Intelligence Risk Management Framework](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf), and other regulatory frameworks for guidance on AI best practices.
+
+Covered Employers
+**Business Owner**– an Entity’s senior or executive team member who is responsible for the security and privacy interests of organizational systems and supporting mission and business functions.
+North Dakota state government branches, agencies, and entities are responsible for developing and administering policies, standards, and guidelines to protect the confidentiality, integrity, and/or availability of state data.  This guideline was developed to supplement the [Artificial Intelligence Policy](https://www.ndit.nd.gov/governance/policies), to prevent the misuse of AI and ML technologies, minimize security and privacy risk, and reduce potential exposure of sensitive organizational or regulatory data.
+- If the data/business owner is evaluating AI for a business use case, submit an [Initiative Intake Request](https://northdakota.service-now.com/serviceportal?id=sc_cat_item&sys_id=1c8f909c1b8128102045fd16dc4bcb46&sysparm_category=3f58fdd14fc8219017d767a9e0ad4853) via the [NDIT Self-Service Portal](https://northdakota.service-now.com/).
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+**Data Steward** – individual/individuals with assigned responsibility for the direct operational-level management of data.
+- Approved vendor or internal AI/ML services require periodic quality assurance checks to ensure AI-driven outcomes are accurate.
+| **Considerations:** Tool readily available, but most care is required when sharing data |
+
+Training Requirements
+This guideline applies to all North Dakota executive branch state agencies including the University Systems Office but excluding other higher education institutions, i.e., campuses and agricultural and research centers. All other state agencies outside the scope of this policy are encouraged to adopt this guideline or use it to frame their own.
+**Deep Learning** – A subfield of machine learning that focuses on algorithms that adaptively learn from data without instruction or labeling. Also referred to as "unsupervised learning."
+**Generative AI** – A type of AI that uses machine learning to generate new outputs based on training data. Generative AI algorithms can produce brand new content in the form of images, text, audio, code, or synthetic data.
+
+Training Deadlines
+\*The AI Risk Matrix and use of data following the [Data Classification Policy](https://www.ndit.nd.gov/governance/data-classification-policy) is applicable to most AI. Use of data within approved AI Enterprise solutions is dependent on the results of a risk assessment and impact analysis conducted by the NDIT Governance, Risk, and Compliance (GRC) Team, and Executive Leadership Team (ELT) approval.
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Additional AI education and resources can be found at the [Artificial Intelligence](https://ndgov.sharepoint.com/sites/TeamND/SitePages/Artificial-Intelligence.aspx) page of statewide intranet. You will need state issued credentials to access these materials.
+- The State of North Dakota will consult the National Institute of Standards and Technology (NIST) Special Publication (SP) 1270 [Towards a Standard for Identifying and Managing Bias in Artificial Intelligence](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1270.pdf), NIST AI 100-1 [Artificial Intelligence Risk Management Framework](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf), and other regulatory frameworks for guidance on AI best practices.
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+An official website of the state of North Dakota. Here's how you know
+Outline best practices for secure, private, applicable, and ethical use of artificial intelligence (AI) technologies, so that state entities can feel comfortable exploring innovative ways to enhance the citizen experience and productivity.
+
+Employer Responsibilities & Deadlines
+**Data Steward** – individual/individuals with assigned responsibility for the direct operational-level management of data.
+| **Considerations:** Tool readily available, but most care is required when sharing data |
+
+Employer Notification Requirements
+**The .gov means it's official.**Official North Dakota websites will end in .gov. Before sharing sensitive information, make sure you're on a government site.
+**The site is secure.**The **https://** ensures that you're connecting to the official website and that any information you provide is encrypted and sent securely.
+**Machine Learning (ML)** – A subfield of AI that focuses on the development of algorithms and statistical models to make independent decisions, but still needs humans to guide and correct inaccurate information. ML is the most common type of AI.
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+2. Such accounts are managed by the vendor and used to keep your search history and preferences tied to your account for useability purposes. There is no tie to any other accounts, even if you reuse the same email/username.
+![Risk of data break and risk of impact](https://www.ndit.nd.gov/sites/www/files/documents/Policies/Ai.png)
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.ndit.nd.gov/artificial-intelligence-guidelines
+
+---
+Generated on: 2025-07-31 18:29:20
+Original content length: 11,262 characters
+Processing method: Unified template structure

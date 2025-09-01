@@ -1,24 +1,24 @@
 // Application configuration
 export const APP_CONFIG = {
   // App name and branding
-  name: 'Firecrawl Observer',
-  shortName: 'FC Observer',
-  description: 'Monitor websites for changes with AI-powered analysis',
+  name: 'RuleReady Compliance',
+  shortName: 'RuleReady',
+  description: 'AI-powered employment law monitoring across all US jurisdictions',
   
   // Domain configuration
-  domain: 'example.com',
+  domain: 'ruleready.com',
   
   // Email configuration
   email: {
-    fromName: 'Firecrawl Observer',
-    fromAddress: 'noreply@example.com',
-    defaultRecipient: 'alerts@example.com',
-    placeholderEmail: 'you@example.com',
+    fromName: 'RuleReady Compliance',
+    fromAddress: 'noreply@ruleready.com',
+    defaultRecipient: 'alerts@ruleready.com',
+    placeholderEmail: 'you@company.com',
   },
   
   // URLs
   urls: {
-    github: 'https://github.com/your-org/fc-observer',
+    github: 'https://github.com/your-org/ruleready-compliance',
     documentation: '/docs',
     api: '/api-docs',
   },

@@ -1,0 +1,616 @@
+import { v } from "convex/values";
+import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+
+// Main compliance crawler that integrates with existing FireCrawl
+export const crawlComplianceRule = internalAction({
+  args: { 
+    ruleId: v.string(),
+    forceRecrawl: v.optional(v.boolean())
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔍 Starting compliance crawl for rule: ${args.ruleId}`);
+    
+    // 1. Get rule details and determine crawling strategy
+    const rule = await ctx.runQuery(internal.complianceCrawler.getRule, { ruleId: args.ruleId });
+    if (!rule) {
+      throw new Error(`Rule ${args.ruleId} not found`);
+    }
+    
+    // 2. Get crawling strategy based on jurisdiction and topic
+    const strategy = getCrawlingStrategy(rule.jurisdiction, rule.topicKey);
+    console.log(`📋 Using strategy: ${strategy.frequency} frequency, depth ${strategy.depth}`);
+    
+    // 3. Check if we need to crawl (based on last check time and strategy)
+    if (!args.forceRecrawl && !shouldCrawlNow(rule, strategy)) {
+      console.log(`⏭️ Skipping crawl - not due yet for ${args.ruleId}`);
+      return { skipped: true, reason: "not_due", nextCrawlDue: calculateNextCrawlTime(rule, strategy) };
+    }
+    
+    // 4. Perform intelligent scraping with compliance context
+    const crawlResult = await performComplianceCrawl(ctx, rule, strategy);
+    
+    // 5. Parse using compliance template structure
+    const parsedContent = await parseComplianceContent(crawlResult.content, rule);
+    
+    // 6. Compare against previous version with AI analysis
+    const changeAnalysis = await detectAndAnalyzeChanges(ctx, parsedContent, rule);
+    
+    // 7. Update rule monitoring data
+    await ctx.runMutation(internal.complianceCrawler.updateRuleMonitoring, {
+      ruleId: args.ruleId,
+      lastChecked: Date.now(),
+      crawlResult: {
+        success: crawlResult.success,
+        contentLength: crawlResult.content.length,
+        responseTime: crawlResult.responseTime,
+      },
+      changeDetected: changeAnalysis.hasSignificantChanges,
+    });
+    
+    // 8. Generate change alerts with severity scoring
+    if (changeAnalysis.hasSignificantChanges) {
+      await generateComplianceAlert(ctx, rule, changeAnalysis);
+    }
+    
+    // 9. Schedule embedding update if content changed
+    if (changeAnalysis.hasSignificantChanges) {
+      await ctx.runMutation(internal.embeddingJobs.createEmbeddingJob, {
+        jobType: "update_existing",
+        entityIds: [args.ruleId],
+        priority: changeAnalysis.severity === "critical" ? "high" : "medium",
+      });
+    }
+    
+    console.log(`✅ Compliance crawl completed for ${args.ruleId}`);
+    
+    return {
+      success: true,
+      changesDetected: changeAnalysis.hasSignificantChanges,
+      severity: changeAnalysis.severity,
+      nextCrawlScheduled: calculateNextCrawlTime(rule, strategy),
+      contentLength: crawlResult.content.length,
+    };
+  },
+});
+
+// Get rule by rule ID
+export const getRule = internalQuery({
+  args: { ruleId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("complianceRules")
+      .withIndex("by_rule_id", (q) => q.eq("ruleId", args.ruleId))
+      .first();
+  },
+});
+
+// Update rule monitoring data
+export const updateRuleMonitoring = internalMutation({
+  args: {
+    ruleId: v.string(),
+    lastChecked: v.number(),
+    crawlResult: v.object({
+      success: v.boolean(),
+      contentLength: v.number(),
+      responseTime: v.optional(v.number()),
+    }),
+    changeDetected: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const rule = await ctx.db
+      .query("complianceRules")
+      .withIndex("by_rule_id", (q) => q.eq("ruleId", args.ruleId))
+      .first();
+    
+    if (!rule) {
+      throw new Error(`Rule ${args.ruleId} not found`);
+    }
+    
+    await ctx.db.patch(rule._id, {
+      lastSignificantChange: args.changeDetected ? args.lastChecked : rule.lastSignificantChange,
+      updatedAt: args.lastChecked,
+      // Note: Removed metadata update for now - would need to extend schema
+    });
+  },
+});
+
+// Batch crawl compliance rules with intelligent scheduling
+export const batchCrawlComplianceRules = internalAction({
+  args: {
+    batchSize: v.optional(v.number()),
+    priorityFilter: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
+    jurisdictionFilter: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize || 50;
+    
+    console.log(`🚀 Starting batch compliance crawl (batch size: ${batchSize})`);
+    
+    // Get rules that need crawling based on priority and schedule
+    const rulesDue = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+      limit: batchSize,
+      priorityFilter: args.priorityFilter,
+      jurisdictionFilter: args.jurisdictionFilter,
+    });
+    
+    console.log(`📋 Found ${rulesDue.length} rules due for crawling`);
+    
+    let crawled = 0;
+    let failed = 0;
+    let changesDetected = 0;
+    
+    // Process each rule
+    for (const rule of rulesDue) {
+      try {
+        const result = await ctx.runAction(internal.complianceCrawler.crawlComplianceRule, {
+          ruleId: rule.ruleId
+        });
+        
+        if (result.success) {
+          crawled++;
+          if (result.changesDetected) {
+            changesDetected++;
+          }
+        }
+        
+        // Rate limiting between crawls
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`Failed to crawl rule ${rule.ruleId}:`, error);
+        failed++;
+      }
+    }
+    
+    console.log(`✅ Batch crawl completed: ${crawled} crawled, ${failed} failed, ${changesDetected} changes detected`);
+    
+    return {
+      success: true,
+      crawled,
+      failed,
+      changesDetected,
+      total: rulesDue.length,
+    };
+  },
+});
+
+// Get rules that are due for crawling (public for testing)
+export const getRulesDueForCrawling = query({
+  args: {
+    limit: v.optional(v.number()),
+    priorityFilter: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
+    jurisdictionFilter: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db.query("complianceRules");
+    
+    // Filter by monitoring status
+    query = query.filter((q) => q.eq(q.field("monitoringStatus"), "active"));
+    
+    // Filter by priority if specified
+    if (args.priorityFilter) {
+      query = query.filter((q) => q.eq(q.field("priority"), args.priorityFilter));
+    }
+    
+    // Filter by jurisdiction if specified
+    if (args.jurisdictionFilter) {
+      query = query.filter((q) => q.eq(q.field("jurisdiction"), args.jurisdictionFilter));
+    }
+    
+    const allRules = await query.collect();
+    
+    // Filter rules that are due for crawling based on their check intervals
+    const now = Date.now();
+    const rulesDue = allRules.filter(rule => {
+      const lastChecked = rule.lastSignificantChange || rule.createdAt;
+      const checkIntervalMs = rule.crawlSettings.checkInterval * 60 * 1000; // Convert minutes to ms
+      return (now - lastChecked) >= checkIntervalMs;
+    });
+    
+    // Sort by priority and last checked time
+    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    rulesDue.sort((a, b) => {
+      const aPriority = priorityOrder[a.priority];
+      const bPriority = priorityOrder[b.priority];
+      
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority; // Higher priority first
+      }
+      
+      // Same priority, sort by last checked (oldest first)
+      const aLastChecked = a.lastSignificantChange || a.createdAt;
+      const bLastChecked = b.lastSignificantChange || b.createdAt;
+      return aLastChecked - bLastChecked;
+    });
+    
+    return rulesDue.slice(0, args.limit || 100);
+  },
+});
+
+// Utility functions for crawling strategy
+function getCrawlingStrategy(jurisdiction: string, topicKey: string) {
+  // Federal rules need more frequent monitoring
+  if (jurisdiction === "Federal") {
+    return {
+      frequency: "daily",
+      depth: 3,
+      priority: "critical",
+      domains: ["dol.gov", "eeoc.gov", "nlrb.gov", "osha.gov"],
+      selectors: [".content", ".law-text", ".regulation", "main", ".page-content"],
+      checkInterval: 1440, // 24 hours
+    };
+  }
+  
+  // Critical topics need more frequent monitoring regardless of jurisdiction
+  const criticalTopics = ["minimum_wage", "overtime", "harassment_training", "workplace_safety"];
+  if (criticalTopics.includes(topicKey)) {
+    return {
+      frequency: "bi-daily",
+      depth: 2,
+      priority: "high",
+      selectors: [".content", ".main-content", ".law-section", "main"],
+      checkInterval: 2880, // 48 hours
+    };
+  }
+  
+  // High-impact topics
+  const highImpactTopics = ["paid_sick_leave", "family_medical_leave", "workers_comp"];
+  if (highImpactTopics.includes(topicKey)) {
+    return {
+      frequency: "weekly",
+      depth: 2,
+      priority: "medium",
+      selectors: [".content", ".main", "main"],
+      checkInterval: 10080, // 1 week
+    };
+  }
+  
+  // Default for other rules
+  return {
+    frequency: "monthly",
+    depth: 1,
+    priority: "low",
+    selectors: [".content", ".main"],
+    checkInterval: 43200, // 1 month
+  };
+}
+
+function shouldCrawlNow(rule: any, strategy: any): boolean {
+  const now = Date.now();
+  const lastChecked = rule.lastSignificantChange || rule.createdAt;
+  const checkIntervalMs = strategy.checkInterval * 60 * 1000;
+  
+  return (now - lastChecked) >= checkIntervalMs;
+}
+
+function calculateNextCrawlTime(rule: any, strategy: any): number {
+  const lastChecked = rule.lastSignificantChange || rule.createdAt;
+  const checkIntervalMs = strategy.checkInterval * 60 * 1000;
+  return lastChecked + checkIntervalMs;
+}
+
+// Perform compliance-specific crawl using existing FireCrawl infrastructure
+async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
+  const startTime = Date.now();
+  
+  try {
+    // Use existing FireCrawl scraping but with compliance-specific settings
+    const scrapeResult = await ctx.runAction(internal.firecrawl.scrapeUrl, {
+      websiteId: null, // We'll create a virtual website ID for compliance rules
+      url: rule.sourceUrl,
+      userId: null, // System crawl, no specific user
+    });
+    
+    const endTime = Date.now();
+    
+    return {
+      success: scrapeResult.success,
+      content: scrapeResult.markdown || "",
+      responseTime: endTime - startTime,
+      metadata: scrapeResult.firecrawlMetadata,
+    };
+    
+  } catch (error) {
+    console.error(`Failed to crawl ${rule.sourceUrl}:`, error);
+    return {
+      success: false,
+      content: "",
+      responseTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+// Parse content using compliance template structure
+async function parseComplianceContent(content: string, rule: any) {
+  // Extract sections based on compliance template
+  const sections = {
+    overview: extractSection(content, "Overview"),
+    coveredEmployers: extractSection(content, "Covered Employers"),
+    coveredEmployees: extractSection(content, "Covered Employees"),
+    employerResponsibilities: extractSection(content, "What Should Employers Do?"),
+    trainingRequirements: extractSection(content, "Training Requirements"),
+    postingRequirements: extractSection(content, "Posting Requirements"),
+    penalties: extractSection(content, "Penalties for Non-Compliance"),
+    sources: extractSection(content, "Sources"),
+  };
+  
+  // Extract key compliance data
+  const complianceData = {
+    effectiveDates: extractDates(content),
+    penaltyAmounts: extractPenalties(content),
+    deadlines: extractDeadlines(content),
+    coverageThresholds: extractThresholds(content),
+  };
+  
+  return {
+    rawContent: content,
+    sections,
+    complianceData,
+    contentHash: await calculateContentHash(content),
+    parsedAt: Date.now(),
+  };
+}
+
+// Detect and analyze changes with AI
+async function detectAndAnalyzeChanges(ctx: any, parsedContent: any, rule: any) {
+  // Get previous version for comparison
+  const previousReport = await ctx.runQuery(internal.complianceReports.getLatestReport, {
+    ruleId: rule.ruleId
+  });
+  
+  if (!previousReport) {
+    // No previous version, this is new content
+    return {
+      hasSignificantChanges: true,
+      severity: "medium",
+      changeType: "new_content",
+      changes: ["Initial content detected"],
+      confidence: 1.0,
+    };
+  }
+  
+  // Compare content hashes first (quick check)
+  if (parsedContent.contentHash === previousReport.contentHash) {
+    return {
+      hasSignificantChanges: false,
+      severity: "none",
+      changeType: "no_change",
+      changes: [],
+      confidence: 1.0,
+    };
+  }
+  
+  // Detailed section-by-section comparison
+  const sectionChanges = compareSections(
+    parsedContent.sections, 
+    previousReport.extractedSections
+  );
+  
+  // AI-powered significance analysis
+  const aiAnalysis = await analyzeChangesWithAI(ctx, {
+    oldContent: previousReport.reportContent,
+    newContent: parsedContent.rawContent,
+    sectionChanges,
+    rule,
+  });
+  
+  return {
+    hasSignificantChanges: aiAnalysis.isSignificant,
+    severity: aiAnalysis.severity,
+    changeType: aiAnalysis.changeType,
+    changes: sectionChanges,
+    aiConfidence: aiAnalysis.confidence,
+    impactAreas: aiAnalysis.impactAreas,
+    recommendations: aiAnalysis.recommendations,
+  };
+}
+
+// Generate compliance alert for significant changes
+async function generateComplianceAlert(ctx: any, rule: any, changeAnalysis: any) {
+  const alertId = `${rule.ruleId}_${Date.now()}`;
+  
+  // Create change record
+  await ctx.runMutation(internal.complianceChanges.createChange, {
+    changeId: alertId,
+    ruleId: rule.ruleId,
+    changeType: mapChangeType(changeAnalysis.changeType),
+    severity: changeAnalysis.severity,
+    detectedAt: Date.now(),
+    affectedSections: changeAnalysis.changes.map((c: any) => c.section),
+    changeDescription: generateChangeDescription(changeAnalysis),
+    aiConfidence: changeAnalysis.aiConfidence,
+    humanVerified: false,
+    notificationsSent: [],
+  });
+  
+  // Send notifications based on severity
+  if (changeAnalysis.severity === "critical") {
+    await sendImmediateAlert(ctx, rule, changeAnalysis);
+  }
+  
+  console.log(`🚨 Alert generated for ${rule.ruleId}: ${changeAnalysis.severity} severity`);
+}
+
+// Utility functions
+function extractSection(content: string, sectionName: string): string | undefined {
+  const lines = content.split('\n');
+  let inSection = false;
+  let sectionContent = '';
+  
+  for (const line of lines) {
+    if (line.trim() === sectionName) {
+      inSection = true;
+      continue;
+    }
+    
+    // Stop at next section header
+    if (inSection && line.match(/^[A-Z][^a-z]*$/) && line.trim() !== sectionName) {
+      break;
+    }
+    
+    if (inSection) {
+      sectionContent += line + '\n';
+    }
+  }
+  
+  return sectionContent.trim() || undefined;
+}
+
+function extractDates(content: string): string[] {
+  // Extract dates in various formats
+  const datePatterns = [
+    /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g, // MM/DD/YYYY
+    /\b\d{4}-\d{2}-\d{2}\b/g, // YYYY-MM-DD
+    /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/gi,
+  ];
+  
+  const dates: string[] = [];
+  for (const pattern of datePatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      dates.push(...matches);
+    }
+  }
+  
+  return [...new Set(dates)]; // Remove duplicates
+}
+
+function extractPenalties(content: string): string[] {
+  // Extract penalty amounts and descriptions
+  const penaltyPatterns = [
+    /\$[\d,]+(?:\.\d{2})?/g, // Dollar amounts
+    /fine[sd]?\s+(?:of\s+)?(?:up\s+to\s+)?\$[\d,]+/gi,
+    /penalty[ies]*\s+(?:of\s+)?(?:up\s+to\s+)?\$[\d,]+/gi,
+  ];
+  
+  const penalties: string[] = [];
+  for (const pattern of penaltyPatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      penalties.push(...matches);
+    }
+  }
+  
+  return [...new Set(penalties)];
+}
+
+function extractDeadlines(content: string): string[] {
+  // Extract deadline-related text
+  const deadlinePatterns = [
+    /deadline[s]?\s+(?:is|are|of)\s+[^.]+/gi,
+    /due\s+(?:by|on|before)\s+[^.]+/gi,
+    /must\s+be\s+(?:completed|submitted|filed)\s+(?:by|on|before)\s+[^.]+/gi,
+  ];
+  
+  const deadlines: string[] = [];
+  for (const pattern of deadlinePatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      deadlines.push(...matches);
+    }
+  }
+  
+  return deadlines;
+}
+
+function extractThresholds(content: string): string[] {
+  // Extract employee count thresholds and coverage criteria
+  const thresholdPatterns = [
+    /\b\d+\s+or\s+more\s+employees\b/gi,
+    /employers?\s+with\s+\d+\s+or\s+more/gi,
+    /businesses?\s+with\s+\d+\s+or\s+more/gi,
+  ];
+  
+  const thresholds: string[] = [];
+  for (const pattern of thresholdPatterns) {
+    const matches = content.match(pattern);
+    if (matches) {
+      thresholds.push(...matches);
+    }
+  }
+  
+  return thresholds;
+}
+
+function compareSections(newSections: any, oldSections: any) {
+  const changes = [];
+  
+  for (const [sectionName, newContent] of Object.entries(newSections)) {
+    const oldContent = oldSections[sectionName];
+    
+    if (!oldContent && newContent) {
+      changes.push({
+        section: sectionName,
+        type: "added",
+        description: `New ${sectionName} section added`,
+      });
+    } else if (oldContent && !newContent) {
+      changes.push({
+        section: sectionName,
+        type: "removed",
+        description: `${sectionName} section removed`,
+      });
+    } else if (oldContent !== newContent) {
+      changes.push({
+        section: sectionName,
+        type: "modified",
+        description: `${sectionName} section modified`,
+        oldContent: oldContent?.substring(0, 200),
+        newContent: (newContent as string)?.substring(0, 200),
+      });
+    }
+  }
+  
+  return changes;
+}
+
+async function analyzeChangesWithAI(ctx: any, data: any) {
+  // Placeholder for AI analysis - would integrate with Gemini
+  const hasSignificantChanges = data.sectionChanges.length > 0;
+  
+  return {
+    isSignificant: hasSignificantChanges,
+    severity: hasSignificantChanges ? "medium" : "low",
+    changeType: hasSignificantChanges ? "content_update" : "no_change",
+    confidence: 0.8,
+    impactAreas: data.sectionChanges.map((c: any) => c.section),
+    recommendations: hasSignificantChanges ? ["Review updated requirements"] : [],
+  };
+}
+
+function mapChangeType(aiChangeType: string): "new_law" | "amendment" | "deadline_change" | "penalty_change" | "coverage_change" | "procedural_change" {
+  const mapping: Record<string, any> = {
+    "content_update": "amendment",
+    "new_content": "new_law",
+    "penalty_change": "penalty_change",
+    "deadline_update": "deadline_change",
+    "coverage_update": "coverage_change",
+  };
+  
+  return mapping[aiChangeType] || "procedural_change";
+}
+
+function generateChangeDescription(changeAnalysis: any): string {
+  if (changeAnalysis.changes.length === 0) {
+    return "No significant changes detected";
+  }
+  
+  const changedSections = changeAnalysis.changes.map((c: any) => c.section).join(", ");
+  return `Changes detected in: ${changedSections}`;
+}
+
+async function sendImmediateAlert(ctx: any, rule: any, changeAnalysis: any) {
+  // Placeholder for immediate alert system
+  console.log(`🚨 CRITICAL ALERT: ${rule.jurisdiction} ${rule.topicLabel} has critical changes`);
+}
+
+async function calculateContentHash(content: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}

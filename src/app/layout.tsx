@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Firecrawl Observer",
-  description: "Monitor websites with Firecrawl change tracking",
+  title: "RuleReady Compliance",
+  description: "AI-powered employment law monitoring across all US jurisdictions",
 };
 
 export const viewport: Viewport = {

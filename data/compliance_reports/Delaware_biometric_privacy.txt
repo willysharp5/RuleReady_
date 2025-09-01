@@ -1,0 +1,81 @@
+Delaware Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+#### [When does the Delaware Personal Data Protection Act take Effect?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-0)
+The DPDP Act takes effect on January 1, 2025.
+
+Covered Employers
+#### [Who should companies tell to contact in the event the business denies a consumer's data request?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-1)
+#### [My business already complies with other state privacy laws. Do I need to have a Delaware specific privacy notice?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-2)
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+
+Covered Employees
+#### [What are DPDP Act obligations with respects to employee data?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-26)
+The DPDA does not apply to data maintained for employment records purposes. Furthermore, the term “consumer” means an Delaware resident acting only in an individual or household context and does not include an individual acting as an employee or job applicant.
+
+What Should Employers Do?
+The DPDPA requires companies disclose a mechanism for consumers to contact the Department of Justice to submit a complaint.  Companies should direct consumers to submit a complaint by email to [privacy@delaware.gov](mailto:privacy@delaware.gov).
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+Read more of the specific requirements for businesses here
+The DPDP Act provides some limited exemptions for businesses who must meet data privacy standards under another law. If you believe your regulated business may be exempt you should contact your own legal counsel.
+
+Training Requirements
+The key distinction between a controller and a processor is their decision-making authority over personal data. Under the DPDP Act, a processor may only process data at the request and under the direction of a controller. The processor is contractually bound by the controller’s instructions as to what the processor must and may do with personal data.
+The Delaware Personal Data Privacy Act requires that consumer disclosures are understandable and accessible. Data controllers shall use plain, straightforward language and provide communications in languages generally used by the business. Communications must be provided in a readable format on all devices through which consumer normally or regularly interact with the controller, including on smaller screens and through mobile applications, if applicable. In considering whether disclosures must be provided in a readable format on a specific device, controllers should consider whether the consumer receives other communications, disclosures and notifications from the controller on that device in the normal course of business.
+The DPDP Act applies to both for- and non-profit businesses. Both controllers and processors have responsibilities under the DPDPA. A controller is a person or entity who determines the purposes for and means of processing personal data. A processor is a person or entity that processes personal data on behalf of a controller. Processors must adhere to instructions of the controller and assist the controller to meet its obligations under the DPDP Act. Processors must also ensure the confidentiality of anyone processing personal data and take measures to allow for the fulfillment of consumer data requests.
+
+Training Deadlines
+Yes. The DPDP Act grants consumers the right to appeal a controller’s decision denying a consumer rights request. A controller has 45 days after receipt of an appeal to write back to the consumer, explaining any actions it has taken and reasons for refusing a consumer request. If the appeal is denied, the controller must give the consumer information to contact the Attorney General’s office should the consumer wish to file a complaint. Delawareans can contact [privacy@delaware.gov](mailto:privacy@delaware.gov)
+A consumer can request information from a controller free once every 12 months. Under certain circumstances beyond the annual request, the controller may charge an administrative fee.
+Yes. If the Attorney General determines that a controller could remedy a violation of the DPDPA, the Attorney General must give the controller notice of the violation before initiating a lawsuit. The controller then has 60 days to remedy the violation (called “the right to cure”). If, however, the Attorney General determines that it would not be possible for the controller to remedy the violation, no such notice or remedial opportunity is required. The right to cure sunsets on December 31, 2025.
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+#### [My business already complies with other state privacy laws. Do I need to have a Delaware specific privacy notice?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-2)
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+Read more of the specific requirements for businesses here
+
+Coverage Election
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+Methods for consumers to opt-out or to make requests should consider the ways that consumers normally interact with the controller. Exclusively online companies that interact directly with consumers need only provide an email address for submitting requests. Controllers with a website or mobile app that also interact with consumers offline should have one method such as a webform on that website or app, and another method as well. Controllers with an in-person presence should consider offline methods like printed forms, in-store tablets, or telephone options. Whichever methods a controller chooses, the process must be available at any time, must be easy to execute, and must require a minimal number of steps.
+
+Reciprocity/Extraterritorial Coverage
+#### [My business already complies with other state privacy laws. Do I need to have a Delaware specific privacy notice?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-2)
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+
+Employer Responsibilities & Deadlines
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+The DPDP Act provides some limited exemptions for businesses who must meet data privacy standards under another law. If you believe your regulated business may be exempt you should contact your own legal counsel.
+The DPDP Act and other laws like it provide different obligations depending on the businesses relationship to the personal data that is collected.
+The key distinction between a controller and a processor is their decision-making authority over personal data. Under the DPDP Act, a processor may only process data at the request and under the direction of a controller. The processor is contractually bound by the controller’s instructions as to what the processor must and may do with personal data.
+
+Employer Notification Requirements
+#### [My business already complies with other state privacy laws. Do I need to have a Delaware specific privacy notice?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-2)
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+Personal data is any information that can be linked to an identifiable individual, excluding publicly available information. Some examples of personal data include: a home address, a driver’s license or state identification number, passport information, a financial account number, login credentials, and payment card information.
+
+Posting Requirements
+#### [My business already complies with other state privacy laws. Do I need to have a Delaware specific privacy notice?](http://attorneygeneral.delaware.gov/attorneygeneral.delaware.gov\#custom-collapse-0-2)
+Many businesses have a single privacy notice or addendum to comply with other state privacy laws, like California, Connecticut, and Virginia.  We expect that many businesses will adopt the same approach now that Delaware’s law is effective (as of January 1, 2025). While the laws are similar, businesses should ensure their notices include all of the required elements listed in the DPDPA. Additionally, businesses must indicate that the privacy notice applies to either all U.S. residents or specifically identifies that it applies to Delaware residents if it only applies to residents of select states. If it is not apparent the notice applies to Delaware residents, the notice does not comply with the DPDPA.
+A consumer may directly contact the business—through the channel(s) described in the controller’s required privacy notice—and request that it confirm whether it processes the consumer’s personal data.
+
+Recordkeeping Requirements
+It also applies to service providers (called “processors”) that maintain or provide services involving personal data on behalf of covered businesses.
+The DPDPA also does not apply to certain types of personal data maintained in compliance with other laws, such as the GLBA, HIPAA, the Fair Credit Reporting Act, as well as personal data processed for certain specified purposes.
+Yes. The DPDP Act grants consumers the right to appeal a controller’s decision denying a consumer rights request. A controller has 45 days after receipt of an appeal to write back to the consumer, explaining any actions it has taken and reasons for refusing a consumer request. If the appeal is denied, the controller must give the consumer information to contact the Attorney General’s office should the consumer wish to file a complaint. Delawareans can contact [privacy@delaware.gov](mailto:privacy@delaware.gov)
+
+Penalties for Non-Compliance
+Controllers are the entities that determine what personal data is collected and how it will be used. Specifically, a controller is defined as an individual or legal entity that, independently or jointly with others, collects and processes personal data and is responsible for responding to consumer requests about the collection and processing of personal data.
+- Information that identifies an individual’s specific location with a defined degree of precision and accuracy (called “precise geolocation data”).
+The Attorney General has exclusive authority to enforce violations of the Act.
+Yes. If the Attorney General determines that a controller could remedy a violation of the DPDPA, the Attorney General must give the controller notice of the violation before initiating a lawsuit. The controller then has 60 days to remedy the violation (called “the right to cure”). If, however, the Attorney General determines that it would not be possible for the controller to remedy the violation, no such notice or remedial opportunity is required. The right to cure sunsets on December 31, 2025.
+
+Sources
+https://attorneygeneral.delaware.gov/fraud/personal-data-privacy-portal/frequently-asked-questions/
+
+---
+Generated on: 2025-07-31 17:38:23
+Original content length: 26,243 characters
+Processing method: Unified template structure

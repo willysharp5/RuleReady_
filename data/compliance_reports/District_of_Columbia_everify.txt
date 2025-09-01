@@ -1,0 +1,61 @@
+District of Columbia E-Verify / Employment Verification
+
+Overview
+This secure service is used for mortgage applications, reference checks, loan applications, apartment leases, or any application that requires proof of employment and/or income. It is quick, accurate, free and best of all, it's easy! Please note, DCPS does not accept verification requests outside of this online system via fax, email, postal mail or hand-delivered​.
+- If you, your business, or organization requires the employment verification to be completed on a company form, please attach this through the online request system.
+
+Covered Employers
+Online verification requests will be processed and emailed to the requestor **within 7-10 business days (weekends and government observed holidays are not included as a business day). Please allow at least 8 business days before making status inquires.**
+- If you, your business, or organization requires the employment verification to be completed on a company form, please attach this through the online request system.
+- Employers or vendors looking for verification on former and/or current employees will require an authorization to release form. If you do not have one, you may use the [DCPS Authorization to Release Form](https://dcps.dc.gov/node/1008222). Please attach directly into the online system.
+
+Covered Employees
+- The employee's full name.
+- The employee's **full** Social Security Number.
+- The employee's DCPS PeopleSoft ID (EID) If they were employed by DCPS after January 1, 2009. (Please note that the SSN can be provided in the place of the PeopleSoft ID if you do not have this information).
+
+What Should Employers Do?
+This secure service is used for mortgage applications, reference checks, loan applications, apartment leases, or any application that requires proof of employment and/or income. It is quick, accurate, free and best of all, it's easy! Please note, DCPS does not accept verification requests outside of this online system via fax, email, postal mail or hand-delivered​.
+- If you, your business, or organization requires the employment verification to be completed on a company form, please attach this through the online request system.
+- Employers or vendors looking for verification on former and/or current employees will require an authorization to release form. If you do not have one, you may use the [DCPS Authorization to Release Form](https://dcps.dc.gov/node/1008222). Please attach directly into the online system.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Online verification requests will be processed and emailed to the requestor **within 7-10 business days (weekends and government observed holidays are not included as a business day). Please allow at least 8 business days before making status inquires.**
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+Not specified in available documentation
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+- The employee's DCPS PeopleSoft ID (EID) If they were employed by DCPS after January 1, 2009. (Please note that the SSN can be provided in the place of the PeopleSoft ID if you do not have this information).
+
+Posting Requirements
+This secure service is used for mortgage applications, reference checks, loan applications, apartment leases, or any application that requires proof of employment and/or income. It is quick, accurate, free and best of all, it's easy! Please note, DCPS does not accept verification requests outside of this online system via fax, email, postal mail or hand-delivered​.
+
+Recordkeeping Requirements
+- House Bill 486 documents, or documents pertaining to investigation of misconduct history should be emailed directly to [\[email protected\]](https://dcps.dc.gov/cdn-cgi/l/email-protection#7f1b1c0f0c5109101a3f144e4d511b1c51181009), or mailed to 1200 First Street, NE Washington DC, 20002. 10 _th_ Floor. It should be addressed to Verification of Employment.
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://dcps.dc.gov/page/dcps-employment-verification
+
+---
+Generated on: 2025-07-31 19:00:41
+Original content length: 2,497 characters
+Processing method: Unified template structure

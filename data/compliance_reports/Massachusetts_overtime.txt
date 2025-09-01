@@ -1,0 +1,72 @@
+Massachusetts Overtime & Hours
+
+Overview
+Comprehensive information about the law about overtime in an easy-to-read question and answer format. Lists jobs not protected by Massachusetts and Federal overtime law (listed separately).
+[MGL c. 136, § 6](https://www.mass.gov/info-details/mass-general-laws-c136-ss-6) Business, trade, labor or work on Sunday
+
+Covered Employers
+[MGL c. 136, § 6](https://www.mass.gov/info-details/mass-general-laws-c136-ss-6) Business, trade, labor or work on Sunday
+If you think an employer did not follow the law about overtime pay or Sunday/holiday pay, you can file a complaint online.
+
+Covered Employees
+**The provision for holiday pay for workers in retail establishments ended on January 1, 2023.** See: [St. 2020, c. 358, §§ 74, 75 and 111](https://malegislature.gov/Laws/SessionLaws/Acts/2020/Chapter358).
+[MGL c. 149, § 30B](https://www.mass.gov/info-details/mass-general-laws-c149-ss-30b) Overtime of state employees; regulations
+"One and one half times an employee's regular hourly rate, such regular hourly rate not to be less than the basic minimum wage, for work in excess of 40 hours in a work week, except as set forth in M.G.L. c. 151, § 1A." Also explains how to calculate overtime for piece work and tipped employees.
+
+What Should Employers Do?
+Overtime must be paid at a rate of at least one and one-half times the employee’s regular rate of pay for each hour worked in a workweek in excess of the maximum allowable in a given type of employment.
+When a placement agency and host families challenged federal preemption of state minimum wage law, a federal appellate court ruled that domestic workers participating in an “Au Pair Program” administered by the U. S. Department of State in Massachusetts must be paid according to Massachusetts minimum wage and overtime laws, not the lower Federal minimum wage and overtime provisions.
+Provides brief descriptions of overtime laws and exceptions. Most employees must be paid one and one-half times their regular hourly rate for all hours worked in excess of 40 hours in a given work week.
+Defines the conditions that must be met for an overtime exemption for commissioned employees.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Eliminates "premium pay" for Sundays and holidays on January 1, 2023.
+[MGL c. 136, § 13](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXX/Chapter136/Section13) Legal holidays; application; exceptions
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+[MGL c. 136, § 13](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXX/Chapter136/Section13) Legal holidays; application; exceptions
+Provides brief descriptions of overtime laws and exceptions. Most employees must be paid one and one-half times their regular hourly rate for all hours worked in excess of 40 hours in a given work week.
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+[MGL c. 149, § 30B](https://www.mass.gov/info-details/mass-general-laws-c149-ss-30b) Overtime of state employees; regulations
+[MGL c. 149, § 30C](https://malegislature.gov/Laws/GeneralLaws/PartI/TitleXXI/Chapter149/Section30C) Work week of uniformed members of state police; overtime service; compensation; rules and regulation
+
+Employer Responsibilities & Deadlines
+Overtime must be paid at a rate of at least one and one-half times the employee’s regular rate of pay for each hour worked in a workweek in excess of the maximum allowable in a given type of employment.
+When a placement agency and host families challenged federal preemption of state minimum wage law, a federal appellate court ruled that domestic workers participating in an “Au Pair Program” administered by the U. S. Department of State in Massachusetts must be paid according to Massachusetts minimum wage and overtime laws, not the lower Federal minimum wage and overtime provisions.
+Provides brief descriptions of overtime laws and exceptions. Most employees must be paid one and one-half times their regular hourly rate for all hours worked in excess of 40 hours in a given work week.
+Defines the conditions that must be met for an overtime exemption for commissioned employees.
+
+Employer Notification Requirements
+Comprehensive information about the law about overtime in an easy-to-read question and answer format. Lists jobs not protected by Massachusetts and Federal overtime law (listed separately).
+[Minimum wage and overtime information](https://www.mass.gov/service-details/minimum-wage-and-overtime-information), Mass. Department of Labor Standards.
+Site includes information on federally mandated overtime pay as well as links to [Fact Sheets](https://www.dol.gov/agencies/whd/overtime/fact-sheets) on various types of employees, including (but not limited to): professional employees, outside sales staff, highly-compensated workers, blue-collar workers, nurses, technologists, and journalists.
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+- Effective July 1, 2024, the salary threshold will increase to the equivalent of an annual salary of $43,888 ($844/week) and increase to $58,656 ($1128/week) on Jan. 1, 2025. [Blocked by a Texas District Court on November 15, 2024](https://www.bloomberglaw.com/public/desktop/document/StateOfTexasvUnitedStatesDepartmentofLaboretalDocketNo424cv00499E/6?doc_id=X14KM44OT5R9DUP9HSDGSPG1AEV).
+[File a workplace complaint](https://www.mass.gov/how-to/file-a-workplace-complaint), Mass. Attorney General.
+If you think an employer did not follow the law about overtime pay or Sunday/holiday pay, you can file a complaint online.
+
+Penalties for Non-Compliance
+Defines and delimits the exemptions for executive, administrative, professional, outside sales and computer employees from federal overtime law. The salary threshold for a “white collar exemption” is, in most cases, not less than $684 per week.
+Defines the conditions that must be met for an overtime exemption for commissioned employees.
+
+Sources
+https://www.mass.gov/info-details/massachusetts-law-about-overtime
+
+---
+Generated on: 2025-07-31 18:03:42
+Original content length: 9,861 characters
+Processing method: Unified template structure

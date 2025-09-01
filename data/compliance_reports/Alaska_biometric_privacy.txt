@@ -1,0 +1,70 @@
+Alaska Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+01 "An Act relating to artificial intelligence; requiring disclosure of deepfakes in campaign
+03 BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF ALASKA:
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+26 (4) inform a prospective employee of the state agency about any video
+28 employee's consent before employing artificial intelligence.
+06 relating to the use of artificial intelligence by a state agency or state employee may
+
+What Should Employers Do?
+08 candidate or party or otherwise deceive a voter, the person shall include the following
+11 component, the statement must be read in a manner that is easily heard. If the
+12 communication includes a print or video component, the statement must be placed in
+14 satellite, Internet, or other digital communication, the statement must remain onscreen
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+06 (1) the People's Republic of China, including the Hong Kong Special
+07 Administrative Region and Macao Special Administrative Region;
+01 (b) The department may adopt additional regulations under AS 44.62
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+03 BE IT ENACTED BY THE LEGISLATURE OF THE STATE OF ALASKA:
+05 Sec. 15.13.093. Deepfake disclosure statement. (a) If a person knows or
+
+Employer Responsibilities & Deadlines
+11 component, the statement must be read in a manner that is easily heard. If the
+12 communication includes a print or video component, the statement must be placed in
+14 satellite, Internet, or other digital communication, the statement must remain onscreen
+17 An inventory must include, at a minimum, the following information for each system:
+
+Employer Notification Requirements
+17 An inventory must include, at a minimum, the following information for each system:
+20 (1) notify each individual who may be legally or significantly affected
+26 (4) inform a prospective employee of the state agency about any video
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+02 (b) In this section, "deepfake" means an image, audio recording, or video
+03 recording of an individual's appearance, conduct, or spoken words that has been
+
+Penalties for Non-Compliance
+04 as a result of a violation of AS 44.99.700 - 44.99.730, a violation of a regulation
+13 input, human-defined objectives, and machine learning, natural language processing,
+
+Sources
+https://www.akleg.gov/basis/Bill/Text/33?Hsid=SB0177A
+
+---
+Generated on: 2025-07-31 17:21:34
+Original content length: 10,401 characters
+Processing method: Unified template structure

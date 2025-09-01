@@ -1,0 +1,72 @@
+District of Columbia Employee Benefits Mandates (like state retirement savings programs)
+
+Overview
+- Employees who are paid on a contract or fee basis;
+- Student employees who receive a stipend and are assigned or attached primarily for training purposes to a hospital, clinic, or laboratory operated by the District government.
+
+Covered Employers
+Direct rollover to another employer-sponsored, eligible retirement plan or to a traditional IRA.
+
+Covered Employees
+The District is committed to helping employees build retirement wealth and security. The 457(b) Deferred Compensation Plan (457(b) Plan) is designed to supplement an employee's retirement savings. On July 7, 2019, the D.C. Department of Human Resources (DCHR) launched the 457(b) Plan Automatic Enrollment Program for District agencies.
+All District government employees are eligible to participate in the 457(b) Plan **EXCEPT**:
+- Employees serving in a temporary appointment of one year or less;
+
+What Should Employers Do?
+Participants who are automatically enrolled must acknowledge in writing that they received this documentation. A legal guardian’s signature is needed if the eligible participant is under 18 years of age.
+1. Cancellation must be made through ESS;
+Participants may elect the time (month and year) when distributions under the 457(b) Plan will begin. The date must be the earlier of:
+If a participant dies before distribution of their account, then the beneficiary must submit a death certificate proving the death of the participant before distribution of the participant’s account.
+
+Training Requirements
+- Student employees who receive a stipend and are assigned or attached primarily for training purposes to a hospital, clinic, or laboratory operated by the District government.
+If a participant did not direct how the funds are to be invested, their deferrals will be invested in the default fund selected by the 457(b) Plan provider until additional instructions are provided by the participant.
+
+Training Deadlines
+Participants may elect to defer a different amount to their plan, or to cease making deferrals. An employee who opts out of automatic enrollment may elect to participate again in the 457(b) Plan after a period of 30 days. An eligible employee who was not automatically enrolled in the 457(b) Plan may elect to participate at any time. Eligible employees may elect to participate in the 457(b) Plan by completing a Salary Deferral Agreement through the Employee Self-Service (ESS) portal in the PeopleSoft System. The agreement includes:
+For employees of the Council of the District of Columbia, the Office of the District of Columbia Auditor, and the Office of Advisory Neighborhood Commission, the District government matches employees’ 457(b) Plan deferrals, up to three percent of the employee’s base salary per pay period. The District will match these deferrals by making contributions to the 401(a) Plan within 45 days after the end of each pay period.
+An automatically enrolled participant who elects to cease deferrals during the first 30 days of employment may request a refund of any deferrals made to their account within that period. Refunds will be adjusted for any earnings or losses at market value and will be taxable in the year they are distributed to the participant. To request a refund of deferrals, contact DCHR’s Benefits and Retirement Administration at [\[email protected\]](https://edpm.dc.gov/cdn-cgi/l/email-protection#0b6f686379253f3b3a6a3f3e3c694b6f68256c647d) or (202) 442-7627.
+
+Qualified Trainers
+3. A maximum of $19,000 per year, up to $25,000 if age 50 or over, or up to $38,000 if qualified for pre-retirement catch-up contributions as set by § 457(b)(2) of the Internal Revenue Code (for tax year 2019).
+
+Special Requirements
+If a participant did not direct how the funds are to be invested, their deferrals will be invested in the default fund selected by the 457(b) Plan provider until additional instructions are provided by the participant.
+An automatically enrolled participant who does not opt out within the first 30 days of employment is not eligible for a refund and will be subject to the 457(b) Plan’s normal distribution rules. For additional information, see the distribution options section.
+Participants may obtain additional information on the 457(b) Plan, including frequently asked questions at [https://dchr.dc.gov/page/457b-deferred-compensation-plan](https://dchr.dc.gov/page/457b-deferred-compensation-plan) or [www.dcretire.com](http://www.dcretire.com).
+
+Coverage Election
+2. How, in the absence of an investment election by the employee, such deferrals and earnings will be invested;
+5. How an employee may elect investments and change or cease deferral amounts under the 457(b) Plan; and
+
+Reciprocity/Extraterritorial Coverage
+Not specified in available documentation
+
+Employer Responsibilities & Deadlines
+Participants who are automatically enrolled must acknowledge in writing that they received this documentation. A legal guardian’s signature is needed if the eligible participant is under 18 years of age.
+1. Cancellation must be made through ESS;
+Participants may elect the time (month and year) when distributions under the 457(b) Plan will begin. The date must be the earlier of:
+If a participant dies before distribution of their account, then the beneficiary must submit a death certificate proving the death of the participant before distribution of the participant’s account.
+
+Employer Notification Requirements
+## **Automatic Enrollment Notification**
+An automatically enrolled participant who does not opt out within the first 30 days of employment is not eligible for a refund and will be subject to the 457(b) Plan’s normal distribution rules. For additional information, see the distribution options section.
+Participants may obtain additional information on the 457(b) Plan, including frequently asked questions at [https://dchr.dc.gov/page/457b-deferred-compensation-plan](https://dchr.dc.gov/page/457b-deferred-compensation-plan) or [www.dcretire.com](http://www.dcretire.com).
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Each automatically enrolled participant will receive documentation relating to the 457(b) Plan by the effective date of their appointment. This documentation explains:
+Participants who are automatically enrolled must acknowledge in writing that they received this documentation. A legal guardian’s signature is needed if the eligible participant is under 18 years of age.
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://edpm.dc.gov/issuances/457b-deferred-compensation-plan/
+
+---
+Generated on: 2025-07-31 19:01:19
+Original content length: 10,961 characters
+Processing method: Unified template structure

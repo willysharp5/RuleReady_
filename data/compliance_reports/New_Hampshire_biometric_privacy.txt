@@ -1,0 +1,69 @@
+New Hampshire Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+sensitive data, shall adhere to relevant data protection laws and prioritize user privacy, in
+efforts such as law enforcement, emergency response, and environmental monitoring, while
+
+Covered Employers
+Agencies shall report all instances of AI Technologies in development and production to DoIT’s Business
+
+Covered Employees
+All New Hampshire State Employees and affiliates are responsible and accountable to their supervisor and
+• Continuous Improvement: Any employee or Agency using AI shall continuously monitor, evaluate,
+All New Hampshire State Employees may use a variety of AI-powered technologies to enhance
+
+What Should Employers Do?
+requirements for the responsible and ethical use of various AI technologies across State Government
+• Human-Centric Approach: A human-centric approach shall be used to develop and deploy AI
+• Transparency and Accountability: All AI systems used by State Government shall be transparent,
+• Fairness and Nondiscrimination: AI technologies shall be designed and integrated to avoid bias,
+
+Training Requirements
+• Use of AI Education Initiatives: Agencies using AI engage in public education initiatives to increase
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+explainable, and accountable, especially when handling PII and sensitive data.
+discrimination, and unfair treatment, particularly when dealing with PII and sensitive information,
+• Privacy and Data Protection: The collection, storage, and use of user data, especially PII and
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+State of New Hampshire
+State of New Hampshire Use of Artificial
+
+Employer Responsibilities & Deadlines
+publications, including media releases, guidance documents, etc., but final publications must have
+encryption, access controls, and secure storage as required by specific programs or regulatory
+the responsibility of Agency heads.
+
+Employer Notification Requirements
+Department of Information Technology
+Office of the Chief Information Officer (CIO)
+Departments and Agencies, with a strong emphasis on protecting Personal Identifying Information (PII)
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+This is a controlled document. If printed, this document is valid for 24 hours. Page: 2 of 4
+publications, including media releases, guidance documents, etc., but final publications must have
+This is a controlled document. If printed, this document is valid for 24 hours. Page: 3 of 4
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://mm.nh.gov/files/uploads/doit/documents/sonh-use-of-artificial-intelligence-technologies-policy.pdf
+
+---
+Generated on: 2025-07-31 18:20:13
+Original content length: 11,057 characters
+Processing method: Unified template structure

@@ -1,0 +1,62 @@
+Texas Non-Compete Enforcement Rules
+
+Overview
+1. contractual limitations - if these are an issue, have affected employees sign a clear written agreement promising not to do certain things and agreeing to pay damages in the event that the employees breach the agreement
+Texas law provides that a covenant not to compete is enforceable only if it:
+
+Covered Employers
+2. policy guidelines - on top of a written agreement signed by each affected employee, the policy handbook should mention what the employer expects of employees in this regard
+3. most courts have ruled that the public policy is to promote competition, not limit it, and that before an agreement limiting competition will be enforced, the employer must show how non-enforcement would harm it and that enforcement would not place an unreasonable burden on a person's right to practice a profession or trade or otherwise make a living. The more specialized the knowledge for the position is, the easier it is to show a need to limit competition in some way. The more general the knowledge is, the more difficult it will be to show that the business needs protection from competition (this is also known as the "common calling doctrine").
+4. In the case of _Alex Sheshunoff Management Services, L.P. v. Johnson and Strunk & Associates, L.P._, 209 S.W.3d 644 (Tex. 2006), the Texas Supreme Court held that an "otherwise enforceable agreement" can include an executory promise (a promise that the maker intends to fulfill in the future) made in conjunction with an at-will employment agreement if the employer actually performs the promise it made at the time that it secured the non-competition agreement (such as a promise to give certain training, allow access to certain proprietary information, and similar things that give rise to the business interest protected by the non-competition agreement).
+
+Covered Employees
+- [<](https://efte.twc.texas.gov/confidentiality_of_employee_information.html)
+1. contractual limitations - if these are an issue, have affected employees sign a clear written agreement promising not to do certain things and agreeing to pay damages in the event that the employees breach the agreement
+2. policy guidelines - on top of a written agreement signed by each affected employee, the policy handbook should mention what the employer expects of employees in this regard
+
+What Should Employers Do?
+3. most courts have ruled that the public policy is to promote competition, not limit it, and that before an agreement limiting competition will be enforced, the employer must show how non-enforcement would harm it and that enforcement would not place an unreasonable burden on a person's right to practice a profession or trade or otherwise make a living. The more specialized the knowledge for the position is, the easier it is to show a need to limit competition in some way. The more general the knowledge is, the more difficult it will be to show that the business needs protection from competition (this is also known as the "common calling doctrine").
+
+Training Requirements
+4. In the case of _Alex Sheshunoff Management Services, L.P. v. Johnson and Strunk & Associates, L.P._, 209 S.W.3d 644 (Tex. 2006), the Texas Supreme Court held that an "otherwise enforceable agreement" can include an executory promise (a promise that the maker intends to fulfill in the future) made in conjunction with an at-will employment agreement if the employer actually performs the promise it made at the time that it secured the non-competition agreement (such as a promise to give certain training, allow access to certain proprietary information, and similar things that give rise to the business interest protected by the non-competition agreement).
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+3. most courts have ruled that the public policy is to promote competition, not limit it, and that before an agreement limiting competition will be enforced, the employer must show how non-enforcement would harm it and that enforcement would not place an unreasonable burden on a person's right to practice a profession or trade or otherwise make a living. The more specialized the knowledge for the position is, the easier it is to show a need to limit competition in some way. The more general the knowledge is, the more difficult it will be to show that the business needs protection from competition (this is also known as the "common calling doctrine").
+[Non-disclosure or confidentiality agreements](https://efte.twc.texas.gov/confidentiality.html) specifically limiting what types of confidential information or trade secrets an employee may divulge to third parties are usually easier to enforce than non-competition agreements.
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+Not specified in available documentation
+
+Employer Responsibilities & Deadlines
+3. most courts have ruled that the public policy is to promote competition, not limit it, and that before an agreement limiting competition will be enforced, the employer must show how non-enforcement would harm it and that enforcement would not place an unreasonable burden on a person's right to practice a profession or trade or otherwise make a living. The more specialized the knowledge for the position is, the easier it is to show a need to limit competition in some way. The more general the knowledge is, the more difficult it will be to show that the business needs protection from competition (this is also known as the "common calling doctrine").
+
+Employer Notification Requirements
+- [<](https://efte.twc.texas.gov/confidentiality_of_employee_information.html)
+4. In the case of _Alex Sheshunoff Management Services, L.P. v. Johnson and Strunk & Associates, L.P._, 209 S.W.3d 644 (Tex. 2006), the Texas Supreme Court held that an "otherwise enforceable agreement" can include an executory promise (a promise that the maker intends to fulfill in the future) made in conjunction with an at-will employment agreement if the employer actually performs the promise it made at the time that it secured the non-competition agreement (such as a promise to give certain training, allow access to certain proprietary information, and similar things that give rise to the business interest protected by the non-competition agreement).
+[Non-disclosure or confidentiality agreements](https://efte.twc.texas.gov/confidentiality.html) specifically limiting what types of confidential information or trade secrets an employee may divulge to third parties are usually easier to enforce than non-competition agreements.
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://efte.twc.texas.gov/conflicts_secrets_non_comp_agreements.html
+
+---
+Generated on: 2025-07-31 18:45:27
+Original content length: 3,275 characters
+Processing method: Unified template structure

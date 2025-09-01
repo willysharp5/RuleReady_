@@ -1,0 +1,81 @@
+Virginia Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+commenters were notified of action(s) taken.
+may consult to find best practices and guidelines or obtain increased understanding. Unless expressly
+
+Covered Employers
+Solution Business Requirements ........................................................................................6
+such AI does no harm to citizens of the Commonwealth, its guests, the business of the
+Commonwealth, any known business interest, or the environment.
+
+Covered Employees
+Other documents referenced or linked in this document are additional resources that agencies or workers
+That Commonwealth of Virginia (COV) agencies and workers shall be able to leverage the creative and
+COV agencies and workers, and never a path to overreliance and the loss of essential
+
+What Should Employers Do?
+requirements based on feedback from Gartner.
+This requirements document was posted on the Virginia Information Technologies Agency’s (VITA)
+Requirements and agency Exceptions
+The requirements included within this document are mandatory. Agencies deviating from these
+
+Training Requirements
+complying with a requirement specified in this document. The instructions for completing and submitting
+• AI research and development (R&D) activities or instructional programs at public institutions of
+AI-008 Agencies shall provide training and awareness programs for employees involved in AIrelated activities, covering ethical considerations, bias mitigation, data privacy,
+
+Training Deadlines
+The requirements included within this document are mandatory. Agencies deviating from these
+an exception request are contained within the Commonwealth Enterprise Architecture Policy.
+AI within other systems or applications; AI developed both by the agency or by third parties on behalf of
+
+Qualified Trainers
+AI-601 COV AI Systems shall be annually certified for trustworthiness according to the following
+
+Special Requirements
+Requirements and agency Exceptions
+requirements must request an exception for each desired deviation, and receive an approved enterprise
+Architecture Exception via Archer, prior to developing, procuring, or deploying such technology, or not
+
+Coverage Election
+models, including model selection, training, evaluation, and hyperparameter tuning.
+
+Reciprocity/Extraterritorial Coverage
+stated in this document, references or links do not incorporate or require compliance with such other
+• Safe — Under defined conditions, AI systems should not lead to a state in which
+
+Employer Responsibilities & Deadlines
+requirements must request an exception for each desired deviation, and receive an approved enterprise
+Objective 3 Ensure that the accountability and risks associated with COV decisions must remain
+AI-103 COV AI Systems must provide a clear, unambiguous, and accessible description of how
+AI -202 COV AI systems utilizing large datasets and or which have high user traffic must have a
+
+Employer Notification Requirements
+This requirements document was posted on the Virginia Information Technologies Agency’s (VITA)
+analytics (“What don’t I know and will need to learn to predict and advise?”).
+For further information on the perspectives identified in this document, please reference the VITA
+
+Posting Requirements
+This requirements document was posted on the Virginia Information Technologies Agency’s (VITA)
+AI-102 Use of an AI System within any COV Web System shall be labeled as such and displayed
+provided, displayed per COV Design System guidance.
+
+Recordkeeping Requirements
+1.0 8/4/2023 Initial document created.
+This requirements document was posted on the Virginia Information Technologies Agency’s (VITA)
+The requirements included within this document are mandatory. Agencies deviating from these
+
+Penalties for Non-Compliance
+power necessary to provide AI as a consumer service. AI is typically defined as the ability of a machine to
+defined scalability plan.
+characteristics defined by NIST AI 100-1:
+• Safe — Under defined conditions, AI systems should not lead to a state in which
+
+Sources
+https://www.vita.virginia.gov/media/vitavirginiagov/it-governance/ea/pdf/EA-Solutions-Artificial-Intelligence-Standard.pdf
+
+---
+Generated on: 2025-07-31 18:51:40
+Original content length: 33,934 characters
+Processing method: Unified template structure

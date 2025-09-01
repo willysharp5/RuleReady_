@@ -1,0 +1,65 @@
+South Dakota Workers’ Compensation Requirements
+
+Overview
+There is no law in South Dakota requiring any employer to carry workers’ compensation insurance. However, it is highly recommended. An uninsured employer may be sued in civil court by an injured worker.
+If you are doing simple online data entry, all you need is a user id and a password. These can be obtained by [emailing](https://apps.sd.gov/LD01EmailContact/Default.aspx?ID=58) or calling the Division of Labor and Management at 605.773.3681.
+
+Covered Employers
+There is no law in South Dakota requiring any employer to carry workers’ compensation insurance. However, it is highly recommended. An uninsured employer may be sued in civil court by an injured worker.
+The South Dakota Workers’ Compensation program for those employers who choose to have coverage is an insurance program that pays medical and disability benefits for work-related injuries and diseases.
+**(for employees and employers only)**
+
+Covered Employees
+There is no law in South Dakota requiring any employer to carry workers’ compensation insurance. However, it is highly recommended. An uninsured employer may be sued in civil court by an injured worker.
+The South Dakota Workers’ Compensation program for those employers who choose to have coverage is an insurance program that pays medical and disability benefits for work-related injuries and diseases.
+[South Dakota Workers' Compensation Login Instructions](https://apps.sd.gov/ld66froinet/SSOLoginInstructions.pdf).
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+[South Dakota Workers' Compensation Login Instructions](https://apps.sd.gov/ld66froinet/SSOLoginInstructions.pdf).
+Instructions for using the online system are in the [Claim Administrators documentation](https://dlr.sd.gov/workers_compensation/publications/claimadmininstructions.pdf) (Adobe PDF format).
+[First Report of Injury Management System](https://apps.sd.gov/ld66froinet/webform_registerlogin.aspx) (South Dakota Workers' Compensation [login instructions](https://apps.sd.gov/ld66froinet/SSOLoginInstructions.pdf).)
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+The South Dakota Workers’ Compensation program for those employers who choose to have coverage is an insurance program that pays medical and disability benefits for work-related injuries and diseases.
+
+Reciprocity/Extraterritorial Coverage
+Not specified in available documentation
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+| [47:03:05:01](http://sdlegislature.gov/rules/DisplayRule.aspx?Rule=47:03:05:01) | Definitions. |
+| [47:03:05:02](http://sdlegislature.gov/rules/DisplayRule.aspx?Rule=47:03:05:02) | Incorporation of Relative Values for Physicians. |
+| [47:03:05:02.01](http://sdlegislature.gov/rules/DisplayRule.aspx?Rule=47:03:05:02.01) | Incorporation of Relative Values for Dentists. |
+
+Recordkeeping Requirements
+You may file your First Report of Injury (Form 101), your Monthly Payment Reports (Form 107) and a Request for Extension of Time online using the First Report of Injury Management System.
+If you want to do a bulk file transfer of these forms, you will need a user id, a password and initial transfer testing. [Email](https://apps.sd.gov/LD01EmailContact/Default.aspx?ID=58) or call the Division of Labor and Management at 605.773.3681 to arrange for testing.
+Instructions for using the online system are in the [Claim Administrators documentation](https://dlr.sd.gov/workers_compensation/publications/claimadmininstructions.pdf) (Adobe PDF format).
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://dlr.sd.gov/workers_compensation/
+
+---
+Generated on: 2025-07-31 18:42:01
+Original content length: 4,944 characters
+Processing method: Unified template structure

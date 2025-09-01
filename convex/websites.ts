@@ -67,7 +67,7 @@ export const createWebsite = mutation({
   },
 });
 
-// Get all websites for the current user
+// Get all websites for the current user (including compliance websites)
 export const getUserWebsites = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
@@ -75,12 +75,49 @@ export const getUserWebsites = query({
       return [];
     }
 
-    const websites = await ctx.db
+    // Get user's personal websites
+    const userWebsites = await ctx.db
       .query("websites")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    return websites;
+    // Get all compliance websites (shared across all users)
+    const complianceWebsites = await ctx.db
+      .query("websites")
+      .filter((q) => q.eq(q.field("complianceMetadata.isComplianceWebsite"), true))
+      .collect();
+
+    // Combine and sort by priority, then by name
+    const allWebsites = [...userWebsites, ...complianceWebsites];
+    
+    // Remove duplicates (in case user has both personal and compliance versions)
+    const uniqueWebsites = allWebsites.filter((website, index, self) => 
+      index === self.findIndex(w => w.url === website.url)
+    );
+    
+    // Sort: compliance websites first (by priority), then regular websites
+    return uniqueWebsites.sort((a, b) => {
+      const aIsCompliance = a.complianceMetadata?.isComplianceWebsite || false;
+      const bIsCompliance = b.complianceMetadata?.isComplianceWebsite || false;
+      
+      // Compliance websites first
+      if (aIsCompliance && !bIsCompliance) return -1;
+      if (!aIsCompliance && bIsCompliance) return 1;
+      
+      // Both compliance: sort by priority
+      if (aIsCompliance && bIsCompliance) {
+        const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+        const aPriority = priorityOrder[a.complianceMetadata?.priority as keyof typeof priorityOrder] || 0;
+        const bPriority = priorityOrder[b.complianceMetadata?.priority as keyof typeof priorityOrder] || 0;
+        
+        if (aPriority !== bPriority) {
+          return bPriority - aPriority; // Higher priority first
+        }
+      }
+      
+      // Same type or both regular: sort by name
+      return a.name.localeCompare(b.name);
+    });
   },
 });
 
@@ -162,6 +199,10 @@ export const updateWebsite = mutation({
     )),
     crawlLimit: v.optional(v.number()),
     crawlDepth: v.optional(v.number()),
+    // NEW: Compliance priority management
+    compliancePriority: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
+    overrideComplianceInterval: v.optional(v.boolean()),
+    priorityChangeReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireCurrentUser(ctx);
@@ -197,6 +238,42 @@ export const updateWebsite = mutation({
 
     if (args.crawlDepth !== undefined) {
       updates.crawlDepth = args.crawlDepth;
+    }
+
+    // NEW: Handle compliance priority updates
+    if (args.compliancePriority !== undefined && website.complianceMetadata?.isComplianceWebsite) {
+      // Calculate interval from priority (unless manual override)
+      const priorityIntervals = {
+        critical: 1440,   // Daily
+        high: 2880,       // Every 2 days
+        medium: 10080,    // Weekly
+        low: 43200        // Monthly
+      };
+      
+      const priorityInterval = priorityIntervals[args.compliancePriority];
+      
+      // Use priority interval unless manual override is specified
+      if (!args.overrideComplianceInterval) {
+        updates.checkInterval = priorityInterval;
+      }
+      
+      // Update compliance metadata
+      updates.complianceMetadata = {
+        ...website.complianceMetadata,
+        priority: args.compliancePriority,
+        hasManualOverride: args.overrideComplianceInterval || false,
+        originalPriority: website.complianceMetadata.originalPriority || website.complianceMetadata.priority,
+        lastPriorityChange: Date.now(),
+        priorityChangeReason: args.priorityChangeReason || "Priority updated via settings",
+      };
+      
+      // Update corresponding compliance rule
+      await ctx.runMutation(internal.compliancePriority.updateRulePriority, {
+        ruleId: website.complianceMetadata.ruleId,
+        priority: args.compliancePriority,
+        hasManualOverride: args.overrideComplianceInterval || false,
+        newInterval: updates.checkInterval || website.checkInterval,
+      });
     }
 
     await ctx.db.patch(args.websiteId, updates);
@@ -744,5 +821,94 @@ export const getScrapeResult = internalQuery({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.scrapeResultId);
+  },
+});
+
+// Create websites from compliance rules
+export const createWebsitesFromComplianceRules = mutation({
+  handler: async (ctx) => {
+    const user = await requireCurrentUser(ctx);
+    
+    console.log("🔄 Creating websites from compliance rules...");
+    
+    // Get all compliance rules
+    const rules = await ctx.db.query("complianceRules").collect();
+    console.log(`📊 Found ${rules.length} compliance rules to convert`);
+    
+    let created = 0;
+    let skipped = 0;
+    
+    // Process each rule
+    for (const rule of rules) {
+      try {
+        // Check if website already exists for this URL
+        const existingWebsite = await ctx.db
+          .query("websites")
+          .filter((q) => q.eq(q.field("url"), rule.sourceUrl))
+          .first();
+        
+        if (existingWebsite) {
+          skipped++;
+          continue;
+        }
+        
+        // Create website name with priority indicator
+        const priorityIcon = {
+          critical: "🔴",
+          high: "🟠",
+          medium: "🟡", 
+          low: "🟢"
+        }[rule.priority];
+        
+        const websiteName = `${priorityIcon} ${rule.jurisdiction} - ${rule.topicLabel}`;
+        
+        // Determine monitoring settings
+        const monitoringSettings = {
+          critical: { interval: 1440, notification: "both" as const }, // Daily
+          high: { interval: 2880, notification: "email" as const },     // Every 2 days
+          medium: { interval: 10080, notification: "email" as const },  // Weekly
+          low: { interval: 43200, notification: "none" as const }       // Monthly
+        }[rule.priority];
+        
+        // Create website entry
+        await ctx.db.insert("websites", {
+          url: rule.sourceUrl,
+          name: websiteName,
+          userId: user._id,
+          isActive: true,
+          isPaused: false,
+          checkInterval: monitoringSettings.interval,
+          notificationPreference: monitoringSettings.notification,
+          monitorType: "single_page",
+          complianceMetadata: {
+            ruleId: rule.ruleId,
+            jurisdiction: rule.jurisdiction,
+            topicKey: rule.topicKey,
+            priority: rule.priority,
+            isComplianceWebsite: true,
+          },
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        
+        created++;
+        
+        if (created % 100 === 0) {
+          console.log(`✅ Created ${created} compliance websites...`);
+        }
+        
+      } catch (error) {
+        console.error(`Failed to create website for rule ${rule.ruleId}:`, error);
+      }
+    }
+    
+    console.log(`🎉 Completed: ${created} websites created, ${skipped} skipped (already exist)`);
+    
+    return {
+      success: true,
+      created,
+      skipped,
+      total: rules.length,
+    };
   },
 });

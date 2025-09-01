@@ -1,0 +1,65 @@
+Federal Posting Requirements
+
+Overview
+(16) Contact person or contact point;
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+#### § 330.104 Requirements for vacancy announcements.
+(a) Each vacancy announcement must contain the following information:
+(7) Qualification requirements, including knowledge, skills, and abilities or competencies;
+(15) Information on how candidates eligible under [subparts F](https://www.ecfr.gov/current/title-5/part-330/subpart-F) and [G of this part](https://www.ecfr.gov/current/title-5/part-330/subpart-G) may apply, including required proof of eligibility;
+
+Training Requirements
+(12) Instructions on how to apply;
+
+Training Deadlines
+(6) Opening date and application deadline (closing date) and any other information concerning how receipt of applications will be documented, such as by date of receipt or postmark, and considered, such as by cut-off dates in open continuous announcements;
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+(17) Equal employment opportunity statement (Agencies may use the recommended equal employment opportunity statement located on OPM's USAJOBS website.); and
+(18) Reasonable accommodation statement.
+
+Employer Responsibilities & Deadlines
+(a) Each vacancy announcement must contain the following information:
+(6) Opening date and application deadline (closing date) and any other information concerning how receipt of applications will be documented, such as by date of receipt or postmark, and considered, such as by cut-off dates in open continuous announcements;
+(15) Information on how candidates eligible under [subparts F](https://www.ecfr.gov/current/title-5/part-330/subpart-F) and [G of this part](https://www.ecfr.gov/current/title-5/part-330/subpart-G) may apply, including required proof of eligibility;
+(1) An agency may use wording of its choice in its statement that conveys the availability of reasonable accommodation required by [§ 330.104(a)(18)](https://www.ecfr.gov/current/title-5/section-330.104#p-330.104(a)(18)). In its reasonable accommodation statement, an agency may not list types of medical conditions or impairments appropriate for accommodation.
+
+Employer Notification Requirements
+(a) Each vacancy announcement must contain the following information:
+(6) Opening date and application deadline (closing date) and any other information concerning how receipt of applications will be documented, such as by date of receipt or postmark, and considered, such as by cut-off dates in open continuous announcements;
+(13) Information on how to claim veterans' preference, if applicable;
+
+Posting Requirements
+(6) Opening date and application deadline (closing date) and any other information concerning how receipt of applications will be documented, such as by date of receipt or postmark, and considered, such as by cut-off dates in open continuous announcements;
+(c) If an agency is sharing a certificate of eligibles under [part 332 of this chapter](https://www.ecfr.gov/current/title-5/part-332), the original hiring agency must provide notice in the job opportunity announcement that the resulting list of eligible candidates may be used by one or more hiring agencies, and of how the applicant may opt-in to the disclosure of his or her applicant records to other hiring agencies.
+
+Recordkeeping Requirements
+(6) Opening date and application deadline (closing date) and any other information concerning how receipt of applications will be documented, such as by date of receipt or postmark, and considered, such as by cut-off dates in open continuous announcements;
+(c) If an agency is sharing a certificate of eligibles under [part 332 of this chapter](https://www.ecfr.gov/current/title-5/part-332), the original hiring agency must provide notice in the job opportunity announcement that the resulting list of eligible candidates may be used by one or more hiring agencies, and of how the applicant may opt-in to the disclosure of his or her applicant records to other hiring agencies.
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.ecfr.gov/current/title-5/chapter-I/subchapter-B/part-330/subpart-A/section-330.104
+
+---
+Generated on: 2025-07-31 17:14:18
+Original content length: 2,416 characters
+Processing method: Unified template structure

@@ -34,6 +34,43 @@ export const checkActiveWebsites = internalAction({
         console.error(`Failed to schedule check for ${website.url}:`, error);
       }
     }
+    
+    // COMPLIANCE MONITORING: Check compliance rules
+    await ctx.runAction(internal.monitoring.checkComplianceRules);
+  },
+});
+
+// New: Check compliance rules that are due for monitoring
+export const checkComplianceRules = internalAction({
+  handler: async (ctx) => {
+    console.log("🏛️ Checking compliance rules for updates...");
+    
+    // Get rules due for crawling (prioritize critical and high priority)
+    const criticalRules = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+      limit: 10, // Process 10 critical rules per cycle
+      priorityFilter: "critical",
+    });
+    
+    const highPriorityRules = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+      limit: 20, // Process 20 high priority rules per cycle
+      priorityFilter: "high",
+    });
+    
+    const rulesDue = [...criticalRules, ...highPriorityRules];
+    
+    if (rulesDue.length > 0) {
+      console.log(`📋 Found ${rulesDue.length} compliance rules due for checking`);
+      
+      // Schedule compliance crawls with staggered timing
+      for (let i = 0; i < rulesDue.length; i++) {
+        const rule = rulesDue[i];
+        const delay = i * 2000; // 2 second delay between crawls
+        
+        await ctx.scheduler.runAfter(delay, internal.complianceCrawler.crawlComplianceRule, {
+          ruleId: rule.ruleId,
+        });
+      }
+    }
   },
 });
 

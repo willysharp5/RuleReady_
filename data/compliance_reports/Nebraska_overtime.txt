@@ -1,0 +1,69 @@
+Nebraska Overtime & Hours
+
+Overview
+**University of Nebraska law enforcement employees** may be compensated for overtime for working over 80 hours in a 14 consecutive day work period. In accordance with the Fair Labor Standards Act, law enforcement employees are those employees who:
+1. are empowered by State statute or local ordinance to enforce laws designed to maintain public peace and order and to protect both life and property from accidental or willful injury, and to prevent and detect crimes;
+
+Covered Employers
+Units can run a leave report that includes compensatory time earned from the Business Intelligence tile in Firefly.
+
+Covered Employees
+## for Hourly Paid Employees
+The following is in compliance with the _Overtime_ policy in the [University of Nebraska Administration Human Resources Handbook for Policies](https://nebraska.edu/-/media/projects/unca/faculty-staff/resources/employee-policy-manual.pdf).
+All hourly paid employees (including part-time employees) working more than 40 hours in one workweek, shall receive overtime compensation. This may be in the form of overtime pay or compensatory time, both granted at one and one-half hours for every hour worked above 40.
+
+What Should Employers Do?
+All hourly paid employees (including part-time employees) working more than 40 hours in one workweek, shall receive overtime compensation. This may be in the form of overtime pay or compensatory time, both granted at one and one-half hours for every hour worked above 40.
+For employees hired **before** April 1, 1986, no written agreement is required. Employees who work overtime may receive pay or compensatory time at the discretion of the department.
+For employees hired **after** April 1, 1986, the giving of compensatory time in lieu of overtime pay requires a written agreement. If no written agreement exists, payment will be required for all overtime worked. This may be a perpetual one-time agreement or a case-by-case agreement.
+University employees may choose to work for the university (or for the State of Nebraska) in a part-time position on an occasional or sporadic basis in a capacity different from their regular employment. In some circumstances, the hours of work in the different position might not be counted as hours worked for overtime pay purposes on the regular position. Supervisors should check with Human Resources prior to authorizing the part-time work to see if overtime pay will be required.
+
+Training Requirements
+3. are presently undergoing or have undergone or will undergo on-the-job training and/or a course of instruction and study which typically includes physical training, self-defense, firearm proficiency, criminal and civil law principles, investigative and law enforcement techniques, community relations, medical aid, and ethics.
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Employees not specifically exempt from the overtime provisions of the FLSA are considered non-exempt (hourly) employees by the university and are eligible for overtime compensation. Employees should not be scheduled for overtime work without the appropriate departmental authorization.
+## Additional Part-time Positions
+Exceptions to the 60-hour limit are as follows:
+
+Coverage Election
+University employees may choose to work for the university (or for the State of Nebraska) in a part-time position on an occasional or sporadic basis in a capacity different from their regular employment. In some circumstances, the hours of work in the different position might not be counted as hours worked for overtime pay purposes on the regular position. Supervisors should check with Human Resources prior to authorizing the part-time work to see if overtime pay will be required.
+At any time, an employee may choose to be paid overtime rather than earn compensatory time. At any time, units may choose to pay overtime and not allow employees to earn compensatory time. Units cannot require an employee to accumulate compensatory time instead of being paid overtime. Units may offer an opportunity to work extra hours to employees who are willing to earn compensatory time rather than be paid overtime.
+
+Reciprocity/Extraterritorial Coverage
+1. are empowered by State statute or local ordinance to enforce laws designed to maintain public peace and order and to protect both life and property from accidental or willful injury, and to prevent and detect crimes;
+University employees may choose to work for the university (or for the State of Nebraska) in a part-time position on an occasional or sporadic basis in a capacity different from their regular employment. In some circumstances, the hours of work in the different position might not be counted as hours worked for overtime pay purposes on the regular position. Supervisors should check with Human Resources prior to authorizing the part-time work to see if overtime pay will be required.
+
+Employer Responsibilities & Deadlines
+For employees hired **before** April 1, 1986, no written agreement is required. Employees who work overtime may receive pay or compensatory time at the discretion of the department.
+For employees hired **after** April 1, 1986, the giving of compensatory time in lieu of overtime pay requires a written agreement. If no written agreement exists, payment will be required for all overtime worked. This may be a perpetual one-time agreement or a case-by-case agreement.
+University employees may choose to work for the university (or for the State of Nebraska) in a part-time position on an occasional or sporadic basis in a capacity different from their regular employment. In some circumstances, the hours of work in the different position might not be counted as hours worked for overtime pay purposes on the regular position. Supervisors should check with Human Resources prior to authorizing the part-time work to see if overtime pay will be required.
+Employees must have a signed compensatory time agreement on file to earn compensatory time rather than be paid overtime. Student employees and "other hourly workers" are not eligible to earn compensatory time.
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+1. are empowered by State statute or local ordinance to enforce laws designed to maintain public peace and order and to protect both life and property from accidental or willful injury, and to prevent and detect crimes;
+Employees must have a signed compensatory time agreement on file to earn compensatory time rather than be paid overtime. Student employees and "other hourly workers" are not eligible to earn compensatory time.
+Compensatory time earned and used is to be recorded in ESS Time or a third-party timekeeping system using the following earnings types:
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://hr.unl.edu/overtime/
+
+---
+Generated on: 2025-07-31 18:14:52
+Original content length: 7,229 characters
+Processing method: Unified template structure

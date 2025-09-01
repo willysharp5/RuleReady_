@@ -1,0 +1,62 @@
+Mississippi Voting / Civic Leave
+
+Overview
+NOTICE: Polling location information is provided and updated by [local election officials](https://www.sos.ms.gov/elections-voting/county-election-information). It is recommended you confirm your polling place with your county circuit clerk. Contact information for your local election official will appear in a box on the right after you enter your address below.
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+Zip code is a required field.
+Residential Address is a required field.
+CAPTCHA is required. Type the code from the Image.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Your election information is based on where you reside. Enter your Mississippi residential address to:
+- Find upcoming elections & view sample ballots
+
+Reciprocity/Extraterritorial Coverage
+![Residential Address typing example](https://myelectionday.sos.state.ms.us/VoterOutreach/Images/MyElectionDay_SearchImage.png)
+![](https://myelectionday.sos.state.ms.us/VoterOutreach/Telerik.Web.UI.WebResource.axd?type=rca&isc=true&guid=656b7053-be2f-43eb-9134-f15f7998fd4e)[Generate New Image](javascript:__doPostBack('ctl00$ContentPlaceHolder1$RadCaptcha2$CaptchaLinkButton','')) [Get Audio Code](https://myelectionday.sos.state.ms.us/VoterOutreach/Telerik.Web.UI.WebResource.axd?type=cah&isc=true&guid=656b7053-be2f-43eb-9134-f15f7998fd4e)
+
+Employer Responsibilities & Deadlines
+Zip code is a required field.
+Residential Address is a required field.
+CAPTCHA is required. Type the code from the Image.
+
+Employer Notification Requirements
+Your election information is based on where you reside. Enter your Mississippi residential address to:
+NOTICE: Polling location information is provided and updated by [local election officials](https://www.sos.ms.gov/elections-voting/county-election-information). It is recommended you confirm your polling place with your county circuit clerk. Contact information for your local election official will appear in a box on the right after you enter your address below.
+
+Posting Requirements
+NOTICE: Polling location information is provided and updated by [local election officials](https://www.sos.ms.gov/elections-voting/county-election-information). It is recommended you confirm your polling place with your county circuit clerk. Contact information for your local election official will appear in a box on the right after you enter your address below.
+![](https://myelectionday.sos.state.ms.us/VoterOutreach/Telerik.Web.UI.WebResource.axd?type=rca&isc=true&guid=656b7053-be2f-43eb-9134-f15f7998fd4e)[Generate New Image](javascript:__doPostBack('ctl00$ContentPlaceHolder1$RadCaptcha2$CaptchaLinkButton','')) [Get Audio Code](https://myelectionday.sos.state.ms.us/VoterOutreach/Telerik.Web.UI.WebResource.axd?type=cah&isc=true&guid=656b7053-be2f-43eb-9134-f15f7998fd4e)
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://myelectionday.sos.state.ms.us/VoterOutreach/Pages/VOSearch.aspx
+
+---
+Generated on: 2025-07-31 18:10:49
+Original content length: 1,768 characters
+Processing method: Unified template structure

@@ -1,0 +1,73 @@
+Maryland Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+I. Purpose & background
+while centering responsible practices, State government employees must follow these
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+MEMORANDUM FOR: All State of Maryland Executive Branch Staff
+while centering responsible practices, State government employees must follow these
+available, and not available, for state employee use.
+
+What Should Employers Do?
+while centering responsible practices, State government employees must follow these
+these tools is delegated to the discretion of individual agencies, it must still go through
+In order to use reputed, commercially available GenAI tools, each State employee must
+understand their accountability for responsible GenAI use and will be required to read carefully
+
+Training Requirements
+governance. We also anticipate beginning to offer basic GenAI training modules to supplement
+4. Review for bias: AI tools can reflect existing societal biases captured from their training
+resources to help you craft better prompts and improve your outputs. A forthcoming training
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+● Individual agencies may choose to add additional guidelines or restrictions as necessary
+given their particular context, but should first consult the AI Subcabinet (email us at
+online without the need for special qualifications, permissions, or privileges. Do not
+
+Coverage Election
+● Individual agencies may choose to add additional guidelines or restrictions as necessary
+these tools. Select options in tools that limit data retention and opt out of your input
+
+Reciprocity/Extraterritorial Coverage
+MEMORANDUM FOR: All State of Maryland Executive Branch Staff
+properly harnessed, can help the State of Maryland’s workforce better serve residents and take
+
+Employer Responsibilities & Deadlines
+while centering responsible practices, State government employees must follow these
+these tools is delegated to the discretion of individual agencies, it must still go through
+In order to use reputed, commercially available GenAI tools, each State employee must
+understand their accountability for responsible GenAI use and will be required to read carefully
+
+Employer Notification Requirements
+FROM: Katie Savage, Secretary of Department of Information Technology, Maryland Chief
+Information Officer, and Chair of the Governor’s AI Subcabinet
+status, marital status, sexual orientation, gender identity, genetic information, or any
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+through this document. We will ask you to complete intermittent surveys to share more about
+guidelines in this document. Furthermore, it is your responsibility to think critically about use of
+clearly and regularly documented and disclosed, in order to enable accountability. The
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://doit.maryland.gov/policies/Documents/Policies/Interim-GenAI-Guidance.pdf
+
+---
+Generated on: 2025-07-31 18:03:13
+Original content length: 17,168 characters
+Processing method: Unified template structure

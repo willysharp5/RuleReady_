@@ -1,0 +1,83 @@
+Mississippi Posting Requirements
+
+Overview
+- [Purpose of Form](http://www.irs.gov/www.irs.gov#en_US_2024_publink20631xd0e78)
+- [Privacy Act and Paperwork Reduction Act Notice.](http://www.irs.gov/www.irs.gov#idm140591486581472)
+
+Covered Employers
+- [Reporting by Employers That Sponsor Self-Insured Health Plans](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045493)
+- [Part I—Applicable Large Employer Member (ALE Member)](http://www.irs.gov/www.irs.gov#en_US_2024_publink100012099)
+- [Part I—Applicable Large Employer Member (Employer)](http://www.irs.gov/www.irs.gov#en_US_2024_publink100012148)
+
+Covered Employees
+- [Reporting of Enrollment Information for Non-Employees: Option To Use Forms 1094-B and 1095-B](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045495)
+- [One Form 1095-C for Each Employee of ALE Member](http://www.irs.gov/www.irs.gov#en_US_2024_publink100013874)
+- [Correcting information affecting statement furnished to employee using an Alternative Furnishing Method under the Qualifying Offer Method.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100033113)
+
+What Should Employers Do?
+- [Who Must File](http://www.irs.gov/www.irs.gov#en_US_2024_publink1000306237)
+- [Employee Required Contribution.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045612)
+For information related to the Affordable Care Act, visit [IRS.gov/ACA](https://www.irs.gov/aca). For the final regulations under section 6056, Information Reporting by Applicable Large Employers on Health Insurance Coverage Offered Under Employer-Sponsored Plans, see T.D. 9661, 2014-13 I.R.B. 855, at [IRS.gov/irb/2014-13\_IRB/ar09.html](https://www.irs.gov/irb/2014-13_IRB/ar09.html). For the final regulations under section 6055, Information Reporting of Minimum Essential Coverage, see T.D. 9660, 2014-13 I.R.B. 842, at [IRS.gov/irb/2014-13\_IRB/ar08.html](https://www.irs.gov/irb/2014-13_IRB/ar08.html) and T.D. 9970, 2023-02 I.R.B. 311, at [IRS.gov/irb/2023-02\_IRB](https://www.irs.gov/irb/2023-02_IRB). For the final regulations under section 4980H, Shared Responsibility for Employers Regarding Health Coverage, see T.D. 9655, 2014-9 I.R.B. 541, at [IRS.gov/irb/2014-9\_IRB/ar05.html](https://www.irs.gov/irb/2014-9_IRB/ar05.html). For answers to frequently asked questions regarding the employer shared responsibility provisions and related information reporting requirements, visit IRS.gov.
+For additional guidance and proposed regulatory changes relating to section 6055, including the requirement to solicit the TIN of each covered individual for purposes of the reporting of health coverage information, see Proposed Regulations section 1.6055-1(h) and Regulations section 301.6724-1.
+
+Training Requirements
+- [Instructions for Forms 1094-C and 1095-C - Main Contents](http://www.irs.gov/www.irs.gov#idm140591488984512)
+- [General Instructions for Forms 1094-C and 1095-C](http://www.irs.gov/www.irs.gov#idm140591516095408)
+- [Specific Instructions for Form 1094-C](http://www.irs.gov/www.irs.gov#idm140591487684960)
+
+Training Deadlines
+An ALE Member is, generally, a single person or entity that is an Applicable Large Employer, or if applicable, each person or entity that is a member of an Aggregated ALE Group. An Applicable Large Employer, generally, is an employer with 50 or more full-time employees (including full-time equivalent employees) in the previous year. For purposes of determining if an employer or group of employers is an Applicable Large Employer, all ALE Members under common control (an Aggregated ALE Group) are aggregated together. If the Aggregated ALE Group, taking into account the employees of all ALE Members in the group, employed on average 50 or more full-time employees (including full-time equivalent employees) on business days during the preceding calendar year, then the Aggregated ALE Group is an Applicable Large Employer and each separate employer within the group is an ALE Member. Each ALE Member is required to file Forms 1094-C and 1095-C reporting offers of coverage to its full-time employees (even if the ALE Member has fewer than 50 full-time employees of its own).
+For full-time employees enrolled in an ALE Member’s self-insured coverage, including an employee who was a full-time employee for at least 1 month of the calendar year, the ALE Member must complete Form 1095-C, Part II, according to the generally applicable instructions, and should not enter code 1G on line 14 for any month. For an employee enrolled in an ALE Member’s self-insured coverage who is not a full-time employee for any month of the calendar year (meaning that for all 12 calendar months the employee was not a full-time employee), for Form 1095-C, Part II, the ALE Member must enter code 1G on line 14 in the “All 12 Months” column or in the separate monthly boxes for all 12 calendar months, and the ALE Member need not complete Part II, lines 15 and 16.
+For each full-time employee of an ALE Member, there must be only one Form 1095-C filed for employment with that ALE Member. For example, if an ALE Member separately reports for each of its two divisions, the ALE Member must combine the offer and coverage information for any employee who worked at both divisions during the calendar year so that a single Form 1095-C is filed for the calendar year for that employee, which reports information for all 12 months of the calendar year from that ALE Member.
+
+Qualified Trainers
+If the ALE Member certified that it was eligible for the 98% Offer Method by selecting box D, on line 22, it is not required to complete column (b).
+An employee is an individual who is an employee under the common-law standard for determining employer–employee relationships. An employee does not include a sole proprietor, a partner in a partnership, an S corporation shareholder who owns at least 2% of the S corporation, a leased employee within the meaning of section 414(n), or a worker that is a qualified real estate agent or direct seller.
+
+Special Requirements
+- [Additional Information](http://www.irs.gov/www.irs.gov#en_US_2024_publink100088633)
+- [Specific Instructions for Form 1094-C](http://www.irs.gov/www.irs.gov#idm140591487684960)
+- [Specific Instructions for Form 1095-C](http://www.irs.gov/www.irs.gov#idm140591487814640)
+
+Coverage Election
+- [Electronic Filing](http://www.irs.gov/www.irs.gov#en_US_2024_publink100032301)
+- [Consent to furnish statement electronically.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100033117)
+
+Reciprocity/Extraterritorial Coverage
+- [Substitute Statements to Recipients](http://www.irs.gov/www.irs.gov#en_US_2024_publink100032298)
+- [Correcting information affecting statement furnished to employee using an Alternative Furnishing Method under the Qualifying Offer Method.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100033113)
+
+Employer Responsibilities & Deadlines
+- [Who Must File](http://www.irs.gov/www.irs.gov#en_US_2024_publink1000306237)
+- [Employee Required Contribution.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045612)
+For information related to the Affordable Care Act, visit [IRS.gov/ACA](https://www.irs.gov/aca). For the final regulations under section 6056, Information Reporting by Applicable Large Employers on Health Insurance Coverage Offered Under Employer-Sponsored Plans, see T.D. 9661, 2014-13 I.R.B. 855, at [IRS.gov/irb/2014-13\_IRB/ar09.html](https://www.irs.gov/irb/2014-13_IRB/ar09.html). For the final regulations under section 6055, Information Reporting of Minimum Essential Coverage, see T.D. 9660, 2014-13 I.R.B. 842, at [IRS.gov/irb/2014-13\_IRB/ar08.html](https://www.irs.gov/irb/2014-13_IRB/ar08.html) and T.D. 9970, 2023-02 I.R.B. 311, at [IRS.gov/irb/2023-02\_IRB](https://www.irs.gov/irb/2023-02_IRB). For the final regulations under section 4980H, Shared Responsibility for Employers Regarding Health Coverage, see T.D. 9655, 2014-9 I.R.B. 541, at [IRS.gov/irb/2014-9\_IRB/ar05.html](https://www.irs.gov/irb/2014-9_IRB/ar05.html). For answers to frequently asked questions regarding the employer shared responsibility provisions and related information reporting requirements, visit IRS.gov.
+Employers with 50 or more full-time employees (including full-time equivalent employees) in the previous year use Forms 1094-C and 1095-C to report the information required under sections 6055 and 6056 about offers of health coverage and enrollment in health coverage for their employees. Form 1094-C must be used to report to the IRS summary information for each Applicable Large Employer (ALE Member) (defined below) and to transmit Forms 1095-C to the IRS. Form 1095-C is used to report information about each employee to the IRS and to the employee. Forms 1094-C and 1095-C are used in determining whether an ALE Member owes a payment under the employer shared responsibility provisions under section 4980H. Form 1095-C is also used in determining the eligibility of employees for the premium tax credit.
+
+Employer Notification Requirements
+- [Additional Information](http://www.irs.gov/www.irs.gov#en_US_2024_publink100088633)
+- [Reporting of Enrollment Information for Non-Employees: Option To Use Forms 1094-B and 1095-B](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045495)
+- [Correcting information affecting statement furnished to employee using an Alternative Furnishing Method under the Qualifying Offer Method.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100033113)
+
+Posting Requirements
+- [Post-employment (non-COBRA) coverage.](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045528)
+- [Privacy Act and Paperwork Reduction Act Notice.](http://www.irs.gov/www.irs.gov#idm140591486581472)
+If you are filing on paper, send the forms to the IRS in a flat mailing (not folded), and do not paperclip or staple the forms together. If you are sending many forms, you may send them in conveniently sized packages. On each package, write your name, number the packages consecutively, and place Form 1094-C in package number one. Postal regulations require forms and packages to be sent by First-Class Mail. Returns filed with the IRS must be printed in landscape format.
+
+Recordkeeping Requirements
+- [Who Must File](http://www.irs.gov/www.irs.gov#en_US_2024_publink1000306237)
+- [When To File](http://www.irs.gov/www.irs.gov#idm140591516091312)
+- [Where To File](http://www.irs.gov/www.irs.gov#en_US_2024_publink100045486)
+
+Penalties for Non-Compliance
+Employers with 50 or more full-time employees (including full-time equivalent employees) in the previous year use Forms 1094-C and 1095-C to report the information required under sections 6055 and 6056 about offers of health coverage and enrollment in health coverage for their employees. Form 1094-C must be used to report to the IRS summary information for each Applicable Large Employer (ALE Member) (defined below) and to transmit Forms 1095-C to the IRS. Form 1095-C is used to report information about each employee to the IRS and to the employee. Forms 1094-C and 1095-C are used in determining whether an ALE Member owes a payment under the employer shared responsibility provisions under section 4980H. Form 1095-C is also used in determining the eligibility of employees for the premium tax credit.
+If you are required to file electronically but fail to do so, and you do not have an approved waiver, you may be subject to a penalty of $330 per return for failure to file electronically unless you establish reasonable cause. However, you can file up to 10 returns on paper; those returns will not be subject to a penalty for failure to file electronically.
+If you fail to file correct information returns or fail to furnish a correct recipient statement, you may be subject to a penalty. However, you are not required to file corrected returns for missing or incorrect TINs if you meet the reasonable cause criteria. For additional information, see Pub. 1586, Reasonable Cause Regulations and Requirements for Missing and Incorrect Name/TINs on Information Returns.
+All employers subject to the employer shared responsibility provisions and other employers that sponsor self-insured group health plans that fail to comply with the applicable information reporting requirements may be subject to the general reporting penalty provisions for failure to file correct information returns and failure to furnish correct payee statements. For returns required to be made and statements required to be furnished for 2024 tax year returns, the following apply.
+
+Sources
+https://www.irs.gov/instructions/i109495c
+
+---
+Generated on: 2025-07-31 18:09:41
+Original content length: 140,107 characters
+Processing method: Unified template structure

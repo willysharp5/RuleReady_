@@ -1,0 +1,56 @@
+South Dakota Biometric Privacy / AI Use Laws (emerging)
+
+Overview
+Law: Please note this State does not have a general privacy law in effect, you can visit USA State Law Tracker to monitor the progress of US State bills.
+Summary: South Dakota does not have a general privacy law in effect but does recognize the common law tort of invasion of privacy and has provisions criminalizing this offense. However, South Dakota lacks significant privacy laws affecting the private sector, with many of the privacy provisions in the State's law directed to the public sector. Examples of public-sector privacy laws include South Dakota's statute on the Interception of Wire, Electronic, or Oral Communications under D Codified Laws 23A-35A-20 (D Codified Laws 23A-35A-20), which makes the interception of private communications without consent a Class 5 felony, and South Dakota's Student Privacy Law, SDCL § 13-3-51 (SDCL § 13-3-51), which only applies to the Department of Education (Department of Education).
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+Not specified in available documentation
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+Summary: South Dakota does not have a general privacy law in effect but does recognize the common law tort of invasion of privacy and has provisions criminalizing this offense. However, South Dakota lacks significant privacy laws affecting the private sector, with many of the privacy provisions in the State's law directed to the public sector. Examples of public-sector privacy laws include South Dakota's statute on the Interception of Wire, Electronic, or Oral Communications under D Codified Laws 23A-35A-20 (D Codified Laws 23A-35A-20), which makes the interception of private communications without consent a Class 5 felony, and South Dakota's Student Privacy Law, SDCL § 13-3-51 (SDCL § 13-3-51), which only applies to the Department of Education (Department of Education).
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Not specified in available documentation
+
+Coverage Election
+Summary: South Dakota does not have a general privacy law in effect but does recognize the common law tort of invasion of privacy and has provisions criminalizing this offense. However, South Dakota lacks significant privacy laws affecting the private sector, with many of the privacy provisions in the State's law directed to the public sector. Examples of public-sector privacy laws include South Dakota's statute on the Interception of Wire, Electronic, or Oral Communications under D Codified Laws 23A-35A-20 (D Codified Laws 23A-35A-20), which makes the interception of private communications without consent a Class 5 felony, and South Dakota's Student Privacy Law, SDCL § 13-3-51 (SDCL § 13-3-51), which only applies to the Department of Education (Department of Education).
+
+Reciprocity/Extraterritorial Coverage
+Law: Please note this State does not have a general privacy law in effect, you can visit USA State Law Tracker to monitor the progress of US State bills.
+Summary: South Dakota does not have a general privacy law in effect but does recognize the common law tort of invasion of privacy and has provisions criminalizing this offense. However, South Dakota lacks significant privacy laws affecting the private sector, with many of the privacy provisions in the State's law directed to the public sector. Examples of public-sector privacy laws include South Dakota's statute on the Interception of Wire, Electronic, or Oral Communications under D Codified Laws 23A-35A-20 (D Codified Laws 23A-35A-20), which makes the interception of private communications without consent a Class 5 felony, and South Dakota's Student Privacy Law, SDCL § 13-3-51 (SDCL § 13-3-51), which only applies to the Department of Education (Department of Education).
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+Moreover, South Dakota was the second last State to enact its data breach notification law, §22-40-1 et seq. of Chapter 40 of Title 22 of the South Dakota Codified Laws (§22-40-1 et seq. of Chapter 40 of Title 22) which gives information holders a 60-day window from the date of discovery or notification of the breach to notify individuals of a security breach, unless law enforcement determines that the notification should be delayed.
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://www.dataguidance.com/jurisdictions/south-dakota
+
+---
+Generated on: 2025-07-31 18:42:14
+Original content length: 1,520 characters
+Processing method: Unified template structure

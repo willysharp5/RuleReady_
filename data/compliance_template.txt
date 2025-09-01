@@ -1,0 +1,53 @@
+[Jurisdiction] [Topic/Requirement Name]
+
+Overview
+[Brief description of the law/requirement, including key legislation and purpose]
+
+Covered Employers
+[Who must comply with this requirement - employee thresholds, business types, etc.]
+
+Covered Employees
+[Which employees are covered/protected - employment types, locations, exemptions]
+
+What Should Employers Do?
+[Specific actions employers must take to comply]
+
+Training Requirements
+[If applicable - training content, duration, format requirements]
+
+Training Deadlines
+[If applicable - timing requirements for different employee types]
+
+Qualified Trainers
+[If applicable - who can provide the training/services]
+
+Special Requirements
+[Any special cases, exceptions, industry-specific requirements, or additional obligations]
+
+Coverage Election
+[If applicable - optional coverage choices or rejection options]
+
+Reciprocity/Extraterritorial Coverage
+[If applicable - cross-state/jurisdiction coverage rules]
+
+Employer Responsibilities & Deadlines
+[Ongoing obligations, verification processes, renewal requirements, key deadlines]
+
+Employer Notification Requirements
+[Required notifications to employees about rights, processes, or programs]
+
+Posting Requirements
+[Required workplace postings, notices, and display requirements]
+
+Recordkeeping Requirements
+[What records must be maintained, retention periods, required documentation]
+
+Penalties for Non-Compliance
+[Fines, penalties, consequences, and enforcement actions]
+
+Sources
+[Relevant statutes, regulations, agency websites, and official resources]
+
+---
+Generated on: [Date]
+Processing method: [Method used]

@@ -1,0 +1,73 @@
+Iowa Prevailing Wage Laws (public contracts)
+
+Overview
+Unlike some states, Iowa has no state-specific prevailing wage law. However, public works projects in Iowa are subject to federal regulations when federal funding is involved:
+- **Federal Law**: The Davis-Bacon and Related Acts (DBRA) apply to federally funded or assisted construction projects in Iowa.
+
+Covered Employers
+Not specified in available documentation
+
+Covered Employees
+- Different rates apply based on worker classifications (e.g., laborers, carpenters, electricians).
+- These determinations specify prevailing wage rates, including fringe benefits, for each classification of workers.
+1. **Basic Hourly Rate**: The minimum wage rate paid directly to workers in a specific job classification.
+
+What Should Employers Do?
+For federally funded projects, the Davis-Bacon Act dictates wage compliance. For state-funded projects, there is no state-mandated prevailing wage law, unless otherwise required by the contract or local ordinances.
+## Prevailing Wage Determinations: Federal (Davis-Bacon) Requirements
+- Contractors must consult the federal General Wage Determinations published by the U.S. Department of Labor.
+For example, if the basic hourly rate is $30 and fringe benefits are valued at $10, the total hourly rate would be $40. If fringe benefits are not provided, the contractor must pay the full $40 in wages.
+
+Training Requirements
+Not specified in available documentation
+
+Training Deadlines
+- Wages are determined for specific geographical areas within Iowa.
+
+Qualified Trainers
+2\. **Submit Certified Payroll Reports**:
+- Contractors are required to submit certified payroll reports weekly to demonstrate compliance with wage requirements. For federal projects, contractors typically use [Form WH-347](https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/wh347.pdf), which is provided by the U.S. Department of Labor.
+
+Special Requirements
+Unlike some states, Iowa has no state-specific prevailing wage law. However, public works projects in Iowa are subject to federal regulations when federal funding is involved:
+- **State Law**: Iowa does not have a "Little Davis-Bacon Act" or state-specific prevailing wage law.
+Since Iowa does not have state-specific prevailing wage laws, the U.S. Department of Labor sets prevailing wages for federally funded projects under the Davis-Bacon Act. Key points include:
+
+Coverage Election
+- Different rates apply based on worker classifications (e.g., laborers, carpenters, electricians).
+
+Reciprocity/Extraterritorial Coverage
+Unlike some states, Iowa has no state-specific prevailing wage law. However, public works projects in Iowa are subject to federal regulations when federal funding is involved:
+- **State Law**: Iowa does not have a "Little Davis-Bacon Act" or state-specific prevailing wage law.
+
+Employer Responsibilities & Deadlines
+For federally funded projects, the Davis-Bacon Act dictates wage compliance. For state-funded projects, there is no state-mandated prevailing wage law, unless otherwise required by the contract or local ordinances.
+- Contractors must consult the federal General Wage Determinations published by the U.S. Department of Labor.
+For example, if the basic hourly rate is $30 and fringe benefits are valued at $10, the total hourly rate would be $40. If fringe benefits are not provided, the contractor must pay the full $40 in wages.
+Contractors and subcontractors working on federally funded public works projects in Iowa must:
+
+Employer Notification Requirements
+- Contractors must post prevailing wage determinations in a visible location at the job site where workers can easily access the information.
+
+Posting Requirements
+4\. **Post Wage Rates On-Site**:
+- Contractors must post prevailing wage determinations in a visible location at the job site where workers can easily access the information.
+
+Recordkeeping Requirements
+- Constructing and maintaining government buildings, schools, and infrastructure
+- Contractors are required to submit certified payroll reports weekly to demonstrate compliance with wage requirements. For federal projects, contractors typically use [Form WH-347](https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/wh347.pdf), which is provided by the U.S. Department of Labor.
+5\. **Maintain Proper Documentation**:
+
+Penalties for Non-Compliance
+## Penalties for Non-Compliance
+While Iowa doesn't have state-specific penalties, federal law imposes strict consequences for Davis-Bacon Act violations, including:
+### Q**What are the penalties for non-compliance with Davis-Bacon regulations in Iowa?**
+Contractors may be required to provide back pay to workers to make up for any wage discrepancies if they were underpaid. Additionally, fines may be imposed for failing to pay the correct prevailing wage. In severe cases, contractors may face debarment, preventing them from bidding on future federally funded public works projects.
+
+Sources
+https://emarsinc.com/prevailing-wages/iowa
+
+---
+Generated on: 2025-07-31 17:53:17
+Original content length: 7,023 characters
+Processing method: Unified template structure

@@ -1,0 +1,58 @@
+Colorado E-Verify / Employment Verification
+
+Overview
+## Other Department Contacts
+Explore the [Colorado.gov Directory](https://www.colorado.gov/contacts-search) to find contact details for a Colorado State Agency or County.
+
+Covered Employers
+- **What is the State of Colorado's employer code?**
+The Work Number employer code is **35892**.
+
+Covered Employees
+- **On the Web:** Visit [The Work Number](https://employees.theworknumber.com/home) and follow the Sign up For Access instructions.
+To set up an account visit [The Work Number Resource Page](https://employees.theworknumber.com/home) for employment verifications.
+
+What Should Employers Do?
+Not specified in available documentation
+
+Training Requirements
+- **On the Web:** Visit [The Work Number](https://employees.theworknumber.com/home) and follow the Sign up For Access instructions.
+
+Training Deadlines
+Not specified in available documentation
+
+Qualified Trainers
+Not specified in available documentation
+
+Special Requirements
+Visit [FAQs: Employment Verification](https://osc.colorado.gov/faqs#Employment_Verification) for access to additional questions and answers.
+
+Coverage Election
+Not specified in available documentation
+
+Reciprocity/Extraterritorial Coverage
+Effective September 1, 2023, The Work Number (TWN) is the primary vendor for the State of Colorado's Verification of Employment (VOE) program.
+- **What is the State of Colorado's employer code?**
+
+Employer Responsibilities & Deadlines
+Not specified in available documentation
+
+Employer Notification Requirements
+Not specified in available documentation
+
+Posting Requirements
+Not specified in available documentation
+
+Recordkeeping Requirements
+Not specified in available documentation
+
+Penalties for Non-Compliance
+Not specified in available documentation
+
+Sources
+https://osc.colorado.gov/financial-operations/central-payroll/employment-verification-faq
+
+---
+Generated on: 2025-07-31 17:32:13
+Original content length: 1,148 characters
+Processing method: Unified template structure

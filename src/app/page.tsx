@@ -6,17 +6,19 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
-import { FirecrawlKeyBanner } from '@/components/FirecrawlKeyBanner'
+import { ApiKeyBanner } from '@/components/FirecrawlKeyBanner'
 import { APP_CONFIG } from '@/config/app.config'
 import { validateEmail, validatePassword } from '@/lib/validation'
 import { useToast } from '@/hooks/use-toast'
 import { LoadingOverlay } from '@/components/ui/loading-overlay'
+import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo, JurisdictionInfo } from '@/components/ComplianceInfo'
+import { ComplianceGuide } from '@/components/ComplianceGuide'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -112,12 +114,22 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [changesSearchQuery, setChangesSearchQuery] = useState('')
   
+  // Compliance filtering state
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState<string>('')
+  const [selectedPriority, setSelectedPriority] = useState<string>('')
+  const [selectedTopic, setSelectedTopic] = useState<string>('')
+  const [showComplianceOnly, setShowComplianceOnly] = useState(false)
+  
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
   
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
+  
+  // Get compliance filter data
+  const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
+  const topics = useQuery(api.complianceQueries.getTopics)
 
   // Handle escape key for modals
   useEffect(() => {
@@ -385,15 +397,15 @@ export default function HomePage() {
               {/* Left side - Hero content */}
               <div className="text-center lg:text-left">
                 <h1 className="text-[3rem] lg:text-[4rem] font-semibold tracking-tight leading-none mb-6">
-                  <span className="bg-gradient-to-tr from-red-600 to-yellow-500 bg-clip-text text-transparent block">
-                    Firecrawl
+                  <span className="bg-gradient-to-tr from-blue-600 to-indigo-500 bg-clip-text text-transparent block">
+                    RuleReady
                   </span>
                   <span className="text-black block">
-                    Observer
+                    Compliance
                   </span>
                 </h1>
                 <p className="text-xl text-zinc-600 dark:text-zinc-400">
-                  Monitor websites with Firecrawl change tracking
+                  AI-powered employment law monitoring across all US jurisdictions
                 </p>
               </div>
               
@@ -522,31 +534,33 @@ export default function HomePage() {
   // Main authenticated view (when isAuthenticated = true)
   return (
     <Layout>
-      <Header ctaHref="https://github.com/new?template_name=firecrawl-observer&template_owner=your-org" />
+      <Header ctaHref="https://github.com/your-org/ruleready-compliance" />
       
-      {/* Show banner if no Firecrawl API key is set */}
-      {!firecrawlKey?.hasKey && <FirecrawlKeyBanner />}
+      {/* Show banner if no FireCrawl API key is set */}
+      {!firecrawlKey?.hasKey && <ApiKeyBanner />}
       
       <Hero 
         title={
           <div className="flex flex-col leading-none">
-            <span className="bg-gradient-to-tr from-red-600 to-yellow-500 bg-clip-text text-transparent">
-              Firecrawl
+            <span className="bg-gradient-to-tr from-blue-600 to-indigo-500 bg-clip-text text-transparent">
+              RuleReady
             </span>
             <span className="text-black">
-              Observer
+              Compliance
             </span>
           </div>
         }
-        subtitle="Monitor websites with Firecrawl change tracking"
+        subtitle="AI-powered employment law monitoring across all US jurisdictions"
       />
       
       <MainContent maxWidth="7xl" className="py-12">
         <div className="space-y-6">
+          {/* Compliance Guide */}
+          <ComplianceGuide />
           {/* Add Website Form - Full Width */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Add New Website</h3>
+              <h3 className="text-xl font-semibold">Add Additional Website</h3>
             </div>
                     
                     <form onSubmit={(e) => {
@@ -599,7 +613,14 @@ export default function HomePage() {
                     <div className="flex items-center gap-3">
                       {websites ? (
                         <>
-                          <span className="text-sm text-gray-500">{websites.length} site{websites.length !== 1 ? 's' : ''}</span>
+                          <span className="text-sm text-gray-500">
+                            {websites.length} site{websites.length !== 1 ? 's' : ''} 
+                            {(() => {
+                              const complianceCount = websites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
+                              const regularCount = websites.length - complianceCount
+                              return complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''
+                            })()}
+                          </span>
                           {websites.length > 0 && (
                             <Button
                               variant="orange"
@@ -636,18 +657,176 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
+                    <div className="space-y-3">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Search by name or URL..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                          disabled={!websites}
+                        />
                       </div>
-                      <Input
-                        type="text"
-                        placeholder="Search by name or URL..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                        disabled={!websites}
-                      />
+                      
+                      {/* Filter Instructions */}
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3">
+                        <div className="flex items-start space-x-2">
+                          <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-gray-700">
+                            <p className="font-medium mb-1">Filter your compliance monitoring:</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                              <div>• <strong>Jurisdiction:</strong> Filter by Federal or specific states</div>
+                              <div>• <strong>Priority:</strong> Filter by monitoring frequency and importance</div>
+                              <div>• <strong>Topic:</strong> Focus on specific compliance areas (harassment, wages, etc.)</div>
+                              <div>• <strong>Compliance Only:</strong> Hide regular websites, show only compliance rules</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Compliance Filters */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                        {/* Jurisdiction Filter */}
+                        <select 
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          value={selectedJurisdiction}
+                          onChange={(e) => setSelectedJurisdiction(e.target.value)}
+                        >
+                          <option value="">All Jurisdictions</option>
+                          {jurisdictions?.map(j => (
+                            <option key={j.code} value={j.name}>{j.name}</option>
+                          ))}
+                        </select>
+                        
+                        {/* Priority Filter */}
+                        <div className="relative">
+                          <select 
+                            className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full"
+                            value={selectedPriority}
+                            onChange={(e) => setSelectedPriority(e.target.value)}
+                          >
+                            <option value="">All Priorities</option>
+                            <option value="critical">🔴 Critical (Daily checks)</option>
+                            <option value="high">🟠 High (Every 2 days)</option>
+                            <option value="medium">🟡 Medium (Weekly)</option>
+                            <option value="low">🟢 Low (Monthly)</option>
+                          </select>
+                          <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <Info className="h-3 w-3 text-gray-400" />
+                          </div>
+                        </div>
+                        
+                        {/* Topic Filter */}
+                        <div className="relative">
+                          <select 
+                            className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full"
+                            value={selectedTopic}
+                            onChange={(e) => setSelectedTopic(e.target.value)}
+                          >
+                            <option value="">All Topics</option>
+                            <optgroup label="🏛️ Wages & Hours">
+                              <option value="minimum_wage">💰 Minimum Wage</option>
+                              <option value="overtime">⏰ Overtime & Hours</option>
+                              <option value="pay_frequency">📅 Pay Frequency</option>
+                              <option value="meal_rest_breaks">☕ Meal & Rest Breaks</option>
+                            </optgroup>
+                            <optgroup label="🏥 Leave & Benefits">
+                              <option value="paid_sick_leave">🤒 Paid Sick Leave</option>
+                              <option value="family_medical_leave">👶 Family Medical Leave</option>
+                              <option value="jury_duty_leave">⚖️ Jury Duty Leave</option>
+                              <option value="bereavement_leave">💐 Bereavement Leave</option>
+                            </optgroup>
+                            <optgroup label="🛡️ Safety & Training">
+                              <option value="harassment_training">🚫 Harassment Training</option>
+                              <option value="workplace_safety">🦺 Workplace Safety</option>
+                              <option value="workers_comp">🏥 Workers Compensation</option>
+                            </optgroup>
+                            <optgroup label="📋 Employment Practices">
+                              <option value="background_checks">🔍 Background Checks</option>
+                              <option value="posting_requirements">📄 Posting Requirements</option>
+                              <option value="everify">✅ E-Verify</option>
+                            </optgroup>
+                            <optgroup label="🆕 Emerging Issues">
+                              <option value="biometric_privacy">👁️ Biometric Privacy</option>
+                              <option value="pregnancy_accommodation">🤱 Pregnancy Accommodation</option>
+                              <option value="domestic_violence_leave">🏠 Domestic Violence Leave</option>
+                            </optgroup>
+                          </select>
+                          <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <Scale className="h-3 w-3 text-gray-400" />
+                          </div>
+                        </div>
+                        
+                        {/* Compliance Only Toggle */}
+                        <label className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showComplianceOnly}
+                            onChange={(e) => setShowComplianceOnly(e.target.checked)}
+                            className="mr-2"
+                          />
+                          Compliance Only
+                        </label>
+                      </div>
+                      
+                      {/* Filter Summary */}
+                      {(selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly) && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <span className="text-xs text-gray-500">Filters:</span>
+                          {selectedJurisdiction && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              📍 {selectedJurisdiction}
+                              <button 
+                                onClick={() => setSelectedJurisdiction('')}
+                                className="ml-1 text-blue-600 hover:text-blue-800"
+                              >×</button>
+                            </span>
+                          )}
+                          {selectedPriority && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                              {selectedPriority === 'critical' ? '🔴' : selectedPriority === 'high' ? '🟠' : selectedPriority === 'medium' ? '🟡' : '🟢'} {selectedPriority}
+                              <button 
+                                onClick={() => setSelectedPriority('')}
+                                className="ml-1 text-orange-600 hover:text-orange-800"
+                              >×</button>
+                            </span>
+                          )}
+                          {selectedTopic && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                              📋 {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
+                              <button 
+                                onClick={() => setSelectedTopic('')}
+                                className="ml-1 text-green-600 hover:text-green-800"
+                              >×</button>
+                            </span>
+                          )}
+                          {showComplianceOnly && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                              🏛️ Compliance Only
+                              <button 
+                                onClick={() => setShowComplianceOnly(false)}
+                                className="ml-1 text-purple-600 hover:text-purple-800"
+                              >×</button>
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setSelectedJurisdiction('')
+                              setSelectedPriority('')
+                              setSelectedTopic('')
+                              setShowComplianceOnly(false)
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-700 underline"
+                          >
+                            Clear all
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -667,11 +846,54 @@ export default function HomePage() {
 
                         const filteredWebsites = websites
                           .filter(website => {
+                            // Text search filter
                             const query = searchQuery.toLowerCase()
-                            return website.name.toLowerCase().includes(query) || 
-                                   website.url.toLowerCase().includes(query)
+                            const matchesSearch = !query || 
+                              website.name.toLowerCase().includes(query) || 
+                              website.url.toLowerCase().includes(query)
+                            
+                            // Compliance-only filter
+                            const isCompliance = website.complianceMetadata?.isComplianceWebsite || false
+                            const matchesComplianceFilter = !showComplianceOnly || isCompliance
+                            
+                            // Jurisdiction filter
+                            const matchesJurisdiction = !selectedJurisdiction || 
+                              website.complianceMetadata?.jurisdiction === selectedJurisdiction
+                            
+                            // Priority filter
+                            const matchesPriority = !selectedPriority || 
+                              website.complianceMetadata?.priority === selectedPriority
+                            
+                            // Topic filter
+                            const matchesTopic = !selectedTopic || 
+                              website.complianceMetadata?.topicKey === selectedTopic
+                            
+                            return matchesSearch && matchesComplianceFilter && 
+                                   matchesJurisdiction && matchesPriority && matchesTopic
                           })
-                          .sort((a, b) => b._creationTime - a._creationTime)
+                          .sort((a, b) => {
+                            // Sort compliance websites first, then by priority, then by creation time
+                            const aIsCompliance = a.complianceMetadata?.isComplianceWebsite || false
+                            const bIsCompliance = b.complianceMetadata?.isComplianceWebsite || false
+                            
+                            // Compliance websites first
+                            if (aIsCompliance && !bIsCompliance) return -1
+                            if (!aIsCompliance && bIsCompliance) return 1
+                            
+                            // Both compliance: sort by priority
+                            if (aIsCompliance && bIsCompliance) {
+                              const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 }
+                              const aPriority = priorityOrder[a.complianceMetadata?.priority as keyof typeof priorityOrder] || 0
+                              const bPriority = priorityOrder[b.complianceMetadata?.priority as keyof typeof priorityOrder] || 0
+                              
+                              if (aPriority !== bPriority) {
+                                return bPriority - aPriority // Higher priority first
+                              }
+                            }
+                            
+                            // Same type: sort by creation time (newest first)
+                            return b._creationTime - a._creationTime
+                          })
                         
                         // Pagination calculations
                         const totalPages = Math.ceil(filteredWebsites.length / ITEMS_PER_PAGE_WEBSITES)
@@ -679,17 +901,54 @@ export default function HomePage() {
                         const endIndex = startIndex + ITEMS_PER_PAGE_WEBSITES
                         const paginatedWebsites = filteredWebsites.slice(startIndex, endIndex)
                         
+                        // Filter results summary
+                        const hasFilters = searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly
+                        const filterResultsText = hasFilters ? 
+                          `Showing ${filteredWebsites.length} of ${websites.length} websites` :
+                          `Showing all ${websites.length} websites`
+                        
                         // Reset to page 1 if current page is out of bounds
                         if (websitesPage > totalPages && totalPages > 0) {
                           setWebsitesPage(1)
                         }
                         
-                        if (filteredWebsites.length === 0 && searchQuery) {
+                        // Filter Results Summary Component
+                        const FilterResultsSummary = () => (
+                          <div className="flex items-center justify-between text-sm text-gray-600 py-2 border-b border-gray-100 bg-gray-50 px-4 -mx-4">
+                            <span>{filterResultsText}</span>
+                            {hasFilters && (
+                              <span className="text-xs">
+                                {filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} compliance, {' '}
+                                {filteredWebsites.length - filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} regular
+                              </span>
+                            )}
+                          </div>
+                        )
+                        
+                        if (filteredWebsites.length === 0 && (searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly)) {
                           return (
                             <div className="text-center py-8 text-gray-500">
                               <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                               <p className="text-lg font-medium">No websites found</p>
-                              <p className="text-sm mt-1">Try searching with different keywords</p>
+                              <div className="text-sm mt-2 space-y-1">
+                                {searchQuery && <p>Search: "{searchQuery}"</p>}
+                                {selectedJurisdiction && <p>Jurisdiction: {selectedJurisdiction}</p>}
+                                {selectedPriority && <p>Priority: {selectedPriority}</p>}
+                                {selectedTopic && <p>Topic: {topics?.find(t => t.topicKey === selectedTopic)?.name}</p>}
+                                {showComplianceOnly && <p>Showing: Compliance websites only</p>}
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  setSearchQuery('')
+                                  setSelectedJurisdiction('')
+                                  setSelectedPriority('')
+                                  setSelectedTopic('')
+                                  setShowComplianceOnly(false)
+                                }}
+                                className="mt-3 text-blue-600 hover:text-blue-800 text-sm underline"
+                              >
+                                Clear all filters
+                              </button>
                             </div>
                           )
                         }
@@ -706,6 +965,7 @@ export default function HomePage() {
 
                         return (
                           <>
+                            <FilterResultsSummary />
                             {paginatedWebsites.map((website) => {
                   const latestScrape = latestScrapes?.[website._id];
                   const isProcessing = processingWebsites.has(website._id);
@@ -754,6 +1014,13 @@ export default function HomePage() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="text-base font-medium text-gray-900">{website.name}</h4>
+                                
+                                {/* Compliance Priority Badge */}
+                                {website.complianceMetadata?.isComplianceWebsite && (
+                                  <PriorityBadge priority={website.complianceMetadata.priority} />
+                                )}
+                                
+                                {/* Monitor Type Badge */}
                                 <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
                                   website.monitorType === 'full_site' 
                                     ? 'bg-orange-100 text-orange-700' 
@@ -761,16 +1028,26 @@ export default function HomePage() {
                                 }`}>
                                   {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
                                 </span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  website.isPaused 
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : website.isActive 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-gray-100 text-gray-500'
-                                }`}>
-                                  {website.isPaused ? 'Paused' : website.isActive ? 'Active' : 'Inactive'}
-                                </span>
+                                
+                                {/* Monitoring Status */}
+                                <MonitoringStatusInfo status={
+                                  website.isPaused ? 'paused' : website.isActive ? 'active' : 'inactive'
+                                } />
                               </div>
+                              
+                              {/* Compliance Topic Info */}
+                              {website.complianceMetadata?.isComplianceWebsite && (
+                                <div className="flex items-center gap-2 mb-2">
+                                  <JurisdictionInfo jurisdiction={website.complianceMetadata.jurisdiction} />
+                                  <TopicBadge 
+                                    topicKey={website.complianceMetadata.topicKey}
+                                    topicName={website.name.split(' - ')[1] || website.complianceMetadata.topicKey}
+                                  />
+                                  <span className="text-xs text-gray-500">
+                                    Check interval: {formatInterval(website.checkInterval)}
+                                  </span>
+                                </div>
+                              )}
                               <a 
                                 href={website.url} 
                                 target="_blank" 
@@ -1260,7 +1537,14 @@ export default function HomePage() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         {websites && (
-                          <span className="text-sm text-gray-500">{websites.length} site{websites.length !== 1 ? 's' : ''}</span>
+                          <span className="text-sm text-gray-500">
+                            {websites.length} site{websites.length !== 1 ? 's' : ''} 
+                            {(() => {
+                              const complianceCount = websites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
+                              const regularCount = websites.length - complianceCount
+                              return complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''
+                            })()}
+                          </span>
                         )}
                         {websites && websites.length > 0 && (
                           <Button
@@ -1304,7 +1588,7 @@ export default function HomePage() {
                       <div className="p-8 text-center text-gray-500">
                         <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p className="text-lg font-medium mb-2">No websites tracked yet</p>
-                        <p className="text-sm">Add a website URL above to start monitoring</p>
+                        <p className="text-sm">Compliance rules will appear here automatically, or add additional websites above</p>
                       </div>
                     ) : (
                       <div className="divide-y">
@@ -1878,7 +2162,11 @@ export default function HomePage() {
                 checkInterval: config.checkInterval,
                 monitorType: config.monitorType,
                 crawlLimit: config.crawlLimit,
-                crawlDepth: config.crawlDepth
+                crawlDepth: config.crawlDepth,
+                // NEW: Include compliance priority updates
+                compliancePriority: config.compliancePriority,
+                overrideComplianceInterval: config.overrideComplianceInterval,
+                priorityChangeReason: config.priorityChangeReason,
               })
             }
             setShowWebhookModal(false)
@@ -1886,14 +2174,19 @@ export default function HomePage() {
             setPendingWebsite(null)
           }}
           initialConfig={
-            editingWebsiteId ? {
-              notificationPreference: websites?.find(w => w._id === editingWebsiteId)?.notificationPreference || 'none',
-              webhookUrl: websites?.find(w => w._id === editingWebsiteId)?.webhookUrl,
-              checkInterval: websites?.find(w => w._id === editingWebsiteId)?.checkInterval || 60,
-              monitorType: websites?.find(w => w._id === editingWebsiteId)?.monitorType || 'single_page',
-              crawlLimit: websites?.find(w => w._id === editingWebsiteId)?.crawlLimit || 5,
-              crawlDepth: websites?.find(w => w._id === editingWebsiteId)?.crawlDepth || 3
-            } : {
+            editingWebsiteId ? (() => {
+              const website = websites?.find(w => w._id === editingWebsiteId);
+              return {
+                notificationPreference: website?.notificationPreference || 'none',
+                webhookUrl: website?.webhookUrl,
+                checkInterval: website?.checkInterval || 60,
+                monitorType: website?.monitorType || 'single_page',
+                crawlLimit: website?.crawlLimit || 5,
+                crawlDepth: website?.crawlDepth || 3,
+                // NEW: Include compliance metadata
+                complianceMetadata: website?.complianceMetadata || undefined,
+              };
+            })() : {
               notificationPreference: 'none',
               checkInterval: 60,
               monitorType: 'single_page',
