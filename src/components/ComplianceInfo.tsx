@@ -4,6 +4,14 @@ import { Badge } from "./ui/badge"
 
 // Priority explanations
 export const PRIORITY_INFO = {
+  testing: {
+    icon: "🔬",
+    name: "Testing",
+    description: "Development and testing priority with 15-second monitoring",
+    examples: ["Development Testing", "Demo Purposes", "Quick Validation"],
+    checkInterval: "15 seconds",
+    reasoning: "For development and testing purposes only - not suitable for production"
+  },
   critical: {
     icon: "🔴",
     name: "Critical",
@@ -76,6 +84,7 @@ export function PriorityBadge({ priority, showTooltip = true }: {
   
   const badge = (
     <Badge className={
+      priority === 'testing' ? 'bg-purple-100 text-purple-800 border-purple-200' :
       priority === 'critical' ? 'bg-red-100 text-red-800 border-red-200' :
       priority === 'high' ? 'bg-orange-100 text-orange-800 border-orange-200' :
       priority === 'medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :

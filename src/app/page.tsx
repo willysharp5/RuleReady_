@@ -711,10 +711,15 @@ export default function HomePage() {
                             onChange={(e) => setSelectedPriority(e.target.value)}
                           >
                             <option value="">All Priorities</option>
-                            <option value="critical">🔴 Critical (Daily checks)</option>
-                            <option value="high">🟠 High (Every 2 days)</option>
-                            <option value="medium">🟡 Medium (Weekly)</option>
-                            <option value="low">🟢 Low (Monthly)</option>
+                            <optgroup label="🏭 Production">
+                              <option value="critical">🔴 Critical (Daily checks)</option>
+                              <option value="high">🟠 High (Every 2 days)</option>
+                              <option value="medium">🟡 Medium (Weekly)</option>
+                              <option value="low">🟢 Low (Monthly)</option>
+                            </optgroup>
+                            <optgroup label="🧪 Testing">
+                              <option value="testing">🔬 Testing (15 seconds)</option>
+                            </optgroup>
                           </select>
                           <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
                             <Info className="h-3 w-3 text-gray-400" />
@@ -882,7 +887,7 @@ export default function HomePage() {
                             
                             // Both compliance: sort by priority
                             if (aIsCompliance && bIsCompliance) {
-                              const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 }
+                              const priorityOrder = { testing: 5, critical: 4, high: 3, medium: 2, low: 1 }
                               const aPriority = priorityOrder[a.complianceMetadata?.priority as keyof typeof priorityOrder] || 0
                               const bPriority = priorityOrder[b.complianceMetadata?.priority as keyof typeof priorityOrder] || 0
                               

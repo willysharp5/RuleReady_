@@ -55,7 +55,7 @@ const schema = defineSchema({
       ruleId: v.string(),
       jurisdiction: v.string(),
       topicKey: v.string(),
-      priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
+      priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
       isComplianceWebsite: v.boolean(),
       hasManualOverride: v.optional(v.boolean()), // Track manual priority/interval overrides
       originalPriority: v.optional(v.string()),   // Track original compliance priority
@@ -191,7 +191,7 @@ const schema = defineSchema({
     topicLabel: v.string(), // "Minimum Wage", "Overtime & Hours"
     sourceUrl: v.string(),
     notes: v.optional(v.string()),
-    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
+    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
     changeFrequency: v.optional(v.string()), // "weekly", "monthly", "quarterly"
     lastSignificantChange: v.optional(v.number()),
     monitoringStatus: v.union(v.literal("active"), v.literal("paused"), v.literal("error")),

@@ -175,10 +175,15 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                   onChange={(e) => setCompliancePriority(e.target.value)}
                   className="w-full mt-1"
                 >
-                  <option value="critical">🔴 Critical - Daily monitoring (High-impact rules)</option>
-                  <option value="high">🟠 High - Every 2 days (Important requirements)</option>
-                  <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
-                  <option value="low">🟢 Low - Monthly (Stable rules)</option>
+                  <optgroup label="🏭 Production Priorities">
+                    <option value="critical">🔴 Critical - Daily monitoring (High-impact rules)</option>
+                    <option value="high">🟠 High - Every 2 days (Important requirements)</option>
+                    <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
+                    <option value="low">🟢 Low - Monthly (Stable rules)</option>
+                  </optgroup>
+                  <optgroup label="🧪 Testing">
+                    <option value="testing">🔬 Testing - 15 seconds (Development only)</option>
+                  </optgroup>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
                   Priority determines monitoring frequency and alert urgency
@@ -258,7 +263,8 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 disabled={isComplianceWebsite && !overrideInterval}
                 className={`w-full mt-1 ${isComplianceWebsite && !overrideInterval ? 'bg-gray-50' : ''}`}
               >
-                <option value="0.25">15 seconds (Testing only)</option>
+                <option value="0.25">15 seconds (Testing)</option>
+                <option value="1">1 minute (Testing)</option>
                 <option value="5">5 minutes</option>
                 <option value="15">15 minutes</option>
                 <option value="30">30 minutes</option>
@@ -276,9 +282,16 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 </p>
               )}
               {isComplianceWebsite && overrideInterval && (
-                <p className="text-xs text-orange-600 mt-1">
-                  ⚠️ Using manual interval override - ensure appropriate for compliance monitoring
-                </p>
+                <div className="mt-1 space-y-1">
+                  <p className="text-xs text-orange-600">
+                    ⚠️ Using manual interval override - ensure appropriate for compliance monitoring
+                  </p>
+                  {(checkInterval === "0.25" || checkInterval === "1") && (
+                    <p className="text-xs text-blue-600">
+                      🧪 Testing interval selected - remember to adjust for production use
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

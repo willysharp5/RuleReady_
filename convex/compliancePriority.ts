@@ -7,7 +7,7 @@ import { requireCurrentUser } from "./helpers";
 export const updateWebsiteCompliancePriority = mutation({
   args: {
     websiteId: v.id("websites"),
-    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
+    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
     overrideInterval: v.optional(v.boolean()),
     customInterval: v.optional(v.number()),
     changeReason: v.optional(v.string()),
@@ -28,6 +28,7 @@ export const updateWebsiteCompliancePriority = mutation({
     
     // Calculate new check interval based on priority
     const priorityIntervals = {
+      testing: 0.25,    // 15 seconds (for testing)
       critical: 1440,   // Daily
       high: 2880,       // Every 2 days
       medium: 10080,    // Weekly
@@ -41,6 +42,11 @@ export const updateWebsiteCompliancePriority = mutation({
     // Validate interval for critical rules
     if (args.priority === "critical" && newInterval > 1440) {
       throw new Error("Critical compliance rules should be checked at least daily");
+    }
+    
+    // Warning for testing priority in production
+    if (args.priority === "testing") {
+      console.warn(`⚠️ Testing priority (15 seconds) set for compliance rule: ${website.complianceMetadata.ruleId}`);
     }
     
     // Update the website
@@ -80,7 +86,7 @@ export const updateWebsiteCompliancePriority = mutation({
 export const updateRulePriority = internalMutation({
   args: {
     ruleId: v.string(),
-    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
+    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
     hasManualOverride: v.boolean(),
     newInterval: v.number(),
   },

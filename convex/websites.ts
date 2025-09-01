@@ -244,6 +244,7 @@ export const updateWebsite = mutation({
     if (args.compliancePriority !== undefined && website.complianceMetadata?.isComplianceWebsite) {
       // Calculate interval from priority (unless manual override)
       const priorityIntervals = {
+        testing: 0.25,    // 15 seconds (for testing)
         critical: 1440,   // Daily
         high: 2880,       // Every 2 days
         medium: 10080,    // Weekly
