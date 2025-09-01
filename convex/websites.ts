@@ -67,31 +67,30 @@ export const createWebsite = mutation({
   },
 });
 
-// Get all websites for the current user (including compliance websites)
+// Get all websites (single-user mode - no authentication required)
 export const getUserWebsites = query({
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return [];
+    // Single-user mode: return all websites
+    const allWebsites = await ctx.db.query("websites").collect();
+
+    // If no websites exist but we have compliance rules, auto-create them
+    if (allWebsites.length === 0) {
+      const rules = await ctx.db.query("complianceRules").collect();
+      if (rules.length > 0) {
+        console.log(`🔄 Auto-creating ${rules.length} compliance websites...`);
+        // This will be handled by the auto-setup mutation
+      }
     }
 
-    // Get user's personal websites
-    const userWebsites = await ctx.db
-      .query("websites")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-
-    // Get all compliance websites (shared across all users)
-    const complianceWebsites = await ctx.db
-      .query("websites")
-      .filter((q) => q.eq(q.field("complianceMetadata.isComplianceWebsite"), true))
-      .collect();
+    // Single-user mode: return all websites
+    const userWebsites = allWebsites.filter(w => !w.complianceMetadata?.isComplianceWebsite);
+    const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
 
     // Combine and sort by priority, then by name
-    const allWebsites = [...userWebsites, ...complianceWebsites];
+    const combinedWebsites = [...userWebsites, ...complianceWebsites];
     
     // Remove duplicates (in case user has both personal and compliance versions)
-    const uniqueWebsites = allWebsites.filter((website, index, self) => 
+    const uniqueWebsites = combinedWebsites.filter((website, index, self) => 
       index === self.findIndex(w => w.url === website.url)
     );
     
@@ -504,19 +503,11 @@ export const markAlertAsRead = mutation({
   },
 });
 
-// Get all scrape history for check log
+// Get all scrape history for check log (single-user mode)
 export const getAllScrapeHistory = query({
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return [];
-    }
-
-    // Get all websites for the user
-    const websites = await ctx.db
-      .query("websites")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    // Single-user mode: return all scrape history
+    const websites = await ctx.db.query("websites").collect();
 
     const websiteMap = new Map(websites.map(w => [w._id, w]));
 
@@ -560,18 +551,11 @@ export const getAllScrapeHistory = query({
   },
 });
 
-// Get latest scrape result for each website
+// Get latest scrape result for each website (single-user mode)
 export const getLatestScrapeForWebsites = query({
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return {};
-    }
-
-    const websites = await ctx.db
-      .query("websites")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    // Single-user mode: get all websites
+    const websites = await ctx.db.query("websites").collect();
 
     const latestScrapes: Record<string, any> = {};
     

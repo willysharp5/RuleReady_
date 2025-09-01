@@ -130,6 +130,33 @@ export default function HomePage() {
   // Get compliance filter data
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
   const topics = useQuery(api.complianceQueries.getTopics)
+  
+  // Single-user mode: Check if setup is needed and auto-create websites
+  const setupStatus = useQuery(api.singleUserSetup.needsSetup)
+  const createAllWebsites = useMutation(api.singleUserSetup.createAllComplianceWebsites)
+  
+  // Auto-setup compliance websites when needed
+  useEffect(() => {
+    if (setupStatus?.needsSetup) {
+      console.log("🔄 Auto-setting up compliance websites...");
+      createAllWebsites()
+        .then((result) => {
+          console.log(`✅ Auto-setup completed: ${result.created} websites created`);
+          addToast({
+            title: "Setup Complete",
+            description: `${result.created} compliance websites created and ready for monitoring`,
+          });
+        })
+        .catch((error) => {
+          console.error("❌ Auto-setup failed:", error);
+          addToast({
+            title: "Setup Error",
+            description: "Failed to create compliance websites. Please try refreshing the page.",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [setupStatus?.needsSetup, createAllWebsites, addToast])
 
   // Handle escape key for modals
   useEffect(() => {
@@ -378,7 +405,8 @@ export default function HomePage() {
     }
   }
 
-  if (authLoading) {
+  // Skip authentication for single-user mode
+  if (false && authLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -388,7 +416,8 @@ export default function HomePage() {
     )
   }
 
-  if (!isAuthenticated) {
+  // Skip authentication check for single-user mode
+  if (false && !isAuthenticated) {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">

@@ -30,7 +30,7 @@ const schema = defineSchema({
   websites: defineTable({
     url: v.string(),
     name: v.string(),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
     isActive: v.boolean(),
     isPaused: v.optional(v.boolean()), // For manual pause separate from isActive
     checkInterval: v.number(), // in minutes

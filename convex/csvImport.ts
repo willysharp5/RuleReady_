@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { action, internalMutation, internalAction, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getCurrentUser } from "./helpers";
 
@@ -507,8 +507,8 @@ export const createWebsiteForRule = internalMutation({
   },
 });
 
-// Get all rules (internal query)
-export const getAllRules = internalQuery({
+// Get all rules (public query for single-user mode)
+export const getAllRules = query({
   handler: async (ctx) => {
     return await ctx.db.query("complianceRules").collect();
   },
