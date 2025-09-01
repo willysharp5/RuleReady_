@@ -200,7 +200,7 @@ export const updateWebsite = mutation({
     crawlLimit: v.optional(v.number()),
     crawlDepth: v.optional(v.number()),
     // NEW: Compliance priority management
-    compliancePriority: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
+    compliancePriority: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing"))),
     overrideComplianceInterval: v.optional(v.boolean()),
     priorityChangeReason: v.optional(v.string()),
   },

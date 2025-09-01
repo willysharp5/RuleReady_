@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { Info, ChevronDown, ChevronUp, Scale, Clock, AlertTriangle, CheckCircle, Zap, Timer, Turtle, Flask, DollarSign, Heart, Shield, FileText, Sparkles } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, Scale, Clock, AlertTriangle, CheckCircle, Zap, Timer, Turtle, FlaskConical, DollarSign, Heart, Shield, FileText, Sparkles } from 'lucide-react'
 
 export function ComplianceGuide() {
   const [isExpanded, setIsExpanded] = useState(false)

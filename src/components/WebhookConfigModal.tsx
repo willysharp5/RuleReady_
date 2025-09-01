@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Mail, Copy, Check, Network, FileText, Flask, Zap, AlertCircle, Timer, Turtle, Scale, MapPin } from 'lucide-react'
+import { X, Mail, Copy, Check, Network, FileText, FlaskConical, Zap, AlertCircle, Timer, Turtle, Scale, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

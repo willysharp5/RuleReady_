@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, Flask, MapPin, FileText } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
@@ -795,7 +795,7 @@ export default function HomePage() {
                           )}
                           {selectedPriority && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                              {selectedPriority === 'testing' ? <Flask className="h-3 w-3 mr-1" /> :
+                              {selectedPriority === 'testing' ? <FlaskConical className="h-3 w-3 mr-1" /> :
                                selectedPriority === 'critical' ? <Zap className="h-3 w-3 mr-1" /> : 
                                selectedPriority === 'high' ? <AlertCircle className="h-3 w-3 mr-1" /> : 
                                selectedPriority === 'medium' ? <Timer className="h-3 w-3 mr-1" /> : 

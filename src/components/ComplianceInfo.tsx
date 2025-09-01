@@ -1,11 +1,11 @@
-import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, AlertCircle, Timer, Turtle, Flask } from "lucide-react"
+import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, Timer, Turtle, FlaskConical } from "lucide-react"
 import { Tooltip } from "./ui/tooltip"
 import { Badge } from "./ui/badge"
 
 // Priority explanations
 export const PRIORITY_INFO = {
   testing: {
-    icon: <Flask className="h-3 w-3" />,
+    icon: <FlaskConical className="h-3 w-3" />,
     name: "Testing",
     description: "Development and testing priority with 15-second monitoring",
     examples: ["Development Testing", "Demo Purposes", "Quick Validation"],
