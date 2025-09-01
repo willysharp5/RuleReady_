@@ -1,11 +1,11 @@
-import { Info, Clock, AlertTriangle, CheckCircle, Scale } from "lucide-react"
+import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, AlertCircle, Timer, Turtle, Flask } from "lucide-react"
 import { Tooltip } from "./ui/tooltip"
 import { Badge } from "./ui/badge"
 
 // Priority explanations
 export const PRIORITY_INFO = {
   testing: {
-    icon: "🔬",
+    icon: <Flask className="h-3 w-3" />,
     name: "Testing",
     description: "Development and testing priority with 15-second monitoring",
     examples: ["Development Testing", "Demo Purposes", "Quick Validation"],
@@ -13,7 +13,7 @@ export const PRIORITY_INFO = {
     reasoning: "For development and testing purposes only - not suitable for production"
   },
   critical: {
-    icon: "🔴",
+    icon: <Zap className="h-3 w-3" />,
     name: "Critical",
     description: "High-impact rules that change frequently and have severe penalties",
     examples: ["Minimum Wage", "Overtime Rules", "Workplace Safety", "Harassment Training"],
@@ -21,7 +21,7 @@ export const PRIORITY_INFO = {
     reasoning: "These rules change often and non-compliance can result in significant fines or legal action"
   },
   high: {
-    icon: "🟠", 
+    icon: <AlertCircle className="h-3 w-3" />,
     name: "High",
     description: "Important rules with moderate change frequency and significant business impact",
     examples: ["Paid Sick Leave", "Family Medical Leave", "Workers Compensation", "Background Checks"],
@@ -29,7 +29,7 @@ export const PRIORITY_INFO = {
     reasoning: "Important for employee benefits and rights, with moderate penalties for non-compliance"
   },
   medium: {
-    icon: "🟡",
+    icon: <Timer className="h-3 w-3" />,
     name: "Medium", 
     description: "Standard compliance requirements with periodic updates",
     examples: ["Posting Requirements", "Jury Duty Leave", "Final Pay Rules", "Voting Leave"],
@@ -37,7 +37,7 @@ export const PRIORITY_INFO = {
     reasoning: "Standard compliance areas that update occasionally, manageable penalties"
   },
   low: {
-    icon: "🟢",
+    icon: <Turtle className="h-3 w-3" />,
     name: "Low",
     description: "Stable rules that rarely change with minimal immediate business impact",
     examples: ["Bereavement Leave", "Right-to-Work Laws", "Day of Rest Rules"],
@@ -90,7 +90,10 @@ export function PriorityBadge({ priority, showTooltip = true }: {
       priority === 'medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
       'bg-green-100 text-green-800 border-green-200'
     }>
-      {info.icon} {info.name}
+      <span className="flex items-center gap-1">
+        {info.icon}
+        {info.name}
+      </span>
     </Badge>
   )
   

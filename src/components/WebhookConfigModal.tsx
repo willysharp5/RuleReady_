@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Mail, Copy, Check, Network, FileText } from 'lucide-react'
+import { X, Mail, Copy, Check, Network, FileText, Flask, Zap, AlertCircle, Timer, Turtle, Scale, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -148,19 +148,21 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
           {isComplianceWebsite && (
             <div className="border-b pb-6">
               <h3 className="text-lg font-medium mb-4 flex items-center">
-                <span className="text-blue-600 mr-2">🏛️</span>
+                <Scale className="h-5 w-5 text-blue-600 mr-2" />
                 Compliance Priority
               </h3>
               
               {/* Website Type Indicator */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-blue-600">ℹ️</span>
+                  <Scale className="h-4 w-4 text-blue-600" />
                   <div className="text-sm">
                     <p className="font-medium text-blue-900">Compliance Website</p>
-                    <p className="text-blue-700">
-                      📍 {initialConfig?.complianceMetadata?.jurisdiction} - 
-                      📋 {initialConfig?.complianceMetadata?.topicKey?.replace(/_/g, ' ')}
+                    <p className="text-blue-700 flex items-center gap-2">
+                      <MapPin className="h-3 w-3" />
+                      {initialConfig?.complianceMetadata?.jurisdiction}
+                      <FileText className="h-3 w-3 ml-2" />
+                      {initialConfig?.complianceMetadata?.topicKey?.replace(/_/g, ' ')}
                     </p>
                   </div>
                 </div>
@@ -175,14 +177,14 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                   onChange={(e) => setCompliancePriority(e.target.value)}
                   className="w-full mt-1"
                 >
-                  <optgroup label="🏭 Production Priorities">
-                    <option value="critical">🔴 Critical - Daily monitoring (High-impact rules)</option>
-                    <option value="high">🟠 High - Every 2 days (Important requirements)</option>
-                    <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
-                    <option value="low">🟢 Low - Monthly (Stable rules)</option>
+                  <optgroup label="Production Priorities">
+                    <option value="critical">Critical - Daily monitoring (High-impact rules)</option>
+                    <option value="high">High - Every 2 days (Important requirements)</option>
+                    <option value="medium">Medium - Weekly (Standard compliance)</option>
+                    <option value="low">Low - Monthly (Stable rules)</option>
                   </optgroup>
-                  <optgroup label="🧪 Testing">
-                    <option value="testing">🔬 Testing - 15 seconds (Development only)</option>
+                  <optgroup label="Testing">
+                    <option value="testing">Testing - 15 seconds (Development only)</option>
                   </optgroup>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
@@ -194,10 +196,10 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
               <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-4">
                 <h4 className="font-medium text-gray-900 mb-2">Priority Impact:</h4>
                 <div className="text-xs text-gray-700 space-y-1">
-                  <div>• <strong>🔴 Critical:</strong> Daily checks, immediate alerts, high business impact</div>
-                  <div>• <strong>🟠 High:</strong> Every 2 days, priority alerts, significant impact</div>
-                  <div>• <strong>🟡 Medium:</strong> Weekly checks, standard alerts, moderate impact</div>
-                  <div>• <strong>🟢 Low:</strong> Monthly checks, low-priority alerts, minimal impact</div>
+                  <div className="flex items-center gap-1">• <Zap className="h-3 w-3" /> <strong>Critical:</strong> Daily checks, immediate alerts, high business impact</div>
+                  <div className="flex items-center gap-1">• <AlertCircle className="h-3 w-3" /> <strong>High:</strong> Every 2 days, priority alerts, significant impact</div>
+                  <div className="flex items-center gap-1">• <Timer className="h-3 w-3" /> <strong>Medium:</strong> Weekly checks, standard alerts, moderate impact</div>
+                  <div className="flex items-center gap-1">• <Turtle className="h-3 w-3" /> <strong>Low:</strong> Monthly checks, low-priority alerts, minimal impact</div>
                 </div>
               </div>
               

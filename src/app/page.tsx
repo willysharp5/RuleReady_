@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, Flask, MapPin, FileText } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
@@ -711,14 +711,14 @@ export default function HomePage() {
                             onChange={(e) => setSelectedPriority(e.target.value)}
                           >
                             <option value="">All Priorities</option>
-                            <optgroup label="🏭 Production">
-                              <option value="critical">🔴 Critical (Daily checks)</option>
-                              <option value="high">🟠 High (Every 2 days)</option>
-                              <option value="medium">🟡 Medium (Weekly)</option>
-                              <option value="low">🟢 Low (Monthly)</option>
+                            <optgroup label="Production">
+                              <option value="critical">Critical (Daily checks)</option>
+                              <option value="high">High (Every 2 days)</option>
+                              <option value="medium">Medium (Weekly)</option>
+                              <option value="low">Low (Monthly)</option>
                             </optgroup>
-                            <optgroup label="🧪 Testing">
-                              <option value="testing">🔬 Testing (15 seconds)</option>
+                            <optgroup label="Testing">
+                              <option value="testing">Testing (15 seconds)</option>
                             </optgroup>
                           </select>
                           <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -734,32 +734,32 @@ export default function HomePage() {
                             onChange={(e) => setSelectedTopic(e.target.value)}
                           >
                             <option value="">All Topics</option>
-                            <optgroup label="🏛️ Wages & Hours">
-                              <option value="minimum_wage">💰 Minimum Wage</option>
-                              <option value="overtime">⏰ Overtime & Hours</option>
-                              <option value="pay_frequency">📅 Pay Frequency</option>
-                              <option value="meal_rest_breaks">☕ Meal & Rest Breaks</option>
+                            <optgroup label="Wages & Hours">
+                              <option value="minimum_wage">Minimum Wage</option>
+                              <option value="overtime">Overtime & Hours</option>
+                              <option value="pay_frequency">Pay Frequency</option>
+                              <option value="meal_rest_breaks">Meal & Rest Breaks</option>
                             </optgroup>
-                            <optgroup label="🏥 Leave & Benefits">
-                              <option value="paid_sick_leave">🤒 Paid Sick Leave</option>
-                              <option value="family_medical_leave">👶 Family Medical Leave</option>
-                              <option value="jury_duty_leave">⚖️ Jury Duty Leave</option>
-                              <option value="bereavement_leave">💐 Bereavement Leave</option>
+                            <optgroup label="Leave & Benefits">
+                              <option value="paid_sick_leave">Paid Sick Leave</option>
+                              <option value="family_medical_leave">Family Medical Leave</option>
+                              <option value="jury_duty_leave">Jury Duty Leave</option>
+                              <option value="bereavement_leave">Bereavement Leave</option>
                             </optgroup>
-                            <optgroup label="🛡️ Safety & Training">
-                              <option value="harassment_training">🚫 Harassment Training</option>
-                              <option value="workplace_safety">🦺 Workplace Safety</option>
-                              <option value="workers_comp">🏥 Workers Compensation</option>
+                            <optgroup label="Safety & Training">
+                              <option value="harassment_training">Harassment Training</option>
+                              <option value="workplace_safety">Workplace Safety</option>
+                              <option value="workers_comp">Workers Compensation</option>
                             </optgroup>
-                            <optgroup label="📋 Employment Practices">
-                              <option value="background_checks">🔍 Background Checks</option>
-                              <option value="posting_requirements">📄 Posting Requirements</option>
-                              <option value="everify">✅ E-Verify</option>
+                            <optgroup label="Employment Practices">
+                              <option value="background_checks">Background Checks</option>
+                              <option value="posting_requirements">Posting Requirements</option>
+                              <option value="everify">E-Verify</option>
                             </optgroup>
-                            <optgroup label="🆕 Emerging Issues">
-                              <option value="biometric_privacy">👁️ Biometric Privacy</option>
-                              <option value="pregnancy_accommodation">🤱 Pregnancy Accommodation</option>
-                              <option value="domestic_violence_leave">🏠 Domestic Violence Leave</option>
+                            <optgroup label="Emerging Issues">
+                              <option value="biometric_privacy">Biometric Privacy</option>
+                              <option value="pregnancy_accommodation">Pregnancy Accommodation</option>
+                              <option value="domestic_violence_leave">Domestic Violence Leave</option>
                             </optgroup>
                           </select>
                           <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -785,7 +785,8 @@ export default function HomePage() {
                           <span className="text-xs text-gray-500">Filters:</span>
                           {selectedJurisdiction && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                              📍 {selectedJurisdiction}
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {selectedJurisdiction}
                               <button 
                                 onClick={() => setSelectedJurisdiction('')}
                                 className="ml-1 text-blue-600 hover:text-blue-800"
@@ -794,7 +795,12 @@ export default function HomePage() {
                           )}
                           {selectedPriority && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                              {selectedPriority === 'critical' ? '🔴' : selectedPriority === 'high' ? '🟠' : selectedPriority === 'medium' ? '🟡' : '🟢'} {selectedPriority}
+                              {selectedPriority === 'testing' ? <Flask className="h-3 w-3 mr-1" /> :
+                               selectedPriority === 'critical' ? <Zap className="h-3 w-3 mr-1" /> : 
+                               selectedPriority === 'high' ? <AlertCircle className="h-3 w-3 mr-1" /> : 
+                               selectedPriority === 'medium' ? <Timer className="h-3 w-3 mr-1" /> : 
+                               <Turtle className="h-3 w-3 mr-1" />}
+                              {selectedPriority}
                               <button 
                                 onClick={() => setSelectedPriority('')}
                                 className="ml-1 text-orange-600 hover:text-orange-800"
@@ -803,7 +809,8 @@ export default function HomePage() {
                           )}
                           {selectedTopic && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                              📋 {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
+                              <FileText className="h-3 w-3 mr-1" />
+                              {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
                               <button 
                                 onClick={() => setSelectedTopic('')}
                                 className="ml-1 text-green-600 hover:text-green-800"
@@ -812,7 +819,8 @@ export default function HomePage() {
                           )}
                           {showComplianceOnly && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                              🏛️ Compliance Only
+                              <Scale className="h-3 w-3 mr-1" />
+                              Compliance Only
                               <button 
                                 onClick={() => setShowComplianceOnly(false)}
                                 className="ml-1 text-purple-600 hover:text-purple-800"

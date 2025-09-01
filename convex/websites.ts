@@ -854,17 +854,19 @@ export const createWebsitesFromComplianceRules = mutation({
         }
         
         // Create website name with priority indicator
-        const priorityIcon = {
-          critical: "🔴",
-          high: "🟠",
-          medium: "🟡", 
-          low: "🟢"
+        const priorityPrefix = {
+          testing: "[TEST]",
+          critical: "[CRITICAL]",
+          high: "[HIGH]",
+          medium: "[MEDIUM]", 
+          low: "[LOW]"
         }[rule.priority];
         
-        const websiteName = `${priorityIcon} ${rule.jurisdiction} - ${rule.topicLabel}`;
+        const websiteName = `${priorityPrefix} ${rule.jurisdiction} - ${rule.topicLabel}`;
         
         // Determine monitoring settings
         const monitoringSettings = {
+          testing: { interval: 0.25, notification: "none" as const },   // 15 seconds (testing)
           critical: { interval: 1440, notification: "both" as const }, // Daily
           high: { interval: 2880, notification: "email" as const },     // Every 2 days
           medium: { interval: 10080, notification: "email" as const },  // Weekly

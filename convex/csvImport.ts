@@ -463,15 +463,16 @@ export const createWebsiteForRule = internalMutation({
       return existingWebsite._id;
     }
     
-    // Create website name with priority indicator
-    const priorityIcon = {
-      critical: "🔴",
-      high: "🟠",
-      medium: "🟡", 
-      low: "🟢"
+    // Create website name with priority indicator (no emoji, just text)
+    const priorityPrefix = {
+      testing: "[TEST]",
+      critical: "[CRITICAL]",
+      high: "[HIGH]",
+      medium: "[MEDIUM]", 
+      low: "[LOW]"
     }[args.priority];
     
-    const websiteName = `${priorityIcon} ${args.jurisdiction} - ${args.topicLabel}`;
+    const websiteName = `${priorityPrefix} ${args.jurisdiction} - ${args.topicLabel}`;
     
     // Determine notification settings
     const notificationPreference = {

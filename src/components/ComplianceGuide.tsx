@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { Info, ChevronDown, ChevronUp, Scale, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, Scale, Clock, AlertTriangle, CheckCircle, Zap, Timer, Turtle, Flask, DollarSign, Heart, Shield, FileText, Sparkles } from 'lucide-react'
 
 export function ComplianceGuide() {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -49,7 +49,10 @@ export function ComplianceGuide() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-white rounded-lg p-3 border border-red-200">
                   <div className="flex items-center mb-2">
-                    <Badge className="bg-red-100 text-red-800">🔴 Critical</Badge>
+                    <Badge className="bg-red-100 text-red-800">
+                      <Zap className="h-3 w-3 mr-1" />
+                      Critical
+                    </Badge>
                   </div>
                   <div className="text-xs space-y-1">
                     <div className="flex items-center">
@@ -63,7 +66,10 @@ export function ComplianceGuide() {
                 
                 <div className="bg-white rounded-lg p-3 border border-orange-200">
                   <div className="flex items-center mb-2">
-                    <Badge className="bg-orange-100 text-orange-800">🟠 High</Badge>
+                    <Badge className="bg-orange-100 text-orange-800">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      High
+                    </Badge>
                   </div>
                   <div className="text-xs space-y-1">
                     <div className="flex items-center">
@@ -77,7 +83,10 @@ export function ComplianceGuide() {
                 
                 <div className="bg-white rounded-lg p-3 border border-yellow-200">
                   <div className="flex items-center mb-2">
-                    <Badge className="bg-yellow-100 text-yellow-800">🟡 Medium</Badge>
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                      <Timer className="h-3 w-3 mr-1" />
+                      Medium
+                    </Badge>
                   </div>
                   <div className="text-xs space-y-1">
                     <div className="flex items-center">
@@ -91,7 +100,10 @@ export function ComplianceGuide() {
                 
                 <div className="bg-white rounded-lg p-3 border border-green-200">
                   <div className="flex items-center mb-2">
-                    <Badge className="bg-green-100 text-green-800">🟢 Low</Badge>
+                    <Badge className="bg-green-100 text-green-800">
+                      <Turtle className="h-3 w-3 mr-1" />
+                      Low
+                    </Badge>
                   </div>
                   <div className="text-xs space-y-1">
                     <div className="flex items-center">
@@ -113,7 +125,10 @@ export function ComplianceGuide() {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="bg-white rounded-lg p-3 border">
-                  <div className="font-medium text-sm mb-2">🏛️ Wages & Hours</div>
+                  <div className="font-medium text-sm mb-2 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                    Wages & Hours
+                  </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>Pay rates, overtime, work schedules</p>
                     <p className="text-gray-500">Minimum wage, overtime pay, meal breaks</p>
@@ -121,7 +136,10 @@ export function ComplianceGuide() {
                 </div>
                 
                 <div className="bg-white rounded-lg p-3 border">
-                  <div className="font-medium text-sm mb-2">🏥 Leave & Benefits</div>
+                  <div className="font-medium text-sm mb-2 flex items-center">
+                    <Heart className="h-4 w-4 mr-2 text-pink-600" />
+                    Leave & Benefits
+                  </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>Employee leave policies and benefits</p>
                     <p className="text-gray-500">Sick leave, family leave, jury duty</p>
@@ -129,7 +147,10 @@ export function ComplianceGuide() {
                 </div>
                 
                 <div className="bg-white rounded-lg p-3 border">
-                  <div className="font-medium text-sm mb-2">🛡️ Safety & Training</div>
+                  <div className="font-medium text-sm mb-2 flex items-center">
+                    <Shield className="h-4 w-4 mr-2 text-blue-600" />
+                    Safety & Training
+                  </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>Workplace safety and training requirements</p>
                     <p className="text-gray-500">Harassment training, OSHA, workers comp</p>
@@ -137,7 +158,10 @@ export function ComplianceGuide() {
                 </div>
                 
                 <div className="bg-white rounded-lg p-3 border">
-                  <div className="font-medium text-sm mb-2">📋 Employment Practices</div>
+                  <div className="font-medium text-sm mb-2 flex items-center">
+                    <FileText className="h-4 w-4 mr-2 text-gray-600" />
+                    Employment Practices
+                  </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>Hiring, background checks, notices</p>
                     <p className="text-gray-500">Background checks, posting requirements</p>
@@ -145,7 +169,10 @@ export function ComplianceGuide() {
                 </div>
                 
                 <div className="bg-white rounded-lg p-3 border">
-                  <div className="font-medium text-sm mb-2">🆕 Emerging Issues</div>
+                  <div className="font-medium text-sm mb-2 flex items-center">
+                    <Sparkles className="h-4 w-4 mr-2 text-purple-600" />
+                    Emerging Issues
+                  </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>New and evolving compliance areas</p>
                     <p className="text-gray-500">Biometric privacy, AI use, accommodations</p>
