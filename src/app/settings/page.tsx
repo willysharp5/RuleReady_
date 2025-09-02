@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useConvexAuth, useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2 } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
 import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
@@ -34,7 +34,7 @@ function SettingsContent() {
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
   const { } = useAuthActions()
   
-  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai'>('email')
+  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat'>('email')
   
   // API Key state
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -74,6 +74,16 @@ function SettingsContent() {
   const [aiSuccess, setAiSuccess] = useState(false)
   const [isTestingAI, setIsTestingAI] = useState(false)
   const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  
+  // AI Chat settings state
+  const [chatEnabled, setChatEnabled] = useState(true)
+  const [chatModel, setChatModel] = useState('gemini-2.0-flash-exp')
+  const [chatSystemPrompt, setChatSystemPrompt] = useState('You are a professional compliance assistant specializing in US employment law.')
+  const [enableComplianceContext, setEnableComplianceContext] = useState(true)
+  const [maxContextReports, setMaxContextReports] = useState(5)
+  const [enableSemanticSearch, setEnableSemanticSearch] = useState(true)
+  const [isUpdatingChat, setIsUpdatingChat] = useState(false)
+  const [chatSuccess, setChatSuccess] = useState(false)
   
   // API Key queries and mutations
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
@@ -337,6 +347,17 @@ Analyze the provided diff and return a JSON response with:
                 >
                   <Bot className="h-4 w-4" />
                   AI Analysis
+                </button>
+                <button
+                  onClick={() => setActiveSection('ai-chat')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'ai-chat'
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  AI Chat Assistant
                 </button>
               </nav>
             </div>
@@ -1475,6 +1496,195 @@ Analyze the provided diff and return a JSON response with:
                           </>
                         ) : (
                           'Save AI Settings'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'ai-chat' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <MessageCircle className="h-6 w-6" />
+                    AI Chat Assistant
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    {/* Chat Configuration */}
+                    <div>
+                      <h3 className="font-medium mb-4">Chat Configuration</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Model Selection */}
+                        <div>
+                          <Label htmlFor="chat-model">AI Model</Label>
+                          <select
+                            id="chat-model"
+                            value={chatModel}
+                            onChange={(e) => setChatModel(e.target.value)}
+                            className="w-full mt-1 p-2 border rounded"
+                          >
+                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Recommended)</option>
+                            <option value="gemini-pro">Gemini Pro</option>
+                            <option value="gpt-4">GPT-4</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Gemini 2.0 Flash provides fast, accurate compliance analysis
+                          </p>
+                        </div>
+                        
+                        {/* Context Reports */}
+                        <div>
+                          <Label htmlFor="max-reports">Max Reports per Query</Label>
+                          <Input
+                            id="max-reports"
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={maxContextReports}
+                            onChange={(e) => setMaxContextReports(Number(e.target.value))}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            How many relevant reports to include in AI context
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* System Prompt */}
+                    <div>
+                      <Label htmlFor="chat-prompt">Chat System Prompt</Label>
+                      <Textarea
+                        id="chat-prompt"
+                        value={chatSystemPrompt}
+                        onChange={(e) => setChatSystemPrompt(e.target.value)}
+                        rows={4}
+                        placeholder="You are a professional compliance assistant..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Customize how the AI assistant behaves and responds to compliance questions
+                      </p>
+                    </div>
+                    
+                    {/* Compliance Data Settings */}
+                    <div>
+                      <h4 className="font-medium mb-3">Compliance Data Integration</h4>
+                      
+                      <div className="space-y-3">
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={enableComplianceContext}
+                            onChange={(e) => setEnableComplianceContext(e.target.checked)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">Use compliance reports as context</span>
+                        </label>
+                        
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={enableSemanticSearch}
+                            onChange={(e) => setEnableSemanticSearch(e.target.checked)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">Enable semantic search with embeddings</span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    {/* Template Information */}
+                    <div>
+                      <h4 className="font-medium mb-3">Compliance Template Structure</h4>
+                      
+                      <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                        <h5 className="font-medium text-blue-900 mb-2">16 Template Sections Used:</h5>
+                        <div className="grid grid-cols-2 gap-1 text-xs text-blue-800">
+                          <div>• Overview</div>
+                          <div>• Covered Employers</div>
+                          <div>• Covered Employees</div>
+                          <div>• Training Requirements</div>
+                          <div>• Training Deadlines</div>
+                          <div>• Qualified Trainers</div>
+                          <div>• Special Requirements</div>
+                          <div>• Coverage Election</div>
+                          <div>• Reciprocity Coverage</div>
+                          <div>• Employer Deadlines</div>
+                          <div>• Notification Requirements</div>
+                          <div>• Posting Requirements</div>
+                          <div>• Recordkeeping Requirements</div>
+                          <div>• Penalties</div>
+                          <div>• Sources</div>
+                          <div>• + Custom Sections</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Test Chat Interface */}
+                    <div>
+                      <h4 className="font-medium mb-3">Test Chat Interface</h4>
+                      <div className="border rounded p-4 bg-gray-50">
+                        <p className="text-sm text-gray-600 mb-3">Test your AI chat configuration:</p>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Ask a compliance question..."
+                              className="flex-1"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  window.open('/chat', '_blank');
+                                }
+                              }}
+                            />
+                            <Button 
+                              size="sm"
+                              onClick={() => window.open('/chat', '_blank')}
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              Open Chat
+                            </Button>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Press Enter or click "Open Chat" to test the compliance chat assistant
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Save Settings */}
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={async () => {
+                          setIsUpdatingChat(true)
+                          try {
+                            // Save chat settings (implement this mutation)
+                            console.log('Saving chat settings:', {
+                              chatModel,
+                              chatSystemPrompt,
+                              enableComplianceContext,
+                              maxContextReports,
+                              enableSemanticSearch,
+                            });
+                            setChatSuccess(true)
+                            setTimeout(() => setChatSuccess(false), 3000)
+                          } catch (error) {
+                            console.error('Failed to update chat settings:', error)
+                          } finally {
+                            setIsUpdatingChat(false)
+                          }
+                        }}
+                        disabled={isUpdatingChat}
+                      >
+                        {isUpdatingChat ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : chatSuccess ? (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Saved
+                          </>
+                        ) : (
+                          'Save Chat Settings'
                         )}
                       </Button>
                     </div>

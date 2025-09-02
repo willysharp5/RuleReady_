@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 import { LoadingOverlay } from '@/components/ui/loading-overlay'
 import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo, JurisdictionInfo } from '@/components/ComplianceInfo'
 import { ComplianceGuide } from '@/components/ComplianceGuide'
+import { MonitoringStatus } from '@/components/MonitoringStatus'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -586,6 +587,9 @@ export default function HomePage() {
         <div className="space-y-6">
           {/* Compliance Guide */}
           <ComplianceGuide />
+          
+          {/* Monitoring Status with Active Jobs Filter */}
+          <MonitoringStatus />
           {/* Add Website Form - Full Width */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">

@@ -5,16 +5,18 @@ import { Id } from "./_generated/dataModel";
 import FirecrawlApp from "@mendable/firecrawl-js";
 import { requireCurrentUserForAction } from "./helpers";
 
-// Initialize Firecrawl client with user's API key
-export const getFirecrawlClient = async (ctx: any, userId: string) => {
-  // First try to get user's API key from internal query
-  const userKeyData = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKey, { userId });
-  
-  if (userKeyData && userKeyData.key) {
-    // Using user's Firecrawl API key
-    // Update last used timestamp
-    await ctx.runMutation(internal.firecrawlKeys.updateLastUsed, { keyId: userKeyData.keyId });
-    return new FirecrawlApp({ apiKey: userKeyData.key });
+// Initialize Firecrawl client with user's API key (single-user mode compatible)
+export const getFirecrawlClient = async (ctx: any, userId: string | null | undefined) => {
+  // Try to get user's API key if userId is provided
+  if (userId) {
+    const userKeyData = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKey, { userId });
+    
+    if (userKeyData && userKeyData.key) {
+      // Using user's Firecrawl API key
+      // Update last used timestamp
+      await ctx.runMutation(internal.firecrawlKeys.updateLastUsed, { keyId: userKeyData.keyId });
+      return new FirecrawlApp({ apiKey: userKeyData.key });
+    }
   }
   
   // Fallback to environment variable if user hasn't set their own key
@@ -32,7 +34,7 @@ export const scrapeUrl = internalAction({
   args: {
     websiteId: v.id("websites"),
     url: v.string(),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
   },
   handler: async (ctx, args): Promise<{
     success: boolean;
@@ -41,7 +43,7 @@ export const scrapeUrl = internalAction({
     visibility: string | undefined;
     previousScrapeAt: string | undefined;
   }> => {
-    const firecrawl = await getFirecrawlClient(ctx, args.userId);
+    const firecrawl = await getFirecrawlClient(ctx, args.userId || null);
 
     try {
       // Scraping URL with change tracking
@@ -72,7 +74,7 @@ export const scrapeUrl = internalAction({
       // Store the scrape result
       const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
         websiteId: args.websiteId,
-        userId: args.userId,
+        userId: args.userId || null,
         markdown: markdown,
         changeStatus: changeTracking?.changeStatus || "new",
         visibility: changeTracking?.visibility || "visible",

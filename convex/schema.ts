@@ -71,7 +71,7 @@ const schema = defineSchema({
 
   scrapeResults: defineTable({
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -107,7 +107,7 @@ const schema = defineSchema({
 
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
@@ -364,6 +364,31 @@ const schema = defineSchema({
     .index("by_priority", ["priority"])
     .index("by_topic_key", ["topicKey"]),
 
+  // Compliance monitoring logs for workpool tracking
+  complianceMonitoringLogs: defineTable({
+    websiteId: v.id("websites"),
+    ruleId: v.string(),
+    success: v.boolean(),
+    changesDetected: v.boolean(),
+    severity: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("none")),
+    processingTime: v.number(), // milliseconds
+    mode: v.union(v.literal("testing"), v.literal("production")),
+    processedAt: v.number(),
+    error: v.optional(v.string()),
+    metadata: v.optional(v.object({
+      jurisdiction: v.optional(v.string()),
+      topicKey: v.optional(v.string()),
+      priority: v.optional(v.string()),
+      contentLength: v.optional(v.number()),
+      responseTime: v.optional(v.number()),
+    })),
+  })
+    .index("by_website", ["websiteId"])
+    .index("by_rule", ["ruleId"])
+    .index("by_processed_at", ["processedAt"])
+    .index("by_mode", ["mode"])
+    .index("by_success", ["success"]),
+
   // Generated compliance reports
   generatedReports: defineTable({
     reportId: v.string(),
@@ -426,6 +451,64 @@ const schema = defineSchema({
     .index("by_status", ["status"])
     .index("by_scheduled", ["scheduledFor"])
     .index("by_frequency", ["frequency"]),
+
+  // AI-processed compliance reports
+  complianceAIReports: defineTable({
+    reportId: v.string(),
+    ruleId: v.string(),
+    rawContent: v.string(),
+    structuredData: v.object({
+      overview: v.optional(v.string()),
+      coveredEmployers: v.optional(v.string()),
+      coveredEmployees: v.optional(v.string()),
+      employerResponsibilities: v.optional(v.string()),
+      trainingRequirements: v.optional(v.string()),
+      trainingDeadlines: v.optional(v.string()),
+      qualifiedTrainers: v.optional(v.string()),
+      specialRequirements: v.optional(v.string()),
+      coverageElection: v.optional(v.string()),
+      reciprocity: v.optional(v.string()),
+      employerDeadlines: v.optional(v.string()),
+      notificationRequirements: v.optional(v.string()),
+      postingRequirements: v.optional(v.string()),
+      recordkeepingRequirements: v.optional(v.string()),
+      penalties: v.optional(v.string()),
+      sources: v.optional(v.string()),
+    }),
+    sourceUrl: v.string(),
+    processedBy: v.string(), // "gemini-2.5-flash-lite"
+    processedAt: v.number(),
+    aiMetadata: v.optional(v.object({
+      tokensUsed: v.number(),
+      processingTime: v.number(),
+      confidence: v.number(),
+      sectionsExtracted: v.number(),
+    })),
+  })
+    .index("by_rule", ["ruleId"])
+    .index("by_processed_at", ["processedAt"])
+    .index("by_processed_by", ["processedBy"]),
+
+  // Compliance chat sessions
+  complianceChatSessions: defineTable({
+    sessionId: v.string(),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
+    messages: v.array(v.object({
+      role: v.union(v.literal("user"), v.literal("assistant")),
+      content: v.string(),
+      timestamp: v.number(),
+    })),
+    context: v.optional(v.object({
+      jurisdiction: v.optional(v.string()),
+      topic: v.optional(v.string()),
+      reportsUsed: v.array(v.string()),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_session_id", ["sessionId"]),
 });
 
 export default schema;

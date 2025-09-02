@@ -29,19 +29,25 @@ import type * as embeddingJobs from "../embeddingJobs.js";
 import type * as embeddingManager from "../embeddingManager.js";
 import type * as firecrawl from "../firecrawl.js";
 import type * as firecrawlKeys from "../firecrawlKeys.js";
+import type * as geminiFlashLite from "../geminiFlashLite.js";
+import type * as generateEmbeddings from "../generateEmbeddings.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
+import type * as importComplianceReports from "../importComplianceReports.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
+import type * as migrateEmbeddings from "../migrateEmbeddings.js";
 import type * as monitoring from "../monitoring.js";
 import type * as notifications from "../notifications.js";
 import type * as reportImport from "../reportImport.js";
 import type * as singleUserSetup from "../singleUserSetup.js";
 import type * as testActions from "../testActions.js";
+import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as webhookPlayground from "../webhookPlayground.js";
 import type * as websites from "../websites.js";
+import type * as workpoolSimple from "../workpoolSimple.js";
 
 import type {
   ApiFromModules,
@@ -79,19 +85,25 @@ declare const fullApi: ApiFromModules<{
   embeddingManager: typeof embeddingManager;
   firecrawl: typeof firecrawl;
   firecrawlKeys: typeof firecrawlKeys;
+  geminiFlashLite: typeof geminiFlashLite;
+  generateEmbeddings: typeof generateEmbeddings;
   helpers: typeof helpers;
   http: typeof http;
+  importComplianceReports: typeof importComplianceReports;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
+  migrateEmbeddings: typeof migrateEmbeddings;
   monitoring: typeof monitoring;
   notifications: typeof notifications;
   reportImport: typeof reportImport;
   singleUserSetup: typeof singleUserSetup;
   testActions: typeof testActions;
+  testingMode: typeof testingMode;
   userSettings: typeof userSettings;
   users: typeof users;
   webhookPlayground: typeof webhookPlayground;
   websites: typeof websites;
+  workpoolSimple: typeof workpoolSimple;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

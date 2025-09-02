@@ -1115,6 +1115,1612 @@ export const distributeReport = internalAction({
 
 ---
 
+## **PHASE 4C: COMPLIANCE SETTINGS ENHANCEMENT** ⚙️
+*Enhance settings page with compliance template customization and AI analysis configuration*
+
+### **4C.1 Current State Analysis**
+- ✅ **Existing Settings Page** (`/settings`) with email, webhook, AI, and API key management
+- ✅ **1,175 compliance reports** with structured data using compliance template
+- ✅ **Compliance template** with 16 structured sections (Overview, Covered Employers, etc.)
+- ✅ **2,759 Gemini embeddings** ready for enhanced AI analysis
+
+### **4C.2 Compliance Template Management**
+- [ ] **Add Compliance Template Section** to settings page:
+
+```typescript
+// New settings section: "Compliance Templates"
+interface ComplianceTemplateSettings {
+  // Template customization
+  enabledSections: string[]; // Which template sections to extract
+  customSections: { name: string; description: string; required: boolean }[];
+  
+  // Content extraction settings
+  extractionMode: 'automatic' | 'ai_powered' | 'hybrid';
+  aiExtractionPrompt: string;
+  fallbackToManual: boolean;
+  
+  // Template validation
+  requireAllSections: boolean;
+  minimumContentLength: number;
+  validateSources: boolean;
+}
+
+// Template Section Configuration UI
+<div className="space-y-6">
+  <h3>Compliance Template Configuration</h3>
+  
+  {/* Section Selection */}
+  <div className="grid grid-cols-2 gap-4">
+    {TEMPLATE_SECTIONS.map(section => (
+      <label key={section.key} className="flex items-center">
+        <input 
+          type="checkbox" 
+          checked={enabledSections.includes(section.key)}
+          onChange={(e) => toggleSection(section.key, e.target.checked)}
+        />
+        <span className="ml-2">{section.name}</span>
+        <Tooltip content={section.description} />
+      </label>
+    ))}
+  </div>
+  
+  {/* Custom Sections */}
+  <div>
+    <h4>Custom Template Sections</h4>
+    {customSections.map(section => (
+      <div key={section.name} className="flex items-center gap-2">
+        <Input value={section.name} onChange={...} />
+        <Input value={section.description} onChange={...} />
+        <Button onClick={() => removeCustomSection(section.name)}>Remove</Button>
+      </div>
+    ))}
+    <Button onClick={addCustomSection}>Add Custom Section</Button>
+  </div>
+</div>
+```
+
+### **4C.3 Enhanced AI Analysis Settings**
+- [ ] **Compliance-Specific AI Configuration**:
+
+```typescript
+// Enhanced AI settings for compliance analysis
+interface ComplianceAISettings {
+  // Analysis models
+  primaryModel: 'gemini-pro' | 'gpt-4' | 'claude-3';
+  embeddingModel: 'gemini-embedding-001' | 'text-embedding-3-large';
+  
+  // Compliance analysis prompts
+  changeDetectionPrompt: string;
+  severityAnalysisPrompt: string;
+  impactAssessmentPrompt: string;
+  deadlineExtractionPrompt: string;
+  
+  // Analysis thresholds
+  significantChangeThreshold: number; // 0-100
+  criticalAlertThreshold: number;
+  businessImpactThreshold: number;
+  
+  // Compliance-specific features
+  enableDeadlineTracking: boolean;
+  enableCrossJurisdictionAnalysis: boolean;
+  enablePenaltyExtraction: boolean;
+  enableRequirementMapping: boolean;
+}
+
+// AI Analysis Configuration UI
+<div className="space-y-6">
+  <h3>Compliance AI Analysis</h3>
+  
+  {/* Model Selection */}
+  <div>
+    <Label>Primary Analysis Model</Label>
+    <Select value={primaryModel} onChange={setPrimaryModel}>
+      <option value="gemini-pro">Gemini Pro (Recommended for compliance)</option>
+      <option value="gpt-4">GPT-4 (Advanced reasoning)</option>
+      <option value="claude-3">Claude 3 (Legal analysis)</option>
+    </Select>
+  </div>
+  
+  {/* Custom Prompts */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <Label>Change Detection Prompt</Label>
+      <Textarea 
+        value={changeDetectionPrompt}
+        onChange={setChangeDetectionPrompt}
+        placeholder="Analyze this compliance content for significant changes..."
+        rows={4}
+      />
+    </div>
+    <div>
+      <Label>Severity Analysis Prompt</Label>
+      <Textarea 
+        value={severityAnalysisPrompt}
+        onChange={setSeverityAnalysisPrompt}
+        placeholder="Assess the business impact and severity of these changes..."
+        rows={4}
+      />
+    </div>
+  </div>
+  
+  {/* Analysis Thresholds */}
+  <div className="grid grid-cols-3 gap-4">
+    <div>
+      <Label>Significant Change Threshold (%)</Label>
+      <Input 
+        type="number" 
+        min="0" 
+        max="100" 
+        value={significantChangeThreshold}
+        onChange={setSignificantChangeThreshold}
+      />
+    </div>
+    <div>
+      <Label>Critical Alert Threshold (%)</Label>
+      <Input 
+        type="number" 
+        min="0" 
+        max="100" 
+        value={criticalAlertThreshold}
+        onChange={setCriticalAlertThreshold}
+      />
+    </div>
+    <div>
+      <Label>Business Impact Threshold (%)</Label>
+      <Input 
+        type="number" 
+        min="0" 
+        max="100" 
+        value={businessImpactThreshold}
+        onChange={setBusinessImpactThreshold}
+      />
+    </div>
+  </div>
+</div>
+```
+
+### **4C.4 Compliance Email Templates**
+- [ ] **Enhanced Email Template System**:
+
+```typescript
+// Compliance-specific email templates
+interface ComplianceEmailTemplates {
+  // Template types
+  changeAlert: string;           // When compliance rules change
+  deadlineReminder: string;      // Upcoming compliance deadlines
+  criticalUpdate: string;        // Critical compliance changes
+  weeklyDigest: string;          // Weekly compliance summary
+  jurisdictionSummary: string;   // State-specific updates
+  
+  // Template variables
+  availableVariables: {
+    compliance: string[];        // {{jurisdiction}}, {{topicName}}, {{priority}}
+    change: string[];           // {{changeDescription}}, {{severity}}, {{effectiveDate}}
+    business: string[];         // {{affectedEmployees}}, {{businessImpact}}, {{actionRequired}}
+  };
+}
+
+// Compliance Email Template Editor
+<div className="space-y-6">
+  <h3>Compliance Email Templates</h3>
+  
+  {/* Template Type Selection */}
+  <div>
+    <Label>Template Type</Label>
+    <Select value={templateType} onChange={setTemplateType}>
+      <option value="changeAlert">Change Alert</option>
+      <option value="deadlineReminder">Deadline Reminder</option>
+      <option value="criticalUpdate">Critical Update</option>
+      <option value="weeklyDigest">Weekly Digest</option>
+      <option value="jurisdictionSummary">Jurisdiction Summary</option>
+    </Select>
+  </div>
+  
+  {/* Template Variables Helper */}
+  <div className="bg-blue-50 border border-blue-200 rounded p-4">
+    <h4 className="font-medium mb-2">Available Template Variables</h4>
+    <div className="grid grid-cols-3 gap-4 text-sm">
+      <div>
+        <strong>Compliance:</strong>
+        <ul className="text-xs mt-1 space-y-1">
+          <li>{{jurisdiction}} - State/Federal</li>
+          <li>{{topicName}} - Compliance topic</li>
+          <li>{{priority}} - Rule priority level</li>
+          <li>{{sourceUrl}} - Official source</li>
+        </ul>
+      </div>
+      <div>
+        <strong>Changes:</strong>
+        <ul className="text-xs mt-1 space-y-1">
+          <li>{{changeDescription}} - What changed</li>
+          <li>{{severity}} - Change severity</li>
+          <li>{{effectiveDate}} - When it takes effect</li>
+          <li>{{oldContent}} - Previous content</li>
+        </ul>
+      </div>
+      <div>
+        <strong>Business Impact:</strong>
+        <ul className="text-xs mt-1 space-y-1">
+          <li>{{affectedEmployees}} - Who's affected</li>
+          <li>{{businessImpact}} - Impact level</li>
+          <li>{{actionRequired}} - Required actions</li>
+          <li>{{deadline}} - Compliance deadline</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  {/* Enhanced Template Editor */}
+  <ComplianceEmailTemplateEditor 
+    template={emailTemplate}
+    onChange={setEmailTemplate}
+    templateType={templateType}
+    availableVariables={COMPLIANCE_VARIABLES}
+  />
+</div>
+```
+
+### **4C.5 Compliance Monitoring Preferences**
+- [ ] **Monitoring Configuration Settings**:
+
+```typescript
+// Compliance monitoring preferences
+interface ComplianceMonitoringSettings {
+  // Jurisdiction preferences
+  priorityJurisdictions: string[];      // Focus on specific states
+  monitorFederalFirst: boolean;         // Prioritize federal changes
+  
+  // Topic preferences  
+  criticalTopics: string[];             // Always monitor as critical
+  ignoredTopics: string[];              // Skip monitoring
+  customTopicPriorities: Record<string, 'critical' | 'high' | 'medium' | 'low'>;
+  
+  // Change detection
+  enableSemanticAnalysis: boolean;      // Use embeddings for change detection
+  minimumChangeSignificance: number;    // Threshold for reporting changes
+  enablePredictiveAnalysis: boolean;    // Predict likely changes
+  
+  // Notification preferences
+  immediateAlertTopics: string[];       // Topics requiring immediate alerts
+  digestFrequency: 'daily' | 'weekly' | 'monthly';
+  includeRecommendations: boolean;      // Include AI recommendations
+}
+
+// Monitoring Settings UI
+<div className="space-y-6">
+  <h3>Compliance Monitoring Preferences</h3>
+  
+  {/* Jurisdiction Priorities */}
+  <div>
+    <Label>Priority Jurisdictions</Label>
+    <MultiSelect 
+      options={jurisdictions.map(j => ({ value: j.code, label: j.name }))}
+      value={priorityJurisdictions}
+      onChange={setPriorityJurisdictions}
+      placeholder="Select jurisdictions to prioritize..."
+    />
+    <p className="text-xs text-gray-500 mt-1">
+      These jurisdictions will be monitored more frequently
+    </p>
+  </div>
+  
+  {/* Topic Customization */}
+  <div>
+    <Label>Topic Priority Overrides</Label>
+    {topics.map(topic => (
+      <div key={topic.topicKey} className="flex items-center justify-between py-2">
+        <span>{topic.name}</span>
+        <Select 
+          value={customTopicPriorities[topic.topicKey] || topic.priority}
+          onChange={(value) => updateTopicPriority(topic.topicKey, value)}
+        >
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="ignore">Ignore</option>
+        </Select>
+      </div>
+    ))}
+  </div>
+</div>
+```
+
+### **4C.6 Backend Schema Extensions**
+- [ ] **Extended User Settings Schema**:
+
+```typescript
+// Enhanced userSettings table
+userSettings: defineTable({
+  userId: v.id("users"),
+  
+  // Existing settings...
+  defaultWebhookUrl: v.optional(v.string()),
+  emailNotificationsEnabled: v.boolean(),
+  emailTemplate: v.optional(v.string()),
+  
+  // NEW: Compliance template settings
+  complianceTemplateSettings: v.optional(v.object({
+    enabledSections: v.array(v.string()),
+    customSections: v.array(v.object({
+      name: v.string(),
+      description: v.string(),
+      required: v.boolean(),
+    })),
+    extractionMode: v.union(v.literal("automatic"), v.literal("ai_powered"), v.literal("hybrid")),
+    aiExtractionPrompt: v.optional(v.string()),
+    requireAllSections: v.boolean(),
+    minimumContentLength: v.number(),
+  })),
+  
+  // NEW: Enhanced AI settings
+  complianceAISettings: v.optional(v.object({
+    primaryModel: v.string(),
+    embeddingModel: v.string(),
+    changeDetectionPrompt: v.string(),
+    severityAnalysisPrompt: v.string(),
+    impactAssessmentPrompt: v.string(),
+    deadlineExtractionPrompt: v.string(),
+    significantChangeThreshold: v.number(),
+    criticalAlertThreshold: v.number(),
+    enableDeadlineTracking: v.boolean(),
+    enableCrossJurisdictionAnalysis: v.boolean(),
+  })),
+  
+  // NEW: Compliance email templates
+  complianceEmailTemplates: v.optional(v.object({
+    changeAlert: v.string(),
+    deadlineReminder: v.string(),
+    criticalUpdate: v.string(),
+    weeklyDigest: v.string(),
+    jurisdictionSummary: v.string(),
+  })),
+  
+  // NEW: Monitoring preferences
+  complianceMonitoringSettings: v.optional(v.object({
+    priorityJurisdictions: v.array(v.string()),
+    monitorFederalFirst: v.boolean(),
+    criticalTopics: v.array(v.string()),
+    ignoredTopics: v.array(v.string()),
+    customTopicPriorities: v.object({}), // Dynamic topic priorities
+    enableSemanticAnalysis: v.boolean(),
+    minimumChangeSignificance: v.number(),
+    immediateAlertTopics: v.array(v.string()),
+    digestFrequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+  })),
+})
+```
+
+### **4C.7 Settings Management Functions**
+- [ ] **Create compliance settings management**:
+
+```typescript
+// convex/complianceSettings.ts
+export const updateComplianceTemplateSettings = mutation({
+  args: {
+    enabledSections: v.array(v.string()),
+    customSections: v.array(v.object({
+      name: v.string(),
+      description: v.string(),
+      required: v.boolean(),
+    })),
+    extractionMode: v.union(v.literal("automatic"), v.literal("ai_powered"), v.literal("hybrid")),
+    // ... other template settings
+  },
+  handler: async (ctx, args) => {
+    // Update user's compliance template settings
+    // Validate template configuration
+    // Apply changes to existing compliance monitoring
+  }
+});
+
+export const updateComplianceAISettings = mutation({
+  args: {
+    primaryModel: v.string(),
+    changeDetectionPrompt: v.string(),
+    severityAnalysisPrompt: v.string(),
+    // ... other AI settings
+  },
+  handler: async (ctx, args) => {
+    // Update AI analysis settings
+    // Validate prompts and thresholds
+    // Apply to future compliance analysis
+  }
+});
+
+export const updateComplianceEmailTemplates = mutation({
+  args: {
+    templateType: v.union(
+      v.literal("changeAlert"),
+      v.literal("deadlineReminder"), 
+      v.literal("criticalUpdate"),
+      v.literal("weeklyDigest"),
+      v.literal("jurisdictionSummary")
+    ),
+    template: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Update specific email template
+    // Validate template variables
+    // Test template compilation
+  }
+});
+```
+
+### **4C.8 Integration with Existing Compliance Data**
+- [ ] **Apply settings to existing 1,175 reports**:
+
+```typescript
+// Apply custom templates to existing compliance reports
+export const reprocessComplianceReports = mutation({
+  args: {
+    jurisdictions: v.optional(v.array(v.string())),
+    topics: v.optional(v.array(v.string())),
+    useCustomTemplate: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Get user's template settings
+    const templateSettings = await getUserComplianceTemplateSettings(ctx);
+    
+    // Reprocess existing reports with new template
+    const reports = await getFilteredReports(ctx, args.jurisdictions, args.topics);
+    
+    for (const report of reports) {
+      const reprocessedContent = await applyCustomTemplate(
+        report.reportContent, 
+        templateSettings
+      );
+      
+      // Update report with new extracted sections
+      await updateReportSections(ctx, report.reportId, reprocessedContent);
+    }
+  }
+});
+
+// Use existing compliance reports to enhance AI analysis
+export const enhanceComplianceAnalysis = action({
+  args: {
+    ruleId: v.string(),
+    useExistingReports: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Get existing report for this rule
+    const existingReport = await getComplianceReport(ctx, args.ruleId);
+    
+    // Use report content to enhance AI analysis
+    if (existingReport && args.useExistingReports) {
+      const enhancedAnalysis = await analyzeWithExistingContext(
+        ctx,
+        args.ruleId,
+        existingReport.extractedSections
+      );
+      
+      return enhancedAnalysis;
+    }
+    
+    // Standard analysis without existing context
+    return await standardComplianceAnalysis(ctx, args.ruleId);
+  }
+});
+```
+
+### **4C.9 Enhanced Settings Page Navigation**
+- [ ] **Add new settings sections**:
+
+```typescript
+// Enhanced settings navigation
+const SETTINGS_SECTIONS = [
+  { key: 'email', label: 'Email & Notifications', icon: Mail },
+  { key: 'webhooks', label: 'Webhooks', icon: Webhook },
+  { key: 'compliance-templates', label: 'Compliance Templates', icon: FileText }, // NEW
+  { key: 'compliance-ai', label: 'AI Analysis', icon: Bot },                      // ENHANCED
+  { key: 'monitoring', label: 'Monitoring Preferences', icon: Settings },        // NEW
+  { key: 'firecrawl', label: 'FireCrawl API', icon: Key },
+  { key: 'api', label: 'API Keys', icon: Key },
+];
+```
+
+### **4C.10 Template Preview & Testing**
+- [ ] **Add template testing functionality**:
+
+```typescript
+// Template preview and testing functionality
+<div className="space-y-4">
+  <h4>Template Preview</h4>
+  
+  {/* Sample Data Selection */}
+  <div>
+    <Label>Preview with Sample Data</Label>
+    <Select value={previewRuleId} onChange={setPreviewRuleId}>
+      <option value="">Select a compliance rule...</option>
+      {sampleRules.map(rule => (
+        <option key={rule.ruleId} value={rule.ruleId}>
+          {rule.jurisdiction} - {rule.topicLabel}
+        </option>
+      ))}
+    </Select>
+  </div>
+  
+  {/* Live Preview */}
+  {previewRuleId && (
+    <div className="border rounded p-4 bg-gray-50">
+      <h5 className="font-medium mb-2">Template Preview:</h5>
+      <div dangerouslySetInnerHTML={{ 
+        __html: renderTemplate(emailTemplate, sampleData) 
+      }} />
+    </div>
+  )}
+  
+  {/* Test Email */}
+  <div className="flex gap-2">
+    <Input 
+      placeholder="test@example.com"
+      value={testEmail}
+      onChange={setTestEmail}
+    />
+    <Button onClick={sendTestEmail}>Send Test Email</Button>
+  </div>
+</div>
+```
+
+---
+
+## **PHASE 4D: TESTING & PRODUCTION DEPLOYMENT STRATEGY** 🧪
+*Implement controlled testing with 5 websites and Convex Workpool for production scaling*
+
+### **4D.1 Current Issue Analysis**
+- ❌ **Over-scheduled**: All 1,214 compliance websites currently scheduled for monitoring
+- ❌ **Resource intensive**: Too many concurrent monitoring jobs for testing
+- ❌ **No job management**: Missing proper queue and workload management
+- ✅ **Data ready**: All compliance rules imported and websites created
+
+### **4D.2 Testing Strategy with Limited Websites**
+- [ ] **Implement selective website activation**:
+
+```typescript
+// convex/testingMode.ts
+export const enableTestingMode = mutation({
+  args: {
+    testWebsiteCount: v.number(), // Default: 5
+    testJurisdictions: v.optional(v.array(v.string())), // e.g., ["Federal", "California"]
+    testTopics: v.optional(v.array(v.string())), // e.g., ["minimum_wage", "harassment_training"]
+    testPriorities: v.optional(v.array(v.string())), // e.g., ["critical", "high"]
+  },
+  handler: async (ctx, args) => {
+    // 1. Pause all existing websites
+    await pauseAllWebsites(ctx);
+    
+    // 2. Select test websites based on criteria
+    const testWebsites = await selectTestWebsites(ctx, {
+      count: args.testWebsiteCount,
+      jurisdictions: args.testJurisdictions,
+      topics: args.testTopics,
+      priorities: args.testPriorities,
+    });
+    
+    // 3. Activate only test websites
+    for (const website of testWebsites) {
+      await ctx.db.patch(website._id, {
+        isActive: true,
+        isPaused: false,
+        checkInterval: 0.25, // 15 seconds for testing
+      });
+    }
+    
+    return {
+      testWebsitesActivated: testWebsites.length,
+      totalWebsitesPaused: await getTotalWebsites(ctx) - testWebsites.length,
+      testCriteria: args,
+    };
+  }
+});
+
+// Select representative test websites
+async function selectTestWebsites(ctx: any, criteria: any) {
+  const allWebsites = await ctx.db.query("websites").collect();
+  const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+  
+  // Filter by criteria
+  let filtered = complianceWebsites;
+  
+  if (criteria.jurisdictions) {
+    filtered = filtered.filter(w => 
+      criteria.jurisdictions.includes(w.complianceMetadata?.jurisdiction)
+    );
+  }
+  
+  if (criteria.topics) {
+    filtered = filtered.filter(w => 
+      criteria.topics.includes(w.complianceMetadata?.topicKey)
+    );
+  }
+  
+  if (criteria.priorities) {
+    filtered = filtered.filter(w => 
+      criteria.priorities.includes(w.complianceMetadata?.priority)
+    );
+  }
+  
+  // Return top N websites, prioritizing critical and diverse jurisdictions
+  return filtered
+    .sort((a, b) => {
+      const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+      const aPriority = priorityOrder[a.complianceMetadata?.priority] || 0;
+      const bPriority = priorityOrder[b.complianceMetadata?.priority] || 0;
+      return bPriority - aPriority;
+    })
+    .slice(0, criteria.count);
+}
+```
+
+### **4D.3 Convex Workpool Integration**
+- [ ] **Implement Convex Workpool for job management**:
+
+```typescript
+// convex/complianceWorkpool.ts
+import { Workpool } from "@convex-dev/workpool";
+
+// Define compliance monitoring workpool
+export const complianceWorkpool = new Workpool({
+  name: "compliance-monitoring",
+  maxConcurrency: 5, // Process max 5 compliance checks simultaneously
+  retryPolicy: {
+    maxRetries: 3,
+    backoffMultiplier: 2,
+    initialBackoffMs: 1000,
+  },
+});
+
+// Compliance monitoring job definition
+export const complianceMonitoringJob = complianceWorkpool.job({
+  args: {
+    websiteId: v.id("websites"),
+    ruleId: v.string(),
+    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔍 Processing compliance check for ${args.ruleId}`);
+    
+    // 1. Get website and rule details
+    const website = await ctx.db.get(args.websiteId);
+    const rule = await ctx.runQuery(internal.complianceCrawler.getRule, { ruleId: args.ruleId });
+    
+    if (!website || !rule) {
+      throw new Error(`Website or rule not found: ${args.websiteId}, ${args.ruleId}`);
+    }
+    
+    // 2. Perform compliance-specific crawl
+    const crawlResult = await ctx.runAction(internal.complianceCrawler.crawlComplianceRule, {
+      ruleId: args.ruleId,
+    });
+    
+    // 3. Process results and update database
+    await ctx.runMutation(internal.complianceWorkpool.updateMonitoringResults, {
+      websiteId: args.websiteId,
+      ruleId: args.ruleId,
+      crawlResult,
+      processedAt: Date.now(),
+    });
+    
+    return {
+      success: crawlResult.success,
+      changesDetected: crawlResult.changesDetected,
+      nextScheduled: crawlResult.nextCrawlScheduled,
+    };
+  },
+});
+
+// Schedule compliance monitoring jobs
+export const scheduleComplianceMonitoring = internalAction({
+  args: {
+    mode: v.union(v.literal("testing"), v.literal("production")),
+    maxJobs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const maxJobs = args.maxJobs || (args.mode === "testing" ? 5 : 100);
+    
+    // Get websites due for monitoring
+    const websitesDue = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+      limit: maxJobs,
+    });
+    
+    console.log(`📅 Scheduling ${websitesDue.length} compliance monitoring jobs (${args.mode} mode)`);
+    
+    // Schedule jobs through workpool
+    for (const website of websitesDue) {
+      await complianceWorkpool.enqueue(ctx, {
+        websiteId: website._id,
+        ruleId: website.complianceMetadata?.ruleId || website.name,
+        priority: website.complianceMetadata?.priority || "medium",
+      });
+    }
+    
+    return {
+      jobsScheduled: websitesDue.length,
+      mode: args.mode,
+      maxConcurrency: 5,
+    };
+  },
+});
+```
+
+### **4D.4 Testing Mode Implementation**
+- [ ] **Create testing mode controls**:
+
+```typescript
+// convex/testingControls.ts
+export const setTestingMode = mutation({
+  args: {
+    enabled: v.boolean(),
+    testWebsites: v.optional(v.array(v.object({
+      jurisdiction: v.string(),
+      topicKey: v.string(),
+      priority: v.string(),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    if (args.enabled) {
+      // Enable testing mode with limited websites
+      const defaultTestWebsites = [
+        { jurisdiction: "Federal", topicKey: "minimum_wage", priority: "critical" },
+        { jurisdiction: "California", topicKey: "harassment_training", priority: "critical" },
+        { jurisdiction: "Texas", topicKey: "overtime", priority: "high" },
+        { jurisdiction: "New York", topicKey: "paid_sick_leave", priority: "high" },
+        { jurisdiction: "Florida", topicKey: "posting_requirements", priority: "medium" },
+      ];
+      
+      const testWebsites = args.testWebsites || defaultTestWebsites;
+      
+      // Pause all websites first
+      await pauseAllComplianceWebsites(ctx);
+      
+      // Activate only test websites
+      let activated = 0;
+      for (const testSite of testWebsites) {
+        const website = await findComplianceWebsite(ctx, testSite);
+        if (website) {
+          await ctx.db.patch(website._id, {
+            isActive: true,
+            isPaused: false,
+            checkInterval: 0.25, // 15 seconds for testing
+          });
+          activated++;
+        }
+      }
+      
+      return { testingMode: true, websitesActivated: activated };
+      
+    } else {
+      // Disable testing mode - restore production settings
+      await restoreProductionSettings(ctx);
+      return { testingMode: false, message: "Production settings restored" };
+    }
+  },
+});
+
+// Find specific compliance website
+async function findComplianceWebsite(ctx: any, criteria: any) {
+  const websites = await ctx.db.query("websites").collect();
+  return websites.find(w => 
+    w.complianceMetadata?.jurisdiction === criteria.jurisdiction &&
+    w.complianceMetadata?.topicKey === criteria.topicKey
+  );
+}
+
+// Pause all compliance websites
+async function pauseAllComplianceWebsites(ctx: any) {
+  const websites = await ctx.db.query("websites").collect();
+  const complianceWebsites = websites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+  
+  for (const website of complianceWebsites) {
+    await ctx.db.patch(website._id, {
+      isActive: false,
+      isPaused: true,
+    });
+  }
+  
+  return complianceWebsites.length;
+}
+```
+
+### **4D.5 Workpool Configuration**
+- [ ] **Configure Workpool for compliance monitoring**:
+
+```typescript
+// Enhanced workpool configuration
+export const complianceWorkpool = new Workpool({
+  name: "compliance-monitoring",
+  maxConcurrency: 5, // Limit concurrent jobs for testing
+  retryPolicy: {
+    maxRetries: 3,
+    backoffMultiplier: 2,
+    initialBackoffMs: 1000,
+    maxBackoffMs: 30000,
+  },
+  deadLetterQueue: {
+    enabled: true,
+    maxDeadLetterJobs: 100,
+  },
+  metrics: {
+    enabled: true,
+    trackJobDuration: true,
+    trackFailureReasons: true,
+  },
+});
+
+// Production workpool (for later)
+export const productionComplianceWorkpool = new Workpool({
+  name: "compliance-production",
+  maxConcurrency: 20, // Higher concurrency for production
+  retryPolicy: {
+    maxRetries: 5,
+    backoffMultiplier: 1.5,
+    initialBackoffMs: 2000,
+    maxBackoffMs: 60000,
+  },
+  rateLimiting: {
+    maxJobsPerMinute: 100, // Respect government website rate limits
+    maxJobsPerHour: 1000,
+  },
+});
+```
+
+### **4D.6 Testing Dashboard**
+- [ ] **Add testing mode controls to main page**:
+
+```typescript
+// Testing mode controls in main interface
+<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center space-x-2">
+      <Flask className="h-5 w-5 text-yellow-600" />
+      <div>
+        <h3 className="font-medium text-yellow-900">Testing Mode</h3>
+        <p className="text-sm text-yellow-700">
+          {testingMode ? 
+            `Monitoring ${activeTestWebsites} websites for testing` : 
+            `Ready to activate testing mode with limited websites`
+          }
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center space-x-2">
+      <Button
+        onClick={() => setTestingMode(!testingMode)}
+        variant={testingMode ? "destructive" : "default"}
+        size="sm"
+      >
+        {testingMode ? "Disable Testing" : "Enable Testing Mode"}
+      </Button>
+      {testingMode && (
+        <Button
+          onClick={() => setShowTestingConfig(true)}
+          variant="outline"
+          size="sm"
+        >
+          Configure Tests
+        </Button>
+      )}
+    </div>
+  </div>
+  
+  {testingMode && (
+    <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div>
+        <strong>Active Test Websites:</strong> {activeTestWebsites}
+      </div>
+      <div>
+        <strong>Check Interval:</strong> 15 seconds
+      </div>
+      <div>
+        <strong>Workpool Status:</strong> {workpoolStatus}
+      </div>
+    </div>
+  )}
+</div>
+```
+
+### **4D.7 Implementation Timeline**
+- [ ] **Week 1**: Implement Convex Workpool integration
+- [ ] **Week 2**: Create testing mode with 5-website limit
+- [ ] **Week 3**: Add testing controls to main interface
+- [ ] **Week 4**: Prepare production deployment strategy
+- [ ] **Week 5**: Testing and validation before full deployment
+
+---
+
+## **PHASE 4E: AI-POWERED COMPLIANCE CHAT SYSTEM** 🤖
+*Implement Gemini 2.5 Flash Lite with Vercel AI Chat for compliance analysis and user interaction*
+
+### **4E.1 Current Assets Analysis**
+- ✅ **1,175 compliance reports** structured with compliance template
+- ✅ **Compliance template** with 16 structured sections
+- ✅ **2,759 Gemini embeddings** ready for semantic search
+- ✅ **FireCrawl integration** for web scraping
+- ✅ **Settings page** ready for AI configuration enhancement
+
+### **4E.2 Gemini 2.5 Flash Lite Integration**
+- [ ] **Upgrade AI model** from existing system to Gemini 2.5 Flash Lite:
+
+```typescript
+// convex/geminiFlashLite.ts
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Initialize Gemini 2.5 Flash Lite
+export const initGeminiFlashLite = async (apiKey: string) => {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ 
+    model: "gemini-2.5-flash-lite",
+    generationConfig: {
+      temperature: 0.1, // Low temperature for consistent compliance analysis
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 8192,
+    },
+  });
+};
+
+// Process FireCrawl data with compliance template
+export const processComplianceDataWithGemini = action({
+  args: {
+    rawContent: v.string(),
+    sourceUrl: v.string(),
+    jurisdiction: v.string(),
+    topicKey: v.string(),
+    useTemplate: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const model = await initGeminiFlashLite(process.env.GEMINI_API_KEY);
+    
+    // Create compliance analysis prompt using template
+    const prompt = `
+Analyze this compliance content and extract information according to the compliance template structure.
+
+CONTENT TO ANALYZE:
+${args.rawContent}
+
+EXTRACTION TEMPLATE:
+Please extract and structure the following sections:
+
+1. OVERVIEW
+   - Brief description of the law/requirement, including key legislation and purpose
+
+2. COVERED EMPLOYERS
+   - Who must comply with this requirement - employee thresholds, business types, etc.
+
+3. COVERED EMPLOYEES
+   - Which employees are covered/protected - employment types, locations, exemptions
+
+4. WHAT SHOULD EMPLOYERS DO?
+   - Specific actions employers must take to comply
+
+5. TRAINING REQUIREMENTS
+   - If applicable - training content, duration, format requirements
+
+6. TRAINING DEADLINES
+   - If applicable - timing requirements for different employee types
+
+7. QUALIFIED TRAINERS
+   - If applicable - who can provide the training/services
+
+8. SPECIAL REQUIREMENTS
+   - Any special cases, exceptions, industry-specific requirements, or additional obligations
+
+9. COVERAGE ELECTION
+   - If applicable - optional coverage choices or rejection options
+
+10. RECIPROCITY/EXTRATERRITORIAL COVERAGE
+    - If applicable - cross-state/jurisdiction coverage rules
+
+11. EMPLOYER RESPONSIBILITIES & DEADLINES
+    - Ongoing obligations, verification processes, renewal requirements, key deadlines
+
+12. EMPLOYER NOTIFICATION REQUIREMENTS
+    - Required notifications to employees about rights, processes, or programs
+
+13. POSTING REQUIREMENTS
+    - Required workplace postings, notices, and display requirements
+
+14. RECORDKEEPING REQUIREMENTS
+    - What records must be maintained, retention periods, required documentation
+
+15. PENALTIES FOR NON-COMPLIANCE
+    - Fines, penalties, consequences, and enforcement actions
+
+16. SOURCES
+    - Relevant statutes, regulations, agency websites, and official resources
+
+Please provide structured output in JSON format with each section clearly labeled.
+For sections where information is not available, use "Not specified in available documentation".
+
+JURISDICTION: ${args.jurisdiction}
+TOPIC: ${args.topicKey}
+SOURCE: ${args.sourceUrl}
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
+    
+    // Parse and structure the response
+    const structuredData = await parseGeminiResponse(response, args);
+    
+    // Store in database
+    const reportId = `${args.jurisdiction.toLowerCase()}_${args.topicKey}_${Date.now()}`;
+    await ctx.runMutation(internal.complianceReports.storeAIProcessedReport, {
+      reportId,
+      ruleId: `${args.jurisdiction.toLowerCase()}_${args.topicKey}`,
+      rawContent: args.rawContent,
+      structuredData,
+      sourceUrl: args.sourceUrl,
+      processedBy: "gemini-2.5-flash-lite",
+      processedAt: Date.now(),
+    });
+    
+    return {
+      success: true,
+      reportId,
+      structuredData,
+      sectionsExtracted: Object.keys(structuredData).length,
+    };
+  },
+});
+```
+
+### **4E.3 Vercel AI Chat Integration**
+- [ ] **Install Vercel AI SDK** and create chat interface:
+
+```bash
+npm install ai @ai-sdk/google @ai-sdk/react
+```
+
+```typescript
+// src/app/chat/page.tsx - New compliance chat page
+'use client';
+
+import { useChat } from 'ai/react';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { MessageCircle, Send, FileText, MapPin, Scale } from 'lucide-react';
+
+export default function ComplianceChatPage() {
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState('');
+  
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/compliance-chat',
+    initialMessages: [{
+      id: '1',
+      role: 'assistant',
+      content: 'Hello! I\'m your compliance assistant. I can help you understand employment law requirements across all US jurisdictions. Ask me about minimum wage, harassment training, leave policies, or any other compliance topic.',
+    }],
+  });
+
+  const quickQuestions = [
+    "What are the minimum wage requirements in California?",
+    "What harassment training is required for supervisors?",
+    "What are the posting requirements for Texas employers?",
+    "How does paid sick leave work in New York?",
+    "What are the workers compensation requirements?",
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <MessageCircle className="h-8 w-8" />
+          Compliance Chat Assistant
+        </h1>
+        <p className="text-gray-600 mt-2">
+          AI-powered compliance guidance using data from 1,175 compliance reports across all US jurisdictions
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Chat Interface */}
+        <div className="lg:col-span-3">
+          <Card className="h-[600px] flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Scale className="h-5 w-5" />
+                Compliance Conversation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-lg ${
+                        message.role === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <div className="text-sm">{message.content}</div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 p-3 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                        <span className="text-sm text-gray-600">Analyzing compliance data...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <Input
+                  value={input}
+                  onChange={handleInputChange}
+                  placeholder="Ask about compliance requirements..."
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Quick Questions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Quick Questions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {quickQuestions.map((question, i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-left justify-start h-auto p-2 text-xs"
+                  onClick={() => {
+                    handleInputChange({ target: { value: question } } as any);
+                  }}
+                >
+                  {question}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Context Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Focus Context</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-xs font-medium">Jurisdiction</label>
+                <select 
+                  className="w-full mt-1 p-2 border rounded text-xs"
+                  value={selectedJurisdiction}
+                  onChange={(e) => setSelectedJurisdiction(e.target.value)}
+                >
+                  <option value="">All Jurisdictions</option>
+                  <option value="Federal">Federal</option>
+                  <option value="California">California</option>
+                  <option value="Texas">Texas</option>
+                  <option value="New York">New York</option>
+                  <option value="Florida">Florida</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium">Topic</label>
+                <select 
+                  className="w-full mt-1 p-2 border rounded text-xs"
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                >
+                  <option value="">All Topics</option>
+                  <option value="minimum_wage">Minimum Wage</option>
+                  <option value="harassment_training">Harassment Training</option>
+                  <option value="overtime">Overtime & Hours</option>
+                  <option value="paid_sick_leave">Paid Sick Leave</option>
+                </select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Sources */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Data Sources</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-3 w-3" />
+                  <span>1,175 Compliance Reports</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-3 w-3" />
+                  <span>52 Jurisdictions</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Scale className="h-3 w-3" />
+                  <span>25 Topic Categories</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### **4E.4 Chat API Endpoint with Gemini Integration**
+- [ ] **Create chat API** that uses compliance data:
+
+```typescript
+// src/app/api/compliance-chat/route.ts
+import { streamText } from 'ai';
+import { google } from '@ai-sdk/google';
+import { NextRequest } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  const { messages, jurisdiction, topic } = await req.json();
+
+  // Get relevant compliance data based on context
+  const complianceContext = await getComplianceContext(jurisdiction, topic);
+  
+  // Create system prompt with compliance template structure
+  const systemPrompt = `You are a professional compliance assistant specializing in US employment law. 
+
+You have access to comprehensive compliance data from 1,175 reports across all US jurisdictions, structured according to this template:
+
+COMPLIANCE TEMPLATE STRUCTURE:
+- Overview: Brief description of the law/requirement
+- Covered Employers: Who must comply with this requirement
+- Covered Employees: Which employees are covered/protected
+- What Should Employers Do: Specific actions employers must take
+- Training Requirements: Training content, duration, format requirements
+- Training Deadlines: Timing requirements for different employee types
+- Qualified Trainers: Who can provide the training/services
+- Special Requirements: Special cases, exceptions, industry-specific requirements
+- Coverage Election: Optional coverage choices or rejection options
+- Reciprocity/Extraterritorial Coverage: Cross-state/jurisdiction coverage rules
+- Employer Responsibilities & Deadlines: Ongoing obligations, renewal requirements
+- Employer Notification Requirements: Required notifications to employees
+- Posting Requirements: Required workplace postings, notices
+- Recordkeeping Requirements: Records to maintain, retention periods
+- Penalties for Non-Compliance: Fines, penalties, consequences
+- Sources: Relevant statutes, regulations, agency websites
+
+CURRENT CONTEXT:
+${complianceContext}
+
+Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps.`;
+
+  const result = await streamText({
+    model: google('gemini-2.5-flash-lite'),
+    system: systemPrompt,
+    messages,
+    temperature: 0.1,
+    maxTokens: 4096,
+  });
+
+  return result.toDataStreamResponse();
+}
+
+// Get compliance context for chat
+async function getComplianceContext(jurisdiction?: string, topic?: string) {
+  // This would query your compliance reports and embeddings
+  // For now, return structured context
+  return `
+Available compliance data:
+- 1,175 detailed compliance reports
+- Coverage across all 52 US jurisdictions
+- 25 topic categories including wages, leave, safety, training
+- Structured according to compliance template
+- Real-time monitoring and change detection
+${jurisdiction ? `\nFocused on: ${jurisdiction}` : ''}
+${topic ? `\nTopic focus: ${topic}` : ''}
+`;
+}
+```
+
+### **4E.5 Enhanced Settings Page Integration**
+- [ ] **Add AI Chat Configuration** to settings page:
+
+```typescript
+// Enhanced settings page with AI chat configuration
+const AI_CHAT_SECTION = {
+  // Add to existing settings sections
+  'ai-chat': {
+    label: 'AI Chat Assistant',
+    icon: MessageCircle,
+    component: ComplianceAIChatSettings,
+  }
+};
+
+// New settings component for AI chat
+function ComplianceAIChatSettings() {
+  const [geminiModel, setGeminiModel] = useState('gemini-2.5-flash-lite');
+  const [chatSystemPrompt, setChatSystemPrompt] = useState('');
+  const [enableComplianceContext, setEnableComplianceContext] = useState(true);
+  const [maxContextReports, setMaxContextReports] = useState(5);
+  const [enableSemanticSearch, setEnableSemanticSearch] = useState(true);
+  
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">AI Chat Assistant Configuration</h3>
+      
+      {/* Model Selection */}
+      <div>
+        <Label>AI Model for Chat</Label>
+        <Select value={geminiModel} onChange={setGeminiModel}>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Recommended)</option>
+          <option value="gemini-pro">Gemini Pro</option>
+          <option value="gpt-4">GPT-4</option>
+        </Select>
+        <p className="text-xs text-gray-500 mt-1">
+          Gemini 2.5 Flash Lite provides fast, accurate compliance analysis
+        </p>
+      </div>
+      
+      {/* System Prompt Customization */}
+      <div>
+        <Label>Chat System Prompt</Label>
+        <Textarea
+          value={chatSystemPrompt}
+          onChange={setChatSystemPrompt}
+          rows={6}
+          placeholder="You are a professional compliance assistant..."
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Customize how the AI assistant behaves and responds to compliance questions
+        </p>
+      </div>
+      
+      {/* Compliance Context Settings */}
+      <div>
+        <h4 className="font-medium mb-3">Compliance Data Integration</h4>
+        
+        <div className="space-y-3">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={enableComplianceContext}
+              onChange={(e) => setEnableComplianceContext(e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm">Use compliance reports as context</span>
+          </label>
+          
+          <div>
+            <Label>Max Reports per Query</Label>
+            <Input
+              type="number"
+              min="1"
+              max="20"
+              value={maxContextReports}
+              onChange={(e) => setMaxContextReports(Number(e.target.value))}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              How many relevant reports to include in AI context
+            </p>
+          </div>
+          
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={enableSemanticSearch}
+              onChange={(e) => setEnableSemanticSearch(e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm">Enable semantic search with embeddings</span>
+          </label>
+        </div>
+      </div>
+      
+      {/* Template Processing Settings */}
+      <div>
+        <h4 className="font-medium mb-3">Template Processing</h4>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded p-3">
+          <h5 className="font-medium text-blue-900 mb-2">Template Sections Used:</h5>
+          <div className="grid grid-cols-2 gap-1 text-xs text-blue-800">
+            <div>• Overview</div>
+            <div>• Covered Employers</div>
+            <div>• Training Requirements</div>
+            <div>• Penalties</div>
+            <div>• Posting Requirements</div>
+            <div>• Sources</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Test Chat Interface */}
+      <div>
+        <h4 className="font-medium mb-3">Test Chat Interface</h4>
+        <div className="border rounded p-4 bg-gray-50">
+          <p className="text-sm text-gray-600 mb-2">Test your AI configuration:</p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ask a compliance question..."
+              className="flex-1"
+            />
+            <Button size="sm">
+              <Send className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### **4E.6 Database Schema for AI Chat**
+- [ ] **Extend schema** for chat and AI processing:
+
+```typescript
+// Add to convex/schema.ts
+complianceAIReports: defineTable({
+  reportId: v.string(),
+  ruleId: v.string(),
+  rawContent: v.string(),
+  structuredData: v.object({
+    overview: v.optional(v.string()),
+    coveredEmployers: v.optional(v.string()),
+    coveredEmployees: v.optional(v.string()),
+    employerResponsibilities: v.optional(v.string()),
+    trainingRequirements: v.optional(v.string()),
+    trainingDeadlines: v.optional(v.string()),
+    qualifiedTrainers: v.optional(v.string()),
+    specialRequirements: v.optional(v.string()),
+    coverageElection: v.optional(v.string()),
+    reciprocity: v.optional(v.string()),
+    employerDeadlines: v.optional(v.string()),
+    notificationRequirements: v.optional(v.string()),
+    postingRequirements: v.optional(v.string()),
+    recordkeepingRequirements: v.optional(v.string()),
+    penalties: v.optional(v.string()),
+    sources: v.optional(v.string()),
+  }),
+  sourceUrl: v.string(),
+  processedBy: v.string(), // "gemini-2.5-flash-lite"
+  processedAt: v.number(),
+  aiMetadata: v.optional(v.object({
+    tokensUsed: v.number(),
+    processingTime: v.number(),
+    confidence: v.number(),
+    sectionsExtracted: v.number(),
+  })),
+})
+  .index("by_rule", ["ruleId"])
+  .index("by_processed_at", ["processedAt"]),
+
+complianceChatSessions: defineTable({
+  sessionId: v.string(),
+  userId: v.optional(v.id("users")), // Optional for single-user mode
+  messages: v.array(v.object({
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    timestamp: v.number(),
+  })),
+  context: v.optional(v.object({
+    jurisdiction: v.optional(v.string()),
+    topic: v.optional(v.string()),
+    reportsUsed: v.array(v.string()),
+  })),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_user", ["userId"])
+  .index("by_created_at", ["createdAt"]),
+```
+
+### **4E.7 Compliance Report Import Enhancement**
+- [ ] **Import existing 1,175 reports** with AI processing:
+
+```typescript
+// convex/importComplianceReports.ts
+export const importAndProcessAllReports = action({
+  args: {
+    batchSize: v.optional(v.number()),
+    useGeminiProcessing: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize || 50;
+    
+    // Get all compliance report files
+    const reportFiles = await getComplianceReportFiles();
+    
+    console.log(`🚀 Processing ${reportFiles.length} compliance reports with Gemini 2.5 Flash Lite`);
+    
+    let processed = 0;
+    let failed = 0;
+    
+    // Process in batches
+    for (let i = 0; i < reportFiles.length; i += batchSize) {
+      const batch = reportFiles.slice(i, i + batchSize);
+      
+      for (const reportFile of batch) {
+        try {
+          // Parse filename to get jurisdiction and topic
+          const { jurisdiction, topicKey } = parseReportFilename(reportFile.filename);
+          
+          // Process with Gemini if enabled
+          if (args.useGeminiProcessing) {
+            const result = await ctx.runAction(internal.geminiFlashLite.processComplianceDataWithGemini, {
+              rawContent: reportFile.content,
+              sourceUrl: getSourceUrlForRule(jurisdiction, topicKey),
+              jurisdiction,
+              topicKey,
+              useTemplate: true,
+            });
+            
+            console.log(`✅ Processed ${reportFile.filename} with Gemini`);
+            processed++;
+          } else {
+            // Standard import without AI processing
+            await importReportStandard(ctx, reportFile, jurisdiction, topicKey);
+            processed++;
+          }
+          
+        } catch (error) {
+          console.error(`❌ Failed to process ${reportFile.filename}:`, error);
+          failed++;
+        }
+      }
+      
+      // Rate limiting pause between batches
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    return {
+      success: true,
+      processed,
+      failed,
+      total: reportFiles.length,
+      geminiProcessing: args.useGeminiProcessing || false,
+    };
+  },
+});
+```
+
+### **4E.8 Navigation Integration**
+- [ ] **Add chat page** to main navigation:
+
+```typescript
+// Update navigation to include chat
+const MAIN_NAVIGATION = [
+  { href: '/', label: 'Dashboard', icon: Home },
+  { href: '/chat', label: 'Compliance Chat', icon: MessageCircle }, // NEW
+  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/docs', label: 'Documentation', icon: FileText },
+];
+```
+
+### **4E.9 Implementation Timeline**
+- [ ] **Week 1**: Install Vercel AI SDK and create basic chat interface
+- [ ] **Week 2**: Integrate Gemini 2.5 Flash Lite with compliance template processing
+- [ ] **Week 3**: Import and process existing 1,175 compliance reports
+- [ ] **Week 4**: Enhanced settings page with AI chat configuration
+- [ ] **Week 5**: Testing and optimization of chat system
+
+---
+
 ## **PHASE 5: INTEGRATION & AUTOMATION** ⚡
 *Connect with existing legal/HR systems and automate workflows*
 

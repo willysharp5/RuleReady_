@@ -1,10 +1,10 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, query, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
-// Main compliance crawler that integrates with existing FireCrawl
-export const crawlComplianceRule = internalAction({
+// Main compliance crawler that integrates with existing FireCrawl (public for testing)
+export const crawlComplianceRule = action({
   args: { 
     ruleId: v.string(),
     forceRecrawl: v.optional(v.boolean())
@@ -36,6 +36,46 @@ export const crawlComplianceRule = internalAction({
     
     // 6. Compare against previous version with AI analysis
     const changeAnalysis = await detectAndAnalyzeChanges(ctx, parsedContent, rule);
+
+    // 6b. When content is new or significantly changed, persist a versioned report and trigger AI processing
+    if (changeAnalysis.changeType === "new_content" || changeAnalysis.hasSignificantChanges) {
+      try {
+        const reportId = `${rule.ruleId}_${Date.now()}`;
+        await ctx.runMutation(internal.reportImport.createReport, {
+          reportId,
+          ruleId: rule.ruleId,
+          reportContent: parsedContent.rawContent,
+          contentHash: parsedContent.contentHash,
+          contentLength: parsedContent.rawContent.length,
+          extractedSections: {
+            overview: parsedContent.sections.overview,
+            coveredEmployers: parsedContent.sections.coveredEmployers,
+            coveredEmployees: parsedContent.sections.coveredEmployees,
+            employerResponsibilities: parsedContent.sections.employerResponsibilities,
+            trainingRequirements: parsedContent.sections.trainingRequirements,
+            postingRequirements: parsedContent.sections.postingRequirements,
+            penalties: parsedContent.sections.penalties,
+            sources: parsedContent.sections.sources,
+          },
+          processingMethod: "scheduled_crawl",
+        });
+
+        // Fire off AI-processed structured report (best-effort)
+        try {
+          await ctx.runAction(internal.geminiFlashLite.processComplianceDataWithGemini, {
+            rawContent: parsedContent.rawContent,
+            sourceUrl: rule.sourceUrl,
+            jurisdiction: rule.jurisdiction,
+            topicKey: rule.topicKey,
+            useTemplate: true,
+          });
+        } catch (aiError) {
+          console.error("AI processing failed (non-fatal):", aiError);
+        }
+      } catch (persistError) {
+        console.error("Failed to persist versioned compliance report:", persistError);
+      }
+    }
     
     // 7. Update rule monitoring data
     await ctx.runMutation(internal.complianceCrawler.updateRuleMonitoring, {
@@ -296,11 +336,22 @@ async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
   const startTime = Date.now();
   
   try {
-    // Use existing FireCrawl scraping but with compliance-specific settings
+    // Find the website for this rule
+    const websites = await ctx.runQuery(internal.websites.getUserWebsites);
+    const ruleWebsite = websites.find(w => 
+      w.complianceMetadata?.ruleId === rule.ruleId ||
+      w.url === rule.sourceUrl
+    );
+    
+    if (!ruleWebsite) {
+      throw new Error(`No website found for rule ${rule.ruleId}`);
+    }
+    
+    // Use existing FireCrawl scraping with the actual website
     const scrapeResult = await ctx.runAction(internal.firecrawl.scrapeUrl, {
-      websiteId: null, // We'll create a virtual website ID for compliance rules
+      websiteId: ruleWebsite._id,
       url: rule.sourceUrl,
-      userId: null, // System crawl, no specific user
+      userId: undefined, // Single-user mode
     });
     
     const endTime = Date.now();
@@ -356,8 +407,8 @@ async function parseComplianceContent(content: string, rule: any) {
 
 // Detect and analyze changes with AI
 async function detectAndAnalyzeChanges(ctx: any, parsedContent: any, rule: any) {
-  // Get previous version for comparison
-  const previousReport = await ctx.runQuery(internal.complianceReports.getLatestReport, {
+  // Get previous version for comparison (use existing function)
+  const previousReport = await ctx.runQuery(internal.complianceQueries.getLatestReport, {
     ruleId: rule.ruleId
   });
   
@@ -402,9 +453,9 @@ async function detectAndAnalyzeChanges(ctx: any, parsedContent: any, rule: any) 
     severity: aiAnalysis.severity,
     changeType: aiAnalysis.changeType,
     changes: sectionChanges,
-    aiConfidence: aiAnalysis.confidence,
-    impactAreas: aiAnalysis.impactAreas,
-    recommendations: aiAnalysis.recommendations,
+    aiConfidence: aiAnalysis.confidence || 0.8,
+    impactAreas: aiAnalysis.impactAreas || [],
+    recommendations: aiAnalysis.recommendations || [],
   };
 }
 
@@ -419,9 +470,11 @@ async function generateComplianceAlert(ctx: any, rule: any, changeAnalysis: any)
     changeType: mapChangeType(changeAnalysis.changeType),
     severity: changeAnalysis.severity,
     detectedAt: Date.now(),
-    affectedSections: changeAnalysis.changes.map((c: any) => c.section),
+    affectedSections: changeAnalysis.changes
+      .map((c: any) => c.section)
+      .filter((section: any) => section && section !== "undefined"),
     changeDescription: generateChangeDescription(changeAnalysis),
-    aiConfidence: changeAnalysis.aiConfidence,
+    aiConfidence: changeAnalysis.aiConfidence || 0.8,
     humanVerified: false,
     notificationsSent: [],
   });
@@ -594,12 +647,16 @@ function mapChangeType(aiChangeType: string): "new_law" | "amendment" | "deadlin
 }
 
 function generateChangeDescription(changeAnalysis: any): string {
-  if (changeAnalysis.changes.length === 0) {
+  if (!changeAnalysis.changes || changeAnalysis.changes.length === 0) {
     return "No significant changes detected";
   }
   
-  const changedSections = changeAnalysis.changes.map((c: any) => c.section).join(", ");
-  return `Changes detected in: ${changedSections}`;
+  const changedSections = changeAnalysis.changes
+    .map((c: any) => c.section)
+    .filter((section: any) => section && section !== "undefined")
+    .join(", ");
+    
+  return changedSections ? `Changes detected in: ${changedSections}` : "Content changes detected";
 }
 
 async function sendImmediateAlert(ctx: any, rule: any, changeAnalysis: any) {

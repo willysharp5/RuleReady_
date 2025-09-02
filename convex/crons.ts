@@ -3,35 +3,42 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Check all active websites every 15 seconds (for testing)
-// Note: In production, this should be set to a more reasonable interval like 5 minutes
+// ALL CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING
+
+// Check all active websites every 5 minutes (rate limit compliant) - DISABLED
+// crons.interval(
+//   "check active websites",
+//   { minutes: 5 },
+//   internal.monitoring.checkActiveWebsites
+// );
+
+// COMPLIANCE WORKPOOL JOBS - DISABLED TO STOP MULTIPLE SCRAPES
+// Enable pilot compliance checks (testing mode): every 10 minutes, only critical/high rules
 crons.interval(
-  "check active websites",
-  { seconds: 15 },
-  internal.monitoring.checkActiveWebsites
+  "pilot: check compliance rules",
+  { minutes: 10 },
+  internal.monitoring.checkComplianceRules
 );
 
-// COMPLIANCE-SPECIFIC CRON JOBS
+// Process embedding jobs every 5 minutes - DISABLED
+// crons.interval(
+//   "process embedding jobs",
+//   { minutes: 5 },
+//   internal.embeddingJobs.processEmbeddingJobs
+// );
 
-// Process embedding jobs every 5 minutes
-crons.interval(
-  "process embedding jobs",
-  { minutes: 5 },
-  internal.embeddingJobs.processEmbeddingJobs
-);
+// Schedule embedding updates daily at 2 AM UTC - DISABLED
+// crons.daily(
+//   "schedule embedding updates",
+//   { hourUTC: 2, minuteUTC: 0 },
+//   internal.embeddingJobs.scheduleEmbeddingUpdates
+// );
 
-// Schedule embedding updates daily at 2 AM UTC
-crons.daily(
-  "schedule embedding updates",
-  { hourUTC: 2, minuteUTC: 0 },
-  internal.embeddingJobs.scheduleEmbeddingUpdates
-);
-
-// Clean up old embedding jobs weekly
-crons.weekly(
-  "cleanup old embedding jobs",
-  { dayOfWeek: "sunday", hourUTC: 3, minuteUTC: 0 },
-  internal.embeddingJobs.cleanupOldJobs
-);
+// Clean up old embedding jobs weekly - DISABLED
+// crons.weekly(
+//   "cleanup old embedding jobs",
+//   { dayOfWeek: "sunday", hourUTC: 3, minuteUTC: 0 },
+//   internal.embeddingJobs.cleanupOldJobs
+// );
 
 export default crons;

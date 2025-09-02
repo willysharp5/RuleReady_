@@ -157,17 +157,16 @@ export const toggleWebsiteActive = mutation({
   },
 });
 
-// Pause/Resume website monitoring
+// Pause/Resume website monitoring (single-user mode)
 export const pauseWebsite = mutation({
   args: {
     websiteId: v.id("websites"),
     isPaused: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
+    // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
+    if (!website) {
       throw new Error("Website not found");
     }
 
@@ -204,10 +203,9 @@ export const updateWebsite = mutation({
     priorityChangeReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
+    // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
+    if (!website) {
       throw new Error("Website not found");
     }
 
@@ -346,7 +344,7 @@ export const removeCheckingStatus = internalMutation({
 export const storeScrapeResult = internalMutation({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -369,11 +367,13 @@ export const storeScrapeResult = internalMutation({
     })),
   },
   handler: async (ctx, args) => {
-    // Remove any checking status entries first
-    await ctx.runMutation(internal.websites.removeCheckingStatus, {
-      websiteId: args.websiteId,
-      userId: args.userId,
-    });
+    // Remove any checking status entries first (skip if no userId in single-user mode)
+    if (args.userId) {
+      await ctx.runMutation(internal.websites.removeCheckingStatus, {
+        websiteId: args.websiteId,
+        userId: args.userId,
+      });
+    }
 
     // Store the scrape result
     const scrapeResultId = await ctx.db.insert("scrapeResults", {
