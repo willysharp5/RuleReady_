@@ -37,10 +37,13 @@ ${complianceContext}
 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
 
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY env var is not set');
+    }
+
     const result = await streamText({
-      model: google('gemini-2.0-flash-exp', {
-        apiKey: process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U",
-      }),
+      model: google('gemini-2.0-flash-exp', { apiKey }),
       system: systemPrompt,
       messages,
       temperature: 0.1,
