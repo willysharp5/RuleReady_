@@ -3,7 +3,9 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// ALL CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING
+// ALL CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING BY DEFAULT
+// Use CRON_ENABLED=true at deploy-time to enable pilot/testing crons in dev only
+const enablePilotCrons = process.env.CRON_ENABLED === "true";
 
 // Check all active websites every 5 minutes (rate limit compliant) - DISABLED
 // crons.interval(
@@ -14,11 +16,13 @@ const crons = cronJobs();
 
 // COMPLIANCE WORKPOOL JOBS - DISABLED TO STOP MULTIPLE SCRAPES
 // Enable pilot compliance checks (testing mode): every 10 minutes, only critical/high rules
-crons.interval(
-  "pilot: check compliance rules",
-  { minutes: 10 },
-  internal.monitoring.checkComplianceRules
-);
+if (enablePilotCrons) {
+  crons.interval(
+    "pilot: check compliance rules",
+    { minutes: 10 },
+    internal.monitoring.checkComplianceRules
+  );
+}
 
 // Process embedding jobs every 5 minutes - DISABLED
 // crons.interval(
