@@ -5,11 +5,12 @@ const crons = cronJobs();
 
 // Enable pilot compliance checks (testing mode): every 10 minutes, only critical/high rules
 // DEV ONLY - comment out before deploying to production
-crons.interval(
-  "pilot: check compliance rules",
-  { minutes: 10 },
-  internal.monitoring.checkComplianceRules
-);
+// DISABLED FOR NOW
+// crons.interval(
+//   "pilot: check compliance rules",
+//   { minutes: 10 },
+//   internal.monitoring.checkComplianceRules
+// );
 
 // ALL OTHER CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING
 
