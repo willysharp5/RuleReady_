@@ -126,7 +126,7 @@ export const getComplianceChangeLog = query({
 });
 
 // Get recent changes across all jurisdictions
-export const getRecentChanges = internalQuery({
+export const getRecentChanges = query({
   args: {
     limit: v.optional(v.number()),
     severity: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
