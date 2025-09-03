@@ -75,6 +75,56 @@ export const getChangesByJurisdiction = internalQuery({
   },
 });
 
+// Get compliance changes for a specific rule (public for UI)
+export const getComplianceChangeLog = query({
+  args: {
+    ruleId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const changes = await ctx.db
+      .query("complianceChanges")
+      .withIndex("by_rule", (q) => q.eq("ruleId", args.ruleId))
+      .order("desc")
+      .take(args.limit || 50);
+
+    // Get the rule details for context
+    const rule = await ctx.db
+      .query("complianceRules")
+      .withIndex("by_rule_id", (q) => q.eq("ruleId", args.ruleId))
+      .first();
+
+    // Get associated reports for each change
+    const changesWithReports = await Promise.all(
+      changes.map(async (change) => {
+        // Find reports around this change time
+        const reports = await ctx.db
+          .query("complianceReports")
+          .withIndex("by_rule", (q) => q.eq("ruleId", args.ruleId))
+          .filter((q) => q.lte(q.field("generatedAt"), change.detectedAt + 86400000)) // Within 1 day
+          .order("desc")
+          .take(2); // Get current and previous
+
+        return {
+          ...change,
+          rule: rule ? {
+            jurisdiction: rule.jurisdiction,
+            topicLabel: rule.topicLabel,
+            sourceUrl: rule.sourceUrl,
+          } : null,
+          reports: reports,
+        };
+      })
+    );
+
+    return {
+      changes: changesWithReports,
+      rule,
+      totalChanges: changes.length,
+    };
+  },
+});
+
 // Get recent changes across all jurisdictions
 export const getRecentChanges = internalQuery({
   args: {
