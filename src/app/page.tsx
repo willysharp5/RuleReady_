@@ -12,7 +12,7 @@ import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
-import { ApiKeyBanner } from '@/components/FirecrawlKeyBanner'
+
 import { APP_CONFIG } from '@/config/app.config'
 import { validateEmail, validatePassword } from '@/lib/validation'
 import { useToast } from '@/hooks/use-toast'
@@ -71,7 +71,7 @@ export default function HomePage() {
   
   // Convex queries and mutations
   const websites = useQuery(api.websites.getUserWebsites)
-  const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
+  // Removed: firecrawlKey query no longer needed
   
   // Track website list updates
   useEffect(() => {
@@ -128,8 +128,7 @@ export default function HomePage() {
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
   
-  // NEW: Get compliance changes for separate display
-  const allComplianceChanges = useQuery(api.complianceChanges.getRecentChanges, { limit: 100 })
+
   
   // Get compliance filter data
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
@@ -384,92 +383,7 @@ export default function HomePage() {
     URL.revokeObjectURL(url)
   }
 
-  // NEW: Generate and download compliance change log
-  const downloadComplianceChangeLog = async (ruleId: string, websiteName: string) => {
-    try {
-      const changeLogData = await convex.query(api.complianceChanges.getComplianceChangeLog, { ruleId });
-      const markdown = generateComplianceChangeMarkdown(changeLogData, websiteName);
-      
-      const blob = new Blob([markdown], { type: 'text/markdown' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${websiteName.replace(/[^a-z0-9]/gi, '_')}_compliance_changes_${new Date().toISOString().split('T')[0]}.md`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to generate compliance change log:', error)
-      setError('Failed to generate change log')
-    }
-  }
 
-  // Generate markdown content for compliance changes
-  const generateComplianceChangeMarkdown = (changeLogData: any, websiteName: string) => {
-    const { changes, rule } = changeLogData;
-    const now = new Date();
-    
-    let markdown = `# Compliance Change Log: ${websiteName}\n\n`;
-    markdown += `**Generated:** ${now.toISOString()}\n`;
-    markdown += `**Rule ID:** ${rule?.ruleId || 'Unknown'}\n`;
-    markdown += `**Jurisdiction:** ${rule?.jurisdiction || 'Unknown'}\n`;
-    markdown += `**Topic:** ${rule?.topicLabel || 'Unknown'}\n`;
-    markdown += `**Source URL:** ${rule?.sourceUrl || 'Unknown'}\n\n`;
-    
-    markdown += `## Summary\n\n`;
-    markdown += `- Total Changes: ${changes.length}\n`;
-    markdown += `- Critical Changes: ${changes.filter((c: any) => c.severity === 'critical').length}\n`;
-    markdown += `- High Priority Changes: ${changes.filter((c: any) => c.severity === 'high').length}\n`;
-    markdown += `- Medium Priority Changes: ${changes.filter((c: any) => c.severity === 'medium').length}\n`;
-    markdown += `- Low Priority Changes: ${changes.filter((c: any) => c.severity === 'low').length}\n\n`;
-    
-    markdown += `## Change History\n\n`;
-    
-    changes.forEach((change: any, index: number) => {
-      const changeDate = new Date(change.detectedAt);
-      markdown += `### ${index + 1}. ${change.changeType.replace(/_/g, ' ').toUpperCase()} - ${change.severity.toUpperCase()}\n\n`;
-      markdown += `**Date:** ${changeDate.toISOString()}\n`;
-      markdown += `**Severity:** ${change.severity}\n`;
-      markdown += `**Change Type:** ${change.changeType}\n`;
-      markdown += `**AI Confidence:** ${Math.round(change.aiConfidence * 100)}%\n`;
-      
-      if (change.affectedSections && change.affectedSections.length > 0) {
-        markdown += `**Affected Sections:** ${change.affectedSections.join(', ')}\n`;
-      }
-      
-      markdown += `**Description:** ${change.changeDescription}\n\n`;
-      
-      if (change.oldContent) {
-        markdown += `**Previous Content:**\n\`\`\`\n${change.oldContent}\n\`\`\`\n\n`;
-      }
-      
-      if (change.newContent) {
-        markdown += `**New Content:**\n\`\`\`\n${change.newContent}\n\`\`\`\n\n`;
-      }
-      
-      if (change.reports && change.reports.length > 0) {
-        const latestReport = change.reports[0];
-        if (latestReport.extractedSections) {
-          markdown += `**Key Compliance Sections:**\n`;
-          Object.entries(latestReport.extractedSections).forEach(([section, content]) => {
-            if (content) {
-              markdown += `- **${section.replace(/([A-Z])/g, ' $1').trim()}:** ${(content as string).substring(0, 200)}...\n`;
-            }
-          });
-          markdown += `\n`;
-        }
-      }
-      
-      markdown += `---\n\n`;
-    });
-    
-    markdown += `## Footer\n\n`;
-    markdown += `This compliance change log was generated by RuleReady Compliance System.\n`;
-    markdown += `For more information, visit: ${rule?.sourceUrl || 'N/A'}\n`;
-    
-    return markdown;
-  }
 
   const handleCheckNow = async (websiteId: string) => {
     setProcessingWebsites(prev => new Set([...prev, websiteId]))
@@ -654,10 +568,9 @@ export default function HomePage() {
   // Main authenticated view (when isAuthenticated = true)
   return (
     <Layout>
-      <Header ctaHref="https://github.com/willysharp5/RuleReady_" />
+      <Header showCTA={false} />
       
-      {/* Show banner if no Firecrawl API key is set (only after loading) */}
-      {firecrawlKey !== undefined && !firecrawlKey?.hasKey && <ApiKeyBanner />}
+
       
       <Hero 
         title={
