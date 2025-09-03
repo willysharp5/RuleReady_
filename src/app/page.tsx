@@ -128,7 +128,7 @@ export default function HomePage() {
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
   
-  // NEW: Get all compliance changes for change tracking log
+  // NEW: Get compliance changes for separate display
   const allComplianceChanges = useQuery(api.complianceChanges.getRecentChanges, { limit: 100 })
   
   // Get compliance filter data
@@ -1229,22 +1229,7 @@ export default function HomePage() {
                                 >
                                   <Settings2 className="h-4 w-4" />
                                 </Button>
-                                
-                                {/* NEW: Compliance change log download button */}
-                                {website.complianceMetadata?.isComplianceWebsite && (
-                                  <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      await downloadComplianceChangeLog(website.complianceMetadata.ruleId, website.name)
-                                    }}
-                                    title="Download Compliance Change Log"
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                  </Button>
-                                )}
+
                                 <Button 
                                   variant="default" 
                                   size="sm"
@@ -1475,7 +1460,7 @@ export default function HomePage() {
                   }
 
                   // Filter changes based on selected website, filter, and search query
-                  const filteredHistory = allScrapeHistory.filter(scrape => {
+                  const filteredHistory = allScrapeHistory?.filter(scrape => {
                     const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
                     const filterMatch = checkLogFilter === 'all' || 
                       (checkLogFilter === 'changed' && scrape.changeStatus === 'changed') ||
@@ -1488,7 +1473,7 @@ export default function HomePage() {
                       scrape.description?.toLowerCase().includes(changesSearchQuery.toLowerCase());
                     
                     return websiteMatch && filterMatch && searchMatch;
-                  });
+                  }) || [];
                   
                   // Pagination calculations for changes
                   const totalChangesPages = Math.ceil(filteredHistory.length / ITEMS_PER_PAGE_CHANGES)
@@ -1509,7 +1494,7 @@ export default function HomePage() {
                         {selectedWebsiteId ? (
                           <p className="text-sm mt-1">Select a different website or clear the filter</p>
                         ) : (
-                          <p className="text-sm mt-1">Click on a website to filter changes</p>
+                          <p className="text-sm mt-1">Monitor websites to see changes here</p>
                         )}
                       </div>
                     );
@@ -1843,22 +1828,7 @@ export default function HomePage() {
                                       >
                                         <Settings2 className="h-4 w-4" />
                                       </Button>
-                                      
-                                      {/* NEW: Compliance change log download button */}
-                                      {website.complianceMetadata?.isComplianceWebsite && (
-                                        <Button 
-                                          variant="default" 
-                                          size="sm"
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            await downloadComplianceChangeLog(website.complianceMetadata.ruleId, website.name)
-                                          }}
-                                          title="Download Compliance Change Log"
-                                          className="w-8 h-8 p-0"
-                                        >
-                                          <FileText className="h-4 w-4" />
-                                        </Button>
-                                      )}
+
                                       <Button 
                                         variant="default" 
                                         size="sm"
