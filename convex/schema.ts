@@ -462,6 +462,7 @@ const schema = defineSchema({
       coveredEmployers: v.optional(v.string()),
       coveredEmployees: v.optional(v.string()),
       employerResponsibilities: v.optional(v.string()),
+      whatShouldEmployersDo: v.optional(v.string()), // Alias for employerResponsibilities
       trainingRequirements: v.optional(v.string()),
       trainingDeadlines: v.optional(v.string()),
       qualifiedTrainers: v.optional(v.string()),
