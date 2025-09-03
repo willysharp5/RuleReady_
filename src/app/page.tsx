@@ -128,8 +128,8 @@ export default function HomePage() {
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
   
-  // NEW: Get compliance changes for separate display (temporarily disabled)
-  // const allComplianceChanges = useQuery(api.complianceChanges.getRecentChanges, { limit: 100 })
+  // NEW: Get compliance changes for separate display
+  const allComplianceChanges = useQuery(api.complianceChanges.getRecentChanges, { limit: 100 })
   
   // Get compliance filter data
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
@@ -654,10 +654,10 @@ export default function HomePage() {
   // Main authenticated view (when isAuthenticated = true)
   return (
     <Layout>
-      <Header ctaHref="https://github.com/your-org/ruleready-compliance" />
+      <Header ctaHref="https://github.com/willysharp5/RuleReady_" />
       
-      {/* Show banner if no FireCrawl API key is set */}
-      {!firecrawlKey?.hasKey && <ApiKeyBanner />}
+      {/* Show banner if no Firecrawl API key is set (only after loading) */}
+      {firecrawlKey !== undefined && !firecrawlKey?.hasKey && <ApiKeyBanner />}
       
       <Hero 
         title={

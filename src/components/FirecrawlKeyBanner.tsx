@@ -40,7 +40,7 @@ export function ApiKeyBanner() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex-1 mr-4">
-                <h3 className="text-sm font-medium text-orange-900 mb-1">Add Your Firecrawl Auth</h3>
+                <h3 className="text-sm font-medium text-orange-900 mb-1">Add Your Firecrawl API Key</h3>
                 <p className="text-sm text-orange-700">
                   Get your API key from{' '}
                   <a 
@@ -51,6 +51,7 @@ export function ApiKeyBanner() {
                   >
                     firecrawl.dev
                   </a>
+                  {' '}to enable website scraping
                 </p>
               </div>
               <Button
@@ -104,7 +105,7 @@ export function ApiKeyBanner() {
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-orange-600 mr-3 flex-shrink-0" />
             <p className="text-sm text-orange-800">
-              Add your FireCrawl API key to enable compliance monitoring and change detection
+              Add your Firecrawl API key to enable website monitoring and compliance change detection
             </p>
           </div>
           <div className="flex gap-2">
