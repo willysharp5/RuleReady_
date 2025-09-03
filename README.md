@@ -1,19 +1,21 @@
-# Firecrawl Observer
+# RuleReady Compliance
 
 <p align="center">
   <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExYm94OHU0a3MxM2d4Zm5zb2tseTF4bDdmZWZpcmFlaDYxMzZod3VmbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/pBQeHEiQiR25n8rd9J/giphy.gif" alt="Firecrawl Observer Demo" width="100%" />
 </p>
 
-A powerful website monitoring application that tracks changes on websites and sends intelligent notifications. Built with Next.js, Convex, and Firecrawl API.
+A specialized compliance intelligence platform that monitors employment law changes across all US jurisdictions with AI-powered analysis. Built with Next.js, Convex, and Firecrawl API.
 
 ## Features
 
-- **Website Monitoring**: Track changes on single pages or entire websites
-- **AI-Powered Analysis**: Filter out noise with intelligent change detection
+- **Compliance Monitoring**: Track 1,300+ employment law rules across all US jurisdictions
+- **AI-Powered Analysis**: Gemini-powered change detection using compliance templates
+- **Dual Monitoring Modes**: Both general website monitoring and specialized compliance tracking
+- **Downloadable Change Logs**: Generate detailed .md reports of compliance changes
 - **Flexible Notifications**: Email, webhooks, or dashboard-only monitoring
 - **Secure API Key Management**: Encrypted storage for Firecrawl and AI provider keys
-- **Real-time Updates**: Instant change detection with configurable intervals
-- **Beautiful UI**: Modern, responsive interface with dark mode support
+- **Real-time Updates**: Intelligent scheduling based on rule priority and change frequency
+- **Professional Interface**: Built for legal and HR compliance teams
 
 ## Prerequisites
 

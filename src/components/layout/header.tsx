@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Coins } from 'lucide-react'
+import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Coins, Scale } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ interface HeaderProps {
   ctaHref?: string
 }
 
-export function Header({ showCTA = true, ctaText = "Use this template", ctaHref = "#" }: HeaderProps) {
+export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "https://github.com/willysharp5/RuleReady_" }: HeaderProps) {
   const { isAuthenticated } = useConvexAuth()
   const { signOut } = useAuthActions()
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -68,7 +68,10 @@ export function Header({ showCTA = true, ctaText = "Use this template", ctaHref 
     <header className="px-4 sm:px-6 lg:px-8 py-4 border-b border-zinc-200 bg-white">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <Link href="/" className="flex items-center">
-          <img src="/firecrawl-logo-with-fire.webp" alt="Firecrawl" className="h-8 w-auto" />
+          <div className="flex items-center space-x-2">
+            <Scale className="h-8 w-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">RuleReady</span>
+          </div>
         </Link>
         
         <div className="flex items-center gap-4">

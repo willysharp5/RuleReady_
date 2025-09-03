@@ -128,6 +128,9 @@ export default function HomePage() {
   // Get all scrape results for check log
   const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
   
+  // NEW: Get all compliance changes for change tracking log
+  const allComplianceChanges = useQuery(api.complianceChanges.getRecentChanges, { limit: 100 })
+  
   // Get compliance filter data
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
   const topics = useQuery(api.complianceQueries.getTopics)

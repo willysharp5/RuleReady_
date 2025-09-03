@@ -11,6 +11,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "RuleReady Compliance",
   description: "AI-powered employment law monitoring across all US jurisdictions",
+  icons: {
+    icon: '/ruleready-icon.svg',
+    shortcut: '/ruleready-icon.svg',
+    apple: '/ruleready-icon.svg',
+  },
 };
 
 export const viewport: Viewport = {
