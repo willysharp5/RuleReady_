@@ -183,6 +183,7 @@ export const pauseWebsite = mutation({
 export const updateWebsite = mutation({
   args: {
     websiteId: v.id("websites"),
+    url: v.optional(v.string()), // NEW: Allow URL updates
     notificationPreference: v.optional(v.union(
       v.literal("none"),
       v.literal("email"),
@@ -212,6 +213,10 @@ export const updateWebsite = mutation({
     const updates: any = {
       updatedAt: Date.now(),
     };
+
+    if (args.url !== undefined) {
+      updates.url = args.url;
+    }
 
     if (args.notificationPreference !== undefined) {
       updates.notificationPreference = args.notificationPreference;

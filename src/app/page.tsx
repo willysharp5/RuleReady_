@@ -2203,6 +2203,7 @@ export default function HomePage() {
               // Update existing website
               await updateWebsite({
                 websiteId: editingWebsiteId as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+                url: config.url, // NEW: Include URL updates
                 notificationPreference: config.notificationPreference,
                 webhookUrl: config.webhookUrl,
                 checkInterval: config.checkInterval,
@@ -2225,6 +2226,7 @@ export default function HomePage() {
               return {
                 notificationPreference: website?.notificationPreference || 'none',
                 webhookUrl: website?.webhookUrl,
+                url: website?.url, // NEW: Pass current URL to modal
                 checkInterval: website?.checkInterval || 60,
                 monitorType: website?.monitorType || 'single_page',
                 crawlLimit: website?.crawlLimit || 5,

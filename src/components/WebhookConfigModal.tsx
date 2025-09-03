@@ -13,6 +13,7 @@ interface WebhookConfigModalProps {
   onSave: (config: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
     webhookUrl?: string
+    url?: string // NEW: Allow URL editing
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
@@ -26,6 +27,7 @@ interface WebhookConfigModalProps {
   initialConfig?: {
     notificationPreference: 'none' | 'email' | 'webhook' | 'both'
     webhookUrl?: string
+    url?: string // NEW: Current URL
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
@@ -47,6 +49,7 @@ interface WebhookConfigModalProps {
 export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, websiteName }: WebhookConfigModalProps) {
   const [notificationPreference, setNotificationPreference] = useState(initialConfig?.notificationPreference || 'none')
   const [webhookUrl, setWebhookUrl] = useState(initialConfig?.webhookUrl || '')
+  const [url, setUrl] = useState(initialConfig?.url || '') // NEW: URL state
   const [checkInterval, setCheckInterval] = useState(String(initialConfig?.checkInterval || 60))
   const [monitorType, setMonitorType] = useState(initialConfig?.monitorType || 'single_page')
   const [crawlLimit, setCrawlLimit] = useState(String(initialConfig?.crawlLimit || 5))
@@ -66,6 +69,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
     onSave({
       notificationPreference: notificationPreference as 'none' | 'email' | 'webhook' | 'both',
       webhookUrl: (notificationPreference === 'webhook' || notificationPreference === 'both') ? webhookUrl : undefined,
+      url: url.trim() || undefined, // NEW: Include URL in save
       checkInterval: parseInt(checkInterval),
       monitorType: monitorType as 'single_page' | 'full_site',
       crawlLimit: monitorType === 'full_site' ? parseInt(crawlLimit) : undefined,
@@ -76,7 +80,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
       overrideComplianceInterval: isComplianceWebsite ? overrideInterval : undefined,
       priorityChangeReason: isComplianceWebsite && priorityChangeReason ? priorityChangeReason : undefined,
     })
-  }, [notificationPreference, webhookUrl, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
+  }, [notificationPreference, webhookUrl, url, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -400,6 +404,22 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Website URL Section */}
+          <div>
+            <Label htmlFor="website-url">Website URL</Label>
+            <Input
+              id="website-url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="mt-1"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              The URL to monitor for changes
+            </p>
           </div>
 
           {/* Notification Type Selection */}
