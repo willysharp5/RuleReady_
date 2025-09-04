@@ -386,9 +386,9 @@ function EmbeddedChatUI() {
         )}
         </div>
         
-        {/* Scroll to bottom button */}
+        {/* Scroll to bottom button - centered like Vercel Chat SDK */}
         {showScrollButton && (
-          <div className="absolute bottom-4 right-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <Button
               onClick={() => {
                 scrollToBottom('smooth')
