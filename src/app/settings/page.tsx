@@ -41,6 +41,7 @@ function EmbeddedChatUI() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showScrollButton, setShowScrollButton] = useState(false)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   
   // Get compliance data for context
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
@@ -68,7 +69,8 @@ function EmbeddedChatUI() {
     if (el) {
       const { scrollTop, scrollHeight, clientHeight } = el
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100 // 100px threshold
-      setShowScrollButton(!isNearBottom)
+      // Only show scroll button if there are multiple messages and user isn't at bottom
+      setShowScrollButton(!isNearBottom && messages.length > 1)
     }
   }
 
@@ -202,6 +204,26 @@ function EmbeddedChatUI() {
     sendMessage(q)
   }
 
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      // Reset the copied state after 2 seconds
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy message:', error)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = content
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    }
+  }
+
   return (
     <div className="bg-transparent">
       {/* Header status like demo */}
@@ -314,20 +336,34 @@ function EmbeddedChatUI() {
               </div>
             </div>
             {/* Toolbar under assistant messages like demo */}
-            {m.role !== 'user' && (
-              <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
-                <button className="inline-flex items-center gap-1 text-xs hover:text-gray-700" onClick={() => navigator.clipboard.writeText(String(m.content))} type="button">
-                  <Copy className="h-3 w-3" /> Copy
-                </button>
-                <span className="h-3 w-px bg-gray-200" />
-                <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                  <ThumbsUp className="h-3 w-3" />
-                </button>
-                <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                  <ThumbsDown className="h-3 w-3" />
-                </button>
-              </div>
-            )}
+                          {m.role !== 'user' && (
+                <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
+                  <button 
+                    className={`inline-flex items-center gap-1 text-xs hover:text-gray-700 transition-colors ${
+                      copiedMessageId === m.id ? 'text-green-600' : ''
+                    }`} 
+                    onClick={() => handleCopyMessage(String(m.content), m.id)} 
+                    type="button"
+                  >
+                    {copiedMessageId === m.id ? (
+                      <>
+                        <Check className="h-3 w-3" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" /> Copy
+                      </>
+                    )}
+                  </button>
+                  <span className="h-3 w-px bg-gray-200" />
+                  <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                    <ThumbsUp className="h-3 w-3" />
+                  </button>
+                  <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                    <ThumbsDown className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
           </div>
         ))}
         {isLoading && (
@@ -343,15 +379,16 @@ function EmbeddedChatUI() {
         
         {/* Scroll to bottom button */}
         {showScrollButton && (
-          <div className="absolute bottom-4 right-4">
+          <div className="absolute bottom-4 right-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <Button
               onClick={() => {
                 scrollToBottom()
                 setShowScrollButton(false)
               }}
               size="sm"
-              className="h-10 w-10 rounded-full p-0 shadow-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              className="h-10 w-10 rounded-full p-0 shadow-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 hover:scale-105"
               variant="outline"
+              title="Scroll to bottom"
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
