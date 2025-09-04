@@ -203,7 +203,7 @@ export default function ComplianceChatPage() {
                   </select>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Select jurisdiction and topic to focus the AI's responses on specific compliance areas.
+                  Select jurisdiction and topic to focus the AI&apos;s responses on specific compliance areas.
                 </div>
               </CardContent>
             </Card>
@@ -221,7 +221,7 @@ export default function ComplianceChatPage() {
                     size="sm"
                     className="w-full text-left justify-start h-auto p-2 text-xs"
                     onClick={() => {
-                      handleInputChange({ target: { value: question } } as any);
+                      handleInputChange({ target: { value: question } } as React.ChangeEvent<HTMLInputElement>);
                     }}
                     disabled={isLoading}
                   >

@@ -7,8 +7,10 @@ import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText } from 'lucide-react'
-import { useAuthActions } from "@convex-dev/auth/react"
-import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
+// Temporarily disabled auth for single-user mode
+// import { useAuthActions } from "@convex-dev/auth/react"
+// import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
+import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
 import { WebhookConfigModal } from '@/components/WebhookConfigModal'
@@ -47,14 +49,19 @@ function getFaviconUrl(url: string): string {
 }
 
 export default function HomePage() {
-  const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
-  const { signIn } = useAuthActions()
+  // Temporarily bypass auth for single-user mode
+  // const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
+  // const { signIn } = useAuthActions()
   const { addToast } = useToast()
   const router = useRouter()
   
+  // Set auth state for single-user mode
+  const authLoading = false
+  const isAuthenticated = true
+  
   // Debug auth state changes
   useEffect(() => {
-    console.log('Auth state:', { isAuthenticated, authLoading })
+    console.log('Auth state (bypassed):', { isAuthenticated, authLoading })
   }, [isAuthenticated, authLoading])
   
   // Auth state
@@ -155,7 +162,7 @@ export default function HomePage() {
           addToast({
             title: "Setup Error",
             description: "Failed to create compliance websites. Please try refreshing the page.",
-            variant: "destructive",
+            variant: "error",
           });
         });
     }
@@ -214,11 +221,12 @@ export default function HomePage() {
     }
 
     try {
-      await signIn("password", {
-        email: trimmedEmail,
-        password,
-        flow: authMode,
-      })
+      // Temporarily bypass authentication for single-user mode
+      // await signIn("password", {
+      //   email: trimmedEmail,
+      //   password,
+      //   flow: authMode,
+      // })
       // Clear form on successful auth
       setEmail('')
       setPassword('')
@@ -980,7 +988,7 @@ export default function HomePage() {
                               <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                               <p className="text-lg font-medium">No websites found</p>
                               <div className="text-sm mt-2 space-y-1">
-                                {searchQuery && <p>Search: "{searchQuery}"</p>}
+                                {searchQuery && <p>Search: &quot;{searchQuery}&quot;</p>}
                                 {selectedJurisdiction && <p>Jurisdiction: {selectedJurisdiction}</p>}
                                 {selectedPriority && <p>Priority: {selectedPriority}</p>}
                                 {selectedTopic && <p>Topic: {topics?.find(t => t.topicKey === selectedTopic)?.name}</p>}

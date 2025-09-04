@@ -12,8 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAuthActions } from "@convex-dev/auth/react"
-import { useConvexAuth, useQuery, useAction } from "convex/react"
+// Temporarily disabled auth imports for single-user mode
+// import { useAuthActions } from "@convex-dev/auth/react"
+// import { useConvexAuth, useQuery, useAction } from "convex/react"
+import { useQuery, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 
 interface HeaderProps {
@@ -23,8 +25,10 @@ interface HeaderProps {
 }
 
 export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "https://github.com/willysharp5/RuleReady_" }: HeaderProps) {
-  const { isAuthenticated } = useConvexAuth()
-  const { signOut } = useAuthActions()
+  // Temporarily bypass auth for single-user mode
+  // const { isAuthenticated } = useConvexAuth()
+  // const { signOut } = useAuthActions()
+  const isAuthenticated = true
   const [isSigningOut, setIsSigningOut] = useState(false)
   const currentUser = useQuery(api.users.getCurrentUser)
   const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
@@ -56,7 +60,8 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
   const handleSignOut = async () => {
     setIsSigningOut(true)
     try {
-      await signOut()
+      // Temporarily bypass signOut for single-user mode
+      // await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {
