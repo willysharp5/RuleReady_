@@ -132,7 +132,7 @@ export const getRecentChanges = query({
     severity: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
     topicKey: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     let changes = await ctx.db
       .query("complianceChanges")
       .withIndex("by_date", (q) => q.gte("detectedAt", Date.now() - (30 * 24 * 60 * 60 * 1000))) // Last 30 days
@@ -161,15 +161,43 @@ export const getRecentChanges = query({
   },
 });
 
+// Internal version for use by other functions
+export const getRecentChangesInternal = internalQuery({
+  args: {
+    limit: v.optional(v.number()),
+    severity: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
+    topicKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<any> => {
+    let changes = await ctx.db
+      .query("complianceChanges")
+      .withIndex("by_date", (q) => q.gte("detectedAt", Date.now() - (30 * 24 * 60 * 60 * 1000))) // Last 30 days
+      .order("desc")
+      .take(args.limit || 50);
+
+    // Apply severity filter if specified
+    if (args.severity) {
+      changes = changes.filter(change => change.severity === args.severity);
+    }
+
+    // Apply topic filter if specified
+    if (args.topicKey) {
+      changes = changes.filter(change => change.topicKey === args.topicKey);
+    }
+
+    return changes;
+  },
+});
+
 // Analyze change impact using AI
 export const analyzeChangeImpact = internalAction({
   args: {
     changeId: v.string(),
     includeRecommendations: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     // Get the change record
-    const change = await ctx.runQuery(internal.complianceChanges.getChange, {
+    const change: any = await ctx.runQuery(internal.complianceChanges.getChange, {
       changeId: args.changeId
     });
     
@@ -178,7 +206,7 @@ export const analyzeChangeImpact = internalAction({
     }
     
     // Get the associated rule
-    const rule = await ctx.runQuery(internal.complianceCrawler.getRule, {
+    const rule: any = await ctx.runQuery(internal.complianceCrawler.getRule, {
       ruleId: change.ruleId
     });
     
@@ -252,9 +280,9 @@ export const generateChangeDigest = internalAction({
       endDate: v.number(),
     })),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     // Get changes based on filters
-    const changes = await getFilteredChanges(ctx, args);
+    const changes: any = await getFilteredChanges(ctx, args);
     
     if (changes.length === 0) {
       return {
@@ -288,7 +316,7 @@ export const generateChangeDigest = internalAction({
 });
 
 // Utility functions
-async function getFilteredChanges(ctx: any, filters: any) {
+async function getFilteredChanges(ctx: any, filters: any): Promise<any> {
   const dateRange = filters.dateRange || {
     startDate: Date.now() - (7 * 24 * 60 * 60 * 1000), // Last 7 days
     endDate: Date.now(),
@@ -301,7 +329,7 @@ async function getFilteredChanges(ctx: any, filters: any) {
       severity: filters.severity,
     });
   } else {
-    return await ctx.runQuery(internal.complianceChanges.getRecentChanges, {
+    return await ctx.runQuery(internal.complianceChanges.getRecentChangesInternal, {
       limit: 100,
       severity: filters.severity,
       topicKey: filters.topicKey,

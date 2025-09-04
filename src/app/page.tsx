@@ -7,9 +7,6 @@ import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText } from 'lucide-react'
-// Temporarily disabled auth for single-user mode
-// import { useAuthActions } from "@convex-dev/auth/react"
-// import { useConvexAuth, useMutation, useQuery, useAction } from "convex/react"
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -49,20 +46,12 @@ function getFaviconUrl(url: string): string {
 }
 
 export default function HomePage() {
-  // Temporarily bypass auth for single-user mode
-  // const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
-  // const { signIn } = useAuthActions()
   const { addToast } = useToast()
   const router = useRouter()
   
-  // Set auth state for single-user mode
-  const authLoading = false
+  // Single-user mode - no authentication required
   const isAuthenticated = true
-  
-  // Debug auth state changes
-  useEffect(() => {
-    console.log('Auth state (bypassed):', { isAuthenticated, authLoading })
-  }, [isAuthenticated, authLoading])
+  const authLoading = false
   
   // Auth state
   const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn')
@@ -77,8 +66,19 @@ export default function HomePage() {
   const [isAdding, setIsAdding] = useState(false)
   
   // Convex queries and mutations
-  const websites = useQuery(api.websites.getUserWebsites)
+  const websitesQuery = useQuery(api.websites.getUserWebsites)
+  // Use fallback empty array to prevent loading states when query returns undefined
+  const websites = websitesQuery || []
   // Removed: firecrawlKey query no longer needed
+  
+  // Debug query states (can be removed in production)
+  useEffect(() => {
+    if (websitesQuery === undefined) {
+      console.log('⚠️ Websites query returning undefined - using fallback empty array');
+    } else if (websitesQuery && websitesQuery.length > 0) {
+      console.log(`✅ Loaded ${websitesQuery.length} websites from Convex`);
+    }
+  }, [websitesQuery])
   
   // Track website list updates
   useEffect(() => {
@@ -133,7 +133,18 @@ export default function HomePage() {
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
   
   // Get all scrape results for check log
-  const allScrapeHistory = useQuery(api.websites.getAllScrapeHistory)
+  const allScrapeHistoryQuery = useQuery(api.websites.getAllScrapeHistory)
+  // Use fallback empty array to prevent loading states when query returns undefined
+  const allScrapeHistory = allScrapeHistoryQuery || []
+  
+  // Debug scrape history query (can be removed in production)
+  useEffect(() => {
+    if (allScrapeHistoryQuery === undefined) {
+      console.log('⚠️ Scrape history query returning undefined - using fallback empty array');
+    } else if (allScrapeHistoryQuery && allScrapeHistoryQuery.length > 0) {
+      console.log(`✅ Loaded ${allScrapeHistoryQuery.length} scrape history entries from Convex`);
+    }
+  }, [allScrapeHistoryQuery])
   
 
   
@@ -221,12 +232,8 @@ export default function HomePage() {
     }
 
     try {
-      // Temporarily bypass authentication for single-user mode
-      // await signIn("password", {
-      //   email: trimmedEmail,
-      //   password,
-      //   flow: authMode,
-      // })
+      // Single-user mode - no authentication needed
+      console.log('Single-user mode: authentication bypassed')
       // Clear form on successful auth
       setEmail('')
       setPassword('')

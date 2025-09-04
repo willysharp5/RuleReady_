@@ -48,7 +48,7 @@ export const scheduleComplianceJobs = action({
       
       try {
         // Schedule compliance crawl
-        await ctx.scheduler.runAfter(delay, internal.complianceCrawler.crawlComplianceRule, {
+        await ctx.scheduler.runAfter(delay, internal.complianceCrawler.crawlComplianceRuleInternal, {
           ruleId: website.complianceMetadata?.ruleId || `website_${website._id}`,
         });
         

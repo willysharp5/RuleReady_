@@ -66,7 +66,7 @@ export const checkComplianceRules = internalAction({
         const rule = rulesDue[i];
         const delay = i * 2000; // 2 second delay between crawls
         
-        await ctx.scheduler.runAfter(delay, internal.complianceCrawler.crawlComplianceRule, {
+        await ctx.scheduler.runAfter(delay, internal.complianceCrawler.crawlComplianceRuleInternal, {
           ruleId: rule.ruleId,
         });
       }

@@ -9,11 +9,11 @@ export const crawlComplianceRule = action({
     ruleId: v.string(),
     forceRecrawl: v.optional(v.boolean())
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     console.log(`🔍 Starting compliance crawl for rule: ${args.ruleId}`);
     
     // 1. Get rule details and determine crawling strategy
-    const rule = await ctx.runQuery(internal.complianceCrawler.getRule, { ruleId: args.ruleId });
+    const rule: any = await ctx.runQuery(internal.complianceCrawler.getRule, { ruleId: args.ruleId });
     if (!rule) {
       throw new Error(`Rule ${args.ruleId} not found`);
     }
@@ -29,7 +29,7 @@ export const crawlComplianceRule = action({
     }
     
     // 4. Perform intelligent scraping with compliance context
-    const crawlResult = await performComplianceCrawl(ctx, rule, strategy);
+    const crawlResult: any = await performComplianceCrawl(ctx, rule, strategy);
     
     // 5. Parse using compliance template structure
     const parsedContent = await parseComplianceContent(crawlResult.content, rule);
@@ -153,6 +153,37 @@ export const updateRuleMonitoring = internalMutation({
       updatedAt: args.lastChecked,
       // Note: Removed metadata update for now - would need to extend schema
     });
+  },
+});
+
+// Internal version for use by schedulers
+export const crawlComplianceRuleInternal = internalAction({
+  args: { 
+    ruleId: v.string(),
+    forceRecrawl: v.optional(v.boolean())
+  },
+  handler: async (ctx, args): Promise<any> => {
+    console.log(`🔍 Starting compliance crawl for rule: ${args.ruleId}`);
+    
+    // 1. Get rule details and determine crawling strategy
+    const rule: any = await ctx.runQuery(internal.complianceCrawler.getRule, { ruleId: args.ruleId });
+    if (!rule) {
+      throw new Error(`Rule ${args.ruleId} not found`);
+    }
+    
+    // 2. Get crawling strategy based on jurisdiction and topic
+    const strategy = getCrawlingStrategy(rule.jurisdiction, rule.topicKey);
+    
+    // 3. Check if crawl is due (unless forced)
+    if (!args.forceRecrawl && !isCrawlDue(rule, strategy)) {
+      console.log(`⏭️ Skipping crawl - not due yet for ${args.ruleId}`);
+      return { skipped: true, reason: "not_due", nextCrawlDue: calculateNextCrawlTime(rule, strategy) };
+    }
+    
+    // 4. Perform intelligent scraping with compliance context
+    const crawlResult: any = await performComplianceCrawl(ctx, rule, strategy);
+    
+    return crawlResult;
   },
 });
 
