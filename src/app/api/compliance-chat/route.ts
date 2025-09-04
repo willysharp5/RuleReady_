@@ -1,10 +1,10 @@
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, jurisdiction, topic } = await req.json();
+    const body = await req.json();
+    const { messages, jurisdiction, topic } = body;
 
     // Get relevant compliance data based on context
     const complianceContext = await getComplianceContext(jurisdiction, topic);
@@ -37,25 +37,42 @@ ${complianceContext}
 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY env var is not set');
-    }
-
-    const result = await streamText({
-      model: google('gemini-2.0-flash-exp', { apiKey }),
-      system: systemPrompt,
-      messages,
-      temperature: 0.1,
-      maxTokens: 4096,
+    const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U";
+    
+    // Initialize Gemini
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash-exp",
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 4096,
+      },
     });
 
-    return result.toDataStreamResponse();
+    // Convert messages to Gemini format
+    const lastMessage = messages[messages.length - 1];
+    const prompt = systemPrompt + "\n\nUser: " + lastMessage.content + "\n\nAssistant:";
+
+    // Generate response
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return new Response(
+      JSON.stringify({ 
+        role: 'assistant', 
+        content: text 
+      }),
+      { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
     
   } catch (error) {
     console.error('Compliance chat error:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process compliance chat request' }),
+      JSON.stringify({ error: 'Failed to process compliance chat request', details: error.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

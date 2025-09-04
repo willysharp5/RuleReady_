@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
@@ -11,13 +11,333 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useConvexAuth, useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp } from 'lucide-react'
 import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
 import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
 import dynamic from 'next/dynamic'
 import { validateEmailTemplate } from '@/lib/validateTemplate'
 import { APP_CONFIG, getFromEmail } from '@/config/app.config'
+// Removed useChat - using custom implementation
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
+function EmbeddedChatUI() {
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Hi! I'm your RuleReady compliance assistant. Ask about minimum wage, harassment training, leave, posting, or other requirements.",
+    }
+  ])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Get compliance data for context
+  const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
+  const topics = useQuery(api.complianceQueries.getTopics)
+
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    // Auto-scroll to bottom on new messages
+    const el = listRef.current
+    if (el) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [messages])
+
+  // Dynamic quick prompts based on selected filters
+  const getQuickPrompts = () => {
+    const basePrompts = [
+      'What are the minimum wage requirements?',
+      'What harassment training is required?',
+      'What are the posting requirements?',
+      'What leave policies apply?',
+    ]
+    
+    if (selectedJurisdiction && selectedTopic) {
+      const topicName = topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic
+      return [
+        `What are the ${topicName.toLowerCase()} requirements in ${selectedJurisdiction}?`,
+        `How does ${selectedJurisdiction} handle ${topicName.toLowerCase()}?`,
+        `What are the penalties for ${topicName.toLowerCase()} violations in ${selectedJurisdiction}?`,
+      ]
+    } else if (selectedJurisdiction) {
+      return [
+        `What is the minimum wage in ${selectedJurisdiction}?`,
+        `What are ${selectedJurisdiction}'s posting requirements?`,
+        `What harassment training does ${selectedJurisdiction} require?`,
+      ]
+    } else if (selectedTopic) {
+      const topicName = topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic
+      return [
+        `What are the ${topicName.toLowerCase()} requirements?`,
+        `Which states have the strictest ${topicName.toLowerCase()} rules?`,
+        `What are common ${topicName.toLowerCase()} violations?`,
+      ]
+    }
+    
+    return basePrompts
+  }
+
+  const quickPrompts = getQuickPrompts()
+
+  // Simple send message function
+  const sendMessage = async (content: string) => {
+    if (isLoading || !content.trim()) return
+    
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: content.trim()
+    }
+    
+    // Add user message immediately
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
+    setIsLoading(true)
+    
+    try {
+      const response = await fetch('/api/compliance-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          jurisdiction: selectedJurisdiction,
+          topic: selectedTopic,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+      
+      // Handle JSON response from Gemini
+      const data = await response.json()
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.content || 'No response received'
+      }
+      
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Chat error:', error)
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    sendMessage(input)
+  }
+
+  const sendQuickPrompt = (q: string) => {
+    sendMessage(q)
+  }
+
+  return (
+    <div className="bg-transparent">
+      {/* Header status like demo */}
+      <div className="px-4 py-3 border-b text-xs text-gray-600 flex items-center gap-2">
+        <span className="inline-flex items-center gap-1">
+          <span className="relative inline-flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+          </span>
+          {isLoading ? 'Thinking…' : 'Ready'}
+        </span>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="px-4 py-3 border-b bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Jurisdiction Filter */}
+            <div>
+              <Label htmlFor="jurisdiction-filter" className="text-xs font-medium text-gray-700">
+                Jurisdiction
+              </Label>
+              <select
+                id="jurisdiction-filter"
+                value={selectedJurisdiction}
+                onChange={(e) => setSelectedJurisdiction(e.target.value)}
+                className="w-full mt-1 p-2 text-xs border rounded-md bg-white"
+              >
+                <option value="">All Jurisdictions</option>
+                {jurisdictions?.slice(0, 15).map((j) => (
+                  <option key={j.code} value={j.name}>
+                    {j.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Topic Filter */}
+            <div>
+              <Label htmlFor="topic-filter" className="text-xs font-medium text-gray-700">
+                Topic
+              </Label>
+              <select
+                id="topic-filter"
+                value={selectedTopic}
+                onChange={(e) => setSelectedTopic(e.target.value)}
+                className="w-full mt-1 p-2 text-xs border rounded-md bg-white"
+              >
+                <option value="">All Topics</option>
+                {topics?.slice(0, 15).map((t) => (
+                  <option key={t.topicKey} value={t.topicKey}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Selected Filters Display */}
+          {(selectedJurisdiction || selectedTopic) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-600">Filtering by:</span>
+              {selectedJurisdiction && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                  📍 {selectedJurisdiction}
+                  <button
+                    onClick={() => setSelectedJurisdiction('')}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedTopic && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                  📋 {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
+                  <button
+                    onClick={() => setSelectedTopic('')}
+                    className="ml-1 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={listRef} className="h-[520px] overflow-y-auto px-6 py-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+        {messages.map((m) => (
+          <div key={m.id}>
+            <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`flex items-start gap-3 w-full ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                  {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                </div>
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm prose prose-sm max-w-none ${m.role === 'user' ? 'bg-zinc-900 text-white prose-invert' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
+                  {typeof m.content === 'string' ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                      {m.content}
+                    </ReactMarkdown>
+                  ) : (
+                    String(m.content)
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Toolbar under assistant messages like demo */}
+            {m.role !== 'user' && (
+              <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
+                <button className="inline-flex items-center gap-1 text-xs hover:text-gray-700" onClick={() => navigator.clipboard.writeText(String(m.content))} type="button">
+                  <Copy className="h-3 w-3" /> Copy
+                </button>
+                <span className="h-3 w-px bg-gray-200" />
+                <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                  <ThumbsUp className="h-3 w-3" />
+                </button>
+                <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                  <ThumbsDown className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-2xl text-sm">
+              <Bot className="h-4 w-4 text-gray-600" />
+              <Loader2 className="h-4 w-4 animate-spin text-gray-700" />
+              <span className="text-gray-700">Thinking…</span>
+            </div>
+          </div>
+        )}
+        </div>
+      </div>
+
+      {/* Bottom composer like demo */}
+      <form ref={formRef} onSubmit={handleSubmit} className="px-4 pb-4">
+        <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 mb-2">
+          {quickPrompts.map((q) => (
+            <Button
+              key={q}
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              type="button"
+              onClick={() => sendQuickPrompt(q)}
+              disabled={isLoading}
+            >
+              {q}
+            </Button>
+          ))}
+        </div>
+        <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (!isLoading && input.trim()) {
+                  formRef.current?.requestSubmit()
+                }
+              }
+            }}
+            rows={2}
+            placeholder="Send a message…"
+            disabled={isLoading}
+            className="resize-none border-0 focus-visible:ring-0"
+          />
+          <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 w-9 rounded-full p-0">
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
 
 // Dynamic import to avoid SSR issues with TipTap
 const EmailTemplateEditor = dynamic(
@@ -1621,36 +1941,8 @@ Analyze the provided diff and return a JSON response with:
                       </div>
                     </div>
                     
-                    {/* Test Chat Interface */}
-                    <div>
-                      <h4 className="font-medium mb-3">Test Chat Interface</h4>
-                      <div className="border rounded p-4 bg-gray-50">
-                        <p className="text-sm text-gray-600 mb-3">Test your AI chat configuration:</p>
-                        <div className="space-y-3">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Ask a compliance question..."
-                              className="flex-1"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  window.open('/chat', '_blank');
-                                }
-                              }}
-                            />
-                            <Button 
-                              size="sm"
-                              onClick={() => window.open('/chat', '_blank')}
-                            >
-                              <Send className="h-3 w-3 mr-1" />
-                              Open Chat
-                            </Button>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Press Enter or click "Open Chat" to test the compliance chat assistant
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Embedded Chat UI */}
+                    <EmbeddedChatUI />
                     
                     {/* Save Settings */}
                     <div className="flex justify-end">
