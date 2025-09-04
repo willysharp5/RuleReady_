@@ -26,6 +26,7 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  thinkingTime?: number
 }
 
 function EmbeddedChatUI() {
@@ -36,6 +37,7 @@ function EmbeddedChatUI() {
       id: '1',
       role: 'assistant',
       content: "Hi! I'm your RuleReady compliance assistant. Ask about minimum wage, harassment training, leave, posting, or other requirements.",
+      thinkingTime: 2
     }
   ])
   const [input, setInput] = useState('')
@@ -160,6 +162,8 @@ function EmbeddedChatUI() {
     // Scroll to bottom immediately after adding user message
     setTimeout(() => scrollToBottom(), 10)
     
+    const startTime = Date.now()
+    
     try {
       const response = await fetch('/api/compliance-chat', {
         method: 'POST',
@@ -179,11 +183,13 @@ function EmbeddedChatUI() {
       
       // Handle JSON response from Gemini
       const data = await response.json()
+      const thinkingTime = Math.round((Date.now() - startTime) / 1000)
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.content || 'No response received'
+        content: data.content || 'No response received',
+        thinkingTime: thinkingTime
       }
       
       setMessages(prev => [...prev, assistantMessage])
@@ -192,10 +198,13 @@ function EmbeddedChatUI() {
       setTimeout(() => scrollToBottom(), 10)
     } catch (error) {
       console.error('Chat error:', error)
+      const thinkingTime = Math.round((Date.now() - startTime) / 1000)
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: 'Sorry, I encountered an error. Please try again.',
+        thinkingTime: thinkingTime
       }
       setMessages(prev => [...prev, errorMessage])
       setTimeout(() => scrollToBottom(), 10)
@@ -325,54 +334,71 @@ function EmbeddedChatUI() {
       {/* Messages */}
       <div className="relative">
         <div ref={listRef} className="h-[520px] overflow-y-auto px-6 py-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-          {messages.map((m) => (
-          <div key={m.id}>
-            <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex items-start gap-3 w-full ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                  {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  <div className="max-w-2xl mx-auto space-y-4">
+        {messages.map((m) => (
+          <div key={m.id} className="group">
+            {m.role === 'user' ? (
+              // User message - right aligned with dark background
+              <div className="flex justify-end">
+                <div className="bg-gray-900 text-white px-4 py-2 rounded-2xl max-w-xs break-words">
+                  {m.content}
                 </div>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm prose prose-sm max-w-none ${m.role === 'user' ? 'bg-zinc-900 text-white prose-invert' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
-                  {typeof m.content === 'string' ? (
+              </div>
+            ) : (
+              // Assistant message - left aligned with avatar and thinking indicator
+              <div className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-gray-600" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  {/* Thinking indicator */}
+                  {m.thinkingTime && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                      <Clock className="h-3 w-3" />
+                      <span>Thought for {m.thinkingTime} seconds</span>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Message content */}
+                  <div className="prose prose-sm max-w-none text-gray-900">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                       {m.content}
                     </ReactMarkdown>
-                  ) : (
-                    String(m.content)
-                  )}
+                  </div>
+                  
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      className={`p-1 rounded hover:bg-gray-100 transition-colors ${
+                        copiedMessageId === m.id ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'
+                      }`} 
+                      onClick={() => handleCopyMessage(String(m.content), m.id)} 
+                      type="button"
+                      title="Copy"
+                    >
+                      {copiedMessageId === m.id ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" type="button" title="Good response">
+                      <ThumbsUp className="h-4 w-4" />
+                    </button>
+                    <button className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" type="button" title="Bad response">
+                      <ThumbsDown className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-            {/* Toolbar under assistant messages like demo */}
-                          {m.role !== 'user' && (
-                <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
-                  <button 
-                    className={`inline-flex items-center gap-1 text-xs hover:text-gray-700 transition-colors ${
-                      copiedMessageId === m.id ? 'text-green-600' : ''
-                    }`} 
-                    onClick={() => handleCopyMessage(String(m.content), m.id)} 
-                    type="button"
-                  >
-                    {copiedMessageId === m.id ? (
-                      <>
-                        <Check className="h-3 w-3" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" /> Copy
-                      </>
-                    )}
-                  </button>
-                  <span className="h-3 w-px bg-gray-200" />
-                  <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                    <ThumbsUp className="h-3 w-3" />
-                  </button>
-                  <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                    <ThumbsDown className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
+            )}
           </div>
         ))}
         {isLoading && (
@@ -386,65 +412,86 @@ function EmbeddedChatUI() {
         )}
         </div>
         
-        {/* Scroll to bottom button - centered like Vercel Chat SDK */}
+        {/* Scroll to bottom button - simple arrow like Vercel */}
         {showScrollButton && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <Button
+            <button
               onClick={() => {
                 scrollToBottom('smooth')
                 setShowScrollButton(false)
               }}
-              size="sm"
-              className="h-10 w-10 rounded-full p-0 shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-0 transition-all duration-200 hover:scale-105 relative"
+              className="p-2 rounded-full bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 text-gray-600 hover:text-gray-900"
               title="Scroll to bottom"
             >
               <ArrowDown className="h-4 w-4" />
-              {/* Small pulse indicator */}
-              <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-400 rounded-full animate-pulse"></div>
-            </Button>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Bottom composer like demo */}
-      <form ref={formRef} onSubmit={handleSubmit} className="px-4 pb-4">
-        <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 mb-2">
-          {quickPrompts.map((q) => (
-            <Button
-              key={q}
-              variant="outline"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              type="button"
-              onClick={() => sendQuickPrompt(q)}
-              disabled={isLoading}
-            >
-              {q}
-            </Button>
-          ))}
-        </div>
-        <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                if (!isLoading && input.trim()) {
-                  formRef.current?.requestSubmit()
-                }
-              }
-            }}
-            rows={2}
-            placeholder="Send a message…"
-            disabled={isLoading}
-            className="resize-none border-0 focus-visible:ring-0"
-          />
-          <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 w-9 rounded-full p-0">
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-        </div>
-      </form>
+      {/* Bottom composer like Vercel design */}
+      <div className="border-t bg-white">
+        <form ref={formRef} onSubmit={handleSubmit} className="p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-gray-300 focus-within:bg-white transition-colors">
+              {/* Attachment button */}
+              <button
+                type="button"
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Attach file"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              
+              {/* Text input */}
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (!isLoading && input.trim()) {
+                      formRef.current?.requestSubmit()
+                    }
+                  }
+                }}
+                rows={1}
+                placeholder="Send a message..."
+                disabled={isLoading}
+                className="flex-1 resize-none border-0 bg-transparent focus-visible:ring-0 placeholder:text-gray-500 text-sm py-2"
+                style={{ minHeight: '24px', maxHeight: '120px' }}
+              />
+              
+              {/* Send button */}
+              <button 
+                type="submit" 
+                disabled={isLoading || !input.trim()} 
+                className="p-1 text-gray-400 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Send message"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Quick prompts */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {quickPrompts.slice(0, 3).map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => sendQuickPrompt(q)}
+                  disabled={isLoading}
+                  className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
     </div>
   )
