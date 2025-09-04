@@ -14,7 +14,7 @@ export const scheduleComplianceJobs = action({
     console.log(`📅 [${args.mode.toUpperCase()}] Scheduling compliance monitoring jobs...`);
     
     // Get active websites due for monitoring
-    const allWebsites = await ctx.db.query("websites").collect();
+    const allWebsites = await ctx.runQuery(internal.websites.getAllWebsites);
     const activeWebsites = allWebsites.filter(w => 
       w.isActive && 
       !w.isPaused && 
@@ -97,10 +97,9 @@ export const logComplianceJob = internalMutation({
       processingTime: 0, // Will be updated when job completes
       mode: args.mode,
       processedAt: args.scheduledAt,
-      error: null,
+      error: undefined,
       metadata: {
         priority: args.priority,
-        scheduledAt: args.scheduledAt,
       },
     });
   },

@@ -67,6 +67,13 @@ export const createWebsite = mutation({
   },
 });
 
+// Internal query to get all websites (for actions)
+export const getAllWebsites = internalQuery({
+  handler: async (ctx) => {
+    return await ctx.db.query("websites").collect();
+  },
+});
+
 // Get all websites (single-user mode - no authentication required)
 export const getUserWebsites = query({
   handler: async (ctx) => {
@@ -285,7 +292,7 @@ export const updateWebsite = mutation({
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
       await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId: args.websiteId,
-        userId: user._id,
+        userId: website.userId, // Use the website's existing userId
       });
     }
   },
