@@ -8,14 +8,14 @@ export const scheduleComplianceJobs = action({
     mode: v.union(v.literal("testing"), v.literal("production")),
     maxJobs: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const maxJobs = args.maxJobs || (args.mode === "testing" ? 5 : 50);
     
     console.log(`📅 [${args.mode.toUpperCase()}] Scheduling compliance monitoring jobs...`);
     
     // Get active websites due for monitoring
-    const allWebsites = await ctx.runQuery(internal.websites.getAllWebsites);
-    const activeWebsites = allWebsites.filter(w => 
+    const allWebsites: any = await ctx.runQuery(internal.websites.getAllWebsites);
+    const activeWebsites: any = allWebsites.filter((w: any) => 
       w.isActive && 
       !w.isPaused && 
       w.complianceMetadata?.isComplianceWebsite
@@ -23,7 +23,7 @@ export const scheduleComplianceJobs = action({
     
     // Filter websites that are due for checking
     const now = Date.now();
-    const websitesDue = activeWebsites.filter(website => {
+    const websitesDue: any = activeWebsites.filter((website: any) => {
       const lastChecked = website.lastChecked || website.createdAt;
       const checkIntervalMs = website.checkInterval * 60 * 1000; // Convert minutes to ms
       return (now - lastChecked) >= checkIntervalMs;

@@ -7,10 +7,7 @@ import { ToastProvider } from "@/hooks/use-toast"
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
-console.log('🔧 Convex client initialized with URL:', process.env.NEXT_PUBLIC_CONVEX_URL)
-
 export function Providers({ children }: { children: ReactNode }) {
-  console.log('🔧 ConvexProvider rendering')
   return (
     <ConvexProvider client={convex}>
       <ToastProvider>

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalAction, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -16,7 +16,7 @@ export const generateEmbeddingsForReports = action({
     console.log(`🚀 Generating embeddings for compliance reports (starting from ${startFrom})`);
     
     // Get all compliance reports
-    const allReports = await ctx.db.query("complianceReports").collect();
+    const allReports: any = await ctx.runQuery(internal.generateEmbeddings.getAllReports);
     const reportsToProcess = allReports.slice(startFrom, startFrom + batchSize);
     
     console.log(`📊 Processing ${reportsToProcess.length} reports (${startFrom + 1}-${startFrom + reportsToProcess.length} of ${allReports.length})`);
@@ -77,7 +77,7 @@ export const generateEmbeddingsForReports = action({
         
       } catch (error) {
         console.error(`❌ Failed to generate embedding for ${report.reportId}:`, error);
-        errors.push(`${report.reportId}: ${error.message}`);
+        errors.push(`${report.reportId}: ${(error as Error).message}`);
         failed++;
       }
       
@@ -230,4 +230,11 @@ function extractTopicKey(ruleId: string): string {
   const parts = ruleId.split('_');
   return parts.slice(1).join('_') || 'unknown';
 }
+
+// Internal query to get all reports
+export const getAllReports = internalQuery({
+  handler: async (ctx): Promise<any> => {
+    return await ctx.db.query("complianceReports").collect();
+  },
+});
 

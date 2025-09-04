@@ -73,9 +73,7 @@ export default function HomePage() {
   
   // Debug query states (can be removed in production)
   useEffect(() => {
-    if (websitesQuery === undefined) {
-      console.log('⚠️ Websites query returning undefined - using fallback empty array');
-    } else if (websitesQuery && websitesQuery.length > 0) {
+    if (websitesQuery && websitesQuery.length > 0) {
       console.log(`✅ Loaded ${websitesQuery.length} websites from Convex`);
     }
   }, [websitesQuery])
@@ -139,9 +137,7 @@ export default function HomePage() {
   
   // Debug scrape history query (can be removed in production)
   useEffect(() => {
-    if (allScrapeHistoryQuery === undefined) {
-      console.log('⚠️ Scrape history query returning undefined - using fallback empty array');
-    } else if (allScrapeHistoryQuery && allScrapeHistoryQuery.length > 0) {
+    if (allScrapeHistoryQuery && allScrapeHistoryQuery.length > 0) {
       console.log(`✅ Loaded ${allScrapeHistoryQuery.length} scrape history entries from Convex`);
     }
   }, [allScrapeHistoryQuery])

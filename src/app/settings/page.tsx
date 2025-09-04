@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useConvexAuth, useQuery, useMutation, useAction } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { useAuthActions } from "@convex-dev/auth/react"
+// Removed auth imports for single-user mode
+// import { useConvexAuth } from "convex/react"
+// import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
 import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
 import { validateEmailTemplate } from '@/lib/validateTemplate'
@@ -462,8 +464,9 @@ const EmailTemplateEditor = () => {
 function SettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
-  const authActions = useAuthActions()
+  // Single-user mode - no authentication required
+  const isAuthenticated = true
+  const authLoading = false
   
   const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat'>('email')
   

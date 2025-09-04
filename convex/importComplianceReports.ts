@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalAction, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 // Import and process existing compliance reports with Gemini
@@ -85,7 +85,7 @@ export const importAndProcessReports = action({
           results.push({
             filename: reportFile.filename,
             success: false,
-            error: error.message,
+            error: (error as Error).message,
           });
           failed++;
         }
@@ -123,30 +123,30 @@ export const getComplianceContextForChat = action({
     const limit = args.limit || 3;
     
     // Get relevant AI-processed reports
-    let aiReports = await ctx.db.query("complianceAIReports").collect();
+    let aiReports: any = await ctx.runQuery(internal.importComplianceReports.getAllAIReports);
     
     // Filter by criteria
     if (args.jurisdiction) {
-      aiReports = aiReports.filter(report => 
-        report.ruleId.includes(args.jurisdiction.toLowerCase().replace(/\s+/g, '_'))
+      aiReports = aiReports.filter((report: any) => 
+        report.ruleId.includes(args.jurisdiction!.toLowerCase().replace(/\s+/g, '_'))
       );
     }
     
     if (args.topicKey) {
-      aiReports = aiReports.filter(report => 
+      aiReports = aiReports.filter((report: any) => 
         report.ruleId.includes(args.topicKey)
       );
     }
     
     // Get most relevant reports
     const relevantReports = aiReports
-      .sort((a, b) => b.processedAt - a.processedAt)
+      .sort((a: any, b: any) => b.processedAt - a.processedAt)
       .slice(0, limit);
     
     // Create context string
     let context = "RELEVANT COMPLIANCE DATA:\n\n";
     
-    relevantReports.forEach((report, i) => {
+    relevantReports.forEach((report: any, i: any) => {
       context += `${i + 1}. ${report.ruleId.replace(/_/g, ' ').toUpperCase()}\n`;
       if (report.structuredData.overview) {
         context += `Overview: ${report.structuredData.overview}\n`;
@@ -162,8 +162,8 @@ export const getComplianceContextForChat = action({
     
     return {
       context,
-      reportsUsed: relevantReports.map(r => r.reportId),
-      sectionsAvailable: relevantReports.reduce((sum, r) => sum + (r.aiMetadata?.sectionsExtracted || 0), 0),
+      reportsUsed: relevantReports.map((r: any) => r.reportId),
+      sectionsAvailable: relevantReports.reduce((sum: any, r: any) => sum + (r.aiMetadata?.sectionsExtracted || 0), 0),
     };
   },
 });
@@ -236,4 +236,11 @@ async function calculateContentHash(content: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Internal query to get all AI reports
+export const getAllAIReports = internalQuery({
+  handler: async (ctx): Promise<any> => {
+    return await ctx.db.query("complianceAIReports").collect();
+  },
+});
 
