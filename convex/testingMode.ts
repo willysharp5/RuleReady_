@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // Pause all compliance websites to stop over-scheduling
 export const pauseAllComplianceWebsites = mutation({
@@ -8,7 +9,7 @@ export const pauseAllComplianceWebsites = mutation({
     
     // Get all websites
     const allWebsites = await ctx.db.query("websites").collect();
-    const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+    const complianceWebsites = allWebsites.filter((w: any) => w.complianceMetadata?.isComplianceWebsite);
     
     console.log(`📊 Found ${complianceWebsites.length} compliance websites to pause`);
     
@@ -50,7 +51,7 @@ export const enableTestingMode = mutation({
     console.log(`🧪 Enabling testing mode with ${testCount} websites...`);
     
     // 1. First pause all websites
-    await pauseAllComplianceWebsites(ctx);
+    await ctx.runMutation(internal.testingMode.pauseAllComplianceWebsites);
     
     // 2. Select test websites based on criteria
     const testWebsites = await selectTestWebsites(ctx, {
@@ -79,7 +80,7 @@ export const enableTestingMode = mutation({
       success: true,
       testingMode: true,
       websitesActivated: activated,
-      testWebsites: testWebsites.map(w => ({
+      testWebsites: testWebsites.map((w: any) => ({
         name: w.name,
         jurisdiction: w.complianceMetadata?.jurisdiction,
         topic: w.complianceMetadata?.topicKey,
@@ -97,7 +98,7 @@ export const disableTestingMode = mutation({
     
     // Get all websites
     const allWebsites = await ctx.db.query("websites").collect();
-    const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+    const complianceWebsites = allWebsites.filter((w: any) => w.complianceMetadata?.isComplianceWebsite);
     
     let restored = 0;
     
@@ -139,7 +140,7 @@ export const disableTestingMode = mutation({
 export const getTestingModeStatus = query({
   handler: async (ctx) => {
     const allWebsites = await ctx.db.query("websites").collect();
-    const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+    const complianceWebsites = allWebsites.filter((w: any) => w.complianceMetadata?.isComplianceWebsite);
     
     const activeWebsites = complianceWebsites.filter(w => w.isActive && !w.isPaused);
     const testingWebsites = activeWebsites.filter(w => w.checkInterval === 0.25); // 15-second interval
@@ -166,7 +167,7 @@ export const getTestingModeStatus = query({
 // Select representative test websites
 async function selectTestWebsites(ctx: any, criteria: any) {
   const allWebsites = await ctx.db.query("websites").collect();
-  const complianceWebsites = allWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
+  const complianceWebsites = allWebsites.filter((w: any) => w.complianceMetadata?.isComplianceWebsite);
   
   // Default test selection for comprehensive coverage
   const defaultTestCriteria = [
@@ -185,20 +186,20 @@ async function selectTestWebsites(ctx: any, criteria: any) {
     let filtered = complianceWebsites;
     
     if (criteria.jurisdictions) {
-      filtered = filtered.filter(w => 
+      filtered = filtered.filter((w: any) => 
         criteria.jurisdictions.includes(w.complianceMetadata?.jurisdiction)
       );
     }
     
     if (criteria.topics) {
-      filtered = filtered.filter(w => 
+      filtered = filtered.filter((w: any) => 
         criteria.topics.includes(w.complianceMetadata?.topicKey)
       );
     }
     
     // Sort by priority and take top N
     selectedWebsites = filtered
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
         const aPriority = priorityOrder[a.complianceMetadata?.priority as keyof typeof priorityOrder] || 0;
         const bPriority = priorityOrder[b.complianceMetadata?.priority as keyof typeof priorityOrder] || 0;
@@ -208,7 +209,7 @@ async function selectTestWebsites(ctx: any, criteria: any) {
   } else {
     // Use default test selection
     for (const testCriteria of defaultTestCriteria.slice(0, criteria.count)) {
-      const website = complianceWebsites.find(w => 
+      const website = complianceWebsites.find((w: any) => 
         w.complianceMetadata?.jurisdiction === testCriteria.jurisdiction &&
         w.complianceMetadata?.topicKey === testCriteria.topicKey
       );

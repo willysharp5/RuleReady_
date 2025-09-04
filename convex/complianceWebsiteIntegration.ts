@@ -8,7 +8,7 @@ export const convertComplianceRulesToWebsites = internalAction({
   args: {
     userId: v.optional(v.id("users")), // Optional user ID for system-level import
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     // For system-level import, create a default user ID or use provided one
     // This is a one-time setup operation
     const userId = args.userId || "system_user" as any; // Placeholder for system import
@@ -16,7 +16,7 @@ export const convertComplianceRulesToWebsites = internalAction({
     console.log("🔄 Converting compliance rules to monitored websites...");
     
     // Get all compliance rules
-    const rules = await ctx.runQuery(internal.csvImport.getAllRules);
+    const rules: any = await ctx.runQuery(internal.csvImport.getAllRules);
     console.log(`📊 Found ${rules.length} compliance rules to convert`);
     
     let created = 0;
@@ -175,7 +175,7 @@ function getMonitoringSettings(priority: string, topicKey: string) {
 
 // Get compliance website statistics
 export const getComplianceWebsiteStats = action({
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<any> => {
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new Error("User must be authenticated");
@@ -184,16 +184,16 @@ export const getComplianceWebsiteStats = action({
     const userId = typeof user === 'object' ? user._id : user;
     
     // Get all websites for this user
-    const websites = await ctx.runQuery(internal.websites.getUserWebsites, { userId });
+    const websites: any = await ctx.runQuery(internal.websites.getUserWebsites);
     
     // Filter compliance websites (those with compliance-like names)
-    const complianceWebsites = websites.filter(site => 
+    const complianceWebsites = websites.filter((site: any) => 
       site.name.includes(' - ') && // Compliance sites have "Jurisdiction - Topic" format
       (site.name.includes('Federal') || site.name.includes('Alabama') || site.name.includes('California')) // Common jurisdictions
     );
     
     // Group by jurisdiction
-    const byJurisdiction = complianceWebsites.reduce((acc, site) => {
+    const byJurisdiction = complianceWebsites.reduce((acc: any, site: any) => {
       const jurisdiction = site.name.split(' - ')[0];
       if (!acc[jurisdiction]) acc[jurisdiction] = 0;
       acc[jurisdiction]++;
@@ -221,8 +221,8 @@ export const updateComplianceWebsiteMetadata = internalAction({
     console.log("🔄 Updating compliance website metadata...");
     
     // Get all websites that look like compliance websites
-    const allWebsites = await ctx.db.query("websites").collect();
-    const complianceWebsites = allWebsites.filter(site => 
+    const allWebsites = await ctx.runQuery(internal.websites.getAllWebsites);
+    const complianceWebsites = allWebsites.filter((site: any) => 
       site.name.includes(' - ') && 
       site.url.includes('.gov')
     );
@@ -241,10 +241,8 @@ export const updateComplianceWebsiteMetadata = internalAction({
           const [jurisdiction, topic] = website.name.split(' - ');
           
           // Create enhanced name with priority indicator
-          const rule = await ctx.db
-            .query("complianceRules")
-            .filter((q) => q.eq(q.field("sourceUrl"), website.url))
-            .first();
+          const rules = await ctx.runQuery(internal.csvImport.getAllRules);
+          const rule = rules.find((r: any) => r.sourceUrl === website.url);
           
           if (rule) {
             const priorityIcon = {
@@ -252,13 +250,16 @@ export const updateComplianceWebsiteMetadata = internalAction({
               high: "🟠", 
               medium: "🟡",
               low: "🟢"
-            }[rule.priority];
+            }[rule.priority as keyof typeof priorityIcon];
             
             const enhancedName = `${priorityIcon} ${jurisdiction} - ${topic}`;
             
-            await ctx.db.patch(website._id, {
-              name: enhancedName,
-              updatedAt: Date.now(),
+            await ctx.runMutation(internal.websites.updateWebsite, {
+              websiteId: website._id,
+              updates: {
+                name: enhancedName,
+                updatedAt: Date.now(),
+              }
             });
             
             updated++;

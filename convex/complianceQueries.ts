@@ -61,17 +61,17 @@ export const getComplianceDashboard = query({
     if (args.jurisdiction) {
       rules = await ctx.db
         .query("complianceRules")
-        .withIndex("by_jurisdiction", (q) => q.eq("jurisdiction", args.jurisdiction))
+        .withIndex("by_jurisdiction", (q) => q.eq("jurisdiction", args.jurisdiction!))
         .collect();
     } else if (args.topicKey) {
       rules = await ctx.db
         .query("complianceRules")
-        .withIndex("by_topic", (q) => q.eq("topicKey", args.topicKey))
+        .withIndex("by_topic", (q) => q.eq("topicKey", args.topicKey!))
         .collect();
     } else if (args.priority) {
       rules = await ctx.db
         .query("complianceRules")
-        .withIndex("by_priority", (q) => q.eq("priority", args.priority))
+        .withIndex("by_priority", (q) => q.eq("priority", args.priority!))
         .collect();
     } else {
       rules = await ctx.db.query("complianceRules").collect();

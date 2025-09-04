@@ -193,7 +193,7 @@ Return the response as a valid JSON object with the structure:
       
     } catch (error) {
       console.error(`❌ Failed to process ${args.jurisdiction} - ${args.topicKey}:`, error);
-      throw new Error(`Gemini processing failed: ${error.message}`);
+      throw new Error(`Gemini processing failed: ${(error as Error).message}`);
     }
   },
 });
@@ -236,31 +236,31 @@ export const getAIReportsForChat = action({
     topicKey: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const limit = args.limit || 5;
     
-    let reports = await ctx.db.query("complianceAIReports").collect();
+    let reports = await ctx.runQuery(internal.importComplianceReports.getAllAIReports);
     
     // Filter by jurisdiction if specified
     if (args.jurisdiction) {
-      reports = reports.filter(report => 
-        report.ruleId.includes(args.jurisdiction.toLowerCase().replace(/\s+/g, '_'))
+      reports = reports.filter((report: any) => 
+        report.ruleId.includes(args.jurisdiction!.toLowerCase().replace(/\s+/g, '_'))
       );
     }
     
     // Filter by topic if specified
     if (args.topicKey) {
-      reports = reports.filter(report => 
+      reports = reports.filter((report: any) => 
         report.ruleId.includes(args.topicKey)
       );
     }
     
     // Sort by processing date (newest first) and limit
     const sortedReports = reports
-      .sort((a, b) => b.processedAt - a.processedAt)
+      .sort((a: any, b: any) => b.processedAt - a.processedAt)
       .slice(0, limit);
     
-    return sortedReports.map(report => ({
+    return sortedReports.map((report: any) => ({
       reportId: report.reportId,
       ruleId: report.ruleId,
       structuredData: report.structuredData,
@@ -276,11 +276,11 @@ export const testGeminiIntegration = action({
   args: {
     testContent: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const testContent = args.testContent || "California minimum wage is $16.00 per hour as of January 1, 2024. Employers with 26 or more employees must pay this rate.";
     
     try {
-      const result = await ctx.runAction(api.geminiFlashLite.processComplianceDataWithGemini, {
+      const result: any = await ctx.runAction(internal.geminiFlashLite.processComplianceDataWithGemini, {
         rawContent: testContent,
         sourceUrl: "https://test.example.com",
         jurisdiction: "California",
@@ -297,7 +297,7 @@ export const testGeminiIntegration = action({
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: (error as Error).message,
         message: "Gemini integration test failed",
       };
     }

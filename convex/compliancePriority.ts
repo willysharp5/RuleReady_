@@ -201,7 +201,7 @@ export const validateCompliancePriority = internalQuery({
     // Check for significant priority downgrades
     const currentPriority = website.complianceMetadata.priority;
     const priorityLevels = { critical: 4, high: 3, medium: 2, low: 1 };
-    const currentLevel = priorityLevels[currentPriority];
+    const currentLevel = priorityLevels[currentPriority as keyof typeof priorityLevels] || 1;
     const newLevel = priorityLevels[args.newPriority];
     
     if (newLevel < currentLevel - 1) {

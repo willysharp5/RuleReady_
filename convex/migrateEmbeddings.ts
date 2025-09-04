@@ -1,4 +1,5 @@
 import { action } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 // This action will migrate embeddings from Supabase to Convex
@@ -31,7 +32,7 @@ export const migrateEmbeddingsFromSupabase = action({
       try {
         for (const embedding of batch) {
           try {
-            await ctx.runMutation("migrateEmbeddings:insertEmbedding", {
+            await ctx.runMutation(internal.migrateEmbeddings.insertEmbedding, {
               entityType: embedding.entity_type,
               entityId: embedding.entity_id,
               content: embedding.content,
@@ -81,8 +82,8 @@ export const insertEmbedding = action({
     embedding: v.array(v.number()),
     createdAt: v.string()
   },
-  handler: async (ctx, args) => {
-    return await ctx.runMutation("migrateEmbeddings:storeEmbedding", args);
+  handler: async (ctx, args): Promise<any> => {
+    return await ctx.runMutation(internal.migrateEmbeddings.storeEmbedding, args);
   }
 });
 
@@ -91,15 +92,15 @@ export const storeEmbedding = action({
     entityType: v.string(),
     entityId: v.string(),
     content: v.string(),
-    contentHash: v.string(), 
+    contentHash: v.string(),
     chunkIndex: v.number(),
     totalChunks: v.number(),
     metadata: v.any(),
     embedding: v.array(v.number()),
     createdAt: v.string()
   },
-  handler: async (ctx, args) => {
-    return await ctx.runMutation("embeddingManager:storeEmbedding", {
+  handler: async (ctx, args): Promise<any> => {
+    return await ctx.runMutation(internal.embeddingManager.storeEmbedding, {
       entityType: args.entityType as "rule" | "report",
       entityId: args.entityId,
       content: args.content,

@@ -65,18 +65,38 @@ export default function HomePage() {
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   
-  // Convex queries and mutations
+  // Convex queries - now working with proper environment variable
   const websitesQuery = useQuery(api.websites.getUserWebsites)
-  // Use fallback empty array to prevent loading states when query returns undefined
-  const websites = websitesQuery || []
-  // Removed: firecrawlKey query no longer needed
+  const allScrapeHistoryQuery = useQuery(api.websites.getAllScrapeHistory)
+  const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
+  const topicsQuery = useQuery(api.complianceQueries.getTopics)
   
+  // Use fallback empty arrays to prevent loading states when query returns undefined
+  const websites = websitesQuery || []
+  const allScrapeHistory = allScrapeHistoryQuery || []
+  const jurisdictions = jurisdictionsQuery || []
+  const topics = topicsQuery || []
+
   // Debug query states (can be removed in production)
   useEffect(() => {
-    if (websitesQuery && websitesQuery.length > 0) {
-      console.log(`✅ Loaded ${websitesQuery.length} websites from Convex`);
-    }
-  }, [websitesQuery])
+    console.log('🔍 Query State:', {
+      websitesQuery: websitesQuery ? `Array of ${websitesQuery.length}` : websitesQuery,
+      allScrapeHistoryQuery: allScrapeHistoryQuery ? `Array of ${allScrapeHistoryQuery.length}` : allScrapeHistoryQuery,
+      jurisdictionsQuery: jurisdictionsQuery ? `Array of ${jurisdictionsQuery.length}` : jurisdictionsQuery,
+      topicsQuery: topicsQuery ? `Array of ${topicsQuery.length}` : topicsQuery,
+      dataWorking: websites.length > 0 ? 'YES' : 'NO',
+      convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL
+    });
+  }, [websitesQuery, allScrapeHistoryQuery, jurisdictionsQuery, topicsQuery, websites])
+  
+  // Test if ConvexProvider is working at all
+  useEffect(() => {
+    console.log('🔍 ConvexProvider Test:', {
+      hasConvexProvider: typeof useQuery === 'function',
+      apiObject: typeof api,
+      websitesFunction: typeof api?.websites?.getUserWebsites
+    });
+  }, [])
   
   // Track website list updates
   useEffect(() => {
@@ -131,22 +151,18 @@ export default function HomePage() {
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
   
   // Get all scrape results for check log
-  const allScrapeHistoryQuery = useQuery(api.websites.getAllScrapeHistory)
-  // Use fallback empty array to prevent loading states when query returns undefined
-  const allScrapeHistory = allScrapeHistoryQuery || []
+  // Removed: using direct fetch instead of useQuery
   
   // Debug scrape history query (can be removed in production)
   useEffect(() => {
-    if (allScrapeHistoryQuery && allScrapeHistoryQuery.length > 0) {
-      console.log(`✅ Loaded ${allScrapeHistoryQuery.length} scrape history entries from Convex`);
+    if (allScrapeHistory && allScrapeHistory.length > 0) {
+      console.log(`✅ Loaded ${allScrapeHistory.length} scrape history entries from direct fetch`);
     }
-  }, [allScrapeHistoryQuery])
+  }, [allScrapeHistory])
   
 
   
-  // Get compliance filter data
-  const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
-  const topics = useQuery(api.complianceQueries.getTopics)
+  // Get compliance filter data - using direct fetch instead of useQuery
   
   // Single-user mode: Check if setup is needed and auto-create websites
   const setupStatus = useQuery(api.singleUserSetup.needsSetup)
@@ -904,33 +920,61 @@ export default function HomePage() {
                           )
                         }
 
-                        const filteredWebsites = websites
-                          .filter(website => {
-                            // Text search filter
+                        // Debug: Log current filter states
+                        console.log('🔍 Filter Debug:', {
+                          totalWebsites: websites.length,
+                          searchQuery,
+                          selectedJurisdiction,
+                          selectedPriority,
+                          selectedTopic,
+                          showComplianceOnly
+                        });
+
+                        // Apply filtering logic
+                        const filteredWebsites = websites.filter(website => {
+                          // Search query filter
+                          if (searchQuery) {
                             const query = searchQuery.toLowerCase()
-                            const matchesSearch = !query || 
-                              website.name.toLowerCase().includes(query) || 
-                              website.url.toLowerCase().includes(query)
-                            
-                            // Compliance-only filter
-                            const isCompliance = website.complianceMetadata?.isComplianceWebsite || false
-                            const matchesComplianceFilter = !showComplianceOnly || isCompliance
-                            
-                            // Jurisdiction filter
-                            const matchesJurisdiction = !selectedJurisdiction || 
-                              website.complianceMetadata?.jurisdiction === selectedJurisdiction
-                            
-                            // Priority filter
-                            const matchesPriority = !selectedPriority || 
-                              website.complianceMetadata?.priority === selectedPriority
-                            
-                            // Topic filter
-                            const matchesTopic = !selectedTopic || 
-                              website.complianceMetadata?.topicKey === selectedTopic
-                            
-                            return matchesSearch && matchesComplianceFilter && 
-                                   matchesJurisdiction && matchesPriority && matchesTopic
-                          })
+                            const matchesSearch = website.name.toLowerCase().includes(query) || 
+                                                website.url.toLowerCase().includes(query)
+                            if (!matchesSearch) return false
+                          }
+
+                          // Compliance-only filter
+                          if (showComplianceOnly) {
+                            if (!website.complianceMetadata?.isComplianceWebsite) return false
+                          }
+
+                          // Jurisdiction filter
+                          if (selectedJurisdiction) {
+                            if (website.complianceMetadata?.jurisdiction !== selectedJurisdiction) return false
+                          }
+
+                          // Priority filter
+                          if (selectedPriority) {
+                            if (website.complianceMetadata?.priority !== selectedPriority) return false
+                          }
+
+                          // Topic filter
+                          if (selectedTopic) {
+                            if (website.complianceMetadata?.topicKey !== selectedTopic) return false
+                          }
+
+                          return true
+                        })
+
+                        // Debug: Log filtered results
+                        console.log('🔍 After filtering:', {
+                          filteredCount: filteredWebsites.length,
+                          firstFewWebsites: filteredWebsites.slice(0, 3).map(w => ({
+                            name: w.name,
+                            isCompliance: w.complianceMetadata?.isComplianceWebsite,
+                            jurisdiction: w.complianceMetadata?.jurisdiction,
+                            priority: w.complianceMetadata?.priority
+                          }))
+                        });
+
+                        const sortedWebsites = filteredWebsites
                           .sort((a, b) => {
                             // Sort compliance websites first, then by priority, then by creation time
                             const aIsCompliance = a.complianceMetadata?.isComplianceWebsite || false
@@ -956,15 +1000,15 @@ export default function HomePage() {
                           })
                         
                         // Pagination calculations
-                        const totalPages = Math.ceil(filteredWebsites.length / ITEMS_PER_PAGE_WEBSITES)
+                        const totalPages = Math.ceil(sortedWebsites.length / ITEMS_PER_PAGE_WEBSITES)
                         const startIndex = (websitesPage - 1) * ITEMS_PER_PAGE_WEBSITES
                         const endIndex = startIndex + ITEMS_PER_PAGE_WEBSITES
-                        const paginatedWebsites = filteredWebsites.slice(startIndex, endIndex)
+                        const paginatedWebsites = sortedWebsites.slice(startIndex, endIndex)
                         
                         // Filter results summary
                         const hasFilters = searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly
                         const filterResultsText = hasFilters ? 
-                          `Showing ${filteredWebsites.length} of ${websites.length} websites` :
+                          `Showing ${sortedWebsites.length} of ${websites.length} websites` :
                           `Showing all ${websites.length} websites`
                         
                         // Reset to page 1 if current page is out of bounds
@@ -978,14 +1022,14 @@ export default function HomePage() {
                             <span>{filterResultsText}</span>
                             {hasFilters && (
                               <span className="text-xs">
-                                {filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} compliance, {' '}
-                                {filteredWebsites.length - filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} regular
+                                {sortedWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} compliance, {' '}
+                                {sortedWebsites.length - sortedWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length} regular
                               </span>
                             )}
                           </div>
                         )
                         
-                        if (filteredWebsites.length === 0 && (searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly)) {
+                        if (sortedWebsites.length === 0 && (searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly)) {
                           return (
                             <div className="text-center py-8 text-gray-500">
                               <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -1013,12 +1057,36 @@ export default function HomePage() {
                           )
                         }
                         
+                        // DEBUG: Show what's happening with the data
+                        console.log('🔍 Render Debug:', {
+                          websitesLength: websites.length,
+                          sortedWebsitesLength: sortedWebsites?.length,
+                          dataFetchWorking: websites.length > 0 ? 'YES' : 'NO'
+                        });
+
                         if (websites.length === 0) {
                           return (
                             <div className="text-center py-8 text-gray-500">
                               <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                               <p className="text-lg font-medium">No websites yet</p>
                               <p className="text-sm mt-1">Add your first website above to start monitoring</p>
+                              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-left">
+                                <p className="text-xs text-yellow-700">
+                                  Debug: websitesQuery = {websitesQuery ? `Array(${websitesQuery.length})` : String(websitesQuery)}
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  scrapeHistoryQuery = {allScrapeHistoryQuery ? `Array(${allScrapeHistoryQuery.length})` : String(allScrapeHistoryQuery)}
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  jurisdictionsQuery = {jurisdictionsQuery ? `Array(${jurisdictionsQuery.length})` : String(jurisdictionsQuery)}
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  topicsQuery = {topicsQuery ? `Array(${topicsQuery.length})` : String(topicsQuery)}
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  ENV: {process.env.NEXT_PUBLIC_CONVEX_URL ? 'SET' : 'NOT SET'}
+                                </p>
+                              </div>
                             </div>
                           )
                         }
@@ -2075,7 +2143,7 @@ export default function HomePage() {
                     {scrape.diff && scrape.diff.text ? (
                       <div className="p-4">
                         <div className="font-mono text-sm text-gray-100">
-                          {diffLines.map((line, index) => {
+                          {diffLines.map((line: string, index: number) => {
                             const isAddition = line.startsWith('+') && !line.startsWith('+++');
                             const isDeletion = line.startsWith('-') && !line.startsWith('---');
                             const isContext = line.startsWith('@@');

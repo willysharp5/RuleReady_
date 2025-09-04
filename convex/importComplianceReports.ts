@@ -12,7 +12,7 @@ export const importAndProcessReports = action({
     useGeminiProcessing: v.optional(v.boolean()),
     batchSize: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const batchSize = args.batchSize || 10; // Smaller batches for AI processing
     const useGemini = args.useGeminiProcessing || false;
     
@@ -34,7 +34,7 @@ export const importAndProcessReports = action({
           
           if (useGemini) {
             // Process with Gemini AI
-            const result = await ctx.runAction(internal.geminiFlashLite.processComplianceDataWithGemini, {
+            const result: any = await ctx.runAction(internal.geminiFlashLite.processComplianceDataWithGemini, {
               rawContent: reportFile.content,
               sourceUrl: getSourceUrlForRule(jurisdiction, topicKey),
               jurisdiction,
