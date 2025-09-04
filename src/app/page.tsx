@@ -77,33 +77,6 @@ export default function HomePage() {
   const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
 
-  // Debug query states (can be removed in production)
-  useEffect(() => {
-    console.log('🔍 Query State:', {
-      websitesQuery: websitesQuery ? `Array of ${websitesQuery.length}` : websitesQuery,
-      allScrapeHistoryQuery: allScrapeHistoryQuery ? `Array of ${allScrapeHistoryQuery.length}` : allScrapeHistoryQuery,
-      jurisdictionsQuery: jurisdictionsQuery ? `Array of ${jurisdictionsQuery.length}` : jurisdictionsQuery,
-      topicsQuery: topicsQuery ? `Array of ${topicsQuery.length}` : topicsQuery,
-      dataWorking: websites.length > 0 ? 'YES' : 'NO',
-      convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL
-    });
-  }, [websitesQuery, allScrapeHistoryQuery, jurisdictionsQuery, topicsQuery, websites])
-  
-  // Test if ConvexProvider is working at all
-  useEffect(() => {
-    console.log('🔍 ConvexProvider Test:', {
-      hasConvexProvider: typeof useQuery === 'function',
-      apiObject: typeof api,
-      websitesFunction: typeof api?.websites?.getUserWebsites
-    });
-  }, [])
-  
-  // Track website list updates
-  useEffect(() => {
-    if (websites && websites.length > 0) {
-      console.log(`Monitoring ${websites.length} website${websites.length !== 1 ? 's' : ''}`)
-    }
-  }, [websites])
   const createWebsite = useMutation(api.websites.createWebsite)
   const deleteWebsite = useMutation(api.websites.deleteWebsite)
   const pauseWebsite = useMutation(api.websites.pauseWebsite)
@@ -153,12 +126,6 @@ export default function HomePage() {
   // Get all scrape results for check log
   // Removed: using direct fetch instead of useQuery
   
-  // Debug scrape history query (can be removed in production)
-  useEffect(() => {
-    if (allScrapeHistory && allScrapeHistory.length > 0) {
-      console.log(`✅ Loaded ${allScrapeHistory.length} scrape history entries from direct fetch`);
-    }
-  }, [allScrapeHistory])
   
 
   
@@ -171,17 +138,14 @@ export default function HomePage() {
   // Auto-setup compliance websites when needed
   useEffect(() => {
     if (setupStatus?.needsSetup) {
-      console.log("🔄 Auto-setting up compliance websites...");
       createAllWebsites()
         .then((result) => {
-          console.log(`✅ Auto-setup completed: ${result.created} websites created`);
           addToast({
             title: "Setup Complete",
             description: `${result.created} compliance websites created and ready for monitoring`,
           });
         })
         .catch((error) => {
-          console.error("❌ Auto-setup failed:", error);
           addToast({
             title: "Setup Error",
             description: "Failed to create compliance websites. Please try refreshing the page.",
@@ -245,7 +209,6 @@ export default function HomePage() {
 
     try {
       // Single-user mode - no authentication needed
-      console.log('Single-user mode: authentication bypassed')
       // Clear form on successful auth
       setEmail('')
       setPassword('')
@@ -396,7 +359,6 @@ export default function HomePage() {
 
   const downloadMarkdown = (markdown: string | undefined, websiteName: string, timestamp: number) => {
     if (!markdown) {
-      console.error('No markdown content available to download')
       return
     }
     const blob = new Blob([markdown], { type: 'text/markdown' })
@@ -428,7 +390,6 @@ export default function HomePage() {
         })
       }, 5000) // Increased to 5 seconds
     } catch (error) {
-      console.error('Failed to trigger scrape:', error)
       setProcessingWebsites(prev => {
         const newSet = new Set(prev)
         newSet.delete(websiteId)
@@ -920,15 +881,6 @@ export default function HomePage() {
                           )
                         }
 
-                        // Debug: Log current filter states
-                        console.log('🔍 Filter Debug:', {
-                          totalWebsites: websites.length,
-                          searchQuery,
-                          selectedJurisdiction,
-                          selectedPriority,
-                          selectedTopic,
-                          showComplianceOnly
-                        });
 
                         // Apply filtering logic
                         const filteredWebsites = websites.filter(website => {
@@ -963,16 +915,6 @@ export default function HomePage() {
                           return true
                         })
 
-                        // Debug: Log filtered results
-                        console.log('🔍 After filtering:', {
-                          filteredCount: filteredWebsites.length,
-                          firstFewWebsites: filteredWebsites.slice(0, 3).map(w => ({
-                            name: w.name,
-                            isCompliance: w.complianceMetadata?.isComplianceWebsite,
-                            jurisdiction: w.complianceMetadata?.jurisdiction,
-                            priority: w.complianceMetadata?.priority
-                          }))
-                        });
 
                         const sortedWebsites = filteredWebsites
                           .sort((a, b) => {
@@ -1057,12 +999,6 @@ export default function HomePage() {
                           )
                         }
                         
-                        // DEBUG: Show what's happening with the data
-                        console.log('🔍 Render Debug:', {
-                          websitesLength: websites.length,
-                          sortedWebsitesLength: sortedWebsites?.length,
-                          dataFetchWorking: websites.length > 0 ? 'YES' : 'NO'
-                        });
 
                         if (websites.length === 0) {
                           return (
@@ -1070,23 +1006,6 @@ export default function HomePage() {
                               <Clock className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                               <p className="text-lg font-medium">No websites yet</p>
                               <p className="text-sm mt-1">Add your first website above to start monitoring</p>
-                              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-left">
-                                <p className="text-xs text-yellow-700">
-                                  Debug: websitesQuery = {websitesQuery ? `Array(${websitesQuery.length})` : String(websitesQuery)}
-                                </p>
-                                <p className="text-xs text-yellow-700">
-                                  scrapeHistoryQuery = {allScrapeHistoryQuery ? `Array(${allScrapeHistoryQuery.length})` : String(allScrapeHistoryQuery)}
-                                </p>
-                                <p className="text-xs text-yellow-700">
-                                  jurisdictionsQuery = {jurisdictionsQuery ? `Array(${jurisdictionsQuery.length})` : String(jurisdictionsQuery)}
-                                </p>
-                                <p className="text-xs text-yellow-700">
-                                  topicsQuery = {topicsQuery ? `Array(${topicsQuery.length})` : String(topicsQuery)}
-                                </p>
-                                <p className="text-xs text-yellow-700">
-                                  ENV: {process.env.NEXT_PUBLIC_CONVEX_URL ? 'SET' : 'NOT SET'}
-                                </p>
-                              </div>
                             </div>
                           )
                         }
@@ -1230,11 +1149,8 @@ export default function HomePage() {
                                     if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone.`)) {
                                       setDeletingWebsites(prev => new Set([...prev, website._id]))
                                       try {
-                                        console.log('Deleting website:', website._id, website.name)
                                         await deleteWebsite({ websiteId: website._id })
-                                        console.log('Website deleted successfully:', website._id)
                                       } catch (error) {
-                                        console.error('Failed to delete website:', error)
                                         alert('Failed to delete website. Please try again.')
                                       } finally {
                                         setDeletingWebsites(prev => {
@@ -1831,7 +1747,6 @@ export default function HomePage() {
                                             try {
                                               await deleteWebsite({ websiteId: website._id })
                                             } catch (error) {
-                                              console.error('Failed to delete website:', error)
                                               alert('Failed to delete website. Please try again.')
                                             } finally {
                                               setDeletingWebsites(prev => {
@@ -2259,7 +2174,7 @@ export default function HomePage() {
                   try {
                     await triggerScrape({ websiteId })
                   } catch (error) {
-                    console.error('Failed to trigger initial check:', error)
+                    // Silently handle error
                   }
                 }
                 

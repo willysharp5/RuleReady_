@@ -56,7 +56,6 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
     setIsSigningOut(true)
     try {
       // Single-user mode - no sign out needed
-      console.log('Single-user mode: sign out bypassed')
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {

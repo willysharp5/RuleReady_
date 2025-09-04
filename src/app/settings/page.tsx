@@ -2065,13 +2065,6 @@ Analyze the provided diff and return a JSON response with:
                           setIsUpdatingChat(true)
                           try {
                             // Save chat settings (implement this mutation)
-                            console.log('Saving chat settings:', {
-                              chatModel,
-                              chatSystemPrompt,
-                              enableComplianceContext,
-                              maxContextReports,
-                              enableSemanticSearch,
-                            });
                             setChatSuccess(true)
                             setTimeout(() => setChatSuccess(false), 3000)
                           } catch (error) {
