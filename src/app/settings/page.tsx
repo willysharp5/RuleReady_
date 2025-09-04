@@ -66,11 +66,14 @@ function EmbeddedChatUI() {
   // Check if user is near bottom of chat
   const checkScrollPosition = () => {
     const el = listRef.current
-    if (el) {
+    if (el && messages.length > 1) {
       const { scrollTop, scrollHeight, clientHeight } = el
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100 // 100px threshold
-      // Only show scroll button if there are multiple messages and user isn't at bottom
-      setShowScrollButton(!isNearBottom && messages.length > 1)
+      // More sensitive threshold - show button if user scrolled up more than 50px from bottom
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight)
+      const shouldShowButton = distanceFromBottom > 50
+      setShowScrollButton(shouldShowButton)
+    } else {
+      setShowScrollButton(false)
     }
   }
 
@@ -78,15 +81,21 @@ function EmbeddedChatUI() {
   useEffect(() => {
     const el = listRef.current
     if (el) {
-      el.addEventListener('scroll', checkScrollPosition)
+      el.addEventListener('scroll', checkScrollPosition, { passive: true })
+      // Initial check
+      checkScrollPosition()
       return () => el.removeEventListener('scroll', checkScrollPosition)
     }
-  }, [])
+  }, [messages.length]) // Re-attach when messages change
 
   useEffect(() => {
     // Auto-scroll to bottom on new messages - like Vercel Chat SDK
     scrollToBottom()
     setShowScrollButton(false) // Hide scroll button when auto-scrolling
+    // Check scroll position after a brief delay to ensure content has rendered
+    setTimeout(() => {
+      checkScrollPosition()
+    }, 100)
   }, [messages])
 
   // Also scroll when loading state changes (for real-time responses)
@@ -382,15 +391,16 @@ function EmbeddedChatUI() {
           <div className="absolute bottom-4 right-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <Button
               onClick={() => {
-                scrollToBottom()
+                scrollToBottom('smooth')
                 setShowScrollButton(false)
               }}
               size="sm"
-              className="h-10 w-10 rounded-full p-0 shadow-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200 hover:scale-105"
-              variant="outline"
+              className="h-10 w-10 rounded-full p-0 shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-0 transition-all duration-200 hover:scale-105 relative"
               title="Scroll to bottom"
             >
               <ArrowDown className="h-4 w-4" />
+              {/* Small pulse indicator */}
+              <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-400 rounded-full animate-pulse"></div>
             </Button>
           </div>
         )}
