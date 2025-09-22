@@ -20,7 +20,7 @@ interface WebhookConfigModalProps {
     crawlDepth?: number
     checkNow?: boolean
     // NEW: Compliance priority fields
-    compliancePriority?: 'critical' | 'high' | 'medium' | 'low'
+    compliancePriority?: 'critical' | 'high' | 'medium' | 'low' | 'testing'
     overrideComplianceInterval?: boolean
     priorityChangeReason?: string
   }) => void
@@ -34,7 +34,7 @@ interface WebhookConfigModalProps {
     crawlDepth?: number
     // NEW: Compliance metadata
     complianceMetadata?: {
-      priority: 'critical' | 'high' | 'medium' | 'low'
+      priority: 'critical' | 'high' | 'medium' | 'low' | 'testing'
       isComplianceWebsite: boolean
       jurisdiction: string
       topicKey: string
@@ -178,7 +178,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 <Select
                   id="compliance-priority"
                   value={compliancePriority}
-                  onChange={(e) => setCompliancePriority(e.target.value)}
+                  onChange={(e) => setCompliancePriority(e.target.value as 'critical' | 'high' | 'medium' | 'low' | 'testing')}
                   className="w-full mt-1"
                 >
                   <optgroup label="Production Priorities">

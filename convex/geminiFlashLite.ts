@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini 2.5 Flash Lite
@@ -20,7 +20,7 @@ export const initGeminiFlashLite = async (apiKey?: string) => {
 };
 
 // Process FireCrawl data with compliance template
-export const processComplianceDataWithGemini = action({
+export const processComplianceDataWithGemini = internalAction({
   args: {
     rawContent: v.string(),
     sourceUrl: v.string(),

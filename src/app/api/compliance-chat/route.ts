@@ -72,7 +72,7 @@ Provide accurate, actionable compliance guidance based on this structured data. 
   } catch (error) {
     console.error('Compliance chat error:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process compliance chat request', details: error.message }),
+      JSON.stringify({ error: 'Failed to process compliance chat request', details: (error as Error).message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

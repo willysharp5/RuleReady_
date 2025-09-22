@@ -1,5 +1,5 @@
 import { internalAction, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 export const checkActiveWebsites = internalAction({
   handler: async (ctx) => {
@@ -18,16 +18,18 @@ export const checkActiveWebsites = internalAction({
         
         if (website.monitorType === "full_site") {
           // For full site monitors, perform a crawl
+        if (website.userId) {
           await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
             websiteId: website._id,
             userId: website.userId,
           });
+        }
         } else {
           // For single page monitors, just check the URL
           await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
             websiteId: website._id,
             url: website.url,
-            userId: website.userId,
+            userId: website.userId as any,
           });
         }
       } catch (error) {
@@ -46,12 +48,12 @@ export const checkComplianceRules = internalAction({
     console.log("🏛️ Checking compliance rules for updates...");
     
     // Get rules due for crawling (prioritize critical and high priority)
-    const criticalRules = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+    const criticalRules = await ctx.runQuery(api.complianceCrawler.getRulesDueForCrawling, {
       limit: 10, // Process 10 critical rules per cycle
       priorityFilter: "critical",
     });
     
-    const highPriorityRules = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+    const highPriorityRules = await ctx.runQuery(api.complianceCrawler.getRulesDueForCrawling, {
       limit: 20, // Process 20 high priority rules per cycle
       priorityFilter: "high",
     });

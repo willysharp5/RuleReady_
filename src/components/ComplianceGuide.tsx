@@ -16,7 +16,7 @@ export function ComplianceGuide() {
             <CardTitle className="text-blue-900">RuleReady Compliance System</CardTitle>
           </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-blue-600 hover:text-blue-800"

@@ -1,5 +1,5 @@
 import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { v } from "convex/values";
 
 // This action will migrate embeddings from Supabase to Convex
@@ -32,7 +32,7 @@ export const migrateEmbeddingsFromSupabase = action({
       try {
         for (const embedding of batch) {
           try {
-            await ctx.runMutation(internal.migrateEmbeddings.insertEmbedding, {
+            await ctx.runAction(api.migrateEmbeddings.insertEmbedding, {
               entityType: embedding.entity_type,
               entityId: embedding.entity_id,
               content: embedding.content,
@@ -83,7 +83,7 @@ export const insertEmbedding = action({
     createdAt: v.string()
   },
   handler: async (ctx, args): Promise<any> => {
-    return await ctx.runMutation(internal.migrateEmbeddings.storeEmbedding, args);
+    return await ctx.runAction(api.migrateEmbeddings.storeEmbedding, args);
   }
 });
 
@@ -108,7 +108,12 @@ export const storeEmbedding = action({
       chunkIndex: args.chunkIndex,
       totalChunks: args.totalChunks,
       metadata: args.metadata,
-      embedding: args.embedding
+      embedding: args.embedding,
+      // Supply required fields for embeddingManager.storeEmbedding
+      embeddingModel: "imported",
+      embeddingDimensions: args.embedding.length,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   }
 });

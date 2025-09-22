@@ -6,14 +6,15 @@ import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
-import { useConvexAuth, useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Loader2, ArrowLeft, Webhook, Copy, Check, Trash2, CheckCircle, XCircle, Clock, AlertCircle, HelpCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
 export default function WebhookPlaygroundPage() {
   const router = useRouter()
-  const { isLoading: authLoading, isAuthenticated } = useConvexAuth()
+  const authLoading = false
+  const isAuthenticated = true
   const [copied, setCopied] = useState(false)
   const [expandedPayload, setExpandedPayload] = useState<string | null>(null)
   const [previousCount, setPreviousCount] = useState(0)

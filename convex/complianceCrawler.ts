@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery, query, action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 // Main compliance crawler that integrates with existing FireCrawl (public for testing)
@@ -175,7 +175,7 @@ export const crawlComplianceRuleInternal = internalAction({
     const strategy = getCrawlingStrategy(rule.jurisdiction, rule.topicKey);
     
     // 3. Check if crawl is due (unless forced)
-    if (!args.forceRecrawl && !isCrawlDue(rule, strategy)) {
+    if (!args.forceRecrawl && !shouldCrawlNow(rule, strategy)) {
       console.log(`⏭️ Skipping crawl - not due yet for ${args.ruleId}`);
       return { skipped: true, reason: "not_due", nextCrawlDue: calculateNextCrawlTime(rule, strategy) };
     }
@@ -194,13 +194,13 @@ export const batchCrawlComplianceRules = internalAction({
     priorityFilter: v.optional(v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"))),
     jurisdictionFilter: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const batchSize = args.batchSize || 50;
     
     console.log(`🚀 Starting batch compliance crawl (batch size: ${batchSize})`);
     
     // Get rules that need crawling based on priority and schedule
-    const rulesDue = await ctx.runQuery(internal.complianceCrawler.getRulesDueForCrawling, {
+    const rulesDue: any[] = await ctx.runQuery(api.complianceCrawler.getRulesDueForCrawling, {
       limit: batchSize,
       priorityFilter: args.priorityFilter,
       jurisdictionFilter: args.jurisdictionFilter,
@@ -215,7 +215,7 @@ export const batchCrawlComplianceRules = internalAction({
     // Process each rule
     for (const rule of rulesDue) {
       try {
-        const result = await ctx.runAction(internal.complianceCrawler.crawlComplianceRule, {
+        const result = await ctx.runAction(api.complianceCrawler.crawlComplianceRule, {
           ruleId: rule.ruleId
         });
         
@@ -281,10 +281,10 @@ export const getRulesDueForCrawling = query({
     });
     
     // Sort by priority and last checked time
-    const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    const priorityOrder: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
     rulesDue.sort((a, b) => {
-      const aPriority = priorityOrder[a.priority];
-      const bPriority = priorityOrder[b.priority];
+      const aPriority = priorityOrder[(a as any).priority as string] ?? 0;
+      const bPriority = priorityOrder[(b as any).priority as string] ?? 0;
       
       if (aPriority !== bPriority) {
         return bPriority - aPriority; // Higher priority first
@@ -368,8 +368,8 @@ async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
   
   try {
     // Find the website for this rule
-    const websites = await ctx.runQuery(internal.websites.getUserWebsites);
-    const ruleWebsite = websites.find(w => 
+    const websites = await ctx.runQuery(api.websites.getUserWebsites);
+    const ruleWebsite = websites.find((w: any) => 
       w.complianceMetadata?.ruleId === rule.ruleId ||
       w.url === rule.sourceUrl
     );

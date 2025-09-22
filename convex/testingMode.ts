@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 // Pause all compliance websites to stop over-scheduling
 export const pauseAllComplianceWebsites = mutation({
@@ -51,7 +51,7 @@ export const enableTestingMode = mutation({
     console.log(`🧪 Enabling testing mode with ${testCount} websites...`);
     
     // 1. First pause all websites
-    await ctx.runMutation(internal.testingMode.pauseAllComplianceWebsites);
+    await ctx.runMutation(api.testingMode.pauseAllComplianceWebsites);
     
     // 2. Select test websites based on criteria
     const testWebsites = await selectTestWebsites(ctx, {

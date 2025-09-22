@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, Copy, Check, Code, Globe, Webhook, Clock, Network, BarChart3, Key, Plus, Trash2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useQuery, useMutation, useConvexAuth } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 
 export default function ApiDocsPage() {
-  const { isAuthenticated } = useConvexAuth()
+  // Single-user mode: no auth required
+  const isAuthenticated = true
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
   
   // API Key state

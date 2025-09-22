@@ -35,11 +35,23 @@ function formatInterval(minutes: number | undefined): string {
   return days === 1 ? '1 day' : `${Math.floor(days)} days`;
 }
 
-// Helper function to get favicon URL
+// Helper function to get favicon URL with fallback
 function getFaviconUrl(url: string): string {
   try {
     const domain = new URL(url).hostname;
+    // Use Google's favicon service (most reliable)
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch {
+    return '';
+  }
+}
+
+// Helper function to get fallback favicon URL
+function getFallbackFaviconUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname;
+    // Direct favicon.ico fallback
+    return `https://${domain}/favicon.ico`;
   } catch {
     return '';
   }

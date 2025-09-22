@@ -290,10 +290,12 @@ export const updateWebsite = mutation({
 
     // If changing to full site monitoring, trigger initial crawl
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
-        websiteId: args.websiteId,
-        userId: website.userId, // Use the website's existing userId
-      });
+      if (website.userId) {
+        await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+          websiteId: args.websiteId,
+          userId: website.userId,
+        });
+      }
     }
   },
 });

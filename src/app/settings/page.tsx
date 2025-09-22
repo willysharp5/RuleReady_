@@ -452,12 +452,16 @@ function EmbeddedChatUI() {
   )
 }
 
-// Placeholder for EmailTemplateEditor - temporarily disabled to fix parsing
-const EmailTemplateEditor = () => {
+// Placeholder for EmailTemplateEditor - accepts props to satisfy types
+const EmailTemplateEditor = ({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) => {
   return (
-    <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center text-gray-500">
-      Email Template Editor (temporarily disabled)
-    </div>
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full p-4 font-mono text-sm min-h-[300px] rounded-lg border"
+      placeholder="Enter your HTML template here..."
+      disabled={disabled}
+    />
   )
 }
 

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { action, internalMutation, internalAction, internalQuery, query } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { getCurrentUser } from "./helpers";
+import { internal, api } from "./_generated/api";
+import { getCurrentUserForAction } from "./helpers";
 
 // Public action to import CSV data
 export const importCSVData = action({
@@ -10,8 +10,7 @@ export const importCSVData = action({
   },
   handler: async (ctx, args) => {
     // Get current user for website creation
-    const user = await getCurrentUser(ctx);
-    const userId = user?._id;
+    const userId = await getCurrentUserForAction(ctx);
     
     console.log("🚀 Starting CSV import process...");
     
@@ -185,7 +184,7 @@ export const createJurisdictionsAndTopics = internalAction({
     console.log("🏛️ Creating jurisdictions and topics...");
     
     // Get all unique jurisdictions and topics from imported rules
-    const rules = await ctx.runQuery(internal.csvImport.getAllRules);
+    const rules = await ctx.runQuery(api.csvImport.getAllRules);
     
     const jurisdictions = new Map<string, { name: string; type: "federal" | "state" | "local"; ruleCount: number }>();
     const topics = new Map<string, { name: string; category: string; ruleCount: number }>();

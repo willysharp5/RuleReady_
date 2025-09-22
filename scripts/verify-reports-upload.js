@@ -37,7 +37,7 @@ async function main() {
       // We can't directly query the table without proper functions, 
       // but we can check if our import functions worked
       console.log("   ✅ complianceReports table: Schema exists");
-      console.log("   ✅ complianceAIReports table: Schema exists (for AI-processed data)");
+      console.log("   ✅ tcomplianceAIReports table: Schema exists (for AI-processed data)");
       console.log("   ✅ complianceChatSessions table: Schema exists (for chat history)");
     } catch (error) {
       console.log("   ❌ Table check failed:", error.message);

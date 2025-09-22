@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { getCurrentUser } from "./helpers";
+import { internal, api } from "./_generated/api";
+import { getCurrentUserForAction } from "./helpers";
 
 // Convert all compliance rules to monitored websites
 export const convertComplianceRulesToWebsites = internalAction({
@@ -16,7 +16,7 @@ export const convertComplianceRulesToWebsites = internalAction({
     console.log("🔄 Converting compliance rules to monitored websites...");
     
     // Get all compliance rules
-    const rules: any = await ctx.runQuery(internal.csvImport.getAllRules);
+    const rules: any = await ctx.runQuery(api.csvImport.getAllRules);
     console.log(`📊 Found ${rules.length} compliance rules to convert`);
     
     let created = 0;
@@ -176,15 +176,13 @@ function getMonitoringSettings(priority: string, topicKey: string) {
 // Get compliance website statistics
 export const getComplianceWebsiteStats = action({
   handler: async (ctx): Promise<any> => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const userId = await getCurrentUserForAction(ctx);
+    if (!userId) {
       throw new Error("User must be authenticated");
     }
     
-    const userId = typeof user === 'object' ? user._id : user;
-    
     // Get all websites for this user
-    const websites: any = await ctx.runQuery(internal.websites.getUserWebsites);
+    const websites: any[] = await ctx.runQuery(api.websites.getUserWebsites);
     
     // Filter compliance websites (those with compliance-like names)
     const complianceWebsites = websites.filter((site: any) => 
@@ -193,7 +191,7 @@ export const getComplianceWebsiteStats = action({
     );
     
     // Group by jurisdiction
-    const byJurisdiction = complianceWebsites.reduce((acc: any, site: any) => {
+    const byJurisdiction = complianceWebsites.reduce((acc: Record<string, number>, site: any) => {
       const jurisdiction = site.name.split(' - ')[0];
       if (!acc[jurisdiction]) acc[jurisdiction] = 0;
       acc[jurisdiction]++;
@@ -211,18 +209,18 @@ export const getComplianceWebsiteStats = action({
 });
 
 // Batch update compliance websites with better names and categories
-export const updateComplianceWebsiteMetadata = internalAction({
+export const updateComplianceWebsiteMetadata = internalMutation({
   args: {
     batchSize: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ updated: number; total: number }> => {
     const batchSize = args.batchSize || 100;
     
     console.log("🔄 Updating compliance website metadata...");
     
     // Get all websites that look like compliance websites
-    const allWebsites = await ctx.runQuery(internal.websites.getAllWebsites);
-    const complianceWebsites = allWebsites.filter((site: any) => 
+    const allWebsites: any[] = await ctx.runQuery(internal.websites.getAllWebsites);
+    const complianceWebsites: any[] = allWebsites.filter((site: any) => 
       site.name.includes(' - ') && 
       site.url.includes('.gov')
     );
@@ -241,25 +239,24 @@ export const updateComplianceWebsiteMetadata = internalAction({
           const [jurisdiction, topic] = website.name.split(' - ');
           
           // Create enhanced name with priority indicator
-          const rules = await ctx.runQuery(internal.csvImport.getAllRules);
+          const rules = await ctx.runQuery(api.csvImport.getAllRules);
           const rule = rules.find((r: any) => r.sourceUrl === website.url);
           
           if (rule) {
-            const priorityIcon = {
+            const iconMap: { critical: string; high: string; medium: string; low: string } = {
               critical: "🔴",
-              high: "🟠", 
+              high: "🟠",
               medium: "🟡",
-              low: "🟢"
-            }[rule.priority as keyof typeof priorityIcon];
+              low: "🟢",
+            };
+            const priorityIcon = iconMap[(rule.priority as keyof typeof iconMap) || "low"] || "";
             
             const enhancedName = `${priorityIcon} ${jurisdiction} - ${topic}`;
             
-            await ctx.runMutation(internal.websites.updateWebsite, {
-              websiteId: website._id,
-              updates: {
-                name: enhancedName,
-                updatedAt: Date.now(),
-              }
+            // Update name directly since public updateWebsite does not accept nested updates object
+            await ctx.db.patch(website._id, {
+              name: enhancedName,
+              updatedAt: Date.now(),
             });
             
             updated++;

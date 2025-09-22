@@ -334,6 +334,27 @@ const schema = defineSchema({
     .index("by_effective_date", ["effectiveDate"])
     .index("by_change_id", ["changeId"]),
 
+  // Compliance deadlines tracking
+  complianceDeadlines: defineTable({
+    deadlineId: v.string(),
+    ruleId: v.string(),
+    title: v.string(),
+    description: v.string(),
+    deadlineDate: v.number(),
+    deadlineType: v.union(
+      v.literal("training_deadline"),
+      v.literal("posting_deadline"),
+      v.literal("compliance_deadline"),
+      v.literal("renewal_deadline")
+    ),
+    recurringPattern: v.optional(v.string()),
+    remindersSent: v.array(v.number()),
+    status: v.union(v.literal("upcoming"), v.literal("overdue"), v.literal("completed")),
+  })
+    .index("by_rule", ["ruleId"])
+    .index("by_date", ["deadlineDate"])
+    .index("by_status", ["status"]),
+
   jurisdictions: defineTable({
     code: v.string(), // "CA", "TX", "FED"
     name: v.string(), // "California", "Texas", "Federal"

@@ -74,7 +74,7 @@ export const scrapeUrl = internalAction({
       // Store the scrape result
       const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
         websiteId: args.websiteId,
-        userId: args.userId || null,
+        userId: args.userId,
         markdown: markdown,
         changeStatus: changeTracking?.changeStatus || "new",
         visibility: changeTracking?.visibility || "visible",
@@ -99,16 +99,18 @@ export const scrapeUrl = internalAction({
           changeTracking.diff.text.substring(0, 200) + (changeTracking.diff.text.length > 200 ? "..." : "") :
           "Website content has changed since last check";
           
-        await ctx.runMutation(internal.websites.createChangeAlert, {
-          websiteId: args.websiteId,
-          userId: args.userId,
-          scrapeResultId,
-          changeType: "content_changed",
-          summary: diffPreview,
-        });
+        if (args.userId) {
+          await ctx.runMutation(internal.websites.createChangeAlert, {
+            websiteId: args.websiteId,
+            userId: args.userId,
+            scrapeResultId,
+            changeType: "content_changed",
+            summary: diffPreview,
+          });
+        }
 
-        // Trigger AI analysis if enabled and there's a diff
-        if (changeTracking?.diff) {
+        // Trigger AI analysis if enabled and there's a diff and a userId
+        if (changeTracking?.diff && args.userId) {
           await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeChange, {
             userId: args.userId,
             scrapeResultId,
@@ -119,17 +121,21 @@ export const scrapeUrl = internalAction({
         }
 
         // Get user settings to check if AI analysis is enabled
-        const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
-          userId: args.userId,
-        });
+        const userSettings = args.userId
+          ? await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
+              userId: args.userId,
+            })
+          : null;
 
         // If AI analysis is NOT enabled, send notifications immediately
-        if (!userSettings?.aiAnalysisEnabled || !changeTracking?.diff) {
+        if ((!userSettings || !userSettings.aiAnalysisEnabled) || !changeTracking?.diff) {
           // Get website details for notifications
-          const website = await ctx.runQuery(internal.websites.getWebsite, {
-            websiteId: args.websiteId,
-            userId: args.userId,
-          });
+          const website = args.userId
+            ? await ctx.runQuery(internal.websites.getWebsite, {
+                websiteId: args.websiteId,
+                userId: args.userId,
+              })
+            : null;
 
           if (website && website.notificationPreference !== "none") {
             // Send webhook notification
@@ -151,7 +157,7 @@ export const scrapeUrl = internalAction({
             }
 
             // Send email notification
-            if (website.notificationPreference === "email" || website.notificationPreference === "both") {
+            if ((website.notificationPreference === "email" || website.notificationPreference === "both") && args.userId) {
               // Get user's email configuration
               const emailConfig = await ctx.runQuery(internal.emailManager.getEmailConfigInternal, {
                 userId: args.userId,

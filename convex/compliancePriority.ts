@@ -140,7 +140,8 @@ export const getCompliancePriorityRecommendations = internalQuery({
     };
     
     const jurisdictionType = args.jurisdiction === "Federal" ? "federal" : "state";
-    const recommended = recommendations[jurisdictionType][args.topicKey as keyof typeof recommendations.federal] || "medium";
+    const recMap = recommendations[jurisdictionType as "federal" | "state"] as Record<string, string>;
+    const recommended = recMap[args.topicKey] || "medium";
     
     return {
       recommendedPriority: recommended,

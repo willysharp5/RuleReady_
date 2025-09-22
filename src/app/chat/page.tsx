@@ -1,6 +1,5 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -23,23 +22,57 @@ import {
 export default function ComplianceChatPage() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([
+    {
+      id: '1',
+      role: 'assistant',
+      content:
+        "Hello! I'm your RuleReady compliance assistant. I can help you understand employment law requirements across all US jurisdictions using data from 1,175 compliance reports. Ask me about minimum wage, harassment training, leave policies, or any other compliance topic.",
+    },
+  ]);
   
   // Get compliance data for context
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions);
   const topics = useQuery(api.complianceQueries.getTopics);
-  
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/compliance-chat',
-    body: {
-      jurisdiction: selectedJurisdiction,
-      topic: selectedTopic,
-    },
-    initialMessages: [{
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your RuleReady compliance assistant. I can help you understand employment law requirements across all US jurisdictions using data from 1,175 compliance reports. Ask me about minimum wage, harassment training, leave policies, or any other compliance topic.',
-    }],
-  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    const userMessage = { id: String(Date.now()), role: 'user' as const, content: text };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/compliance-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          jurisdiction: selectedJurisdiction,
+          topic: selectedTopic,
+        }),
+      });
+      const data = await res.json();
+      const assistantMessage = {
+        id: String(Date.now() + 1),
+        role: 'assistant' as const,
+        content: data.content || 'Sorry, I could not generate a response.',
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      const errorMessage = {
+        id: String(Date.now() + 2),
+        role: 'assistant' as const,
+        content: 'There was an error contacting the compliance assistant.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const quickQuestions = [
     "What are the minimum wage requirements in California?",
@@ -155,7 +188,7 @@ export default function ComplianceChatPage() {
                 <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input
                     value={input}
-                    onChange={handleInputChange}
+                    onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask about compliance requirements..."
                     disabled={isLoading}
                     className="flex-1"
@@ -220,9 +253,7 @@ export default function ComplianceChatPage() {
                     variant="outline"
                     size="sm"
                     className="w-full text-left justify-start h-auto p-2 text-xs"
-                    onClick={() => {
-                      handleInputChange({ target: { value: question } } as React.ChangeEvent<HTMLInputElement>);
-                    }}
+                    onClick={() => setInput(question)}
                     disabled={isLoading}
                   >
                     {question}

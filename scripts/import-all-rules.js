@@ -46,12 +46,17 @@ async function main() {
     console.log("🔄 Starting full import in 3 seconds...");
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Get current stats before import
-    console.log("\n📈 Pre-import database stats:");
-    const preStats = await convex.query("complianceImport:getImportStats");
-    console.log(`   Current rules: ${preStats.rules}`);
-    console.log(`   Current reports: ${preStats.reports}`);
-    console.log(`   Current embeddings: ${preStats.embeddings}`);
+    // Get current stats before import (best-effort, may be heavy on large datasets)
+    let preStats = null;
+    try {
+      console.log("\n📈 Pre-import database stats:");
+      preStats = await convex.query("complianceImport:getImportStats");
+      console.log(`   Current rules: ${preStats.rules}`);
+      console.log(`   Current reports: ${preStats.reports}`);
+      console.log(`   Current embeddings: ${preStats.embeddings}`);
+    } catch (e) {
+      console.log("   (Skipping pre-import stats: large dataset or server limit)");
+    }
     
     // Start the import
     console.log("\n🚀 Starting full CSV import...");
@@ -80,27 +85,39 @@ async function main() {
       });
     }
     
-    // Get post-import stats
-    console.log("\n📈 Post-import database stats:");
-    const postStats = await convex.query("complianceImport:getImportStats");
-    console.log(`   Total rules: ${postStats.rules} (+${postStats.rules - preStats.rules})`);
-    console.log(`   Total reports: ${postStats.reports}`);
-    console.log(`   Total embeddings: ${postStats.embeddings}`);
+    // Get post-import stats (best-effort)
+    try {
+      console.log("\n📈 Post-import database stats:");
+      const postStats = await convex.query("complianceImport:getImportStats");
+      if (preStats) {
+        console.log(`   Total rules: ${postStats.rules} (+${postStats.rules - preStats.rules})`);
+      } else {
+        console.log(`   Total rules: ${postStats.rules}`);
+      }
+      console.log(`   Total reports: ${postStats.reports}`);
+      console.log(`   Total embeddings: ${postStats.embeddings}`);
+    } catch (e) {
+      console.log("   (Skipping post-import stats: large dataset or server limit)");
+    }
     
-    // Get breakdown by jurisdiction and priority
-    console.log("\n🗺️ Getting compliance breakdown...");
-    const dashboard = await convex.query("complianceQueries:getComplianceDashboard", {});
-    
-    console.log("📊 RULES BY PRIORITY:");
-    console.log(`   🔴 Critical: ${dashboard.stats.byPriority.critical}`);
-    console.log(`   🟠 High: ${dashboard.stats.byPriority.high}`);
-    console.log(`   🟡 Medium: ${dashboard.stats.byPriority.medium}`);
-    console.log(`   🟢 Low: ${dashboard.stats.byPriority.low}`);
-    
-    console.log("\n📊 MONITORING STATUS:");
-    console.log(`   ✅ Active: ${dashboard.stats.byStatus.active}`);
-    console.log(`   ⏸️ Paused: ${dashboard.stats.byStatus.paused}`);
-    console.log(`   ❌ Error: ${dashboard.stats.byStatus.error}`);
+    // Get breakdown by jurisdiction and priority (best-effort)
+    try {
+      console.log("\n🗺️ Getting compliance breakdown...");
+      const dashboard = await convex.query("complianceQueries:getComplianceDashboard", {});
+      
+      console.log("📊 RULES BY PRIORITY:");
+      console.log(`   🔴 Critical: ${dashboard.stats.byPriority.critical}`);
+      console.log(`   🟠 High: ${dashboard.stats.byPriority.high}`);
+      console.log(`   🟡 Medium: ${dashboard.stats.byPriority.medium}`);
+      console.log(`   🟢 Low: ${dashboard.stats.byPriority.low}`);
+      
+      console.log("\n📊 MONITORING STATUS:");
+      console.log(`   ✅ Active: ${dashboard.stats.byStatus.active}`);
+      console.log(`   ⏸️ Paused: ${dashboard.stats.byStatus.paused}`);
+      console.log(`   ❌ Error: ${dashboard.stats.byStatus.error}`);
+    } catch (e) {
+      console.log("   (Skipping dashboard breakdown: large dataset or server limit)");
+    }
     
     // Get jurisdictions and topics created
     const [jurisdictions, topics] = await Promise.all([

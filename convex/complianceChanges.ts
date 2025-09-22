@@ -182,7 +182,13 @@ export const getRecentChangesInternal = internalQuery({
 
     // Apply topic filter if specified
     if (args.topicKey) {
-      changes = changes.filter(change => change.topicKey === args.topicKey);
+      // Get rules for this topic and filter changes by matching ruleIds
+      const topicRules = await ctx.db
+        .query("complianceRules")
+        .withIndex("by_topic", (q) => q.eq("topicKey", args.topicKey!))
+        .collect();
+      const topicRuleIds = topicRules.map(rule => rule.ruleId);
+      changes = changes.filter(change => topicRuleIds.includes(change.ruleId));
     }
 
     return changes;

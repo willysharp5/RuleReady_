@@ -27,7 +27,7 @@
 
 ### **1.1 Database Schema Redesign** 
 - [ ] **Remove generic website monitoring tables** (keep core structure)
-- [ ] **Design compliance-specific schema:**
+- [x] **Design compliance-specific schema:**
 
 ```typescript
 // convex/schema.ts - Compliance-focused tables
@@ -227,19 +227,19 @@ complianceTopics: defineTable({
 ```
 
 ### **1.2 Data Migration & Import**
-- [ ] **Migrate CSV rules** → `complianceRules` table with proper indexing
-- [ ] **Import 1,175 compliance reports** → `complianceReports` table
-- [ ] **Import existing 2,759 Gemini embeddings** → `complianceEmbeddings` table
-- [ ] **Create jurisdiction/topic hierarchies** for efficient filtering
+- [x] **Migrate CSV rules** → `complianceRules` table with proper indexing
+- [x] **Import 1,175 compliance reports** → `complianceReports` table
+- [x] **Import existing 2,759 Gemini embeddings** → `complianceEmbeddings` table
+- [x] **Create jurisdiction/topic hierarchies** for efficient filtering
 - [ ] **Set up initial crawling schedules** based on rule priorities
 - [ ] **Set up automated embedding job system** for ongoing updates
 
 ### **1.3 Remove Generic Features**
 - [ ] **Remove** general website creation UI components
 - [ ] **Remove** arbitrary URL monitoring capabilities  
-- [ ] **Keep** core FireCrawl integration for specialized scraping
-- [ ] **Keep** notification/webhook system (repurpose for compliance alerts)
-- [ ] **Keep** user management and API key systems
+- [x] **Keep** core FireCrawl integration for specialized scraping
+- [x] **Keep** notification/webhook system (repurpose for compliance alerts)
+- [x] **Keep** user management and API key systems
 
 ---
 
@@ -2761,7 +2761,6 @@ POST /api/compliance/query
   }
 ```
 
-### **5.2 External System Integrations**
 - [ ] **Notification systems:**
   - Slack/Teams integration with rich compliance alerts
   - Email digest system using existing templates
@@ -2774,7 +2773,6 @@ POST /api/compliance/query
   - HRIS system webhooks for policy updates
   - Payroll system integration for wage/hour changes
 
-### **5.3 Advanced Automation Features**
 - [ ] **Automated compliance reporting:**
   - Daily/weekly/monthly compliance digests
   - Jurisdiction-specific change summaries
