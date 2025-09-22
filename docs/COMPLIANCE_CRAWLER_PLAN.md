@@ -565,6 +565,23 @@ export const detectContentChanges = internalAction({
 });
 ```
 
+### **2B.4 Continuous Embedding Sync on Crawler Updates**
+- [ ] **Keep embeddings in sync when new content or changes are detected:**
+  - When the crawler stores a new version in `complianceReports` or updates a `complianceRule`, enqueue an embedding job to upsert the corresponding vectors in `complianceEmbeddings`.
+  - Use the `embeddingJobs` queue with priority derived from topic severity (e.g., critical → high).
+  - De-duplicate via `contentHash` so no duplicate vectors are stored.
+
+```typescript
+// In convex/complianceCrawler.ts after persisting a new/changed report
+if (changeAnalysis.hasSignificantChanges) {
+  await ctx.runMutation(internal.embeddingJobs.createEmbeddingJob, {
+    jobType: "update_existing",
+    entityIds: [rule.ruleId], // or the latest reportId if versioned
+    priority: changeAnalysis.severity === "critical" ? "high" : "medium",
+  });
+}
+```
+
 ---
 
 ## **PHASE 3: AI-POWERED ANALYSIS ENGINE** 🤖
@@ -2365,6 +2382,28 @@ export default function ComplianceChatPage() {
     </div>
   );
 }
+```
+
+### **4E.3A Embedding Retrieval in Chat (Top‑K RAG Context)**
+- [ ] **Leverage stored Gemini embeddings to fetch best matches for each user query**:
+  - Create a query embedding for the incoming question
+  - Perform cosine similarity search over `complianceEmbeddings` (both `rule` and `report` entities)
+  - Fetch top‑k entities and hydrate related `complianceReports`/`complianceRules`
+  - Inject sources into the chat system/context before generation
+
+```typescript
+// Server-side chat resolver (pseudocode)
+const qEmb = await generateEmbedding(userQuestion);
+const matches = await ctx.runAction(internal.embeddingManager.searchSimilarEmbeddings, {
+  queryEmbedding: qEmb,
+  limit: 5,
+  threshold: 0.65,
+  jurisdiction: optionalJurisdiction,
+  topicKey: optionalTopic,
+});
+const sources = await hydrateEntities(matches);
+const systemContext = buildContextFromSources(sources);
+return streamText({ model: google('gemini-2.5-flash-lite'), system: systemContext, messages });
 ```
 
 ### **4E.4 Chat API Endpoint with Gemini Integration**
