@@ -3,14 +3,14 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Enable pilot compliance checks (testing mode): every 10 minutes, only critical/high rules
-// DEV ONLY - comment out before deploying to production
-// DISABLED FOR NOW
-// crons.interval(
-//   "pilot: check compliance rules",
-//   { minutes: 10 },
-//   internal.monitoring.checkComplianceRules
-// );
+// Enable pilot compliance checks (testing mode): every 15 minutes, only critical/high rules
+// DEV ONLY - reduce scope; replace with production scheduler later
+crons.interval(
+  "pilot: crawl critical/high rules",
+  { minutes: 15 },
+  internal.complianceCrawler.batchCrawlComplianceRules,
+  {}
+);
 
 // ALL OTHER CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING
 
@@ -23,12 +23,13 @@ const crons = cronJobs();
 
 // COMPLIANCE WORKPOOL JOBS - DISABLED TO STOP MULTIPLE SCRAPES
 
-// Process embedding jobs every 5 minutes - DISABLED
-// crons.interval(
-//   "process embedding jobs",
-//   { minutes: 5 },
-//   internal.embeddingJobs.processEmbeddingJobs
-// );
+// Process embedding jobs every 10 minutes (dev-safe)
+crons.interval(
+  "process embedding jobs",
+  { minutes: 10 },
+  internal.embeddingJobs.processEmbeddingJobs,
+  {}
+);
 
 // Schedule embedding updates daily at 2 AM UTC - DISABLED
 // crons.daily(
