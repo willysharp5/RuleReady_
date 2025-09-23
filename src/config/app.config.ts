@@ -28,6 +28,9 @@ export const APP_CONFIG = {
     aiAnalysis: true,
     webhooks: true,
     emailNotifications: true,
+    // Compliance pivot flags
+    complianceMode: true,
+    freezeLegacyWrites: true,
   },
   
   // Default values

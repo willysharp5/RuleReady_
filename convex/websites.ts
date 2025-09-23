@@ -3,6 +3,7 @@ import { mutation, query, internalMutation, internalQuery } from "./_generated/s
 import { Id } from "./_generated/dataModel";
 import { requireCurrentUser, getCurrentUser } from "./helpers";
 import { internal } from "./_generated/api";
+import { APP_CONFIG } from "@/config/app.config";
 
 // Create a new website to monitor
 export const createWebsite = mutation({
@@ -25,6 +26,10 @@ export const createWebsite = mutation({
     crawlDepth: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Freeze legacy writes when in compliance mode
+    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
+      throw new Error("Legacy website creation is disabled in compliance mode");
+    }
     const user = await requireCurrentUser(ctx);
     
     // Get user settings for default webhook
@@ -171,6 +176,9 @@ export const pauseWebsite = mutation({
     isPaused: v.boolean(),
   },
   handler: async (ctx, args) => {
+    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
+      throw new Error("Legacy website updates are disabled in compliance mode");
+    }
     // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
     if (!website) {
@@ -211,6 +219,9 @@ export const updateWebsite = mutation({
     priorityChangeReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
+      throw new Error("Legacy website updates are disabled in compliance mode");
+    }
     // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
     if (!website) {
