@@ -5,12 +5,12 @@ const crons = cronJobs();
 
 // Enable pilot compliance checks (testing mode): every 15 minutes, only critical/high rules
 // DEV ONLY - reduce scope; replace with production scheduler later
-crons.interval(
-  "pilot: crawl critical/high rules",
-  { minutes: 15 },
-  internal.complianceCrawler.batchCrawlComplianceRules,
-  {}
-);
+// crons.interval(
+//   "pilot: crawl critical/high rules",
+//   { minutes: 15 },
+//   internal.complianceCrawler.batchCrawlComplianceRules,
+//   {}
+// );
 
 // ALL OTHER CRON JOBS DISABLED TO STOP MULTIPLE SCRAPES AND RATE LIMITING
 
@@ -24,12 +24,12 @@ crons.interval(
 // COMPLIANCE WORKPOOL JOBS - DISABLED TO STOP MULTIPLE SCRAPES
 
 // Process embedding jobs every 10 minutes (dev-safe)
-crons.interval(
-  "process embedding jobs",
-  { minutes: 10 },
-  internal.embeddingJobs.processEmbeddingJobs,
-  {}
-);
+// crons.interval(
+//   "process embedding jobs",
+//   { minutes: 10 },
+//   internal.embeddingJobs.processEmbeddingJobs,
+//   {}
+// );
 
 // Schedule embedding updates daily at 2 AM UTC - DISABLED
 // crons.daily(
