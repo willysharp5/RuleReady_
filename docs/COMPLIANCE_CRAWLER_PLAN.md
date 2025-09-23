@@ -2415,6 +2415,10 @@ return streamText({ model: google('gemini-2.5-flash-lite'), system: systemContex
   - Use short sections with bold sub‑headings (Overview, Requirements, Deadlines, Penalties, Sources)
   - Ensure paragraph spacing and bullet lists for steps/recommendations
   - Return structured fields (title, sections, sources) from the API for consistent UI rendering
+ - [ ] **Scroll-to-bottom control (chat UI)**:
+   - Place the control inside the chat window (bottom-right within the messages area)
+   - Style as light gray, no shadow, not blue; minimal visual weight
+   - Only visible when the user is not at the bottom; smooth scroll behavior
 
 ### **4E.4 Chat API Endpoint with Gemini Integration**
 - [ ] **Create chat API** that uses compliance data:

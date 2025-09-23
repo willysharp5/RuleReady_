@@ -579,9 +579,9 @@ export const markAlertAsRead = mutation({
 // Get all scrape history for check log (single-user mode)
 export const getAllScrapeHistory = query({
   handler: async (ctx) => {
-    // Compliance mode: derive a compatible history view from compliance reports
+    // Compliance mode: derive a compatible history view from compliance reports (limited)
     if (FEATURES.complianceMode) {
-      const reports = await ctx.db.query("complianceReports").collect();
+      const reports = await ctx.db.query("complianceReports").take(50); // Limit to avoid read caps
       const rulesById = new Map<string, any>();
       for (const report of reports) {
         if (!rulesById.has(report.ruleId)) {
@@ -594,14 +594,14 @@ export const getAllScrapeHistory = query({
       }
       const sorted = [...reports]
         .sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0))
-        .slice(0, 100);
+        .slice(0, 50);
       return sorted.map((r, i) => {
         const rule = rulesById.get(r.ruleId);
         return {
           _id: `${r.reportId}` as any,
           websiteId: (rule?.sourceUrl || "") as any,
           userId: undefined,
-          markdown: r.reportContent,
+          markdown: r.reportContent.substring(0, 1000) + "...", // Truncate content
           changeStatus: "same",
           visibility: "visible",
           previousScrapeAt: undefined,
@@ -621,14 +621,14 @@ export const getAllScrapeHistory = query({
       });
     }
 
-    // Legacy mode: return real scrape history
-    const websites = await ctx.db.query("websites").collect();
+    // Legacy mode: return real scrape history (limited to avoid read caps)
+    const websites = await ctx.db.query("websites").take(200); // Limit websites too
     const websiteMap = new Map(websites.map(w => [w._id, w]));
 
     const allScrapes = await ctx.db
       .query("scrapeResults")
       .order("desc")
-      .take(100);
+      .take(50); // Reduce from 100 to 50 to stay under read limits
 
     const scrapesByWebsite = new Map<string, typeof allScrapes>();
     for (const scrape of allScrapes) {
@@ -657,9 +657,9 @@ export const getAllScrapeHistory = query({
 // Get latest scrape result for each website (single-user mode)
 export const getLatestScrapeForWebsites = query({
   handler: async (ctx) => {
-    // Compliance mode: return latest compliance report per rule, keyed by synthetic id
+    // Compliance mode: return latest compliance report per rule, keyed by synthetic id (limited)
     if (FEATURES.complianceMode) {
-      const rules = await ctx.db.query("complianceRules").collect();
+      const rules = await ctx.db.query("complianceRules").take(50); // Limit to avoid read caps
       const byWebsiteId: Record<string, any> = {};
       for (const rule of rules) {
         const report = await ctx.db
@@ -672,7 +672,7 @@ export const getLatestScrapeForWebsites = query({
           byWebsiteId[syntheticId] = {
             _id: report.reportId,
             websiteId: syntheticId,
-            markdown: report.reportContent,
+            markdown: report.reportContent.substring(0, 500) + "...", // Truncate
             scrapedAt: report.generatedAt,
             title: `${rule.jurisdiction} - ${rule.topicLabel}`,
             url: rule.sourceUrl,
@@ -682,8 +682,8 @@ export const getLatestScrapeForWebsites = query({
       return byWebsiteId;
     }
 
-    // Legacy mode: return latest scrape per website
-    const websites = await ctx.db.query("websites").collect();
+    // Legacy mode: return latest scrape per website (limited)
+    const websites = await ctx.db.query("websites").take(50); // Limit to avoid read caps
     const latestScrapes: Record<string, any> = {};
     for (const website of websites) {
       const latestScrape = await ctx.db

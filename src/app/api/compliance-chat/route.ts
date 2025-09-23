@@ -26,6 +26,33 @@ export async function POST(req: NextRequest) {
       sources = [];
     }
 
+    // Fallback: lower threshold if no sources were found
+    if (!sources.length) {
+      try {
+        const resLow: any = await convex.action("embeddingManager:embeddingTopKSources", {
+          question: lastUser,
+          k: 5,
+          threshold: 0.5,
+          jurisdiction: jurisdiction || undefined,
+          topicKey: topic || undefined,
+        });
+        sources = resLow?.sources || [];
+      } catch {}
+    }
+    // Final fallback: return top matches with no threshold
+    if (!sources.length) {
+      try {
+        const resAny: any = await convex.action("embeddingManager:embeddingTopKSources", {
+          question: lastUser,
+          k: 3,
+          threshold: 0.0,
+          jurisdiction: jurisdiction || undefined,
+          topicKey: topic || undefined,
+        });
+        sources = resAny?.sources || [];
+      } catch {}
+    }
+
     // Get relevant compliance data based on context
     const complianceContext = await getComplianceContext(jurisdiction, topic);
     
@@ -61,11 +88,12 @@ ${(sources || []).map((s: any, i: number) => `[#${i+1}] ${s.jurisdiction || ''} 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.
 
 FORMAT THE ANSWER CLEARLY:
-- Start with a concise Title line (Jurisdiction – Topic)
-- Use short sections with headings: Overview, Key Requirements, Deadlines, Penalties, Recommendations
+- Do NOT include a title or heading at the start - the title will be added separately
+- Use clear section headings: ## Overview, ## Key Requirements, ## Deadlines, ## Penalties, ## Recommendations
 - Use bullet lists where appropriate
 - Add inline numeric citations like [#1], [#2] that correspond to the SOURCES list above
-- Keep paragraphs short with blank lines between sections`;
+- Keep paragraphs short with blank lines between sections
+- Start directly with the first section (Overview)`;
 
     const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U";
     
@@ -100,7 +128,17 @@ FORMAT THE ANSWER CLEARLY:
       return `[${i + 1}] ${meta}${sim}${url}`;
     }).join('\n');
 
-    const contentMarkdown = `# ${displayTitle}\n\n${text}\n\n---\n\n## Sources\n${sourcesMd}`;
+    const sourcesBlock = sources.length
+      ? `\n\n---\n\n## Sources\n${sourcesMd}`
+      : '';
+
+    // Clean text to remove any title duplication and ensure proper spacing
+    const cleanText = text
+      .replace(/^#.*$/m, '')  // Remove any title lines
+      .replace(/^\*\*.*\*\*$/m, '')  // Remove any bold title lines
+      .trim();
+    
+    const contentMarkdown = `## Compliance – Guidance\n\n# ${displayTitle}\n\n${cleanText}${sourcesBlock}`;
 
     return new Response(
       JSON.stringify({ 

@@ -177,11 +177,8 @@ export default function ComplianceChatPage() {
                               : 'bg-white border border-gray-200 text-gray-900'
                           }`}
                         >
-                          {message.title && (
-                            <div className="font-semibold mb-2 text-sm">{message.title}</div>
-                          )}
                           {message.role === 'assistant' ? (
-                            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                            <div className="prose prose-lg md:prose-xl max-w-none prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-headings:mt-6 prose-headings:mb-4 prose-p:my-4 prose-ul:my-4 prose-li:my-2 prose-strong:font-semibold">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
                           ) : (
