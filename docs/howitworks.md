@@ -41,12 +41,12 @@ This document explains the architecture, data model, and the end-to-end flows th
 
 ### High-level Data Flow
 
-1. User adds website → stored in Convex DB
-2. Scheduled/manual check runs → calls Firecrawl
-3. Firecrawl scrapes → returns page content + changeTracking
-4. Change detected → previous version compared; `scrapeResults` saved
-5. AI Analysis (optional) → determines significance; updates `aiAnalysis`
-6. Notifications sent → Email via Resend / Webhook
+1. User adds website → stored in Convex DB (legacy mode) or uses compliance rules (compliance mode)
+2. Scheduled/manual check runs → calls Firecrawl (legacy) or `complianceCrawler` (compliance)
+3. Content processed → legacy saves `scrapeResults`; compliance saves `complianceReports` + `complianceChanges`
+4. AI Analysis (optional) → determines significance; updates `aiAnalysis` (legacy) or feeds `complianceChanges`
+5. Embeddings → vectors in `complianceEmbeddings` and job orchestration in `embeddingJobs`
+6. Notifications → Email/Webhook via `notifications.*` (including compliance-native notifications)
 
 ## Data Model (Convex Tables)
 
@@ -56,12 +56,12 @@ Defined in `convex/schema.ts`. Key entities:
   - Monitored targets with schedule and notification prefs
   - Optional `complianceMetadata` links a site to a compliance rule (jurisdiction/topic/priority)
 
-- `scrapeResults`
-  - Versioned content snapshots with change tracking
-  - Stores markdown, metadata, diff, changeStatus, and optional AI analysis
+- `scrapeResults` (legacy)
+  - Versioned page snapshots for general websites
+  - In compliance mode, legacy writes are frozen and read paths are shimmed from compliance data
 
-- `changeAlerts`
-  - User-facing alert rows created when meaningful changes are detected
+- `changeAlerts` (legacy)
+  - In compliance mode, dashboard ‘unread alerts’ are derived from `complianceChanges`
 
 - `emailConfig`, `userSettings`
   - Delivery settings (email verification, template), AI settings (model, base URL, threshold)
@@ -80,10 +80,13 @@ Defined in `convex/schema.ts`. Key entities:
 ## Core Backend Modules (selected)
 
 - `convex/websites.ts`
-  - CRUD and core flows for websites and scrape history
-  - `createWebsite`, `updateWebsite`, `pauseWebsite`, `deleteWebsite`
-  - `getUserWebsites`, `getAllScrapeHistory`, `getLatestScrapeForWebsites`
-  - Internals: `storeScrapeResult`, `createChangeAlert`, `updateLastChecked`, etc.
+  - CRUD and core flows for websites and scrape history (legacy)
+  - Compliance-mode changes:
+    - Freeze non-compliance writes (feature flags: `features.complianceMode`, `features.freezeLegacyWrites`)
+    - Read-only shims map legacy queries to compliance tables:
+      - `getUnreadAlerts` → derives from `complianceChanges`
+      - `getAllScrapeHistory` → derives from `complianceReports`
+      - `getLatestScrapeForWebsites` → latest `complianceReports` per rule
 
 - `convex/firecrawl.ts`
   - `scrapeUrl` action calls Firecrawl with formats [markdown, changeTracking]
@@ -105,16 +108,23 @@ Defined in `convex/schema.ts`. Key entities:
 - `convex/notifications.ts`
   - Webhook and email delivery (templated + sanitized)
   - Handles proxied webhooks for localhost via `/api/webhook-proxy`
+  - Compliance-mode additions:
+    - `sendComplianceChangeWebhook` for `complianceChanges`
+    - `sendComplianceChangeEmail` for compliance-native alerts
 
 - `convex/generateEmbeddings.ts`
   - Generates and stores embeddings for `complianceReports` (Gemini)
+
+- `convex/embeddingManager.ts`
+  - Stores/imports embeddings and performs similarity search
+  - `embeddingTopKSources` action returns top‑k matches hydrated with rule/report sources for chat
 
 - `convex/workpoolSimple.ts`
   - Schedules compliance jobs and logs workpool activity in `complianceMonitoringLogs`
 
 Note: `convex/crons.ts` has cron entries disabled in this repo to avoid multiple concurrent scrapes during development. Scheduling commonly uses `ctx.scheduler.runAfter` in function flows.
 
-## Frontend Data Flow (Dashboard)
+## Frontend Data Flow (Dashboard & Chat)
 
 - Hooks call Convex queries such as:
   - `websites.getUserWebsites` → list of sites with latest status
@@ -122,13 +132,23 @@ Note: `convex/crons.ts` has cron entries disabled in this repo to avoid multiple
   - Compliance taxonomies (jurisdictions/topics) for filters
 
 - UI supports:
+### Chat (Compliance Assistant)
+
+- API: `src/app/api/compliance-chat/route.ts`
+  - Generates a query embedding and calls `embeddingManager:embeddingTopKSources`
+  - Injects top‑k sources (jurisdiction, topic, similarity, URL) into the system context
+  - Streams/returns the answer with a `sources` array for UI display
+
+- UI: `src/app/chat/page.tsx`
+  - Renders assistant messages and a “Sources (embedding matches)” section with links and similarity%
+  - Jurisdiction/topic filters guide retrieval and context
   - Search and filter by name, jurisdiction, topic, priority
   - Trigger manual checks (scrape/crawl) via buttons connected to actions
   - View recent diffs and status badges
 
 ## End-to-End Monitoring Flows
 
-### A) Single Page Monitoring (most common)
+### A) Single Page Monitoring (legacy)
 
 1) Create a website (user action or API)
    - Mutation: `websites.createWebsite`
@@ -198,8 +218,9 @@ Data written in this flow:
    - Compares with previous via `complianceQueries.getLatestReport` + section diffs
    - Persists new/changed `complianceReports` and generates `complianceChanges`
 
-4) Embeddings
+4) Embeddings & RAG
    - `generateEmbeddings.generateEmbeddingsForReports` produces vectors for RAG
+   - Chat uses `embeddingManager.embeddingTopKSources` to retrieve top‑k sources per question
 
 5) Workpool logging
    - `workpoolSimple.scheduleComplianceJobs` selects due websites/rules and logs to `complianceMonitoringLogs`
@@ -286,6 +307,7 @@ Data written in this flow:
 - `NEXT_PUBLIC_CONVEX_URL`: required by the frontend Convex client
 - `FIRECRAWL_API_KEY`: used by `convex/firecrawl.ts` if no per-user key is present
 - `GEMINI_API_KEY`: for embeddings (`generateEmbeddings.ts`)
+  - Also used indirectly by chat RAG when generating query embeddings
 - Email (Resend) credentials and `FROM_EMAIL` (see `convex/alertEmail.ts` usage)
 
 ## Developer Notes
@@ -293,6 +315,7 @@ Data written in this flow:
 - Single-user mode is enabled in many handlers: userId checks are optional in read paths, and ownership checks apply mainly on mutations.
 - Use the provided scripts under `scripts/` for local seeding and testing flows (import rules, create websites, trigger monitoring, etc.).
 - When enabling cron jobs for staging/production, verify Firecrawl rate limits and Convex function limits.
+- Compliance-mode decommission: legacy tables remain readable via shims; write paths are blocked; plan to drop legacy tables after verification.
 
 ## Security
 
