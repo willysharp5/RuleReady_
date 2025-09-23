@@ -58,7 +58,14 @@ ${complianceContext}
 SOURCES (most relevant first):
 ${(sources || []).map((s: any, i: number) => `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}\nSnippet: ${s.snippet || ''}`).join('\n\n')}
 
-Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
+Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.
+
+FORMAT THE ANSWER CLEARLY:
+- Start with a concise Title line (Jurisdiction – Topic)
+- Use short sections with headings: Overview, Key Requirements, Deadlines, Penalties, Recommendations
+- Use bullet lists where appropriate
+- Add inline numeric citations like [#1], [#2] that correspond to the SOURCES list above
+- Keep paragraphs short with blank lines between sections`;
 
     const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U";
     
@@ -81,10 +88,25 @@ Provide accurate, actionable compliance guidance based on this structured data. 
     const response = await result.response;
     const text = response.text();
 
+    // Compose a display title from filters or top source
+    const displayTitle = (sources[0]?.jurisdiction || jurisdiction || 'Compliance') +
+      ' – ' + (sources[0]?.topicLabel || topic || 'Guidance');
+
+    // Build markdown with title and appended Sources block
+    const sourcesMd = (sources || []).map((s: any, i: number) => {
+      const sim = typeof s.similarity === 'number' ? ` (${(s.similarity * 100).toFixed(1)}%)` : '';
+      const meta = [s.jurisdiction, s.topicLabel].filter(Boolean).join(' – ');
+      const url = s.sourceUrl ? `\nURL: ${s.sourceUrl}` : '';
+      return `[${i + 1}] ${meta}${sim}${url}`;
+    }).join('\n');
+
+    const contentMarkdown = `# ${displayTitle}\n\n${text}\n\n---\n\n## Sources\n${sourcesMd}`;
+
     return new Response(
       JSON.stringify({ 
         role: 'assistant', 
-        content: text,
+        content: contentMarkdown,
+        title: displayTitle,
         sources: (sources || []).map((s: any, i: number) => ({
           id: i + 1,
           similarity: s.similarity,

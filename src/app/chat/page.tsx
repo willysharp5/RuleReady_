@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +30,7 @@ type ChatSource = {
   topicLabel?: string;
 };
 
-type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string; sources?: ChatSource[] };
+type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string; title?: string; sources?: ChatSource[] };
 
 export default function ComplianceChatPage() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('');
@@ -71,6 +73,7 @@ export default function ComplianceChatPage() {
         id: String(Date.now() + 1),
         role: 'assistant',
         content: data.content || 'Sorry, I could not generate a response.',
+        title: data.title,
         sources: Array.isArray(data.sources) ? data.sources : [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
@@ -174,7 +177,16 @@ export default function ComplianceChatPage() {
                               : 'bg-white border border-gray-200 text-gray-900'
                           }`}
                         >
-                          <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                          {message.title && (
+                            <div className="font-semibold mb-2 text-sm">{message.title}</div>
+                          )}
+                          {message.role === 'assistant' ? (
+                            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            <div className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                          )}
                           {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
                             <div className="mt-3 border-t pt-3">
                               <div className="text-xs font-medium text-gray-600 mb-2">Sources (embedding matches)</div>

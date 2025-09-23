@@ -2406,6 +2406,16 @@ const systemContext = buildContextFromSources(sources);
 return streamText({ model: google('gemini-2.5-flash-lite'), system: systemContext, messages });
 ```
 
+### **4E.3B Chat Citations & UX Formatting**
+- [ ] **Display references/citations for each answer**:
+  - Show a "Sources (embedding matches)" list with: jurisdiction, topic label, similarity %, and URL
+  - Include inline numeric citations [#] in the answer when possible
+- [ ] **Improve response formatting for readability**:
+  - Add a clear title/heading for the answer (e.g., jurisdiction + topic)
+  - Use short sections with bold sub‑headings (Overview, Requirements, Deadlines, Penalties, Sources)
+  - Ensure paragraph spacing and bullet lists for steps/recommendations
+  - Return structured fields (title, sections, sources) from the API for consistent UI rendering
+
 ### **4E.4 Chat API Endpoint with Gemini Integration**
 - [ ] **Create chat API** that uses compliance data:
 

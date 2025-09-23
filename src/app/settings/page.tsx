@@ -968,7 +968,7 @@ Analyze the provided diff and return a JSON response with:
                                 </p>
                                 <div className="mt-2 p-3 bg-white rounded border">
                                   <p className="font-medium">example.com</p>
-                                  <p className="text-gray-500 text-xs mt-1">Changed at: {new Date().toLocaleString()}</p>
+                                  <p className="text-gray-500 text-xs mt-1">Changed at: <span suppressHydrationWarning>{new Date().toLocaleString()}</span></p>
                                 </div>
                                 <p className="text-gray-600 mt-2">
                                   <a href="#" className="text-orange-600 underline">View changes →</a>
@@ -1084,6 +1084,7 @@ Analyze the provided diff and return a JSON response with:
                             </div>
                             <div 
                               className="prose prose-sm max-w-none"
+                              suppressHydrationWarning
                               dangerouslySetInnerHTML={{ 
                                 __html: emailTemplate
                                   .replace(/{{websiteName}}/g, 'Example Website')

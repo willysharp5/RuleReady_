@@ -3,11 +3,15 @@ import { mutation, query, internalMutation, internalQuery } from "./_generated/s
 import { Id } from "./_generated/dataModel";
 import { requireCurrentUser, getCurrentUser } from "./helpers";
 import { internal } from "./_generated/api";
-import { APP_CONFIG } from "@/config/app.config";
+// Feature flags (environment-overridable). Avoid Next.js path aliases in Convex.
+const FEATURES = {
+  complianceMode: (process.env.NEXT_PUBLIC_COMPLIANCE_MODE ?? 'true') === 'true',
+  freezeLegacyWrites: (process.env.NEXT_PUBLIC_FREEZE_LEGACY_WRITES ?? 'true') === 'true',
+};
 
 function freezeIfLegacy(website: any) {
   const isCompliance = !!website?.complianceMetadata?.isComplianceWebsite;
-  if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites && !isCompliance) {
+  if (FEATURES.complianceMode && FEATURES.freezeLegacyWrites && !isCompliance) {
     throw new Error("Legacy website writes are disabled in compliance mode");
   }
 }
@@ -34,7 +38,7 @@ export const createWebsite = mutation({
   },
   handler: async (ctx, args) => {
     // Freeze generic legacy creation (no compliance metadata path uses direct inserts elsewhere)
-    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
+    if (FEATURES.complianceMode && FEATURES.freezeLegacyWrites) {
       throw new Error("Legacy website creation is disabled in compliance mode");
     }
     const user = await requireCurrentUser(ctx);
@@ -496,7 +500,7 @@ export const getWebsiteScrapeHistory = query({
 export const getUnreadAlerts = query({
   handler: async (ctx) => {
     // Compliance mode: surface recent compliance changes as alert-like entries
-    if (APP_CONFIG.features.complianceMode) {
+    if (FEATURES.complianceMode) {
       const recentChanges = await ctx.db
         .query("complianceChanges")
         .withIndex("by_date", (q) => q.gte("detectedAt", Date.now() - 14 * 24 * 60 * 60 * 1000))
@@ -576,7 +580,7 @@ export const markAlertAsRead = mutation({
 export const getAllScrapeHistory = query({
   handler: async (ctx) => {
     // Compliance mode: derive a compatible history view from compliance reports
-    if (APP_CONFIG.features.complianceMode) {
+    if (FEATURES.complianceMode) {
       const reports = await ctx.db.query("complianceReports").collect();
       const rulesById = new Map<string, any>();
       for (const report of reports) {
@@ -654,7 +658,7 @@ export const getAllScrapeHistory = query({
 export const getLatestScrapeForWebsites = query({
   handler: async (ctx) => {
     // Compliance mode: return latest compliance report per rule, keyed by synthetic id
-    if (APP_CONFIG.features.complianceMode) {
+    if (FEATURES.complianceMode) {
       const rules = await ctx.db.query("complianceRules").collect();
       const byWebsiteId: Record<string, any> = {};
       for (const rule of rules) {

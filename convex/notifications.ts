@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { resend } from "./alertEmail";
 import { sanitizeHtml } from "./lib/sanitize";
-import { APP_CONFIG } from "@/config/app.config";
+// No Next.js aliases inside Convex code
 
 export const sendWebhookNotification = internalAction({
   args: {

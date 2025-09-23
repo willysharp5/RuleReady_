@@ -75,6 +75,33 @@ export const getAllEmbeddings = internalQuery({
   },
 });
 
+// Read-limited embeddings query to avoid large reads
+export const getEmbeddingsLimited = internalQuery({
+  args: {
+    entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
+    jurisdiction: v.optional(v.string()),
+    topicKey: v.optional(v.string()),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const base = args.entityType
+      ? ctx.db
+          .query("complianceEmbeddings")
+          .withIndex("by_entity_type", (ix) => ix.eq("entityType", args.entityType!))
+      : ctx.db.query("complianceEmbeddings");
+
+    // Take up to the limit, then filter by metadata if provided
+    const batch = await base.take(args.limit);
+    if (!args.jurisdiction && !args.topicKey) return batch;
+
+    return batch.filter((emb: any) => {
+      const matchesJurisdiction = !args.jurisdiction || emb.metadata?.jurisdiction === args.jurisdiction;
+      const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
+      return matchesJurisdiction && matchesTopic;
+    });
+  },
+});
+
 // Import existing embeddings (from your generated data)
 export const importExistingEmbeddings = internalAction({
   args: {
@@ -156,9 +183,13 @@ export const searchSimilarEmbeddings = internalAction({
     const limit = args.limit || 10;
     const threshold = args.threshold || 0.7;
 
-    // Get all embeddings
-    const allEmbeddings: any[] = await ctx.runQuery(internal.embeddingManager.getAllEmbeddings, {
-      entityType: args.entityType
+    // Read-limited embeddings to stay under Convex read limits
+    const scanLimit = args.jurisdiction || args.topicKey ? 1200 : 400; // tune for safety
+    const allEmbeddings: any[] = await ctx.runQuery(internal.embeddingManager.getEmbeddingsLimited, {
+      entityType: args.entityType || "report",
+      jurisdiction: args.jurisdiction,
+      topicKey: args.topicKey,
+      limit: scanLimit,
     });
 
     // Filter by metadata if specified
@@ -280,17 +311,11 @@ export const embeddingTopKSources = action({
 
       if (entityType === "report") {
         // Find report row by reportId
-        const report = await ctx.db
-          .query("complianceReports")
-          .withIndex("by_report_id", (q) => q.eq("reportId", m.entityId))
-          .first();
+        const report = await ctx.runQuery(internal.embeddingManager._getReportById, { reportId: m.entityId });
         if (report) {
           reportId = report.reportId;
           ruleId = report.ruleId;
-          const rule = await ctx.db
-            .query("complianceRules")
-            .withIndex("by_rule_id", (q) => q.eq("ruleId", report.ruleId))
-            .first();
+          const rule = await ctx.runQuery(internal.embeddingManager._getRuleByRuleId, { ruleId: report.ruleId });
           if (rule) {
             sourceUrl = rule.sourceUrl;
             jurisdiction = rule.jurisdiction;
@@ -299,10 +324,7 @@ export const embeddingTopKSources = action({
           }
         }
       } else {
-        const rule = await ctx.db
-          .query("complianceRules")
-          .withIndex("by_rule_id", (q) => q.eq("ruleId", m.entityId))
-          .first();
+        const rule = await ctx.runQuery(internal.embeddingManager._getRuleByRuleId, { ruleId: m.entityId });
         if (rule) {
           ruleId = rule.ruleId;
           sourceUrl = rule.sourceUrl;
@@ -327,5 +349,26 @@ export const embeddingTopKSources = action({
     }
 
     return { sources };
+  },
+});
+
+// Internal helpers for actions (actions cannot use ctx.db directly in some contexts)
+export const _getReportById = internalQuery({
+  args: { reportId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("complianceReports")
+      .withIndex("by_report_id", (q) => q.eq("reportId", args.reportId))
+      .first();
+  },
+});
+
+export const _getRuleByRuleId = internalQuery({
+  args: { ruleId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("complianceRules")
+      .withIndex("by_rule_id", (q) => q.eq("ruleId", args.ruleId))
+      .first();
   },
 });
