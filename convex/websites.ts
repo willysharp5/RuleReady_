@@ -5,6 +5,13 @@ import { requireCurrentUser, getCurrentUser } from "./helpers";
 import { internal } from "./_generated/api";
 import { APP_CONFIG } from "@/config/app.config";
 
+function freezeIfLegacy(website: any) {
+  const isCompliance = !!website?.complianceMetadata?.isComplianceWebsite;
+  if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites && !isCompliance) {
+    throw new Error("Legacy website writes are disabled in compliance mode");
+  }
+}
+
 // Create a new website to monitor
 export const createWebsite = mutation({
   args: {
@@ -26,7 +33,7 @@ export const createWebsite = mutation({
     crawlDepth: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Freeze legacy writes when in compliance mode
+    // Freeze generic legacy creation (no compliance metadata path uses direct inserts elsewhere)
     if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
       throw new Error("Legacy website creation is disabled in compliance mode");
     }
@@ -176,14 +183,12 @@ export const pauseWebsite = mutation({
     isPaused: v.boolean(),
   },
   handler: async (ctx, args) => {
-    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
-      throw new Error("Legacy website updates are disabled in compliance mode");
-    }
     // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
     if (!website) {
       throw new Error("Website not found");
     }
+    freezeIfLegacy(website);
 
     await ctx.db.patch(args.websiteId, {
       isPaused: args.isPaused,
@@ -219,14 +224,12 @@ export const updateWebsite = mutation({
     priorityChangeReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (APP_CONFIG.features.complianceMode && APP_CONFIG.features.freezeLegacyWrites) {
-      throw new Error("Legacy website updates are disabled in compliance mode");
-    }
     // Single-user mode: skip authentication
     const website = await ctx.db.get(args.websiteId);
     if (!website) {
       throw new Error("Website not found");
     }
+    freezeIfLegacy(website);
 
     const updates: any = {
       updatedAt: Date.now(),
@@ -318,6 +321,9 @@ export const createCheckingStatus = internalMutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website) throw new Error("Website not found");
+    freezeIfLegacy(website);
     // Create a temporary "checking" status entry
     const scrapeResultId = await ctx.db.insert("scrapeResults", {
       websiteId: args.websiteId,
@@ -338,6 +344,9 @@ export const updateLastChecked = internalMutation({
     websiteId: v.id("websites"),
   },
   handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website) throw new Error("Website not found");
+    freezeIfLegacy(website);
     await ctx.db.patch(args.websiteId, {
       lastChecked: Date.now(),
       updatedAt: Date.now(),
@@ -392,6 +401,9 @@ export const storeScrapeResult = internalMutation({
     })),
   },
   handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website) throw new Error("Website not found");
+    freezeIfLegacy(website);
     // Remove any checking status entries first (skip if no userId in single-user mode)
     if (args.userId) {
       await ctx.runMutation(internal.websites.removeCheckingStatus, {
@@ -437,6 +449,9 @@ export const createChangeAlert = internalMutation({
     summary: v.string(),
   },
   handler: async (ctx, args) => {
+    const website = await ctx.db.get(args.websiteId);
+    if (!website) throw new Error("Website not found");
+    freezeIfLegacy(website);
     await ctx.db.insert("changeAlerts", {
       websiteId: args.websiteId,
       userId: args.userId,
@@ -480,6 +495,36 @@ export const getWebsiteScrapeHistory = query({
 // Get unread alerts for the current user
 export const getUnreadAlerts = query({
   handler: async (ctx) => {
+    // Compliance mode: surface recent compliance changes as alert-like entries
+    if (APP_CONFIG.features.complianceMode) {
+      const recentChanges = await ctx.db
+        .query("complianceChanges")
+        .withIndex("by_date", (q) => q.gte("detectedAt", Date.now() - 14 * 24 * 60 * 60 * 1000))
+        .order("desc")
+        .take(50);
+
+      const results: any[] = [];
+      for (const change of recentChanges) {
+        const rule = await ctx.db
+          .query("complianceRules")
+          .withIndex("by_rule_id", (q) => q.eq("ruleId", change.ruleId))
+          .first();
+        results.push({
+          _id: `${change.changeId}` as any,
+          websiteId: rule?.sourceUrl as any,
+          userId: undefined,
+          scrapeResultId: undefined,
+          changeType: change.changeType,
+          summary: change.changeDescription,
+          isRead: false,
+          createdAt: change.detectedAt,
+          websiteName: rule ? `${rule.jurisdiction} - ${rule.topicLabel}` : "Compliance Rule",
+          websiteUrl: rule?.sourceUrl || "",
+        });
+      }
+      return results;
+    }
+
     const user = await getCurrentUser(ctx);
     if (!user) {
       return [];
@@ -493,7 +538,6 @@ export const getUnreadAlerts = query({
       .order("desc")
       .collect();
 
-    // Include website details
     const alertsWithWebsites = await Promise.all(
       alerts.map(async (alert) => {
         const website = await ctx.db.get(alert.websiteId);
@@ -531,24 +575,57 @@ export const markAlertAsRead = mutation({
 // Get all scrape history for check log (single-user mode)
 export const getAllScrapeHistory = query({
   handler: async (ctx) => {
-    // Single-user mode: return all scrape history
-    const websites = await ctx.db.query("websites").collect();
+    // Compliance mode: derive a compatible history view from compliance reports
+    if (APP_CONFIG.features.complianceMode) {
+      const reports = await ctx.db.query("complianceReports").collect();
+      const rulesById = new Map<string, any>();
+      for (const report of reports) {
+        if (!rulesById.has(report.ruleId)) {
+          const rule = await ctx.db
+            .query("complianceRules")
+            .withIndex("by_rule_id", (q) => q.eq("ruleId", report.ruleId))
+            .first();
+          if (rule) rulesById.set(report.ruleId, rule);
+        }
+      }
+      const sorted = [...reports]
+        .sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0))
+        .slice(0, 100);
+      return sorted.map((r, i) => {
+        const rule = rulesById.get(r.ruleId);
+        return {
+          _id: `${r.reportId}` as any,
+          websiteId: (rule?.sourceUrl || "") as any,
+          userId: undefined,
+          markdown: r.reportContent,
+          changeStatus: "same",
+          visibility: "visible",
+          previousScrapeAt: undefined,
+          scrapedAt: r.generatedAt,
+          firecrawlMetadata: undefined,
+          ogImage: undefined,
+          title: rule ? `${rule.jurisdiction} - ${rule.topicLabel}` : undefined,
+          description: undefined,
+          url: rule?.sourceUrl,
+          diff: undefined,
+          websiteName: rule ? `${rule.jurisdiction} - ${rule.topicLabel}` : "Compliance Rule",
+          websiteUrl: rule?.sourceUrl || "",
+          isFirstScrape: false,
+          scrapeNumber: i + 1,
+          totalScrapes: sorted.length,
+        };
+      });
+    }
 
+    // Legacy mode: return real scrape history
+    const websites = await ctx.db.query("websites").collect();
     const websiteMap = new Map(websites.map(w => [w._id, w]));
 
-    // Get all scrape results (single-user mode)
     const allScrapes = await ctx.db
       .query("scrapeResults")
       .order("desc")
-      .take(100); // Limit to last 100 scrapes
+      .take(100);
 
-    // Count scrapes per website
-    const scrapeCounts = new Map<string, number>();
-    for (const scrape of allScrapes) {
-      scrapeCounts.set(scrape.websiteId, (scrapeCounts.get(scrape.websiteId) || 0) + 1);
-    }
-
-    // Group scrapes by website and find position
     const scrapesByWebsite = new Map<string, typeof allScrapes>();
     for (const scrape of allScrapes) {
       if (!scrapesByWebsite.has(scrape.websiteId)) {
@@ -557,17 +634,15 @@ export const getAllScrapeHistory = query({
       scrapesByWebsite.get(scrape.websiteId)!.push(scrape);
     }
 
-    // Enrich with website info and check if it's truly the first scrape
     return allScrapes.map((scrape) => {
       const websiteScrapes = scrapesByWebsite.get(scrape.websiteId) || [];
       const scrapeIndex = websiteScrapes.findIndex(s => s._id === scrape._id);
-      const isFirstScrape = scrapeIndex === websiteScrapes.length - 1; // Last in array is oldest
-      
+      const isFirstScrape = scrapeIndex === websiteScrapes.length - 1;
       return {
         ...scrape,
         websiteName: websiteMap.get(scrape.websiteId)?.name || "Unknown",
         websiteUrl: scrape.url || websiteMap.get(scrape.websiteId)?.url || "",
-        isFirstScrape: isFirstScrape,
+        isFirstScrape,
         scrapeNumber: websiteScrapes.length - scrapeIndex,
         totalScrapes: websiteScrapes.length,
       };
@@ -578,23 +653,44 @@ export const getAllScrapeHistory = query({
 // Get latest scrape result for each website (single-user mode)
 export const getLatestScrapeForWebsites = query({
   handler: async (ctx) => {
-    // Single-user mode: get all websites
-    const websites = await ctx.db.query("websites").collect();
+    // Compliance mode: return latest compliance report per rule, keyed by synthetic id
+    if (APP_CONFIG.features.complianceMode) {
+      const rules = await ctx.db.query("complianceRules").collect();
+      const byWebsiteId: Record<string, any> = {};
+      for (const rule of rules) {
+        const report = await ctx.db
+          .query("complianceReports")
+          .withIndex("by_rule", (q) => q.eq("ruleId", rule.ruleId))
+          .order("desc")
+          .first();
+        if (report) {
+          const syntheticId = `${rule.sourceUrl}`;
+          byWebsiteId[syntheticId] = {
+            _id: report.reportId,
+            websiteId: syntheticId,
+            markdown: report.reportContent,
+            scrapedAt: report.generatedAt,
+            title: `${rule.jurisdiction} - ${rule.topicLabel}`,
+            url: rule.sourceUrl,
+          };
+        }
+      }
+      return byWebsiteId;
+    }
 
+    // Legacy mode: return latest scrape per website
+    const websites = await ctx.db.query("websites").collect();
     const latestScrapes: Record<string, any> = {};
-    
     for (const website of websites) {
       const latestScrape = await ctx.db
         .query("scrapeResults")
         .withIndex("by_website_time", (q) => q.eq("websiteId", website._id))
         .order("desc")
         .first();
-      
       if (latestScrape) {
         latestScrapes[website._id] = latestScrape;
       }
     }
-
     return latestScrapes;
   },
 });
@@ -750,6 +846,7 @@ export const pauseWebsiteFromApi = internalMutation({
     if (!website || website.userId !== args.userId) {
       return false;
     }
+    freezeIfLegacy(website);
 
     // Update the pause status
     await ctx.db.patch(websiteId, {
@@ -775,6 +872,7 @@ export const deleteWebsiteFromApi = internalMutation({
     if (!website || website.userId !== args.userId) {
       return false;
     }
+    freezeIfLegacy(website);
 
     // Schedule async deletion of all related data
     await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
