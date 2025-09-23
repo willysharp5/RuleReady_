@@ -19,12 +19,23 @@ import {
   Sparkles
 } from 'lucide-react';
 
+type ChatSource = {
+  id: number;
+  similarity: number;
+  url?: string;
+  jurisdiction?: string;
+  topicKey?: string;
+  topicLabel?: string;
+};
+
+type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string; sources?: ChatSource[] };
+
 export default function ComplianceChatPage() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([
+  const [messages, setMessages] = useState<Array<ChatMessage>>([
     {
       id: '1',
       role: 'assistant',
@@ -41,7 +52,7 @@ export default function ComplianceChatPage() {
     e.preventDefault();
     const text = input.trim();
     if (!text) return;
-    const userMessage = { id: String(Date.now()), role: 'user' as const, content: text };
+    const userMessage: ChatMessage = { id: String(Date.now()), role: 'user', content: text };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -56,16 +67,17 @@ export default function ComplianceChatPage() {
         }),
       });
       const data = await res.json();
-      const assistantMessage = {
+      const assistantMessage: ChatMessage = {
         id: String(Date.now() + 1),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: data.content || 'Sorry, I could not generate a response.',
+        sources: Array.isArray(data.sources) ? data.sources : [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      const errorMessage = {
+      const errorMessage: ChatMessage = {
         id: String(Date.now() + 2),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: 'There was an error contacting the compliance assistant.',
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -163,6 +175,26 @@ export default function ComplianceChatPage() {
                           }`}
                         >
                           <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                          {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                            <div className="mt-3 border-t pt-3">
+                              <div className="text-xs font-medium text-gray-600 mb-2">Sources (embedding matches)</div>
+                              <ul className="space-y-1">
+                                {message.sources.map((s) => (
+                                  <li key={s.id} className="text-xs text-gray-700">
+                                    <span className="font-mono mr-1">[{s.id}]</span>
+                                    {s.jurisdiction && <span className="mr-1">{s.jurisdiction}:</span>}
+                                    {s.topicLabel && <span className="mr-1">{s.topicLabel}</span>}
+                                    <span className="text-gray-500 mr-2">({Math.round((s.similarity || 0) * 100)}%)</span>
+                                    {s.url ? (
+                                      <a href={s.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Link</a>
+                                    ) : (
+                                      <span className="text-gray-400">No URL</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

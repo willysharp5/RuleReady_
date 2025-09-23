@@ -1,15 +1,35 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from 'next/server';
+import { ConvexHttpClient } from "convex/browser";
+// using string action name to avoid build-time type coupling
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { messages, jurisdiction, topic } = body;
 
+    // Top‑K embedding retrieval for RAG context
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
+    const lastUser = messages[messages.length - 1]?.content || "";
+    let sources: any[] = [];
+    try {
+      const res: any = await convex.action("embeddingManager:embeddingTopKSources", {
+        question: lastUser,
+        k: 5,
+        threshold: 0.65,
+        jurisdiction: jurisdiction || undefined,
+        topicKey: topic || undefined,
+      });
+      sources = res?.sources || [];
+    } catch (e) {
+      console.error("Embedding retrieval failed:", e);
+      sources = [];
+    }
+
     // Get relevant compliance data based on context
     const complianceContext = await getComplianceContext(jurisdiction, topic);
     
-    // Create system prompt with compliance template structure
+    // Create system prompt with compliance template structure + sources
     const systemPrompt = `You are a professional compliance assistant specializing in US employment law. 
 
 You have access to comprehensive compliance data from 1,175 reports across all US jurisdictions, structured according to this template:
@@ -34,6 +54,9 @@ COMPLIANCE TEMPLATE STRUCTURE:
 
 CURRENT CONTEXT:
 ${complianceContext}
+
+SOURCES (most relevant first):
+${(sources || []).map((s: any, i: number) => `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}\nSnippet: ${s.snippet || ''}`).join('\n\n')}
 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
 
@@ -61,7 +84,15 @@ Provide accurate, actionable compliance guidance based on this structured data. 
     return new Response(
       JSON.stringify({ 
         role: 'assistant', 
-        content: text 
+        content: text,
+        sources: (sources || []).map((s: any, i: number) => ({
+          id: i + 1,
+          similarity: s.similarity,
+          url: s.sourceUrl,
+          jurisdiction: s.jurisdiction,
+          topicKey: s.topicKey,
+          topicLabel: s.topicLabel,
+        })),
       }),
       { 
         status: 200, 

@@ -237,3 +237,95 @@ async function calculateContentHash(content: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Public action: Top‑K embedding search with hydrated sources for chat
+export const embeddingTopKSources = action({
+  args: {
+    question: v.string(),
+    k: v.optional(v.number()),
+    threshold: v.optional(v.number()),
+    jurisdiction: v.optional(v.string()),
+    topicKey: v.optional(v.string()),
+    entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
+  },
+  handler: async (ctx, args) => {
+    const k = args.k || 5;
+    const threshold = args.threshold || 0.65;
+
+    // 1) Generate query embedding
+    const gen = await ctx.runAction(internal.embeddingManager.generateEmbedding, {
+      content: args.question,
+    });
+
+    // 2) Similarity search
+    const matches: any[] = await ctx.runAction(internal.embeddingManager.searchSimilarEmbeddings, {
+      queryEmbedding: gen.embedding,
+      entityType: args.entityType,
+      jurisdiction: args.jurisdiction,
+      topicKey: args.topicKey,
+      limit: k,
+      threshold,
+    });
+
+    // 3) Hydrate entities
+    const sources: any[] = [];
+    for (const m of matches) {
+      const entityType = m.entityType as "rule" | "report";
+      let sourceUrl: string | undefined;
+      let jurisdiction: string | undefined;
+      let topicKey: string | undefined;
+      let topicLabel: string | undefined;
+      let reportId: string | undefined;
+      let ruleId: string | undefined;
+
+      if (entityType === "report") {
+        // Find report row by reportId
+        const report = await ctx.db
+          .query("complianceReports")
+          .withIndex("by_report_id", (q) => q.eq("reportId", m.entityId))
+          .first();
+        if (report) {
+          reportId = report.reportId;
+          ruleId = report.ruleId;
+          const rule = await ctx.db
+            .query("complianceRules")
+            .withIndex("by_rule_id", (q) => q.eq("ruleId", report.ruleId))
+            .first();
+          if (rule) {
+            sourceUrl = rule.sourceUrl;
+            jurisdiction = rule.jurisdiction;
+            topicKey = rule.topicKey;
+            topicLabel = rule.topicLabel;
+          }
+        }
+      } else {
+        const rule = await ctx.db
+          .query("complianceRules")
+          .withIndex("by_rule_id", (q) => q.eq("ruleId", m.entityId))
+          .first();
+        if (rule) {
+          ruleId = rule.ruleId;
+          sourceUrl = rule.sourceUrl;
+          jurisdiction = rule.jurisdiction;
+          topicKey = rule.topicKey;
+          topicLabel = rule.topicLabel;
+        }
+      }
+
+      sources.push({
+        entityId: m.entityId,
+        entityType,
+        similarity: m.similarity,
+        snippet: (m.content || "").slice(0, 500),
+        sourceUrl,
+        jurisdiction,
+        topicKey,
+        topicLabel,
+        reportId,
+        ruleId,
+      });
+    }
+
+    return { sources };
+  },
+});
