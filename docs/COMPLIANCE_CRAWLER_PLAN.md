@@ -2913,6 +2913,31 @@ crons.weekly(
 
 ---
 
+## **Phase 1.4 Legacy Decommission (Non‑Compliance Tables)** 🧹
+- [ ] **Inventory legacy tables not required for compliance**
+  - Map out read/write paths in code for: legacy website monitoring, scrape logs, non‑compliance alerts, legacy embeddings/storage, and any generic analytics tables
+  - Confirm which still have references in UI/API
+- [ ] **Freeze legacy writes via feature flags**
+  - Guard mutations with `IS_COMPLIANCE_MODE` flag; block new writes to legacy tables in dev
+  - Add logs to detect unexpected legacy writes
+- [ ] **Add temporary compatibility shims (read‑only)**
+  - For any remaining UI/API reads, expose read‑through helpers that fetch from new compliance tables
+  - Remove direct imports of legacy queries from app routes/components
+- [ ] **Migrate residual data to compliance schema**
+  - Backfill any needed fields into `complianceRules` / `complianceReports` / `complianceEmbeddings`
+  - Verify counts and sampling equality
+- [ ] **Code cleanup before drop**
+  - Replace legacy types/interfaces with compliance equivalents
+  - Ripgrep for symbols to ensure no references remain to legacy tables
+- [ ] **Safe drop plan (dev → prod)**
+  - Dev: run migration to drop legacy tables; run smoke tests (chat RAG, imports, crawler off, admin, webhooks)
+  - Prod: take snapshot/backup; deploy behind feature flag; drop after 24–48h observation window
+- [ ] **Verification checklist**
+  - App boots with no legacy queries executing
+  - Chat uses compliance embeddings and returns sources
+  - Crawler (when enabled) writes only to compliance tables
+  - No runtime errors in Convex logs referencing legacy tables
+
 ## **SUCCESS METRICS & KPIs** 📊
 
 ### **Technical Performance KPIs:**
