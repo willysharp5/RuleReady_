@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { resend } from "./alertEmail";
 import { sanitizeHtml } from "./lib/sanitize";
+import { APP_CONFIG } from "@/config/app.config";
 
 export const sendWebhookNotification = internalAction({
   args: {
@@ -310,5 +311,96 @@ export const sendCrawlWebhook = internalAction({
       console.error("Failed to send crawl webhook:", error);
       throw error;
     }
+  },
+});
+
+// Compliance-mode: Send webhook for compliance rule/report change (does not require scrapeResults)
+export const sendComplianceChangeWebhook = internalAction({
+  args: {
+    webhookUrl: v.string(),
+    changeId: v.string(),
+    ruleId: v.string(),
+    jurisdiction: v.string(),
+    topicKey: v.string(),
+    topicLabel: v.string(),
+    sourceUrl: v.string(),
+    changeType: v.string(),
+    summary: v.string(),
+    detectedAt: v.number(),
+    severity: v.optional(v.string()),
+    reportId: v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const payload = {
+      event: "compliance_change",
+      timestamp: new Date().toISOString(),
+      change: {
+        id: args.changeId,
+        type: args.changeType,
+        summary: args.summary,
+        detectedAt: new Date(args.detectedAt).toISOString(),
+        severity: args.severity,
+      },
+      rule: {
+        ruleId: args.ruleId,
+        jurisdiction: args.jurisdiction,
+        topicKey: args.topicKey,
+        topicLabel: args.topicLabel,
+        sourceUrl: args.sourceUrl,
+        reportId: args.reportId,
+      },
+    };
+
+    const response = await fetch(args.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'RuleReady-Compliance/1.0' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Compliance webhook failed with status ${response.status}`);
+    }
+
+    return { success: true, status: response.status };
+  },
+});
+
+// Compliance-mode: Send email for compliance change
+export const sendComplianceChangeEmail = internalAction({
+  args: {
+    email: v.string(),
+    changeId: v.string(),
+    ruleId: v.string(),
+    jurisdiction: v.string(),
+    topicKey: v.string(),
+    topicLabel: v.string(),
+    sourceUrl: v.string(),
+    changeType: v.string(),
+    summary: v.string(),
+    detectedAt: v.number(),
+    severity: v.optional(v.string()),
+    reportId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const title = `${args.jurisdiction} – ${args.topicLabel}`;
+    const html = sanitizeHtml(`
+      <h2>Compliance Change Detected</h2>
+      <p><strong>Rule:</strong> ${title}</p>
+      <p><strong>Type:</strong> ${args.changeType}${args.severity ? ` (${args.severity})` : ''}</p>
+      <p><strong>Detected:</strong> ${new Date(args.detectedAt).toLocaleString()}</p>
+      <p><strong>Summary:</strong> ${args.summary}</p>
+      <p><a href="${args.sourceUrl}">View Source</a></p>
+      ${args.reportId ? `<p><strong>Report ID:</strong> ${args.reportId}</p>` : ''}
+    `);
+
+    await resend.sendEmail(ctx, {
+      from: `${process.env.APP_NAME || 'RuleReady Compliance'} <${process.env.FROM_EMAIL || 'noreply@example.com'}>`,
+      to: args.email,
+      subject: `Compliance change: ${title}`,
+      html,
+    });
+
+    return { success: true };
   },
 });
