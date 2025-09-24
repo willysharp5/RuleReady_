@@ -138,7 +138,7 @@ FORMAT THE ANSWER CLEARLY:
       .replace(/^\*\*.*\*\*$/m, '')  // Remove any bold title lines
       .trim();
     
-    const contentMarkdown = `## Compliance – Guidance\n\n# ${displayTitle}\n\n${cleanText}${sourcesBlock}`;
+    const contentMarkdown = `# ${displayTitle}\n\n${cleanText}${sourcesBlock}`;
 
     return new Response(
       JSON.stringify({ 
