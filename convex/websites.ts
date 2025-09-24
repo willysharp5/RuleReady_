@@ -378,7 +378,7 @@ export const removeCheckingStatus = internalMutation({
   },
 });
 
-// Store scrape result (internal)
+// LEGACY: Store scrape result - DEPRECATED (disabled in compliance mode)
 export const storeScrapeResult = internalMutation({
   args: {
     websiteId: v.id("websites"),
@@ -405,6 +405,12 @@ export const storeScrapeResult = internalMutation({
     })),
   },
   handler: async (ctx, args) => {
+    // Skip in compliance mode - use complianceReports instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy storeScrapeResult disabled in compliance mode");
+      return "legacy-disabled" as any;
+    }
+    
     const website = await ctx.db.get(args.websiteId);
     if (!website) throw new Error("Website not found");
     freezeIfLegacy(website);
@@ -443,7 +449,7 @@ export const storeScrapeResult = internalMutation({
   },
 });
 
-// Create change alert (internal)
+// LEGACY: Create change alert - DEPRECATED (disabled in compliance mode)
 export const createChangeAlert = internalMutation({
   args: {
     websiteId: v.id("websites"),
@@ -453,6 +459,12 @@ export const createChangeAlert = internalMutation({
     summary: v.string(),
   },
   handler: async (ctx, args) => {
+    // Skip in compliance mode - use complianceChanges instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy createChangeAlert disabled in compliance mode");
+      return;
+    }
+    
     const website = await ctx.db.get(args.websiteId);
     if (!website) throw new Error("Website not found");
     freezeIfLegacy(website);
@@ -468,13 +480,19 @@ export const createChangeAlert = internalMutation({
   },
 });
 
-// Get recent scrape results for a website
+// LEGACY: Get recent scrape results - DEPRECATED (disabled in compliance mode)
 export const getWebsiteScrapeHistory = query({
   args: {
     websiteId: v.id("websites"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Skip in compliance mode - use compliance reports instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy getWebsiteScrapeHistory disabled in compliance mode");
+      return [];
+    }
+    
     const user = await getCurrentUser(ctx);
     if (!user) {
       return [];
@@ -612,6 +630,7 @@ export const getAllScrapeHistory = query({
           description: undefined,
           url: rule?.sourceUrl,
           diff: undefined,
+          aiAnalysis: undefined, // No AI analysis for compliance reports
           websiteName: rule ? `${rule.jurisdiction} - ${rule.topicLabel}` : "Compliance Rule",
           websiteUrl: rule?.sourceUrl || "",
           isFirstScrape: false,
@@ -906,7 +925,8 @@ export const deleteWebsiteFromApi = internalMutation({
   },
 });
 
-// Update scrape result with AI analysis
+// LEGACY: Update scrape result with AI analysis - DISABLED in compliance mode
+/*
 export const updateScrapeResultAIAnalysis = internalMutation({
   args: {
     scrapeResultId: v.id("scrapeResults"),
@@ -924,8 +944,10 @@ export const updateScrapeResultAIAnalysis = internalMutation({
     });
   },
 });
+*/
 
-// Get a specific scrape result (internal)
+// LEGACY: Get a specific scrape result - DISABLED in compliance mode
+/*
 export const getScrapeResult = internalQuery({
   args: {
     scrapeResultId: v.id("scrapeResults"),
@@ -934,6 +956,7 @@ export const getScrapeResult = internalQuery({
     return await ctx.db.get(args.scrapeResultId);
   },
 });
+*/
 
 // Create websites from compliance rules
 export const createWebsitesFromComplianceRules = mutation({

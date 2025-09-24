@@ -2,11 +2,16 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
-// Analyze website changes using AI
+// Feature flags (environment-overridable)
+const FEATURES = {
+  complianceMode: (process.env.NEXT_PUBLIC_COMPLIANCE_MODE ?? 'true') === 'true',
+};
+
+// LEGACY: Analyze website changes using AI - DISABLED in compliance mode
 export const analyzeChange = internalAction({
   args: {
     userId: v.id("users"),
-    scrapeResultId: v.id("scrapeResults"),
+    scrapeResultId: v.string(), // Changed from v.id("scrapeResults") since table is disabled
     websiteName: v.string(),
     websiteUrl: v.string(),
     diff: v.object({
@@ -15,6 +20,11 @@ export const analyzeChange = internalAction({
     }),
   },
   handler: async (ctx, args) => {
+    // Skip AI analysis in compliance mode - use compliance-specific AI instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy AI analysis disabled in compliance mode");
+      return;
+    }
     // Get user's AI settings
     const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
       userId: args.userId,
@@ -107,47 +117,47 @@ Please analyze these changes and determine if they are meaningful.`,
       const threshold = userSettings.aiMeaningfulChangeThreshold || 70;
       const isMeaningful = aiResponse.score >= threshold;
 
-      // Update the scrape result with AI analysis
-      await ctx.runMutation(internal.websites.updateScrapeResultAIAnalysis, {
-        scrapeResultId: args.scrapeResultId,
-        analysis: {
-          meaningfulChangeScore: aiResponse.score,
-          isMeaningfulChange: isMeaningful,
-          reasoning: aiResponse.reasoning,
-          analyzedAt: Date.now(),
-          model: userSettings.aiModel || "gpt-4o-mini",
-        },
-      });
+      // LEGACY: Update scrape result - disabled in compliance mode
+      // await ctx.runMutation(internal.websites.updateScrapeResultAIAnalysis, {
+      //   scrapeResultId: args.scrapeResultId,
+      //   analysis: {
+      //     meaningfulChangeScore: aiResponse.score,
+      //     isMeaningfulChange: isMeaningful,
+      //     reasoning: aiResponse.reasoning,
+      //     analyzedAt: Date.now(),
+      //     model: userSettings.aiModel || "gpt-4o-mini",
+      //   },
+      // });
 
       console.log(`AI analysis complete for ${args.websiteName}: Score ${aiResponse.score}, Meaningful: ${isMeaningful}`);
 
-      // Trigger AI-based notifications after analysis is complete
-      await ctx.scheduler.runAfter(0, internal.aiAnalysis.handleAIBasedNotifications, {
-        userId: args.userId,
-        scrapeResultId: args.scrapeResultId,
-        websiteName: args.websiteName,
-        websiteUrl: args.websiteUrl,
-        isMeaningful,
-        diff: args.diff,
-        aiAnalysis: {
-          meaningfulChangeScore: aiResponse.score,
-          isMeaningfulChange: isMeaningful,
-          reasoning: aiResponse.reasoning,
-          analyzedAt: Date.now(),
-          model: userSettings.aiModel || "gpt-4o-mini",
-        },
-      });
+      // LEGACY: Trigger notifications - disabled in compliance mode
+      // await ctx.scheduler.runAfter(0, internal.aiAnalysis.handleAIBasedNotifications, {
+      //   userId: args.userId,
+      //   scrapeResultId: args.scrapeResultId,
+      //   websiteName: args.websiteName,
+      //   websiteUrl: args.websiteUrl,
+      //   isMeaningful,
+      //   diff: args.diff,
+      //   aiAnalysis: {
+      //     meaningfulChangeScore: aiResponse.score,
+      //     isMeaningfulChange: isMeaningful,
+      //     reasoning: aiResponse.reasoning,
+      //     analyzedAt: Date.now(),
+      //     model: userSettings.aiModel || "gpt-4o-mini",
+      //   },
+      // });
     } catch (error) {
       console.error("Error in AI analysis:", error);
     }
   },
 });
 
-// Handle AI-based notifications after analysis is complete
+// LEGACY: Handle AI-based notifications - DISABLED in compliance mode
 export const handleAIBasedNotifications = internalAction({
   args: {
     userId: v.id("users"),
-    scrapeResultId: v.id("scrapeResults"),
+    scrapeResultId: v.string(), // Changed from v.id("scrapeResults") since table is disabled
     websiteName: v.string(),
     websiteUrl: v.string(),
     isMeaningful: v.boolean(),
@@ -164,27 +174,37 @@ export const handleAIBasedNotifications = internalAction({
     }),
   },
   handler: async (ctx, args) => {
+    // Skip legacy notifications in compliance mode - use compliance-specific notifications instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy AI notifications disabled in compliance mode");
+      return;
+    }
     try {
       // Get user settings to check notification filtering preferences
       const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
         userId: args.userId,
       });
 
-      // Get website details for notifications
-      const scrapeResult = await ctx.runQuery(internal.websites.getScrapeResult, {
-        scrapeResultId: args.scrapeResultId,
-      });
+      // LEGACY: Get website details - disabled in compliance mode
+      // const scrapeResult = await ctx.runQuery(internal.websites.getScrapeResult, {
+      //   scrapeResultId: args.scrapeResultId,
+      // });
 
-      if (!scrapeResult) {
-        console.error("Scrape result not found for notifications");
-        return;
-      }
+      // if (!scrapeResult) {
+      //   console.error("Scrape result not found for notifications");
+      //   return;
+      // }
 
-      const website = await ctx.runQuery(internal.websites.getWebsite, {
-        websiteId: scrapeResult.websiteId,
-        userId: args.userId,
-      });
+      // const website = await ctx.runQuery(internal.websites.getWebsite, {
+      //   websiteId: scrapeResult.websiteId,
+      //   userId: args.userId,
+      // });
+      
+      // In compliance mode, notifications are handled by compliance-specific functions
+      console.log("Legacy notification handling disabled - use compliance notifications instead");
+      return;
 
+      /* LEGACY CODE - UNREACHABLE IN COMPLIANCE MODE
       if (!website || website.notificationPreference === "none") {
         return;
       }
@@ -241,6 +261,7 @@ export const handleAIBasedNotifications = internalAction({
       }
 
       console.log(`AI-based notifications processed for ${args.websiteName}. Webhook: ${shouldSendWebhook}, Email: ${shouldSendEmail}`);
+      */
     } catch (error) {
       console.error("Error in AI-based notifications:", error);
     }

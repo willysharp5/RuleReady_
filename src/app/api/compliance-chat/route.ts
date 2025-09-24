@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from 'next/server';
 import { ConvexHttpClient } from "convex/browser";
-// using string action name to avoid build-time type coupling
+import { api } from "../../../../convex/_generated/api";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,16 +11,16 @@ export async function POST(req: NextRequest) {
     // Top‑K embedding retrieval for RAG context
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
     const lastUser = messages[messages.length - 1]?.content || "";
-    let sources: any[] = [];
+    let sources: unknown[] = [];
     try {
-      const res: any = await convex.action("embeddingManager:embeddingTopKSources", {
+      const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
         question: lastUser,
         k: 5,
         threshold: 0.65,
         jurisdiction: jurisdiction || undefined,
         topicKey: topic || undefined,
       });
-      sources = res?.sources || [];
+      sources = (res as { sources?: unknown[] })?.sources || [];
     } catch (e) {
       console.error("Embedding retrieval failed:", e);
       sources = [];
@@ -29,29 +29,40 @@ export async function POST(req: NextRequest) {
     // Fallback: lower threshold if no sources were found
     if (!sources.length) {
       try {
-        const resLow: any = await convex.action("embeddingManager:embeddingTopKSources", {
+        const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
           question: lastUser,
           k: 5,
           threshold: 0.5,
           jurisdiction: jurisdiction || undefined,
           topicKey: topic || undefined,
         });
-        sources = resLow?.sources || [];
+        sources = (resLow as { sources?: unknown[] })?.sources || [];
       } catch {}
     }
     // Final fallback: return top matches with no threshold
     if (!sources.length) {
       try {
-        const resAny: any = await convex.action("embeddingManager:embeddingTopKSources", {
+        const resAny: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
           question: lastUser,
           k: 3,
           threshold: 0.0,
           jurisdiction: jurisdiction || undefined,
           topicKey: topic || undefined,
         });
-        sources = resAny?.sources || [];
+        sources = (resAny as { sources?: unknown[] })?.sources || [];
       } catch {}
     }
+
+    // Type guard for source objects
+    type SourceObject = {
+      jurisdiction?: string;
+      topicLabel?: string;
+      topicKey?: string;
+      similarity?: number;
+      sourceUrl?: string;
+    };
+    
+    const typedSources = sources as SourceObject[];
 
     // Get relevant compliance data based on context
     const complianceContext = await getComplianceContext(jurisdiction, topic);
@@ -83,7 +94,7 @@ CURRENT CONTEXT:
 ${complianceContext}
 
 SOURCES (most relevant first):
-${(sources || []).map((s: any, i: number) => `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}\nSnippet: ${s.snippet || ''}`).join('\n\n')}
+${(typedSources || []).map((s: SourceObject, i: number) => `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`).join('\n\n')}
 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.
 
@@ -115,13 +126,13 @@ FORMAT THE ANSWER CLEARLY:
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
+    
     // Compose a display title from filters or top source
-    const displayTitle = (sources[0]?.jurisdiction || jurisdiction || 'Compliance') +
-      ' – ' + (sources[0]?.topicLabel || topic || 'Guidance');
+    const displayTitle = (typedSources[0]?.jurisdiction || jurisdiction || 'Compliance') +
+      ' – ' + (typedSources[0]?.topicLabel || topic || 'Guidance');
 
     // Build markdown with title and appended Sources block
-    const sourcesMd = (sources || []).map((s: any, i: number) => {
+    const sourcesMd = (typedSources || []).map((s: SourceObject, i: number) => {
       const sim = typeof s.similarity === 'number' ? ` (${(s.similarity * 100).toFixed(1)}%)` : '';
       const meta = [s.jurisdiction, s.topicLabel].filter(Boolean).join(' – ');
       const url = s.sourceUrl ? `\nURL: ${s.sourceUrl}` : '';
@@ -145,7 +156,7 @@ FORMAT THE ANSWER CLEARLY:
         role: 'assistant', 
         content: contentMarkdown,
         title: displayTitle,
-        sources: (sources || []).map((s: any, i: number) => ({
+        sources: (typedSources || []).map((s: SourceObject, i: number) => ({
           id: i + 1,
           similarity: s.similarity,
           url: s.sourceUrl,

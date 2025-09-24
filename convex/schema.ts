@@ -69,6 +69,7 @@ const schema = defineSchema({
     .index("by_active", ["isActive"])
     .index("by_compliance", ["complianceMetadata.isComplianceWebsite"]),
 
+  // LEGACY: scrapeResults table - DEPRECATED (use complianceReports in compliance mode)
   scrapeResults: defineTable({
     websiteId: v.id("websites"),
     userId: v.optional(v.id("users")), // Optional for single-user mode
@@ -105,6 +106,7 @@ const schema = defineSchema({
     .index("by_website_time", ["websiteId", "scrapedAt"])
     .index("by_user_time", ["userId", "scrapedAt"]),
 
+  // LEGACY: changeAlerts table - DEPRECATED (use complianceChanges in compliance mode)
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
     userId: v.optional(v.id("users")), // Optional for single-user mode

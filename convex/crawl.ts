@@ -2,15 +2,26 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+
+// Feature flags (environment-overridable)
+const FEATURES = {
+  complianceMode: (process.env.NEXT_PUBLIC_COMPLIANCE_MODE ?? 'true') === 'true',
+};
 import { getFirecrawlClient } from "./firecrawl";
 
 // Perform a crawl for a full site monitor
+// LEGACY: Perform crawl - DISABLED in compliance mode (use complianceCrawler instead)
 export const performCrawl = internalAction({
   args: {
     websiteId: v.id("websites"),
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Skip legacy crawling in compliance mode - use compliance-specific crawler instead
+    if (FEATURES.complianceMode) {
+      console.log("Legacy crawling disabled in compliance mode - use complianceCrawler instead");
+      return;
+    }
     // Starting crawl for website
     
     // Get website details
@@ -88,39 +99,40 @@ export const performCrawl = internalAction({
         const pageUrl = page.url || page.metadata?.url;
         if (!pageUrl) continue;
 
-        // Only store if there's actual content
+        // LEGACY: Store scrape results - disabled in compliance mode
         if (page.markdown) {
-          const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
-            websiteId: args.websiteId,
-            userId: args.userId,
-            markdown: page.markdown,
-            changeStatus: page.changeTracking?.changeStatus || "new",
-            visibility: page.changeTracking?.visibility || "visible",
-            previousScrapeAt: page.changeTracking?.previousScrapeAt
-              ? new Date(page.changeTracking.previousScrapeAt).getTime()
-              : undefined,
-            scrapedAt: Date.now(),
-            firecrawlMetadata: page.metadata,
-            ogImage: page.metadata?.ogImage,
-            title: page.metadata?.title,
-            description: page.metadata?.description,
-            url: pageUrl, // Pass the actual URL
-            diff: page.changeTracking?.diff ? {
-              text: page.changeTracking.diff.text || "",
-              json: page.changeTracking.diff.json || null,
-            } : undefined,
-          });
+          console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
+          // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
+          //   websiteId: args.websiteId,
+          //   userId: args.userId,
+          //   markdown: page.markdown,
+          //   changeStatus: page.changeTracking?.changeStatus || "new",
+          //   visibility: page.changeTracking?.visibility || "visible",
+          //   previousScrapeAt: page.changeTracking?.previousScrapeAt
+          //     ? new Date(page.changeTracking.previousScrapeAt).getTime()
+          //     : undefined,
+          //   scrapedAt: Date.now(),
+          //   firecrawlMetadata: page.metadata,
+          //   ogImage: page.metadata?.ogImage,
+          //   title: page.metadata?.title,
+          //   description: page.metadata?.description,
+          //   url: pageUrl, // Pass the actual URL
+          //   diff: page.changeTracking?.diff ? {
+          //     text: page.changeTracking.diff.text || "",
+          //     json: page.changeTracking.diff.json || null,
+          //   } : undefined,
+          // });
           
-          // Handle notifications for changed pages
-          if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
-            await ctx.runMutation(internal.websites.createChangeAlert, {
-              websiteId: args.websiteId,
-              userId: args.userId,
-              scrapeResultId: scrapeResultId,
-              changeType: "content_changed",
-              summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
-            });
-          }
+          // LEGACY: Handle notifications - disabled in compliance mode
+          // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
+          //   await ctx.runMutation(internal.websites.createChangeAlert, {
+          //     websiteId: args.websiteId,
+          //     userId: args.userId,
+          //     scrapeResultId: scrapeResultId,
+          //     changeType: "content_changed",
+          //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
+          //   });
+          // }
         }
       }
 
@@ -269,6 +281,7 @@ export const updateCrawlSessionJobId = internalMutation({
 });
 
 // Check the status of an async crawl job
+// LEGACY: Check crawl job status - DISABLED in compliance mode
 export const checkCrawlJobStatus = internalAction({
   args: {
     sessionId: v.id("crawlSessions"),
@@ -278,6 +291,11 @@ export const checkCrawlJobStatus = internalAction({
     attempt: v.number(),
   },
   handler: async (ctx, args) => {
+    // Skip legacy crawl status in compliance mode
+    if (FEATURES.complianceMode) {
+      console.log("Legacy crawl status checking disabled in compliance mode");
+      return;
+    }
     console.log(`Checking crawl job status: ${args.jobId} (attempt ${args.attempt})`);
     
     try {
@@ -297,39 +315,40 @@ export const checkCrawlJobStatus = internalAction({
           const pageUrl = page.url || page.metadata?.url;
           if (!pageUrl) continue;
 
-          // Only store if there's actual content
+          // LEGACY: Store scrape results - disabled in compliance mode
           if (page.markdown) {
-            const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
-              websiteId: args.websiteId,
-              userId: args.userId,
-              markdown: page.markdown,
-              changeStatus: page.changeTracking?.changeStatus || "new",
-              visibility: page.changeTracking?.visibility || "visible",
-              previousScrapeAt: page.changeTracking?.previousScrapeAt
-                ? new Date(page.changeTracking.previousScrapeAt).getTime()
-                : undefined,
-              scrapedAt: Date.now(),
-              firecrawlMetadata: page.metadata,
-              ogImage: page.metadata?.ogImage,
-              title: page.metadata?.title,
-              description: page.metadata?.description,
-              url: pageUrl, // Pass the actual URL
-              diff: page.changeTracking?.diff ? {
-                text: page.changeTracking.diff.text || "",
-                json: page.changeTracking.diff.json || null,
-              } : undefined,
-            });
+            console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
+            // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
+            //   websiteId: args.websiteId,
+            //   userId: args.userId,
+            //   markdown: page.markdown,
+            //   changeStatus: page.changeTracking?.changeStatus || "new",
+            //   visibility: page.changeTracking?.visibility || "visible",
+            //   previousScrapeAt: page.changeTracking?.previousScrapeAt
+            //     ? new Date(page.changeTracking.previousScrapeAt).getTime()
+            //     : undefined,
+            //   scrapedAt: Date.now(),
+            //   firecrawlMetadata: page.metadata,
+            //   ogImage: page.metadata?.ogImage,
+            //   title: page.metadata?.title,
+            //   description: page.metadata?.description,
+            //   url: pageUrl, // Pass the actual URL
+            //   diff: page.changeTracking?.diff ? {
+            //     text: page.changeTracking.diff.text || "",
+            //     json: page.changeTracking.diff.json || null,
+            //   } : undefined,
+            // });
             
-            // Handle notifications for changed pages
-            if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
-              await ctx.runMutation(internal.websites.createChangeAlert, {
-                websiteId: args.websiteId,
-                userId: args.userId,
-                scrapeResultId: scrapeResultId,
-                changeType: "content_changed",
-                summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
-              });
-            }
+            // LEGACY: Handle notifications - disabled in compliance mode
+            // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
+            //   await ctx.runMutation(internal.websites.createChangeAlert, {
+            //     websiteId: args.websiteId,
+            //     userId: args.userId,
+            //     scrapeResultId: scrapeResultId,
+            //     changeType: "content_changed",
+            //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
+            //   });
+            // }
           }
         }
 
