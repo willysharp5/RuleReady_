@@ -3,6 +3,50 @@ import { internalAction, internalMutation, internalQuery, query, action } from "
 import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
+// PHASE 2.1: Smart Crawling Strategy - Jurisdiction-based patterns
+const crawlingStrategies = {
+  federal: { 
+    frequency: "weekly", 
+    depth: 3, 
+    priority: "critical",
+    domains: ["dol.gov", "eeoc.gov", "nlrb.gov"],
+    checkIntervalMinutes: 10080, // 1 week
+    selectors: [".content-main", ".law-text", ".regulation", ".guidance"]
+  },
+  state_labor_dept: { 
+    frequency: "bi-weekly", 
+    depth: 2, 
+    priority: "high",
+    domains: ["state.gov", "labor.gov", "employment.gov"],
+    checkIntervalMinutes: 20160, // 2 weeks
+    selectors: [".content-main", ".law-text", ".regulation", ".statute"]
+  },
+  municipal: { 
+    frequency: "monthly", 
+    depth: 1, 
+    priority: "medium",
+    domains: ["city.gov", "county.gov", "municipal.gov"],
+    checkIntervalMinutes: 43200, // 1 month
+    selectors: [".ordinance", ".municipal-code", ".city-law"]
+  }
+};
+
+// Topic-based priority mapping for intelligent scheduling
+const topicPriorities = {
+  minimum_wage: "critical", // Changes frequently, high business impact
+  overtime: "high",
+  paid_sick_leave: "high", // Rapidly evolving area
+  harassment_training: "high", // Frequent updates and deadlines
+  workers_comp: "medium",
+  posting_requirements: "medium",
+  background_checks: "medium",
+  meal_rest_breaks: "medium",
+  family_leave: "low", // Less frequent changes
+  youth_employment: "low",
+  // Default for unlisted topics
+  default: "medium"
+};
+
 // Main compliance crawler that integrates with existing FireCrawl (public for testing)
 export const crawlComplianceRule = action({
   args: { 
@@ -32,7 +76,11 @@ export const crawlComplianceRule = action({
     const crawlResult: any = await performComplianceCrawl(ctx, rule, strategy);
     
     // 5. Parse using compliance template structure
-    const parsedContent = await parseComplianceContent(crawlResult.content, rule);
+    const parsedContent = await ctx.runAction(internal.complianceParser.parseComplianceContent, {
+      content: crawlResult.content,
+      ruleId: rule.ruleId,
+      previousContent: crawlResult.previousContent,
+    });
     
     // 6. Compare against previous version with AI analysis
     const changeAnalysis = await detectAndAnalyzeChanges(ctx, parsedContent, rule);
@@ -300,51 +348,85 @@ export const getRulesDueForCrawling = query({
   },
 });
 
-// Utility functions for crawling strategy
+// PHASE 2.1: Update crawling schedules based on smart strategy (public for testing)
+export const updateCrawlingSchedules: any = action({
+  args: {
+    dryRun: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    console.log("🔄 Updating crawling schedules based on smart strategy...");
+    
+    const rules = await ctx.runQuery(api.csvImport.getAllRules);
+    let updated = 0;
+    
+    for (const rule of rules) {
+      const strategy = getCrawlingStrategy(rule.jurisdiction, rule.topicKey);
+      
+      // Find corresponding website
+      const websites = await ctx.runQuery(api.websites.getUserWebsites);
+      const ruleWebsite = websites.find((w: any) => 
+        w.complianceMetadata?.ruleId === rule.ruleId ||
+        w.url === rule.sourceUrl
+      );
+      
+      if (ruleWebsite && !args.dryRun) {
+        // Update website check interval based on strategy
+        await ctx.runMutation(api.websites.updateWebsite, {
+          websiteId: ruleWebsite._id,
+          checkInterval: strategy.checkInterval / 60, // Convert minutes to website format
+          // Note: priority is stored in complianceMetadata, not directly on website
+        });
+        updated++;
+      } else if (ruleWebsite && args.dryRun) {
+        console.log(`Would update ${rule.ruleId}: ${strategy.frequency} (${strategy.checkInterval}min)`);
+        updated++;
+      }
+    }
+    
+    console.log(`✅ Updated ${updated} crawling schedules`);
+    return { updated, total: rules.length, dryRun: args.dryRun || false };
+  },
+});
+
+// Enhanced crawling strategy using jurisdiction and topic intelligence
 function getCrawlingStrategy(jurisdiction: string, topicKey: string) {
-  // Federal rules need more frequent monitoring
+  // Get base strategy by jurisdiction type
+  let baseStrategy;
+  
   if (jurisdiction === "Federal") {
-    return {
-      frequency: "daily",
-      depth: 3,
-      priority: "critical",
-      domains: ["dol.gov", "eeoc.gov", "nlrb.gov", "osha.gov"],
-      selectors: [".content", ".law-text", ".regulation", "main", ".page-content"],
-      checkInterval: 1440, // 24 hours
-    };
+    baseStrategy = crawlingStrategies.federal;
+  } else if (jurisdiction.includes("City") || jurisdiction.includes("County")) {
+    baseStrategy = crawlingStrategies.municipal;
+  } else {
+    // State-level jurisdiction
+    baseStrategy = crawlingStrategies.state_labor_dept;
   }
   
-  // Critical topics need more frequent monitoring regardless of jurisdiction
-  const criticalTopics = ["minimum_wage", "overtime", "harassment_training", "workplace_safety"];
-  if (criticalTopics.includes(topicKey)) {
-    return {
-      frequency: "bi-daily",
-      depth: 2,
-      priority: "high",
-      selectors: [".content", ".main-content", ".law-section", "main"],
-      checkInterval: 2880, // 48 hours
-    };
+  // Override priority based on topic criticality
+  const topicPriority = topicPriorities[topicKey as keyof typeof topicPriorities] || topicPriorities.default;
+  
+  // Adjust frequency based on topic priority
+  let adjustedInterval = baseStrategy.checkIntervalMinutes;
+  if (topicPriority === "critical") {
+    adjustedInterval = Math.floor(adjustedInterval * 0.5); // 2x more frequent
+  } else if (topicPriority === "high") {
+    adjustedInterval = Math.floor(adjustedInterval * 0.75); // 1.33x more frequent
+  } else if (topicPriority === "low") {
+    adjustedInterval = Math.floor(adjustedInterval * 1.5); // Less frequent
   }
   
-  // High-impact topics
-  const highImpactTopics = ["paid_sick_leave", "family_medical_leave", "workers_comp"];
-  if (highImpactTopics.includes(topicKey)) {
-    return {
-      frequency: "weekly",
-      depth: 2,
-      priority: "medium",
-      selectors: [".content", ".main", "main"],
-      checkInterval: 10080, // 1 week
-    };
-  }
-  
-  // Default for other rules
   return {
-    frequency: "monthly",
-    depth: 1,
-    priority: "low",
-    selectors: [".content", ".main"],
-    checkInterval: 43200, // 1 month
+    frequency: baseStrategy.frequency,
+    depth: baseStrategy.depth,
+    priority: topicPriority,
+    domains: baseStrategy.domains || [],
+    selectors: baseStrategy.selectors || [".content", ".main"],
+    checkInterval: adjustedInterval,
+    checkIntervalMinutes: adjustedInterval, // Add this for compatibility
+    // Additional metadata for intelligent crawling
+    topicKey,
+    jurisdiction,
+    lastUpdated: Date.now(),
   };
 }
 
@@ -363,10 +445,13 @@ function calculateNextCrawlTime(rule: any, strategy: any): number {
 }
 
 // Perform compliance-specific crawl using existing FireCrawl infrastructure
+// PHASE 2.1 & 2.3: Enhanced compliance crawling with strategy-based intelligence
 async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
   const startTime = Date.now();
   
   try {
+    console.log(`🕷️ Crawling ${rule.sourceUrl} with ${strategy.frequency} strategy (${strategy.priority} priority)`);
+    
     // Find the website for this rule
     const websites = await ctx.runQuery(api.websites.getUserWebsites);
     const ruleWebsite = websites.find((w: any) => 
@@ -378,27 +463,54 @@ async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
       throw new Error(`No website found for rule ${rule.ruleId}`);
     }
     
-    // Use existing FireCrawl scraping with the actual website
-    const scrapeResult = await ctx.runAction(internal.firecrawl.scrapeUrl, {
+    // Get previous content for change detection
+    let previousContent = "";
+    try {
+      const latestReport = await ctx.db
+        .query("complianceReports")
+        .withIndex("by_rule", (q: any) => q.eq("ruleId", rule.ruleId))
+        .order("desc")
+        .first();
+      previousContent = latestReport?.reportContent || "";
+    } catch (e) {
+      console.log("No previous content found for comparison");
+    }
+    
+    // Enhanced FireCrawl scraping with strategy-specific settings
+    const scrapeConfig = {
       websiteId: ruleWebsite._id,
       url: rule.sourceUrl,
       userId: undefined, // Single-user mode
-    });
+      // Strategy-specific crawl settings
+      crawlDepth: strategy.depth,
+      selectors: strategy.selectors,
+      waitTime: strategy.priority === "critical" ? 2000 : 5000, // Faster for critical
+    };
+    
+    const scrapeResult = await ctx.runAction(internal.firecrawl.scrapeUrl, scrapeConfig);
     
     const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`📊 Crawl completed in ${responseTime}ms: ${scrapeResult.success ? 'SUCCESS' : 'FAILED'}`);
     
     return {
       success: scrapeResult.success,
       content: scrapeResult.markdown || "",
-      responseTime: endTime - startTime,
+      previousContent, // Include for change detection
+      responseTime,
       metadata: scrapeResult.firecrawlMetadata,
+      strategy, // Include strategy used
+      crawlDepth: strategy.depth,
+      selectors: strategy.selectors,
     };
     
   } catch (error) {
-    console.error(`Failed to crawl ${rule.sourceUrl}:`, error);
+    console.error(`❌ Failed to crawl ${rule.sourceUrl}:`, error);
     return {
       success: false,
       content: "",
+      previousContent: "",
       responseTime: Date.now() - startTime,
       error: error instanceof Error ? error.message : 'Unknown error',
     };

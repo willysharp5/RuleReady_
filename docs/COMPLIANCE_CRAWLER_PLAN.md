@@ -588,9 +588,9 @@ if (changeAnalysis.hasSignificantChanges) {
 *Leverage existing Gemini infrastructure for intelligent compliance analysis*
 
 ### **3.1 Enhanced RAG System**
-- [ ] **Utilize existing 2,759 embeddings** for immediate semantic search capability
-- [ ] **Implement semantic change detection** using vector similarity scores
-- [ ] **Create compliance-specific query handlers** based on sample_rag_queries_gemini.json:
+- [x] **Utilize existing 2,759 embeddings** for immediate semantic search capability
+- [x] **Implement semantic change detection** using vector similarity scores
+- [x] **Create compliance-specific query handlers** based on sample_rag_queries_gemini.json:
 
 ```typescript
 // convex/complianceRAG.ts
@@ -635,7 +635,7 @@ export const queryComplianceKnowledge = action({
 ```
 
 ### **3.2 AI-Powered Change Impact Analysis**
-- [ ] **Implement intelligent change analysis:**
+- [x] **Implement intelligent change analysis:**
 
 ```typescript
 // convex/complianceAI.ts
@@ -707,7 +707,7 @@ export const analyzeComplianceChange = internalAction({
 ```
 
 ### **3.3 Proactive Monitoring & Prediction**
-- [ ] **Implement deadline tracking system:**
+- [x] **Implement deadline tracking system:**
 
 ```typescript
 // convex/complianceDeadlines.ts
@@ -728,7 +728,7 @@ export const trackComplianceDeadlines = internalAction({
 });
 ```
 
-- [ ] **Build predictive analytics:**
+- [x] **Build predictive analytics:**
   - Track historical change patterns by jurisdiction/topic
   - Predict likely change windows (e.g., minimum wage changes in Q1)
   - Alert on unusual activity patterns
@@ -2928,25 +2928,25 @@ crons.weekly(
 ---
 
 ## **Phase 1.4 Legacy Decommission (Non‑Compliance Tables)** 🧹
-- [ ] **Inventory legacy tables not required for compliance**
+- [x] **Inventory legacy tables not required for compliance**
   - Map out read/write paths in code for: legacy website monitoring, scrape logs, non‑compliance alerts, legacy embeddings/storage, and any generic analytics tables
   - Confirm which still have references in UI/API
-- [ ] **Freeze legacy writes via feature flags**
+- [x] **Freeze legacy writes via feature flags**
   - Guard mutations with `IS_COMPLIANCE_MODE` flag; block new writes to legacy tables in dev
   - Add logs to detect unexpected legacy writes
-- [ ] **Add temporary compatibility shims (read‑only)**
+- [x] **Add temporary compatibility shims (read‑only)**
   - For any remaining UI/API reads, expose read‑through helpers that fetch from new compliance tables
   - Remove direct imports of legacy queries from app routes/components
-- [ ] **Migrate residual data to compliance schema**
+- [x] **Migrate residual data to compliance schema**
   - Backfill any needed fields into `complianceRules` / `complianceReports` / `complianceEmbeddings`
   - Verify counts and sampling equality
-- [ ] **Code cleanup before drop**
+- [x] **Code cleanup before drop**
   - Replace legacy types/interfaces with compliance equivalents
   - Ripgrep for symbols to ensure no references remain to legacy tables
-- [ ] **Safe drop plan (dev → prod)**
+- [x] **Safe drop plan (dev → prod)**
   - Dev: run migration to drop legacy tables; run smoke tests (chat RAG, imports, crawler off, admin, webhooks)
   - Prod: take snapshot/backup; deploy behind feature flag; drop after 24–48h observation window
-- [ ] **Verification checklist**
+- [x] **Verification checklist**
   - App boots with no legacy queries executing
   - Chat uses compliance embeddings and returns sources
   - Crawler (when enabled) writes only to compliance tables

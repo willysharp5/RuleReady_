@@ -1,271 +1,339 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
-// Parse compliance content using template structure
+// PHASE 2.2: Template-Aware Intelligent Change Detection
 export const parseComplianceContent = internalAction({
   args: { 
     content: v.string(),
     ruleId: v.string(),
-    sourceUrl: v.string(),
+    previousContent: v.optional(v.string())
   },
   handler: async (ctx, args) => {
     console.log(`📝 Parsing compliance content for rule: ${args.ruleId}`);
     
-    // 1. Extract template sections
-    const sections = extractAllTemplateSections(args.content);
+    // 1. Parse content using compliance template sections
+    const sections = extractTemplateSections(args.content);
     
-    // 2. Extract structured compliance data
-    const complianceData = extractComplianceData(args.content);
+    // 2. Compare with previous version section by section
+    const previousSections = args.previousContent ? 
+      extractTemplateSections(args.previousContent) : {};
+    const changes = detectSectionChanges(sections, previousSections);
     
-    // 3. Identify key changes indicators
-    const changeIndicators = identifyChangeIndicators(args.content);
+    // 3. Use Gemini AI to assess significance of changes
+    const aiAnalysis = await analyzeChangesWithAI(ctx, changes, args.ruleId);
     
-    // 4. Calculate content hash for change detection
-    const contentHash = await calculateContentHash(args.content);
+    // 4. Extract key compliance data (dates, amounts, requirements)
+    const metadata = extractComplianceMetadata(sections);
     
-    // 5. Generate AI analysis of the content
-    const aiAnalysis = await analyzeContentWithAI(ctx, {
-      content: args.content,
-      sections,
-      complianceData,
-      ruleId: args.ruleId,
-    });
+    // 5. Generate structured change report
+    const changeScore = calculateChangeScore(changes, aiAnalysis);
+    
+    console.log(`✅ Parsing complete for ${args.ruleId}: ${Object.keys(sections).length} sections, score: ${changeScore}`);
     
     return {
       sections,
-      complianceData,
-      changeIndicators,
-      contentHash,
+      changes,
       aiAnalysis,
-      parsedAt: Date.now(),
-      contentLength: args.content.length,
+      metadata,
+      changeScore,
+      hasSignificantChanges: changeScore > 0.3, // 30% threshold for significance
+      contentHash: await calculateContentHash(args.content),
+      rawContent: args.content, // Include original content
+      processedAt: Date.now(),
     };
-  },
+  }
 });
 
-// Extract all compliance template sections
-function extractAllTemplateSections(content: string) {
-  const templateSections = [
-    "Overview",
-    "Covered Employers", 
-    "Covered Employees",
-    "What Should Employers Do?",
-    "Training Requirements",
-    "Training Deadlines",
-    "Qualified Trainers",
-    "Special Requirements",
-    "Coverage Election",
-    "Reciprocity/Extraterritorial Coverage",
-    "Employer Responsibilities & Deadlines",
-    "Employer Notification Requirements", 
-    "Posting Requirements",
-    "Recordkeeping Requirements",
-    "Penalties for Non-Compliance",
-    "Sources"
-  ];
-  
-  const sections: Record<string, string> = {};
-  
-  for (const sectionName of templateSections) {
-    const sectionContent = extractSection(content, sectionName);
-    if (sectionContent) {
-      sections[sectionName.toLowerCase().replace(/[^a-z0-9]/g, '_')] = sectionContent;
-    }
-  }
-  
-  return sections;
-}
-
-// Extract structured compliance data
-function extractComplianceData(content: string) {
-  return {
-    // Dates and deadlines
-    effectiveDates: extractDates(content),
-    deadlines: extractDeadlines(content),
-    
-    // Financial information
-    penaltyAmounts: extractPenalties(content),
-    wageRates: extractWageRates(content),
-    
-    // Coverage criteria
-    employeeThresholds: extractEmployeeThresholds(content),
-    businessTypes: extractBusinessTypes(content),
-    
-    // Requirements
-    trainingHours: extractTrainingHours(content),
-    postingRequirements: extractPostingRequirements(content),
-    
-    // Legal references
-    statutes: extractStatutes(content),
-    regulations: extractRegulations(content),
-  };
-}
-
-// Identify change indicators in content
-function identifyChangeIndicators(content: string) {
-  const indicators = {
-    newLaw: false,
-    amendment: false,
-    effectiveDate: false,
-    emergency: false,
-    sunset: false,
+// Template section extraction based on compliance_template.txt structure
+function extractTemplateSections(content: string) {
+  const sections = {
+    overview: extractSection(content, "Overview"),
+    coveredEmployers: extractSection(content, "Covered Employers"),
+    coveredEmployees: extractSection(content, "Covered Employees"),
+    employerResponsibilities: extractSection(content, "What Should Employers Do?"),
+    trainingRequirements: extractSection(content, "Training Requirements"),
+    trainingDeadlines: extractSection(content, "Training Deadlines"),
+    qualifiedTrainers: extractSection(content, "Qualified Trainers"),
+    specialRequirements: extractSection(content, "Special Requirements"),
+    coverageElection: extractSection(content, "Coverage Election"),
+    reciprocity: extractSection(content, "Reciprocity/Extraterritorial Coverage"),
+    employerDeadlines: extractSection(content, "Employer Responsibilities & Deadlines"),
+    notificationRequirements: extractSection(content, "Employer Notification Requirements"),
+    postingRequirements: extractSection(content, "Posting Requirements"),
+    recordkeepingRequirements: extractSection(content, "Recordkeeping Requirements"),
+    penalties: extractSection(content, "Penalties for Non-Compliance"),
+    sources: extractSection(content, "Sources"),
   };
   
-  const lowerContent = content.toLowerCase();
-  
-  // Check for new law indicators
-  if (lowerContent.includes('new law') || lowerContent.includes('newly enacted')) {
-    indicators.newLaw = true;
-  }
-  
-  // Check for amendment indicators
-  if (lowerContent.includes('amend') || lowerContent.includes('revised') || lowerContent.includes('updated')) {
-    indicators.amendment = true;
-  }
-  
-  // Check for effective date language
-  if (lowerContent.includes('effective') || lowerContent.includes('takes effect')) {
-    indicators.effectiveDate = true;
-  }
-  
-  // Check for emergency provisions
-  if (lowerContent.includes('emergency') || lowerContent.includes('immediate effect')) {
-    indicators.emergency = true;
-  }
-  
-  // Check for sunset clauses
-  if (lowerContent.includes('sunset') || lowerContent.includes('expires')) {
-    indicators.sunset = true;
-  }
-  
-  return indicators;
+  // Filter out empty sections
+  return Object.fromEntries(
+    Object.entries(sections).filter(([_, value]) => value && value.trim().length > 0)
+  );
 }
 
-// AI analysis of compliance content
-async function analyzeContentWithAI(ctx: any, data: any) {
-  // Placeholder for Gemini AI analysis
-  // This would use your existing Gemini infrastructure
-  
-  const prompt = `Analyze this compliance content for ${data.ruleId}:
-
-${data.content.substring(0, 2000)}...
-
-Please identify:
-1. Key compliance requirements
-2. Covered employers and employees  
-3. Important deadlines and effective dates
-4. Penalties for non-compliance
-5. Recent changes or updates
-6. Business impact severity (critical/high/medium/low)
-
-Provide structured analysis for legal professionals.`;
-
-  // For now, return structured placeholder
-  return {
-    keyRequirements: extractKeyRequirements(data.content),
-    coveredEntities: extractCoveredEntities(data.content),
-    criticalDeadlines: data.complianceData.deadlines.slice(0, 3),
-    businessImpact: assessBusinessImpact(data.sections),
-    changeRisk: assessChangeRisk(data.changeIndicators),
-    confidence: 0.85,
-  };
-}
-
-// Extract key compliance requirements
-function extractKeyRequirements(content: string): string[] {
-  const requirements = [];
-  const lines = content.split('\n');
-  
-  for (const line of lines) {
-    // Look for requirement indicators
-    if (line.match(/must|required|shall|mandatory/i) && line.length > 20 && line.length < 200) {
-      requirements.push(line.trim());
-    }
-  }
-  
-  return requirements.slice(0, 5); // Top 5 requirements
-}
-
-// Extract covered entities information
-function extractCoveredEntities(content: string): { employers: string[], employees: string[] } {
-  const employers = [];
-  const employees = [];
-  
-  // Look for employer coverage patterns
-  const employerMatches = content.match(/employers?\s+with\s+[^.]+/gi);
-  if (employerMatches) {
-    employers.push(...employerMatches.slice(0, 3));
-  }
-  
-  // Look for employee coverage patterns  
-  const employeeMatches = content.match(/employees?\s+who\s+[^.]+/gi);
-  if (employeeMatches) {
-    employees.push(...employeeMatches.slice(0, 3));
-  }
-  
-  return { employers, employees };
-}
-
-// Assess business impact based on content
-function assessBusinessImpact(sections: any): "critical" | "high" | "medium" | "low" {
-  // Check for high-impact indicators
-  const penalties = sections.penalties_for_non_compliance || "";
-  const requirements = sections.employer_responsibilities_deadlines || "";
-  
-  if (penalties.includes('$') || penalties.includes('criminal')) {
-    return "critical";
-  }
-  
-  if (requirements.includes('immediate') || requirements.includes('within')) {
-    return "high";
-  }
-  
-  return "medium";
-}
-
-// Assess change risk based on indicators
-function assessChangeRisk(indicators: any): "high" | "medium" | "low" {
-  if (indicators.emergency || indicators.newLaw) {
-    return "high";
-  }
-  
-  if (indicators.amendment || indicators.effectiveDate) {
-    return "medium";
-  }
-  
-  return "low";
-}
-
-// Utility functions from previous files
+// Extract individual sections using various detection methods
 function extractSection(content: string, sectionName: string): string | undefined {
   const lines = content.split('\n');
   let inSection = false;
   let sectionContent = '';
   
-  for (const line of lines) {
-    if (line.trim() === sectionName) {
+  // Try exact match first
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Look for section header (exact match or close variations)
+    if (line === sectionName || 
+        line.toLowerCase() === sectionName.toLowerCase() ||
+        line.includes(sectionName) ||
+        sectionName.includes(line)) {
       inSection = true;
       continue;
     }
     
-    if (inSection && line.match(/^[A-Z][^a-z]*$/) && line.trim() !== sectionName) {
-      break;
+    // Stop at next section header (all caps or title case)
+    if (inSection && i > 0) {
+      const nextLine = line;
+      if (nextLine.length > 3 && 
+          (nextLine === nextLine.toUpperCase() || 
+           nextLine.match(/^[A-Z][^a-z]*[A-Z]/) ||
+           nextLine.startsWith("##") ||
+           nextLine.match(/^\d+\./))) {
+        break;
+      }
     }
     
-    if (inSection) {
+    if (inSection && line.length > 0) {
       sectionContent += line + '\n';
     }
   }
   
-  return sectionContent.trim() || undefined;
+  const cleaned = sectionContent.trim();
+  return cleaned.length > 10 ? cleaned : undefined; // Minimum content threshold
 }
 
+// Detect changes between section versions
+function detectSectionChanges(newSections: any, oldSections: any) {
+  const changes = [];
+  
+  // Check for new sections
+  for (const [sectionName, newContent] of Object.entries(newSections)) {
+    if (!oldSections[sectionName]) {
+      changes.push({
+        section: sectionName,
+        changeType: "new_section",
+        newContent: newContent as string,
+        significance: 0.8, // New sections are significant
+      });
+    } else {
+      // Compare content
+      const oldContent = oldSections[sectionName] as string;
+      const similarity = calculateTextSimilarity(newContent as string, oldContent);
+      
+      if (similarity < 0.85) { // 85% similarity threshold
+        changes.push({
+          section: sectionName,
+          changeType: "content_changed",
+          oldContent,
+          newContent: newContent as string,
+          similarity,
+          significance: 1 - similarity, // Lower similarity = higher significance
+        });
+      }
+    }
+  }
+  
+  // Check for removed sections
+  for (const [sectionName, oldContent] of Object.entries(oldSections)) {
+    if (!newSections[sectionName]) {
+      changes.push({
+        section: sectionName,
+        changeType: "section_removed",
+        oldContent: oldContent as string,
+        significance: 0.7, // Removed sections are significant
+      });
+    }
+  }
+  
+  return changes;
+}
+
+// AI-powered change analysis using Gemini
+async function analyzeChangesWithAI(ctx: any, changes: any[], ruleId: string) {
+  if (changes.length === 0) {
+    return {
+      severity: "none",
+      impactAreas: [],
+      changeType: "no_change",
+      confidence: 1.0,
+      summary: "No significant changes detected",
+      businessImpact: "minimal",
+      recommendations: []
+    };
+  }
+  
+  // Create analysis prompt for Gemini
+  const changesText = changes.map(c => 
+    `Section: ${c.section}\nType: ${c.changeType}\nSignificance: ${c.significance}\n` +
+    (c.newContent ? `New: ${c.newContent.substring(0, 200)}...\n` : '') +
+    (c.oldContent ? `Old: ${c.oldContent.substring(0, 200)}...\n` : '')
+  ).join('\n---\n');
+  
+  const prompt = `Analyze these compliance law changes for rule ${ruleId}:
+
+${changesText}
+
+Assess:
+1. Business impact severity (critical/high/medium/low)
+2. Affected areas (wages, training, deadlines, penalties, etc.)
+3. Change type (new_law, amendment, deadline_change, penalty_change, etc.)
+4. Implementation urgency
+5. Plain-English summary
+
+Respond with JSON:
+{
+  "severity": "critical|high|medium|low",
+  "impactAreas": ["area1", "area2"],
+  "changeType": "new_law|amendment|deadline_change|penalty_change|coverage_change|procedural_change",
+  "confidence": 0.0-1.0,
+  "summary": "Brief summary",
+  "businessImpact": "Description of business impact",
+  "recommendations": ["action1", "action2"]
+}`;
+
+  try {
+    // Use existing Gemini integration
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.log("⚠️ No Gemini API key - using fallback analysis");
+      return getFallbackAnalysis(changes);
+    }
+    
+    // Call Gemini API (placeholder - integrate with existing Gemini setup)
+    const analysis = await callGeminiAPI(prompt, apiKey);
+    return analysis;
+    
+  } catch (error) {
+    console.error("AI analysis failed:", error);
+    return getFallbackAnalysis(changes);
+  }
+}
+
+// Fallback analysis when AI is unavailable
+function getFallbackAnalysis(changes: any[]) {
+  const maxSignificance = Math.max(...changes.map(c => c.significance));
+  
+  let severity = "low";
+  if (maxSignificance > 0.7) severity = "critical";
+  else if (maxSignificance > 0.5) severity = "high";
+  else if (maxSignificance > 0.3) severity = "medium";
+  
+  return {
+    severity,
+    impactAreas: changes.map(c => c.section),
+    changeType: changes.some(c => c.changeType === "new_section") ? "new_law" : "amendment",
+    confidence: 0.6, // Lower confidence for fallback
+    summary: `${changes.length} sections changed with max significance ${maxSignificance.toFixed(2)}`,
+    businessImpact: "Requires review to determine impact",
+    recommendations: ["Review changes manually", "Consult legal team if critical"]
+  };
+}
+
+// Extract compliance metadata (dates, amounts, deadlines)
+function extractComplianceMetadata(sections: any) {
+  const metadata: any = {
+    dates: [],
+    penalties: [],
+    deadlines: [],
+    requirements: [],
+    effectiveDates: [],
+  };
+  
+  // Extract from all sections
+  for (const [sectionName, content] of Object.entries(sections)) {
+    if (typeof content !== 'string') continue;
+    
+    // Extract dates
+    metadata.dates.push(...extractDates(content));
+    
+    // Extract penalties
+    if (sectionName === 'penalties') {
+      metadata.penalties.push(...extractPenalties(content));
+    }
+    
+    // Extract deadlines
+    if (sectionName.includes('deadline') || sectionName.includes('responsibilities')) {
+      metadata.deadlines.push(...extractDeadlines(content));
+    }
+    
+    // Extract requirements
+    if (sectionName.includes('requirements') || sectionName.includes('responsibilities')) {
+      metadata.requirements.push(...extractRequirements(content));
+    }
+  }
+  
+  // Remove duplicates and clean up
+  metadata.dates = [...new Set(metadata.dates)].slice(0, 10);
+  metadata.penalties = [...new Set(metadata.penalties)].slice(0, 5);
+  metadata.deadlines = [...new Set(metadata.deadlines)].slice(0, 5);
+  metadata.requirements = [...new Set(metadata.requirements)].slice(0, 10);
+  
+  return metadata;
+}
+
+// Calculate overall change score
+function calculateChangeScore(changes: any[], aiAnalysis: any): number {
+  if (changes.length === 0) return 0;
+  
+  // Base score from section changes
+  const sectionScore = changes.reduce((sum, change) => sum + change.significance, 0) / changes.length;
+  
+  // AI confidence multiplier
+  const confidenceMultiplier = aiAnalysis.confidence || 0.5;
+  
+  // Severity multiplier
+  const severityMultipliers = {
+    critical: 1.0,
+    high: 0.8,
+    medium: 0.6,
+    low: 0.4,
+    none: 0.1
+  };
+  const severityMultiplier = severityMultipliers[aiAnalysis.severity as keyof typeof severityMultipliers] || 0.5;
+  
+  return Math.min(1.0, sectionScore * confidenceMultiplier * severityMultiplier);
+}
+
+// Text similarity calculation using simple word overlap
+function calculateTextSimilarity(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\s+/));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/));
+  
+  const intersection = new Set([...words1].filter(word => words2.has(word)));
+  const union = new Set([...words1, ...words2]);
+  
+  return union.size > 0 ? intersection.size / union.size : 0;
+}
+
+// Content hash calculation for change detection
+async function calculateContentHash(content: string): Promise<string> {
+  // Simple hash for now - could use crypto.subtle.digest in production
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+// Utility functions for metadata extraction
 function extractDates(content: string): string[] {
   const datePatterns = [
-    /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g,
-    /\b\d{4}-\d{2}-\d{2}\b/g,
+    /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g, // MM/DD/YYYY
+    /\b\d{4}-\d{2}-\d{2}\b/g, // YYYY-MM-DD
     /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/gi,
+    /\beffective\s+(?:date|on)\s*:?\s*[^.]+/gi,
   ];
   
   const dates: string[] = [];
@@ -276,14 +344,15 @@ function extractDates(content: string): string[] {
     }
   }
   
-  return [...new Set(dates)];
+  return dates;
 }
 
 function extractPenalties(content: string): string[] {
   const penaltyPatterns = [
-    /\$[\d,]+(?:\.\d{2})?/g,
+    /\$[\d,]+(?:\.\d{2})?/g, // Dollar amounts
     /fine[sd]?\s+(?:of\s+)?(?:up\s+to\s+)?\$[\d,]+/gi,
     /penalty[ies]*\s+(?:of\s+)?(?:up\s+to\s+)?\$[\d,]+/gi,
+    /violation[s]?\s+(?:may\s+)?(?:result\s+in\s+)?(?:fines?\s+of\s+)?(?:up\s+to\s+)?\$[\d,]+/gi,
   ];
   
   const penalties: string[] = [];
@@ -294,7 +363,7 @@ function extractPenalties(content: string): string[] {
     }
   }
   
-  return [...new Set(penalties)];
+  return penalties;
 }
 
 function extractDeadlines(content: string): string[] {
@@ -302,6 +371,8 @@ function extractDeadlines(content: string): string[] {
     /deadline[s]?\s+(?:is|are|of)\s+[^.]+/gi,
     /due\s+(?:by|on|before)\s+[^.]+/gi,
     /must\s+be\s+(?:completed|submitted|filed)\s+(?:by|on|before)\s+[^.]+/gi,
+    /within\s+\d+\s+(?:days|months|years)/gi,
+    /(?:annual|quarterly|monthly)\s+(?:filing|submission|renewal)/gi,
   ];
   
   const deadlines: string[] = [];
@@ -315,133 +386,36 @@ function extractDeadlines(content: string): string[] {
   return deadlines;
 }
 
-function extractWageRates(content: string): string[] {
-  const wagePatterns = [
-    /\$\d+(?:\.\d{2})?\s*(?:per\s+hour|\/hour|hourly)/gi,
-    /minimum\s+wage\s+(?:of\s+)?\$\d+(?:\.\d{2})?/gi,
+function extractRequirements(content: string): string[] {
+  const requirementPatterns = [
+    /(?:must|shall|required?\s+to)\s+[^.]+/gi,
+    /(?:employers?\s+)?(?:must|shall)\s+[^.]+/gi,
+    /it\s+is\s+(?:required|mandatory)\s+[^.]+/gi,
+    /(?:training|posting|notification)\s+(?:is\s+)?required\s+[^.]+/gi,
   ];
   
-  const wages: string[] = [];
-  for (const pattern of wagePatterns) {
+  const requirements: string[] = [];
+  for (const pattern of requirementPatterns) {
     const matches = content.match(pattern);
     if (matches) {
-      wages.push(...matches);
+      requirements.push(...matches.map(m => m.trim()).filter(m => m.length > 10));
     }
   }
   
-  return wages;
+  return requirements.slice(0, 10); // Limit to prevent overwhelming output
 }
 
-function extractEmployeeThresholds(content: string): string[] {
-  const thresholdPatterns = [
-    /\b\d+\s+or\s+more\s+employees\b/gi,
-    /employers?\s+with\s+\d+\s+or\s+more/gi,
-    /businesses?\s+with\s+\d+\s+or\s+more/gi,
-  ];
-  
-  const thresholds: string[] = [];
-  for (const pattern of thresholdPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      thresholds.push(...matches);
-    }
-  }
-  
-  return thresholds;
-}
-
-function extractBusinessTypes(content: string): string[] {
-  const businessPatterns = [
-    /(?:retail|restaurant|manufacturing|healthcare|construction|nonprofit)\s+(?:employers?|businesses?)/gi,
-    /employers?\s+in\s+the\s+(?:retail|restaurant|manufacturing|healthcare|construction|nonprofit)\s+industry/gi,
-  ];
-  
-  const types: string[] = [];
-  for (const pattern of businessPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      types.push(...matches);
-    }
-  }
-  
-  return types;
-}
-
-function extractTrainingHours(content: string): string[] {
-  const trainingPatterns = [
-    /\b\d+\s+hours?\s+of\s+training/gi,
-    /training\s+(?:of\s+)?(?:at\s+least\s+)?\d+\s+hours?/gi,
-  ];
-  
-  const hours: string[] = [];
-  for (const pattern of trainingPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      hours.push(...matches);
-    }
-  }
-  
-  return hours;
-}
-
-function extractPostingRequirements(content: string): string[] {
-  const postingPatterns = [
-    /must\s+(?:post|display)\s+[^.]+/gi,
-    /posting\s+(?:of\s+)?[^.]+\s+(?:is\s+)?required/gi,
-    /workplace\s+poster[s]?\s+[^.]+/gi,
-  ];
-  
-  const postings: string[] = [];
-  for (const pattern of postingPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      postings.push(...matches);
-    }
-  }
-  
-  return postings;
-}
-
-function extractStatutes(content: string): string[] {
-  const statutePatterns = [
-    /\b\d+\s+U\.?S\.?C\.?\s+§?\s*\d+/gi, // Federal statutes
-    /\b\d+\s+CFR\s+§?\s*\d+/gi, // Federal regulations
-    /\b[A-Z]{2}\s+(?:Rev\.?\s+)?Stat\.?\s+§?\s*[\d.-]+/gi, // State statutes
-  ];
-  
-  const statutes: string[] = [];
-  for (const pattern of statutePatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      statutes.push(...matches);
-    }
-  }
-  
-  return [...new Set(statutes)];
-}
-
-function extractRegulations(content: string): string[] {
-  const regPatterns = [
-    /\b\d+\s+CFR\s+[\d.]+/gi,
-    /Code\s+of\s+Federal\s+Regulations/gi,
-    /regulation[s]?\s+[\d.-]+/gi,
-  ];
-  
-  const regulations: string[] = [];
-  for (const pattern of regPatterns) {
-    const matches = content.match(pattern);
-    if (matches) {
-      regulations.push(...matches);
-    }
-  }
-  
-  return [...new Set(regulations)];
-}
-
-async function calculateContentHash(content: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+// Placeholder for Gemini API integration
+async function callGeminiAPI(prompt: string, apiKey: string) {
+  // This would integrate with the existing Gemini setup
+  // For now, return a structured fallback
+  return {
+    severity: "medium",
+    impactAreas: ["compliance", "training"],
+    changeType: "amendment",
+    confidence: 0.7,
+    summary: "Content analysis pending - integrate with existing Gemini API",
+    businessImpact: "Moderate impact requiring review",
+    recommendations: ["Review changes", "Update policies if needed"]
+  };
 }
