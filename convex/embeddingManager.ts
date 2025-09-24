@@ -90,8 +90,9 @@ export const getEmbeddingsLimited = internalQuery({
           .withIndex("by_entity_type", (ix) => ix.eq("entityType", args.entityType!))
       : ctx.db.query("complianceEmbeddings");
 
-    // Take up to the limit, then filter by metadata if provided
-    const batch = await base.take(args.limit);
+    // Take up to the limit (capped to prevent byte overflow), then filter by metadata if provided
+    const safeLimit = Math.min(args.limit, 50); // Cap at 50 to prevent byte overflow
+    const batch = await base.take(safeLimit);
     if (!args.jurisdiction && !args.topicKey) return batch;
 
     return batch.filter((emb: any) => {
@@ -184,7 +185,7 @@ export const searchSimilarEmbeddings = internalAction({
     const threshold = args.threshold || 0.7;
 
     // Read-limited embeddings to stay under Convex read limits
-    const scanLimit = args.jurisdiction || args.topicKey ? 1200 : 400; // tune for safety
+    const scanLimit = args.jurisdiction || args.topicKey ? 200 : 100; // Reduced further for safety
     const allEmbeddings: any[] = await ctx.runQuery(internal.embeddingManager.getEmbeddingsLimited, {
       entityType: args.entityType || "report",
       jurisdiction: args.jurisdiction,

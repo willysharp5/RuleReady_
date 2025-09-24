@@ -15,12 +15,26 @@ function decryptKey(encryptedKey: string): string {
   return encryptedKey;
 }
 
-// Get the current user's Firecrawl API key
+// Get the current user's Firecrawl API key (single-user mode compatible)
 export const getUserFirecrawlKey = query({
   handler: async (ctx) => {
+    // Single-user mode: get any API key or return null
     const user = await getCurrentUser(ctx);
+    
+    // If no user (single-user mode), get the first API key
     if (!user) {
-      return null;
+      const apiKey = await ctx.db.query("firecrawlApiKeys").first();
+      if (!apiKey) {
+        return null;
+      }
+      
+      return {
+        hasKey: true,
+        lastUsed: apiKey.lastUsed,
+        createdAt: apiKey.createdAt,
+        updatedAt: apiKey.updatedAt,
+        maskedKey: decryptKey(apiKey.encryptedKey).slice(0, 8) + '...' + decryptKey(apiKey.encryptedKey).slice(-4),
+      };
     }
 
     const apiKey = await ctx.db
@@ -43,13 +57,28 @@ export const getUserFirecrawlKey = query({
   },
 });
 
-// Set or update the Firecrawl API key
+// Set or update the Firecrawl API key (single-user mode compatible)
 export const setFirecrawlKey = mutation({
   args: {
     apiKey: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
+    // Single-user mode: get current user or create a default user entry
+    const user = await getCurrentUser(ctx);
+    let userId: any;
+    
+    if (!user) {
+      // Single-user mode: use a default user ID or create one
+      const existingKey = await ctx.db.query("firecrawlApiKeys").first();
+      if (existingKey) {
+        userId = existingKey.userId;
+      } else {
+        // Create a placeholder user for single-user mode
+        userId = "single-user" as any;
+      }
+    } else {
+      userId = user._id;
+    }
 
     // Validate the API key format
     const trimmedKey = args.apiKey.trim();
@@ -65,7 +94,7 @@ export const setFirecrawlKey = mutation({
     // Check if user already has a key
     const existingKey = await ctx.db
       .query("firecrawlApiKeys")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     const encryptedKey = encryptKey(trimmedKey);
@@ -90,7 +119,7 @@ export const setFirecrawlKey = mutation({
     } else {
       // Create new key
       await ctx.db.insert("firecrawlApiKeys", {
-        userId: user._id,
+        userId: userId,
         encryptedKey,
         createdAt: now,
         updatedAt: now,
@@ -101,15 +130,22 @@ export const setFirecrawlKey = mutation({
   },
 });
 
-// Delete the Firecrawl API key
+// Delete the Firecrawl API key (single-user mode compatible)
 export const deleteFirecrawlKey = mutation({
   handler: async (ctx) => {
-    const user = await requireCurrentUser(ctx);
-
-    const apiKey = await ctx.db
-      .query("firecrawlApiKeys")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    // Single-user mode: get current user or find any key
+    const user = await getCurrentUser(ctx);
+    
+    let apiKey;
+    if (!user) {
+      // Single-user mode: delete the first API key
+      apiKey = await ctx.db.query("firecrawlApiKeys").first();
+    } else {
+      apiKey = await ctx.db
+        .query("firecrawlApiKeys")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .first();
+    }
 
     if (apiKey) {
       await ctx.db.delete(apiKey._id);
@@ -141,6 +177,22 @@ export const getDecryptedFirecrawlKey = internalQuery({
   },
 });
 
+// Internal query to get decrypted API key for single-user mode
+export const getDecryptedFirecrawlKeyForSingleUser = internalQuery({
+  handler: async (ctx) => {
+    const apiKey = await ctx.db.query("firecrawlApiKeys").first();
+
+    if (!apiKey) {
+      return null;
+    }
+
+    return {
+      key: decryptKey(apiKey.encryptedKey),
+      keyId: apiKey._id,
+    };
+  },
+});
+
 // Internal mutation to update last used timestamp
 export const updateLastUsed = internalMutation({
   args: {
@@ -155,17 +207,24 @@ export const updateLastUsed = internalMutation({
 
 // Import internal for the action
 import { internal } from "./_generated/api";
-import { requireCurrentUserForAction } from "./helpers";
+import { requireCurrentUserForAction, getCurrentUserForAction } from "./helpers";
 
-// Action to get token usage from Firecrawl API
+// Action to get token usage from Firecrawl API (single-user mode compatible)
 export const getTokenUsage = action({
   handler: async (ctx): Promise<{ success: boolean; error?: string; remaining_tokens?: number }> => {
-    const user = await requireCurrentUserForAction(ctx);
+    // Single-user mode: get current user or use fallback
+    const user = await getCurrentUserForAction(ctx);
     
-    // Get user's API key
-    const keyData: any = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKey, { 
-      userId: user 
-    });
+    // Get user's API key (or first available key in single-user mode)
+    let keyData: any;
+    if (user) {
+      keyData = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKey, { 
+        userId: user 
+      });
+    } else {
+      // Single-user mode: get any available key
+      keyData = await ctx.runQuery(internal.firecrawlKeys.getDecryptedFirecrawlKeyForSingleUser);
+    }
     
     if (!keyData || !keyData.key) {
       return {

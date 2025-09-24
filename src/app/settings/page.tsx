@@ -1470,9 +1470,20 @@ Analyze the provided diff and return a JSON response with:
                   <div className="space-y-6">
                     <div>
                       <p className="text-gray-600 mb-4">
-                        API keys allow you to programmatically add websites to your monitoring list. 
-                        Keep your API keys secure and do not share them publicly.
+                        Observer API keys authenticate server-to-server requests to our Next.js API routes
+                        (which proxy to Convex). They are used for automation and integrations (e.g., HRIS,
+                        payroll, calendars, webhooks) to programmatically create/update monitors and fetch
+                        compliance data. These keys are distinct from your Firecrawl Auth key (which powers
+                        scraping) and never grant scraping privileges.
                       </p>
+                      <div className="text-sm text-gray-500 mb-4">
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>Use in Authorization header as <code>Bearer &lt;observer_api_key&gt;</code></li>
+                          <li>Scope: API access for monitor management and compliance endpoints</li>
+                          <li>Best for backend jobs, webhooks, and client system integrations</li>
+                          <li>Do not embed in frontend apps; keep keys in secure server env vars</li>
+                        </ul>
+                      </div>
                       
                       <Link href="/api-docs" className="text-orange-600 hover:text-orange-700 text-sm font-medium">
                         View API Documentation →
