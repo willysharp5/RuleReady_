@@ -118,6 +118,10 @@ Defined in `convex/schema.ts`. Key entities:
 - `convex/embeddingManager.ts`
   - Stores/imports embeddings and performs similarity search
   - `embeddingTopKSources` action returns top‑k matches hydrated with rule/report sources for chat
+  - **RAG Architecture**: 
+    - 2,759 pre-computed Gemini embeddings stored in `complianceEmbeddings`
+    - Query embedding generated only for user questions (not content re-embedding)
+    - Cosine similarity search against existing vectors for efficient retrieval
 
 - `convex/workpoolSimple.ts`
   - Schedules compliance jobs and logs workpool activity in `complianceMonitoringLogs`
@@ -135,13 +139,15 @@ Note: `convex/crons.ts` has cron entries disabled in this repo to avoid multiple
 ### Chat (Compliance Assistant)
 
 - API: `src/app/api/compliance-chat/route.ts`
-  - Generates a query embedding and calls `embeddingManager:embeddingTopKSources`
-  - Injects top‑k sources (jurisdiction, topic, similarity, URL) into the system context
-  - Streams/returns the answer with a `sources` array for UI display
+  - **RAG Flow**: User Question → Generate Query Embedding → Search 2,759 Existing Embeddings → Return Top-K Matches
+  - Calls `embeddingManager:embeddingTopKSources` with jurisdiction/topic filters
+  - Injects top‑k sources (jurisdiction, topic, similarity%, URL) into Gemini system context
+  - Returns structured answer with citations and source attribution
 
 - UI: `src/app/chat/page.tsx`
-  - Renders assistant messages and a “Sources (embedding matches)” section with links and similarity%
-  - Jurisdiction/topic filters guide retrieval and context
+  - Renders assistant messages with ReactMarkdown formatting
+  - "Sources (embedding matches)" section shows jurisdiction, topic, similarity%, and URLs
+  - Jurisdiction/topic filters guide retrieval and context for focused answers
   - Search and filter by name, jurisdiction, topic, priority
   - Trigger manual checks (scrape/crawl) via buttons connected to actions
   - View recent diffs and status badges
@@ -221,6 +227,8 @@ Data written in this flow:
 4) Embeddings & RAG
    - `generateEmbeddings.generateEmbeddingsForReports` produces vectors for RAG
    - Chat uses `embeddingManager.embeddingTopKSources` to retrieve top‑k sources per question
+   - **RAG Process**: Query → Generate Query Embedding → Search 2,759 Existing Embeddings → Return Top-K Matches
+   - **Efficiency**: Uses pre-computed embeddings, only generates query vectors for similarity search
 
 5) Workpool logging
    - `workpoolSimple.scheduleComplianceJobs` selects due websites/rules and logs to `complianceMonitoringLogs`
