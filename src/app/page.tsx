@@ -16,10 +16,9 @@ import { APP_CONFIG } from '@/config/app.config'
 import { validateEmail, validatePassword } from '@/lib/validation'
 import { useToast } from '@/hooks/use-toast'
 import { LoadingOverlay } from '@/components/ui/loading-overlay'
-import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo } from '@/components/ComplianceInfo'
+import { TopicBadge } from '@/components/ComplianceInfo'
 import { Tooltip } from '@/components/ui/tooltip'
 import { ComplianceGuide } from '@/components/ComplianceGuide'
-import { MonitoringStatus } from '@/components/MonitoringStatus'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 import { ChangeTrackingPopover } from '@/components/ui/change-tracking-popover'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
@@ -187,6 +186,19 @@ export default function HomePage() {
     topicName: string
   } | null>(null)
   
+  // Firecrawl options state
+  const [showFirecrawlOptions, setShowFirecrawlOptions] = useState(false)
+  const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
+    return JSON.stringify({
+      formats: ["markdown", "changeTracking"],
+      changeTrackingOptions: {
+        modes: ["git-diff"]
+      },
+      onlyMainContent: false,
+      waitFor: 2000
+    }, null, 2)
+  })
+  
   // URL validation function
   const validateUrl = async (inputUrl: string) => {
     if (!inputUrl.trim()) {
@@ -253,6 +265,25 @@ export default function HomePage() {
 
     return () => clearTimeout(timeoutId)
   }, [url])
+  
+  // Update firecrawl config when settings change
+  useEffect(() => {
+    const config: any = {
+      formats: ["markdown", "changeTracking"],
+      changeTrackingOptions: {
+        modes: ["git-diff"]
+      },
+      onlyMainContent: false,
+      waitFor: 2000
+    }
+    
+    if (monitorType === 'full_site') {
+      config.limit = maxPages
+      config.maxDepth = maxCrawlDepth
+    }
+    
+    setFirecrawlConfig(JSON.stringify(config, null, 2))
+  }, [monitorType, maxPages, maxCrawlDepth])
   
   
   // Get latest scrape for each website
@@ -714,8 +745,6 @@ export default function HomePage() {
           {/* Compliance Guide */}
           <ComplianceGuide />
           
-          {/* Monitoring Status with Active Jobs Filter */}
-          <MonitoringStatus />
           {/* Advanced Add Website Form */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -904,82 +933,46 @@ export default function HomePage() {
                 )}
               </div>
 
-               {/* Priority Selection */}
-               <div className="space-y-3">
-                 <label className="text-sm font-medium text-gray-700">Priority Level</label>
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                   {[
-                     { value: 'critical', label: 'Critical', color: 'bg-red-500', description: 'Requires immediate attention - legal compliance risk' },
-                     { value: 'high', label: 'High', color: 'bg-orange-500', description: 'High importance - significant business impact' },
-                     { value: 'medium', label: 'Medium', color: 'bg-yellow-500', description: 'Medium importance - moderate business impact' },
-                     { value: 'low', label: 'Low', color: 'bg-green-500', description: 'Low importance - minimal business impact' }
-                   ].map((priority) => (
-                     <div key={priority.value} className="relative">
-                       <input
-                         type="radio"
-                         id={priority.value}
-                         name="priority"
-                         value={priority.value}
-                         checked={selectedPriorityLevel === priority.value}
-                         onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
-                         className="sr-only peer"
-                       />
-                       <label
-                         htmlFor={priority.value}
-                         className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all h-24 ${
-                           selectedPriorityLevel === priority.value
-                             ? 'border-purple-500 bg-purple-50'
-                             : 'border-gray-200 hover:border-gray-300'
-                         }`}
-                       >
-                         <div className={`w-4 h-4 rounded-full ${priority.color} mb-2`}></div>
-                         <span className="text-sm font-medium">{priority.label}</span>
-                         <span className="text-xs text-gray-500 text-center mt-1 leading-tight">{priority.description}</span>
-                       </label>
-                     </div>
-                   ))}
-                 </div>
-               </div>
+              {/* Priority Level and Scraping Frequency - Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Priority Level */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Priority Level</label>
+                  <select
+                    value={selectedPriorityLevel}
+                    onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="critical">🔴 Critical - Requires immediate attention</option>
+                    <option value="high">🟠 High - Significant business impact</option>
+                    <option value="medium">🟡 Medium - Moderate business impact</option>
+                    <option value="low">🟢 Low - Minimal business impact</option>
+                  </select>
+                  <p className="text-xs text-gray-500">
+                    Priority level affects monitoring frequency and alert urgency
+                  </p>
+                </div>
 
-               {/* Scraping Frequency */}
-               <div className="space-y-3">
-                 <label className="text-sm font-medium text-gray-700">Scraping Frequency</label>
-                 <p className="text-xs text-gray-500">How often should this website be checked for changes</p>
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                   {[
-                     { value: 15, label: '15 seconds', description: 'Testing only', color: 'bg-purple-500' },
-                     { value: 60, label: '1 hour', description: 'Very frequent', color: 'bg-red-500' },
-                     { value: 360, label: '6 hours', description: 'Frequent', color: 'bg-orange-500' },
-                     { value: 1440, label: '1 day', description: 'Daily', color: 'bg-yellow-500' },
-                     { value: 2880, label: '2 days', description: 'Bi-daily', color: 'bg-blue-500' },
-                     { value: 10080, label: '1 week', description: 'Weekly', color: 'bg-green-500' }
-                   ].map((frequency) => (
-                     <div key={frequency.value} className="relative">
-                       <input
-                         type="radio"
-                         id={`freq-${frequency.value}`}
-                         name="frequency"
-                         value={frequency.value}
-                         checked={checkInterval === frequency.value}
-                         onChange={(e) => setCheckInterval(parseInt(e.target.value))}
-                         className="sr-only peer"
-                       />
-                       <label
-                         htmlFor={`freq-${frequency.value}`}
-                         className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all h-20 ${
-                           checkInterval === frequency.value
-                             ? 'border-purple-500 bg-purple-50'
-                             : 'border-gray-200 hover:border-gray-300'
-                         }`}
-                       >
-                         <div className={`w-3 h-3 rounded-full ${frequency.color} mb-1`}></div>
-                         <span className="text-sm font-medium">{frequency.label}</span>
-                         <span className="text-xs text-gray-500 text-center">{frequency.description}</span>
-                       </label>
-                     </div>
-                   ))}
-                 </div>
-               </div>
+                {/* Scraping Frequency */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Scraping Frequency</label>
+                  <select
+                    value={checkInterval}
+                    onChange={(e) => setCheckInterval(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value={15}>⚡ 15 seconds - Testing only</option>
+                    <option value={60}>🔴 1 hour - Very frequent</option>
+                    <option value={360}>🟠 6 hours - Frequent</option>
+                    <option value={1440}>🟡 1 day - Daily (Recommended)</option>
+                    <option value={2880}>🔵 2 days - Bi-daily</option>
+                    <option value={10080}>🟢 1 week - Weekly</option>
+                  </select>
+                  <p className="text-xs text-gray-500">
+                    How often should this website be checked for changes
+                  </p>
+                </div>
+              </div>
 
               {/* Monitor Type */}
               <div className="space-y-3">
@@ -1091,28 +1084,140 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end">
-                <Button 
-                  type="submit"
-                  variant="default"
-                  size="default"
-                  disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
-                  className="gap-2"
-                >
-                  {isAdding ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Adding Website...
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="h-4 w-4" />
-                      Start Monitoring
-                    </>
-                  )}
-                </Button>
-              </div>
+               {/* Firecrawl Configuration */}
+               <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bot className="h-5 w-5 text-purple-600" />
+                  <h4 className="text-lg font-medium text-gray-900">AI Prompt</h4>
+                </div>
+                
+                {/* Website Scraping Prompt */}
+                 <div className="space-y-2">
+                   <label className="text-sm font-medium text-gray-700">
+                     Website Scraping Instructions
+                   </label>
+                   <textarea
+                     rows={12}
+                     className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                     defaultValue={`Extract all meaningful content from this webpage including:
+- Main content and text
+- Important links and navigation
+- Forms and interactive elements
+- Contact information and addresses
+- Dates, deadlines, and time-sensitive information
+
+Focus on content that would be relevant for change detection and monitoring.`}
+                     placeholder="Enter custom scraping instructions..."
+                   />
+                   <p className="text-xs text-gray-500">
+                     Instructions for how Firecrawl should extract content from regular websites
+                   </p>
+                 </div>
+                 
+                 {/* Compliance Specific Prompt */}
+                 {isComplianceSite && (
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium text-gray-700">
+                       Compliance Extraction Instructions
+                     </label>
+                     <textarea
+                       rows={8}
+                       className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                       defaultValue={`Extract compliance information according to this template structure:
+
+1. OVERVIEW - Brief description of the law/requirement
+2. COVERED EMPLOYERS - Who must comply (thresholds, business types)
+3. COVERED EMPLOYEES - Which employees are protected
+4. EMPLOYER RESPONSIBILITIES - Specific actions required
+5. TRAINING REQUIREMENTS - Required training content/duration
+6. TRAINING DEADLINES - Timing requirements
+7. POSTING REQUIREMENTS - Required workplace postings
+8. RECORDKEEPING REQUIREMENTS - Documentation requirements
+9. PENALTIES FOR NON-COMPLIANCE - Fines and consequences
+10. SOURCES - Relevant statutes and regulations
+
+Focus on extracting specific requirements, deadlines, thresholds, and penalty amounts.`}
+                       placeholder="Enter compliance-specific extraction instructions..."
+                     />
+                     <p className="text-xs text-gray-500">
+                       Instructions for extracting structured compliance information from government websites
+                     </p>
+                   </div>
+                 )}
+                 
+                 {/* Current Firecrawl Options - Collapsible */}
+                 <div className="bg-gray-50 rounded-lg p-4">
+                   <button
+                     type="button"
+                     onClick={() => setShowFirecrawlOptions(!showFirecrawlOptions)}
+                     className="flex items-center justify-between w-full text-left"
+                   >
+                     <h5 className="text-sm font-medium text-gray-700">Advanced Firecrawl Configuration</h5>
+                     <div className="flex items-center gap-2">
+                       <span className="text-xs text-gray-500">
+                         {showFirecrawlOptions ? 'Hide' : 'Show'} technical options
+                       </span>
+                       <div className={`transform transition-transform ${showFirecrawlOptions ? 'rotate-180' : ''}`}>
+                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                         </svg>
+                       </div>
+                     </div>
+                   </button>
+                   
+                   {showFirecrawlOptions && (
+                     <div className="mt-3 space-y-2">
+                       <label className="text-xs font-medium text-gray-600">
+                         Firecrawl Configuration (JSON)
+                       </label>
+                       <textarea
+                         value={firecrawlConfig}
+                         onChange={(e) => setFirecrawlConfig(e.target.value)}
+                         rows={12}
+                         className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                         placeholder="Enter Firecrawl configuration in JSON format..."
+                       />
+                       <div className="flex items-start justify-between">
+                         <p className="text-xs text-gray-500">
+                           Advanced users can customize the Firecrawl API configuration. Changes will be applied when the website is created.
+                         </p>
+                         <a
+                           href="https://docs.firecrawl.dev/api-reference/endpoint/scrape"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="text-xs text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1 ml-4 flex-shrink-0"
+                         >
+                           <ExternalLink className="h-3 w-3" />
+                           Firecrawl Docs
+                         </a>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </div>
+
+               {/* Submit Button */}
+               <div className="flex justify-end">
+                 <Button 
+                   type="submit"
+                   variant="default"
+                   size="default"
+                   disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
+                   className="gap-2"
+                 >
+                   {isAdding ? (
+                     <>
+                       <Loader2 className="h-4 w-4 animate-spin" />
+                       Adding Website...
+                     </>
+                   ) : (
+                     <>
+                       <Globe className="h-4 w-4" />
+                       Start Monitoring
+                     </>
+                   )}
+                 </Button>
+               </div>
             </form>
             
                {error && (
@@ -1121,128 +1226,6 @@ export default function HomePage() {
                  </div>
                )}
                
-               {/* Firecrawl Configuration Preview */}
-               <div className="mt-6 space-y-4">
-                 <div className="border-t pt-4">
-                   <h4 className="text-sm font-medium text-gray-700 mb-3">Firecrawl Configuration</h4>
-                   
-                   {/* Regular Website Scraping */}
-                   {!isComplianceSite && (
-                     <div className="bg-gray-50 rounded-lg p-4">
-                       <h5 className="text-xs font-medium text-gray-600 mb-2">Regular Website Scraping Configuration</h5>
-                       <div className="text-xs text-gray-600 font-mono bg-white p-3 rounded border">
-                         {`{
-  formats: ["markdown", "changeTracking"],
-  changeTrackingOptions: {
-    modes: ["git-diff"]
-  },
-  onlyMainContent: false,
-  waitFor: 2000${monitorType === 'full_site' ? `,
-  limit: ${maxPages},
-  maxDepth: ${maxCrawlDepth}` : ''}
-}`}
-                       </div>
-                     </div>
-                   )}
-                   
-                   {/* Compliance Crawling */}
-                   {isComplianceSite && (
-                     <div className="bg-purple-50 rounded-lg p-4">
-                       <h5 className="text-xs font-medium text-purple-700 mb-2">Compliance Crawling + AI Analysis</h5>
-                       <div className="space-y-3">
-                         <div>
-                           <h6 className="text-xs font-medium text-gray-600 mb-1">Firecrawl Configuration</h6>
-                           <div className="text-xs text-gray-600 font-mono bg-white p-3 rounded border">
-                             {`{
-  formats: ["markdown", "changeTracking"],
-  changeTrackingOptions: {
-    modes: ["git-diff"]
-  },
-  onlyMainContent: false,
-  waitFor: 2000${monitorType === 'full_site' ? `,
-  limit: ${maxPages},
-  maxDepth: ${maxCrawlDepth}` : ''}
-}`}
-                           </div>
-                         </div>
-                         
-                         <div>
-                           <h6 className="text-xs font-medium text-gray-600 mb-1">AI Analysis Prompt (Gemini Flash Lite)</h6>
-                           <textarea
-                             value={`Analyze this compliance content and extract information according to the compliance template structure.
-
-CONTENT TO ANALYZE:
-[Scraped website content will be inserted here]
-
-EXTRACTION TEMPLATE:
-Please extract and structure the following sections based on the content above:
-
-1. OVERVIEW
-   - Brief description of the law/requirement, including key legislation and purpose
-
-2. COVERED EMPLOYERS
-   - Who must comply with this requirement - employee thresholds, business types, etc.
-
-3. COVERED EMPLOYEES
-   - Which employees are covered/protected - employment types, locations, exemptions
-
-4. WHAT SHOULD EMPLOYERS DO?
-   - Specific actions employers must take to comply
-
-5. TRAINING REQUIREMENTS
-   - If applicable - training content, duration, format requirements
-
-6. TRAINING DEADLINES
-   - If applicable - timing requirements for different employee types
-
-7. QUALIFIED TRAINERS
-   - If applicable - who can provide the training/services
-
-8. SPECIAL REQUIREMENTS
-   - Any special cases, exceptions, industry-specific requirements, or additional obligations
-
-9. COVERAGE ELECTION
-   - If applicable - optional coverage choices or rejection options
-
-10. RECIPROCITY/EXTRATERRITORIAL COVERAGE
-    - If applicable - cross-state/jurisdiction coverage rules
-
-11. EMPLOYER RESPONSIBILITIES & DEADLINES
-    - Ongoing obligations, verification processes, renewal requirements, key deadlines
-
-12. EMPLOYER NOTIFICATION REQUIREMENTS
-    - Required notifications to employees about rights, processes, or programs
-
-13. POSTING REQUIREMENTS
-    - Required workplace postings, notices, and display requirements
-
-14. RECORDKEEPING REQUIREMENTS
-    - What records must be maintained, retention periods, required documentation
-
-15. PENALTIES FOR NON-COMPLIANCE
-    - Fines, penalties, consequences, and enforcement actions
-
-16. SOURCES
-    - Relevant statutes, regulations, agency websites, and official resources
-
-Please provide structured output in JSON format with each section clearly labeled.
-For sections where information is not available, use "Not specified in available documentation".
-
-JURISDICTION: [Will be set based on detected jurisdiction]
-TOPIC: [Will be set based on selected compliance topic]
-SOURCE: [Website URL being crawled]`}
-                             readOnly
-                             className="w-full h-64 text-xs font-mono bg-white border border-gray-300 rounded p-3 resize-none"
-                           />
-                           <p className="text-xs text-gray-500 mt-1">
-                             This prompt is used to extract structured compliance information from the scraped content using AI analysis.
-                           </p>
-                         </div>
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               </div>
           </div>
           
           {/* Two Column Layout */}
@@ -3452,8 +3435,6 @@ SOURCE: [Website URL being crawled]`}
             setShowTemplateEditor(false)
             setEditingTemplate(null)
           }}
-          topicKey={editingTemplate.topicKey}
-          topicName={editingTemplate.topicName}
           onSave={async (templateData) => {
             await upsertTemplate(templateData)
           }}
