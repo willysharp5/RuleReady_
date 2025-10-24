@@ -1688,7 +1688,22 @@ export default function HomePage() {
                           const isDeleting = deletingWebsites.has(website._id);
                           
                           return (
-                            <div key={website._id} className="p-6 hover:bg-gray-50">
+                            <div 
+                              key={website._id}
+                              className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                                isProcessing 
+                                  ? 'bg-orange-50' 
+                                  : isDeleting
+                                  ? 'bg-red-50 opacity-50'
+                                  : selectedWebsiteId === website._id
+                                  ? 'bg-orange-50 border-l-4 border-orange-500'
+                                  : ''
+                              }`}
+                              onClick={() => {
+                                setSelectedWebsiteId(website._id)
+                                setChangesPage(1) // Reset changes page when selecting a website
+                              }}
+                            >
                               <div className="flex items-center gap-4">
                                 {/* Website favicon */}
                                 <div className="flex-shrink-0">
@@ -1705,6 +1720,159 @@ export default function HomePage() {
                                   ) : (
                                     <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                                       <Globe className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      {/* Card Title */}
+                                      <div>
+                                        <h3 className="text-sm font-medium text-gray-900">{cleanWebsiteName(website.name)}</h3>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex flex-col items-end gap-1">
+                                      {/* Status Icons - Top Right, Horizontal */}
+                                      <div className="flex items-center gap-1">
+                                        {/* Priority Icon */}
+                                        {website.complianceMetadata?.isComplianceWebsite && (
+                                          <div className={`w-4 h-4 rounded-full ${
+                                            website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
+                                            website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
+                                            website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
+                                            website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
+                                          }`} />
+                                        )}
+                                        
+                                        {/* Monitor Type Icon */}
+                                        {website.monitorType === 'full_site' ? (
+                                          <Monitor className="w-4 h-4 text-orange-600" />
+                                        ) : (
+                                          <File className="w-4 h-4 text-gray-600" />
+                                        )}
+                                        
+                                        {/* Status Icon */}
+                                        {website.isPaused ? (
+                                          <Pause className="w-4 h-4 text-yellow-600" />
+                                        ) : website.isActive ? (
+                                          <Play className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                          <X className="w-4 h-4 text-gray-400" />
+                                        )}
+                                      </div>
+                                      
+                                      {/* Action Buttons */}
+                                      <div className="flex items-center gap-1">
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCheckNow(website._id)
+                                          }}
+                                          disabled={isProcessing}
+                                          className="w-7 h-7 p-0"
+                                        >
+                                          {isProcessing ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="h-3 w-3" />
+                                          )}
+                                        </Button>
+                                        
+                                        <DeleteConfirmationPopover
+                                          trigger={
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={isDeleting}
+                                              className="w-7 h-7 p-0"
+                                            >
+                                              {isDeleting ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                              ) : (
+                                                <X className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                          }
+                                          title="Delete Website"
+                                          description="This will permanently remove the website from monitoring. This action cannot be undone."
+                                          itemName={cleanWebsiteName(website.name)}
+                                          isLoading={deletingWebsites.has(website._id)}
+                                          onConfirm={async () => {
+                                            setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                            try {
+                                              await deleteWebsite({ websiteId: website._id })
+                                            } catch (error) {
+                                              throw new Error('Failed to delete website. Please try again.')
+                                            } finally {
+                                              setDeletingWebsites(prev => {
+                                                const newSet = new Set(prev)
+                                                newSet.delete(website._id)
+                                                return newSet
+                                              })
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Compliance Topic Info - Bottom */}
+                                  {website.complianceMetadata?.isComplianceWebsite && (
+                                    <div>
+                                      {/* Tags */}
+                                      <div className="flex items-center gap-2">
+                                        <TopicBadge 
+                                          topicKey={website.complianceMetadata.topicKey}
+                                          topicName={cleanWebsiteName(website.name).split(' - ')[1] || website.complianceMetadata.topicKey}
+                                        />
+                                      </div>
+                                      
+                                      {/* URL below tag */}
+                                      <div>
+                                        <a 
+                                          href={website.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
+                                        >
+                                          <span className="truncate">{website.url}</span>
+                                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                        </a>
+                                      </div>
+                                      
+                                      {/* Check Info with Button */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                                          <span>{formatInterval(website.checkInterval)}</span>
+                                          <span>{formatTimeAgo(website.lastChecked)}</span>
+                                        </div>
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCheckNow(website._id)
+                                          }}
+                                          disabled={isProcessing}
+                                          className="gap-1"
+                                        >
+                                          {isProcessing ? (
+                                            <>
+                                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                              {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RefreshCw className="mr-1 h-3 w-3" />
+                                              Check Now
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
                                     </div>
                                   )}
                                 </div>

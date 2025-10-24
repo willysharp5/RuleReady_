@@ -174,26 +174,9 @@ export function TopicBadge({ topicKey, topicName }: {
   const info = getTopicInfo(topicKey)
   
   return (
-    <Tooltip 
-      content={
-        <div className="max-w-sm">
-          <div className="font-medium mb-1">
-            {topicName}
-          </div>
-          <div className="text-xs mb-2">{info.description}</div>
-          <div className="text-xs mb-2">
-            <strong>Category:</strong> {info.category}
-          </div>
-          <div className="text-xs">
-            <strong>Includes:</strong> {info.examples.join(", ")}
-          </div>
-        </div>
-      }
-    >
-      <Badge variant="outline" className="cursor-help">
-        {topicName}
-      </Badge>
-    </Tooltip>
+    <Badge variant="outline">
+      {topicName}
+    </Badge>
   )
 }
 
