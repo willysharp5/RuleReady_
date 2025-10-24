@@ -149,6 +149,9 @@ export default function HomePage() {
   const [modalSelectedStatus, setModalSelectedStatus] = useState<string>('')
   const [modalShowComplianceOnly, setModalShowComplianceOnly] = useState(false)
   
+  // Bulk selection state
+  const [selectedWebsiteIds, setSelectedWebsiteIds] = useState<Set<string>>(new Set())
+  
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
@@ -666,22 +669,6 @@ export default function HomePage() {
                     <h3 className="text-xl font-semibold">Currently Tracked Websites</h3>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {websites && websites.length > 0 && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={async () => {
-                              const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
-                              for (const website of activeWebsites) {
-                                await handleCheckNow(website._id);
-                              }
-                            }}
-                            className="gap-2"
-                          >
-                            <RefreshCw className="h-3 w-3" />
-                            Check All
-                          </Button>
-                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -696,6 +683,84 @@ export default function HomePage() {
                           )}
                         </Button>
                       </div>
+                      
+                      {/* Bulk Action Buttons - underneath the expand button */}
+                      {websites && websites.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const filteredWebsites = websites.filter(website => {
+                                // Apply same filtering logic as the list
+                                const query = searchQuery.toLowerCase()
+                                const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                     website.url.toLowerCase().includes(query)
+                                if (!matchesSearch) return false
+                                
+                                if (showComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                if (selectedJurisdiction) {
+                                  const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                                  if (websiteJurisdiction !== selectedJurisdiction) return false
+                                }
+                                if (selectedTopic && website.complianceMetadata?.topicKey !== selectedTopic) return false
+                                if (selectedPriority && website.complianceMetadata?.priority !== selectedPriority) return false
+                                return true
+                              });
+                              
+                              const allSelected = filteredWebsites.every(w => selectedWebsiteIds.has(w._id));
+                              if (allSelected) {
+                                // Deselect all
+                                setSelectedWebsiteIds(new Set());
+                              } else {
+                                // Select all filtered websites
+                                setSelectedWebsiteIds(new Set(filteredWebsites.map(w => w._id)));
+                              }
+                            }}
+                            className="gap-1 text-xs"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            {(() => {
+                              const filteredWebsites = websites.filter(website => {
+                                const query = searchQuery.toLowerCase()
+                                const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                     website.url.toLowerCase().includes(query)
+                                if (!matchesSearch) return false
+                                if (showComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                if (selectedJurisdiction) {
+                                  const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                                  if (websiteJurisdiction !== selectedJurisdiction) return false
+                                }
+                                if (selectedTopic && website.complianceMetadata?.topicKey !== selectedTopic) return false
+                                if (selectedPriority && website.complianceMetadata?.priority !== selectedPriority) return false
+                                return true
+                              });
+                              const allSelected = filteredWebsites.every(w => selectedWebsiteIds.has(w._id));
+                              return allSelected ? 'Deselect All' : 'Select All';
+                            })()}
+                          </Button>
+                          
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={async () => {
+                              const websitesToCheck = selectedWebsiteIds.size > 0 
+                                ? websites.filter(w => selectedWebsiteIds.has(w._id) && w.isActive && !w.isPaused)
+                                : websites.filter(w => w.isActive && !w.isPaused);
+                              
+                              for (const website of websitesToCheck) {
+                                await handleCheckNow(website._id);
+                              }
+                            }}
+                            disabled={selectedWebsiteIds.size === 0}
+                            className="gap-1 text-xs"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Check Selected ({selectedWebsiteIds.size})
+                          </Button>
+                        </div>
+                      )}
+                      
                       {websites ? (
                         <span className="text-xs text-gray-500">
                           {websites.length} site{websites.length !== 1 ? 's' : ''} 
@@ -1020,14 +1085,37 @@ export default function HomePage() {
                           ? 'bg-red-50 opacity-50'
                           : selectedWebsiteId === website._id
                           ? 'bg-orange-50 border-l-4 border-orange-500'
+                          : selectedWebsiteIds.has(website._id)
+                          ? 'bg-purple-50 border-l-4 border-purple-500'
                           : ''
                       }`}
                       onClick={() => {
+                        // Clear bulk selection when selecting for change tracking
+                        setSelectedWebsiteIds(new Set())
                         setSelectedWebsiteId(website._id)
                         setChangesPage(1) // Reset changes page when selecting a website
                       }}
                     >
                       <div className="flex items-center gap-4">
+                        {/* Checkbox for bulk selection */}
+                        <div className="flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedWebsiteIds.has(website._id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              const newSelected = new Set(selectedWebsiteIds);
+                              if (e.target.checked) {
+                                newSelected.add(website._id);
+                              } else {
+                                newSelected.delete(website._id);
+                              }
+                              setSelectedWebsiteIds(newSelected);
+                            }}
+                            className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                          />
+                        </div>
+                        
                         {/* Website favicon */}
                         <div className="flex-shrink-0">
                           {getFaviconUrl(website.url) ? (
@@ -1339,15 +1427,26 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </div>
-                {selectedWebsiteId && websites && (
+                {(selectedWebsiteId || selectedWebsiteIds.size > 0) && websites && (
                   <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit">
                     <span>Filtered:</span>
                     <span className="font-medium">
-                      {cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown')}
+                      {(() => {
+                        if (selectedWebsiteIds.size > 1) {
+                          return `Filter +${selectedWebsiteIds.size}`;
+                        } else if (selectedWebsiteIds.size === 1) {
+                          const selectedWebsite = websites.find(w => selectedWebsiteIds.has(w._id));
+                          return cleanWebsiteName(selectedWebsite?.name || 'Unknown');
+                        } else if (selectedWebsiteId) {
+                          return cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown');
+                        }
+                        return 'Unknown';
+                      })()}
                     </span>
                     <button
                       onClick={() => {
                         setSelectedWebsiteId(null)
+                        setSelectedWebsiteIds(new Set())
                         setChangesPage(1)
                       }}
                       className="ml-1 hover:text-orange-900"
@@ -1392,7 +1491,9 @@ export default function HomePage() {
 
                   // Filter changes based on selected website, filter, and search query
                   const filteredHistory = allScrapeHistory?.filter(scrape => {
-                    const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
+                    const websiteMatch = selectedWebsiteIds.size > 0 
+                      ? selectedWebsiteIds.has(scrape.websiteId)
+                      : !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
                     const filterMatch = checkLogFilter === 'all' || 
                       (checkLogFilter === 'changed' && scrape.changeStatus === 'changed') ||
                       (checkLogFilter === 'meaningful' && scrape.aiAnalysis?.isMeaningfulChange === true);
@@ -1670,22 +1771,91 @@ export default function HomePage() {
                         )}
                       </div>
                       
-                      {/* Check All Button - positioned on the right */}
+                      {/* Bulk Action Buttons - positioned on the right */}
                       {websites && websites.length > 0 && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={async () => {
-                            const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
-                            for (const website of activeWebsites) {
-                              await handleCheckNow(website._id);
-                            }
-                          }}
-                          className="gap-2"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Check All
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const filteredWebsites = websites.filter(website => {
+                                // Apply same filtering logic as the list
+                                const query = searchQuery.toLowerCase()
+                                const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                     website.url.toLowerCase().includes(query)
+                                if (!matchesSearch) return false
+                                
+                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                if (modalSelectedJurisdiction) {
+                                  const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                                  if (websiteJurisdiction !== modalSelectedJurisdiction) return false
+                                }
+                                if (modalSelectedTopic && website.complianceMetadata?.topicKey !== modalSelectedTopic) return false
+                                if (modalSelectedPriority && website.complianceMetadata?.priority !== modalSelectedPriority) return false
+                                if (modalSelectedStatus) {
+                                  if (modalSelectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                                  if (modalSelectedStatus === 'paused' && !website.isPaused) return false
+                                  if (modalSelectedStatus === 'inactive' && website.isActive) return false
+                                }
+                                return true
+                              });
+                              
+                              const allSelected = filteredWebsites.every(w => selectedWebsiteIds.has(w._id));
+                              if (allSelected) {
+                                // Deselect all
+                                setSelectedWebsiteIds(new Set());
+                              } else {
+                                // Select all filtered websites
+                                setSelectedWebsiteIds(new Set(filteredWebsites.map(w => w._id)));
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            {(() => {
+                              const filteredWebsites = websites.filter(website => {
+                                const query = searchQuery.toLowerCase()
+                                const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                     website.url.toLowerCase().includes(query)
+                                if (!matchesSearch) return false
+                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                if (modalSelectedJurisdiction) {
+                                  const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                                  if (websiteJurisdiction !== modalSelectedJurisdiction) return false
+                                }
+                                if (modalSelectedTopic && website.complianceMetadata?.topicKey !== modalSelectedTopic) return false
+                                if (modalSelectedPriority && website.complianceMetadata?.priority !== modalSelectedPriority) return false
+                                if (modalSelectedStatus) {
+                                  if (modalSelectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                                  if (modalSelectedStatus === 'paused' && !website.isPaused) return false
+                                  if (modalSelectedStatus === 'inactive' && website.isActive) return false
+                                }
+                                return true
+                              });
+                              const allSelected = filteredWebsites.every(w => selectedWebsiteIds.has(w._id));
+                              return allSelected ? 'Deselect All' : 'Select All';
+                            })()}
+                          </Button>
+                          
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={async () => {
+                              const websitesToCheck = selectedWebsiteIds.size > 0 
+                                ? websites.filter(w => selectedWebsiteIds.has(w._id) && w.isActive && !w.isPaused)
+                                : websites.filter(w => w.isActive && !w.isPaused);
+                              
+                              for (const website of websitesToCheck) {
+                                await handleCheckNow(website._id);
+                              }
+                            }}
+                            disabled={selectedWebsiteIds.size === 0}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Check Selected ({selectedWebsiteIds.size})
+                          </Button>
+                        </div>
                       )}
                     </div>
                     <div className="space-y-4">
@@ -1960,6 +2130,8 @@ export default function HomePage() {
                                   ? 'bg-red-50 opacity-50'
                                   : selectedWebsiteId === website._id
                                   ? 'bg-orange-50 border-l-4 border-orange-500'
+                                  : selectedWebsiteIds.has(website._id)
+                                  ? 'bg-purple-50 border-l-4 border-purple-500'
                                   : ''
                               }`}
                               onClick={() => {
@@ -1968,6 +2140,25 @@ export default function HomePage() {
                               }}
                             >
                               <div className="flex items-center gap-4">
+                                {/* Checkbox for bulk selection */}
+                                <div className="flex-shrink-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedWebsiteIds.has(website._id)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      const newSelected = new Set(selectedWebsiteIds);
+                                      if (e.target.checked) {
+                                        newSelected.add(website._id);
+                                      } else {
+                                        newSelected.delete(website._id);
+                                      }
+                                      setSelectedWebsiteIds(newSelected);
+                                    }}
+                                    className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                                  />
+                                </div>
+                                
                                 {/* Website favicon */}
                                 <div className="flex-shrink-0">
                                   {getFaviconUrl(website.url) ? (
@@ -2261,15 +2452,26 @@ export default function HomePage() {
                         </Button>
                       </div>
                     </div>
-                    {selectedWebsiteId && websites && (
+                    {(selectedWebsiteId || selectedWebsiteIds.size > 0) && websites && (
                       <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit mb-4">
                         <span>Filtered:</span>
                         <span className="font-medium">
-                          {cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown')}
+                          {(() => {
+                            if (selectedWebsiteIds.size > 1) {
+                              return `Filter +${selectedWebsiteIds.size}`;
+                            } else if (selectedWebsiteIds.size === 1) {
+                              const selectedWebsite = websites.find(w => selectedWebsiteIds.has(w._id));
+                              return cleanWebsiteName(selectedWebsite?.name || 'Unknown');
+                            } else if (selectedWebsiteId) {
+                              return cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown');
+                            }
+                            return 'Unknown';
+                          })()}
                         </span>
                         <button
                           onClick={() => {
                             setSelectedWebsiteId(null)
+                            setSelectedWebsiteIds(new Set())
                             setChangesPage(1)
                           }}
                           className="ml-1 hover:text-orange-900"
@@ -2309,7 +2511,9 @@ export default function HomePage() {
                         
                         // Apply filters
                         const filteredHistory = allScrapeHistory.filter(scrape => {
-                          const websiteMatch = !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
+                          const websiteMatch = selectedWebsiteIds.size > 0 
+                            ? selectedWebsiteIds.has(scrape.websiteId)
+                            : !selectedWebsiteId || scrape.websiteId === selectedWebsiteId;
                           const filterMatch = checkLogFilter === 'all' || 
                       (checkLogFilter === 'changed' && scrape.changeStatus === 'changed') ||
                       (checkLogFilter === 'meaningful' && scrape.aiAnalysis?.isMeaningfulChange === true);
