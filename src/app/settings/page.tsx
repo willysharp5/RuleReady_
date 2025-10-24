@@ -573,7 +573,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring' | 'jurisdictions' | 'templates'>('email')
+  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai-chat' | 'monitoring' | 'jurisdictions' | 'templates'>('email')
   
   // API Key state
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -688,8 +688,6 @@ function SettingsContent() {
       setActiveSection('firecrawl')
     } else if (section === 'email') {
       setActiveSection('email')
-    } else if (section === 'ai') {
-      setActiveSection('ai')
     } else if (section === 'templates') {
       setActiveSection('templates')
       
@@ -938,17 +936,6 @@ Analyze the provided diff and return a JSON response with:
                 >
                   <Key className="h-4 w-4" />
                   Observer API Keys
-                </button>
-                <button
-                  onClick={() => setActiveSection('ai')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === 'ai'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Bot className="h-4 w-4" />
-                  AI Analysis
                 </button>
                 <button
                   onClick={() => setActiveSection('ai-chat')}
@@ -1826,9 +1813,6 @@ Analyze the provided diff and return a JSON response with:
                 </div>
               )}
               
-              {activeSection === 'ai' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold mb-6">AI Analysis Settings</h2>
                   
                   <div className="space-y-6">
                     {/* AI Enable Toggle */}
@@ -2151,9 +2135,6 @@ Analyze the provided diff and return a JSON response with:
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
-              
               {activeSection === 'ai-chat' && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">

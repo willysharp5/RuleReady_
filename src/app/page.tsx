@@ -199,6 +199,28 @@ export default function HomePage() {
     }, null, 2)
   })
   
+  // AI Analysis settings state
+  const [showAiSettings, setShowAiSettings] = useState(false)
+  const [aiSystemPrompt, setAiSystemPrompt] = useState(`Analyze website changes and determine if they are meaningful for compliance monitoring.
+
+Focus on detecting:
+- Legal requirement changes
+- Deadline modifications
+- Rate or threshold updates
+- Policy changes
+- New regulations or amendments
+- Enforcement updates
+
+Ignore:
+- Minor formatting changes
+- Navigation updates
+- Cosmetic modifications
+- Temporary notices
+- Marketing content changes
+
+Provide a meaningful change score (0-1) and reasoning for the assessment.`)
+  const [meaningfulChangeThreshold, setMeaningfulChangeThreshold] = useState(0.7)
+  
   // URL validation function
   const validateUrl = async (inputUrl: string) => {
     if (!inputUrl.trim()) {
@@ -892,12 +914,10 @@ export default function HomePage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          router.push('/settings?section=ai')
-                        }}
+                        onClick={() => setShowAiSettings(!showAiSettings)}
                         className="text-xs"
                       >
-                        Settings
+                        {showAiSettings ? 'Hide' : 'Show'} Settings
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -914,6 +934,60 @@ export default function HomePage() {
                         {enableAiAnalysis ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
+                    
+                    {/* AI Settings Expansion */}
+                    {showAiSettings && (
+                      <div className="mt-4 p-4 bg-purple-100 border border-purple-300 rounded-lg space-y-4">
+                        <div className="border-b border-purple-200 pb-3 mb-3">
+                          <h5 className="text-sm font-medium text-purple-900 mb-2">What is AI Analysis?</h5>
+                          <p className="text-xs text-purple-700 leading-relaxed">
+                            AI Analysis uses advanced language models to automatically determine if website changes are meaningful for compliance monitoring. 
+                            Instead of getting notified about every minor change (formatting, navigation updates, etc.), AI filters out noise and only alerts you to 
+                            significant changes like legal requirement updates, deadline modifications, rate changes, or new regulations. This prevents alert fatigue 
+                            and ensures you focus on changes that actually matter for compliance.
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
+                            AI System Prompt
+                          </label>
+                          <textarea
+                            value={aiSystemPrompt}
+                            onChange={(e) => setAiSystemPrompt(e.target.value)}
+                            rows={8}
+                            className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                            placeholder="Enter AI analysis instructions..."
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Instructions for how AI should analyze website changes to determine if they're meaningful
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
+                            Meaningful Change Threshold
+                          </label>
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="range"
+                              min="0.1"
+                              max="1.0"
+                              step="0.1"
+                              value={meaningfulChangeThreshold}
+                              onChange={(e) => setMeaningfulChangeThreshold(parseFloat(e.target.value))}
+                              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="text-sm font-mono text-gray-600 min-w-[3rem]">
+                              {meaningfulChangeThreshold.toFixed(1)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Minimum confidence score (0.1-1.0) required to consider a change meaningful. Higher values = fewer alerts.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Priority Level */}
