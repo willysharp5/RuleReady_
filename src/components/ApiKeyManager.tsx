@@ -7,6 +7,7 @@ import { Key, Copy, Trash2, Plus } from 'lucide-react'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { Id } from "../../convex/_generated/dataModel"
+import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 
 export function ApiKeyManager() {
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -32,12 +33,11 @@ export function ApiKeyManager() {
   
   
   const handleDeleteApiKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this API key?')) return
-    
     try {
       await deleteApiKey({ keyId: keyId as Id<"apiKeys"> })
     } catch (error) {
       console.error('Failed to delete API key:', error)
+      throw error
     }
   }
   
@@ -71,7 +71,7 @@ export function ApiKeyManager() {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-gray-600">Use API keys to add websites programmatically</p>
         <Button
-          variant="orange"
+          variant="default"
           size="sm"
           onClick={() => setShowNewApiKey(true)}
           disabled={apiKeys.length >= 5}
@@ -92,7 +92,7 @@ export function ApiKeyManager() {
               className="flex-1"
             />
             <Button
-              variant="orange"
+              variant="default"
               size="sm"
               onClick={handleCreateApiKey}
               disabled={!newApiKeyName.trim()}
@@ -121,14 +121,21 @@ export function ApiKeyManager() {
                 <div className="font-medium text-sm">{key.name}</div>
                 <code className="text-xs text-gray-500 font-mono">{key.keyPreview}</code>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDeleteApiKey(key._id)}
-                className="text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <DeleteConfirmationPopover
+                trigger={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                }
+                title="Delete API Key"
+                description="This will permanently delete this API key. Any applications using this key will stop working."
+                itemName={key.name}
+                onConfirm={() => handleDeleteApiKey(key._id)}
+              />
             </div>
           ))}
         </div>

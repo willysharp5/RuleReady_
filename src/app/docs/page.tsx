@@ -109,7 +109,7 @@ export default function DocsPage() {
                 <p className="text-gray-600 mb-4">
                   First, you&apos;ll need a Firecrawl API key to start monitoring websites. This is required for all scraping operations.
                 </p>
-                <Button variant="orange" asChild>
+                <Button variant="default" asChild>
                   <Link href="/settings?section=firecrawl">
                     Configure API Key
                   </Link>
@@ -323,7 +323,7 @@ export default function DocsPage() {
                 Create API keys, add websites, and retrieve monitoring data.
               </p>
               <div className="flex gap-3">
-                <Button variant="orange" asChild>
+                <Button variant="default" asChild>
                   <Link href="/api-docs">
                     <FileText className="h-4 w-4 mr-2" />
                     View API Docs

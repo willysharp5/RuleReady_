@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
 import { validateEmailTemplate } from '@/lib/validateTemplate'
 import { APP_CONFIG, getFromEmail } from '@/config/app.config'
+import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 // Removed useChat - using custom implementation
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -28,6 +29,24 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  sources?: Array<{
+    id: number
+    similarity: number
+    url?: string
+    jurisdiction?: string
+    topicKey?: string
+    topicLabel?: string
+  }>
+  settings?: {
+    systemPrompt: string
+    model: string
+    complianceContext: boolean
+    maxContextReports: number
+    semanticSearch: boolean
+    sourcesFound: number
+    jurisdiction: string
+    topic: string
+  }
 }
 
 function EmbeddedChatUI() {
@@ -185,7 +204,9 @@ function EmbeddedChatUI() {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.content || 'No response received'
+        content: data.content || 'No response received',
+        sources: Array.isArray(data.sources) ? data.sources : [],
+        settings: data.settings || undefined
       }
       
       setMessages(prev => [...prev, assistantMessage])
@@ -264,7 +285,7 @@ function EmbeddedChatUI() {
                 className="w-full mt-1 p-2 text-xs border rounded-md bg-white"
               >
                 <option value="">All Jurisdictions</option>
-                {jurisdictions?.slice(0, 15).map((j) => (
+                {jurisdictions?.map((j) => (
                   <option key={j.code} value={j.name}>
                     {j.name}
                   </option>
@@ -335,13 +356,90 @@ function EmbeddedChatUI() {
                 <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
                   {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                 </div>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm prose prose-sm max-w-none ${m.role === 'user' ? 'bg-zinc-900 text-white prose-invert' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
                   {typeof m.content === 'string' ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                      {m.content}
-                    </ReactMarkdown>
+                    <div className="compliance-chat-content">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]} 
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
+                          h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                          p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
+                          ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
+                          ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
+                          li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
+                          strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                          em: ({children}) => <em className="italic">{children}</em>,
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    </div>
                   ) : (
                     String(m.content)
+                  )}
+                  
+                  {/* Sources display for assistant messages */}
+                  {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-300">
+                      <div className="text-xs font-medium text-gray-600 mb-2">Sources (embedding matches)</div>
+                      <ul className="space-y-1">
+                        {m.sources.map((s) => (
+                          <li key={s.id} className="text-xs text-gray-700">
+                            <span className="font-mono mr-1">[{s.id}]</span>
+                            {s.jurisdiction && <span className="mr-1">{s.jurisdiction}:</span>}
+                            {s.topicLabel && <span className="mr-1">{s.topicLabel}</span>}
+                            <span className="text-gray-500 mr-2">({Math.round((s.similarity || 0) * 100)}%)</span>
+                            {s.url ? (
+                              <a href={s.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Link</a>
+                            ) : (
+                              <span className="text-gray-400">No URL</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {/* Settings display for assistant messages */}
+                  {m.role === 'assistant' && m.settings && (
+                    <div className="mt-3 pt-3 border-t border-gray-300">
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-medium text-gray-600 hover:text-gray-800">
+                          Response Settings Used
+                        </summary>
+                        <div className="mt-2 space-y-1 text-gray-600">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="font-medium">Model:</span> {m.settings.model}
+                            </div>
+                            <div>
+                              <span className="font-medium">Sources Found:</span> {m.settings.sourcesFound}
+                            </div>
+                            <div>
+                              <span className="font-medium">Jurisdiction:</span> {m.settings.jurisdiction}
+                            </div>
+                            <div>
+                              <span className="font-medium">Topic:</span> {m.settings.topic}
+                            </div>
+                            <div>
+                              <span className="font-medium">Compliance Context:</span> {m.settings.complianceContext ? 'Enabled' : 'Disabled'}
+                            </div>
+                            <div>
+                              <span className="font-medium">Semantic Search:</span> {m.settings.semanticSearch ? 'Enabled' : 'Disabled'}
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <span className="font-medium">System Prompt:</span>
+                            <div className="mt-1 p-2 bg-gray-100 rounded text-xs font-mono max-h-20 overflow-y-auto">
+                              {m.settings.systemPrompt}
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
                   )}
                 </div>
               </div>
@@ -472,7 +570,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat'>('email')
+  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring'>('email')
   
   // API Key state
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -527,6 +625,16 @@ function SettingsContent() {
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
   const createApiKey = useMutation(api.apiKeys.createApiKey)
   const deleteApiKey = useMutation(api.apiKeys.deleteApiKey)
+  
+  // Monitoring queries
+  const cronStatus = useQuery(api.monitoring.getCronJobStatus)
+  const embeddingJobs = useQuery(api.monitoring.getEmbeddingJobMetrics)
+  const crawlerHealth = useQuery(api.monitoring.getComplianceCrawlerHealth)
+  const systemStatus = useQuery(api.monitoring.getSystemStatus)
+  
+  // Chat settings queries and mutations
+  const chatSettings = useQuery(api.chatSettings.getChatSettings)
+  const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
   
   // Webhook playground queries and mutations
   const webhookPayloads = useQuery(api.webhookPlayground.getWebhookPayloads, { limit: 50 })
@@ -652,6 +760,17 @@ Analyze the provided diff and return a JSON response with:
     }
   }, [userSettings])
   
+  // Load chat settings when available
+  useEffect(() => {
+    if (chatSettings) {
+      setChatSystemPrompt(chatSettings.chatSystemPrompt || 'You are a professional compliance assistant specializing in US employment law.')
+      setChatModel(chatSettings.chatModel || 'gemini-2.0-flash-exp')
+      setEnableComplianceContext(chatSettings.enableComplianceContext ?? true)
+      setMaxContextReports(chatSettings.maxContextReports || 5)
+      setEnableSemanticSearch(chatSettings.enableSemanticSearch ?? true)
+    }
+  }, [chatSettings])
+  
   useEffect(() => {
     if (emailConfig?.email) {
       setNotificationEmail(emailConfig.email)
@@ -667,7 +786,7 @@ Analyze the provided diff and return a JSON response with:
           <div>
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+                <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-4" />
                 <p className="text-gray-500">Loading your account details...</p>
               </div>
             </div>
@@ -735,7 +854,7 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('email')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'email'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -746,7 +865,7 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('webhooks')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'webhooks'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -757,7 +876,7 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('firecrawl')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'firecrawl'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -768,7 +887,7 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('api')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'api'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -779,7 +898,7 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('ai')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'ai'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
@@ -790,12 +909,23 @@ Analyze the provided diff and return a JSON response with:
                   onClick={() => setActiveSection('ai-chat')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'ai-chat'
-                      ? 'bg-orange-100 text-orange-700'
+                      ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <MessageCircle className="h-4 w-4" />
                   AI Chat Assistant
+                </button>
+                <button
+                  onClick={() => setActiveSection('monitoring')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'monitoring'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Bot className="h-4 w-4" />
+                  System Health
                 </button>
               </nav>
             </div>
@@ -837,7 +967,7 @@ Analyze the provided diff and return a JSON response with:
                               className="flex-1"
                             />
                             <Button 
-                              variant="orange" 
+                              variant="default" 
                               size="sm"
                               disabled={isUpdatingEmail || !notificationEmail || notificationEmail === emailConfig?.email}
                               onClick={async () => {
@@ -971,7 +1101,7 @@ Analyze the provided diff and return a JSON response with:
                                   <p className="text-gray-500 text-xs mt-1">Changed at: <span suppressHydrationWarning>{new Date().toLocaleString()}</span></p>
                                 </div>
                                 <p className="text-gray-600 mt-2">
-                                  <a href="#" className="text-orange-600 underline">View changes →</a>
+                                  <a href="#" className="text-purple-600 underline">View changes →</a>
                                 </p>
                               </div>
                             </div>
@@ -1128,7 +1258,7 @@ Analyze the provided diff and return a JSON response with:
                           Reset to Default
                         </Button>
                         <Button
-                          variant="orange"
+                          variant="default"
                           size="sm"
                           onClick={async () => {
                             // Validate template first
@@ -1171,7 +1301,7 @@ Analyze the provided diff and return a JSON response with:
                       <h4 className="font-medium mb-3">Email Preferences</h4>
                       <div className="space-y-3">
                         <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded border-gray-300 text-orange-600 focus:ring-orange-500" defaultChecked />
+                          <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-orange-500" defaultChecked />
                           <span className="text-sm">Send instant notifications for each change</span>
                         </label>
                       </div>
@@ -1202,7 +1332,7 @@ Analyze the provided diff and return a JSON response with:
                               className="flex-1"
                             />
                             <Button 
-                              variant="orange" 
+                              variant="default" 
                               size="sm"
                               disabled={isUpdatingWebhook || defaultWebhook === (userSettings?.defaultWebhookUrl || '')}
                               onClick={async () => {
@@ -1239,7 +1369,7 @@ Analyze the provided diff and return a JSON response with:
                     {/* Webhook Playground */}
                     <div className="border-t pt-8">
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2 text-black">
-                        <Webhook className="h-5 w-5 text-orange-500" />
+                        <Webhook className="h-5 w-5 text-purple-500" />
                         Webhook Playground
                       </h3>
                       
@@ -1265,9 +1395,9 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                           
                           {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-                            <div className="mb-4 p-4 border border-orange-200 rounded-lg">
+                            <div className="mb-4 p-4 border border-purple-200 rounded-lg">
                               <div className="flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                                <AlertCircle className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
                                 <div>
                                   <p className="text-sm font-medium">Localhost URLs won&apos;t work!</p>
                                   <p className="text-sm text-gray-600 mt-1">
@@ -1290,7 +1420,7 @@ Analyze the provided diff and return a JSON response with:
                               className="flex-1 font-mono text-sm"
                             />
                             <Button
-                              variant="orange"
+                              variant="default"
                               size="sm"
                               onClick={() => {
                                 navigator.clipboard.writeText(`${window.location.origin}/api/test-webhook`)
@@ -1326,24 +1456,28 @@ Analyze the provided diff and return a JSON response with:
                                   ({webhookPayloads.length} total)
                                 </span>
                               )}
-                              <span className="flex items-center gap-1 text-xs text-orange-600">
-                                <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                              <span className="flex items-center gap-1 text-xs text-purple-600">
+                                <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></span>
                                 Live
                               </span>
                             </h4>
                             {webhookPayloads && webhookPayloads.length > 0 && (
-                              <Button
-                                variant="code"
-                                size="sm"
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to clear all webhook payloads?')) {
-                                    await clearPayloads()
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Clear All
-                              </Button>
+                              <DeleteConfirmationPopover
+                                trigger={
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Clear All
+                                  </Button>
+                                }
+                                title="Clear All Webhooks"
+                                description="This will permanently delete all received webhook payloads from the playground."
+                                itemName={`${webhookPayloads.length} webhook payload${webhookPayloads.length !== 1 ? 's' : ''}`}
+                                onConfirm={async () => await clearPayloads()}
+                              />
                             )}
                           </div>
 
@@ -1369,7 +1503,7 @@ Analyze the provided diff and return a JSON response with:
                                           {payload.status === 'success' ? (
                                             <CheckCircle className="h-5 w-5 text-black" />
                                           ) : (
-                                            <XCircle className="h-5 w-5 text-orange-500" />
+                                            <XCircle className="h-5 w-5 text-purple-500" />
                                           )}
                                           <span className="font-medium text-sm">
                                             {payload.payload?.event || 'Webhook Event'}
@@ -1452,7 +1586,7 @@ Analyze the provided diff and return a JSON response with:
                         href="https://www.firecrawl.dev/app/api-keys" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-orange-600 hover:text-orange-700 text-sm font-medium"
+                        className="text-purple-600 hover:text-orange-700 text-sm font-medium"
                       >
                         Get your Firecrawl API key →
                       </a>
@@ -1485,7 +1619,7 @@ Analyze the provided diff and return a JSON response with:
                         </ul>
                       </div>
                       
-                      <Link href="/api-docs" className="text-orange-600 hover:text-orange-700 text-sm font-medium">
+                      <Link href="/api-docs" className="text-purple-600 hover:text-orange-700 text-sm font-medium">
                         View API Documentation →
                       </Link>
                     </div>
@@ -1521,7 +1655,7 @@ Analyze the provided diff and return a JSON response with:
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-medium">Your API Keys</h3>
                         <Button
-                          variant="orange"
+                          variant="default"
                           size="sm"
                           onClick={() => setShowNewApiKey(true)}
                           disabled={apiKeys && apiKeys.length >= 5}
@@ -1542,7 +1676,7 @@ Analyze the provided diff and return a JSON response with:
                               className="flex-1"
                             />
                             <Button
-                              variant="orange"
+                              variant="default"
                               size="sm"
                               onClick={handleCreateApiKey}
                               disabled={!newApiKeyName.trim()}
@@ -1757,10 +1891,10 @@ Analyze the provided diff and return a JSON response with:
                           <div className="text-sm text-gray-600 space-y-1">
                             <p className="font-medium">Provider Examples:</p>
                             <ul className="space-y-1 ml-4">
-                              <li>• <a href="https://platform.openai.com/api-keys" target="_blank" className="text-orange-600 hover:underline">OpenAI</a>: gpt-4o-mini</li>
-                              <li>• <a href="https://console.anthropic.com/settings/keys" target="_blank" className="text-orange-600 hover:underline">Anthropic</a>: claude-4-sonnet</li>
-                              <li>• <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-orange-600 hover:underline">Google</a>: gemini-2.5-flash-lite</li>
-                              <li>• <a href="https://console.groq.com/keys" target="_blank" className="text-orange-600 hover:underline">Groq</a>: moonshotai/kimi-k2-instruct</li>
+                              <li>• <a href="https://platform.openai.com/api-keys" target="_blank" className="text-purple-600 hover:underline">OpenAI</a>: gpt-4o-mini</li>
+                              <li>• <a href="https://console.anthropic.com/settings/keys" target="_blank" className="text-purple-600 hover:underline">Anthropic</a>: claude-4-sonnet</li>
+                              <li>• <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-600 hover:underline">Google</a>: gemini-2.5-flash-lite</li>
+                              <li>• <a href="https://console.groq.com/keys" target="_blank" className="text-purple-600 hover:underline">Groq</a>: moonshotai/kimi-k2-instruct</li>
                               <li>• And more...</li>
                             </ul>
                           </div>
@@ -1832,7 +1966,7 @@ Analyze the provided diff and return a JSON response with:
                               className="flex-1 accent-orange-500"
                             />
                             <div className="w-16 text-center">
-                              <span className="text-lg font-medium text-orange-600">{aiThreshold}%</span>
+                              <span className="text-lg font-medium text-purple-600">{aiThreshold}%</span>
                             </div>
                           </div>
                           <p className="text-sm text-gray-500 mt-1">
@@ -1882,7 +2016,7 @@ Analyze the provided diff and return a JSON response with:
                                 onChange={(e) => setEmailOnlyIfMeaningful(e.target.checked)}
                                 className="sr-only peer"
                               />
-                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                             </label>
                           </div>
                           
@@ -1898,7 +2032,7 @@ Analyze the provided diff and return a JSON response with:
                                 onChange={(e) => setWebhookOnlyIfMeaningful(e.target.checked)}
                                 className="sr-only peer"
                               />
-                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                             </label>
                           </div>
                         </div>
@@ -1908,7 +2042,7 @@ Analyze the provided diff and return a JSON response with:
                     {/* Save Button */}
                     <div className="flex justify-end">
                       <Button
-                        variant="orange"
+                        variant="default"
                         onClick={async () => {
                           setIsUpdatingAI(true)
                           try {
@@ -2080,7 +2214,13 @@ Analyze the provided diff and return a JSON response with:
                         onClick={async () => {
                           setIsUpdatingChat(true)
                           try {
-                            // Save chat settings (implement this mutation)
+                            await updateChatSettings({
+                              chatSystemPrompt,
+                              chatModel,
+                              enableComplianceContext,
+                              maxContextReports,
+                              enableSemanticSearch,
+                            })
                             setChatSuccess(true)
                             setTimeout(() => setChatSuccess(false), 3000)
                           } catch (error) {
@@ -2102,6 +2242,363 @@ Analyze the provided diff and return a JSON response with:
                           'Save Chat Settings'
                         )}
                       </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'monitoring' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <Bot className="h-6 w-6" />
+                    System Health & Job Monitoring
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    {/* System Overview */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">System Overview</h3>
+                      {systemStatus ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <div className="text-sm font-medium text-purple-700">Total Websites</div>
+                            <div className="text-2xl font-bold text-purple-900">{systemStatus.overview.totalWebsites}</div>
+                            <div className="text-xs text-purple-600">{systemStatus.overview.activeWebsites} active</div>
+                          </div>
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="text-sm font-medium text-blue-700">Compliance Rules</div>
+                            <div className="text-2xl font-bold text-blue-900">{systemStatus.overview.totalRules}</div>
+                            <div className="text-xs text-blue-600">across 52 jurisdictions</div>
+                          </div>
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="text-sm font-medium text-green-700">Embeddings</div>
+                            <div className="text-2xl font-bold text-green-900">{systemStatus.overview.totalEmbeddings.toLocaleString()}</div>
+                            <div className="text-xs text-green-600">for RAG system</div>
+                          </div>
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <div className="text-sm font-medium text-orange-700">24h Activity</div>
+                            <div className="text-2xl font-bold text-orange-900">{systemStatus.activity24h.changesDetected}</div>
+                            <div className="text-xs text-orange-600">changes detected</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-4" />
+                          <p className="text-gray-500">Loading system status...</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cron Jobs Status */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Scheduled Jobs Status</h3>
+                      {cronStatus ? (
+                        <div className="space-y-3">
+                          {cronStatus.jobs.map(job => (
+                            <div key={job.name} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <span className="font-medium">{job.name}</span>
+                                  <p className="text-sm text-gray-600">{job.description}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${
+                                    job.status === 'healthy' ? 'bg-green-500' : 
+                                    job.status === 'no_recent_activity' ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}></div>
+                                  <span className={`text-sm font-medium ${
+                                    job.status === 'healthy' ? 'text-green-700' : 
+                                    job.status === 'no_recent_activity' ? 'text-yellow-700' : 'text-red-700'
+                                  }`}>
+                                    {job.status === 'healthy' ? 'Healthy' : 
+                                     job.status === 'no_recent_activity' ? 'No Recent Activity' : 'Issues'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                  <div className="text-gray-500">Last Run</div>
+                                  <div className="font-medium">
+                                    {job.lastRun ? new Date(job.lastRun).toLocaleString() : 'Never'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-gray-500">Success Rate</div>
+                                  <div className="font-medium">{job.successRate}%</div>
+                                </div>
+                                <div>
+                                  <div className="text-gray-500">Total Runs (24h)</div>
+                                  <div className="font-medium">{job.totalRuns}</div>
+                                </div>
+                                <div>
+                                  <div className="text-gray-500">Failures (24h)</div>
+                                  <div className="font-medium text-red-600">{job.failures}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-purple-500 mx-auto mb-2" />
+                          <p className="text-gray-500">Loading job status...</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Embedding Jobs */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Embedding Generation Jobs</h3>
+                      {embeddingJobs ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <div className="text-sm text-gray-600">Total Embeddings</div>
+                              <div className="text-xl font-bold text-purple-600">{embeddingJobs.totalEmbeddings.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-yellow-50 rounded-lg p-3">
+                              <div className="text-sm text-gray-600">Pending</div>
+                              <div className="text-xl font-bold text-yellow-600">{embeddingJobs.pendingJobs}</div>
+                            </div>
+                            <div className="bg-blue-50 rounded-lg p-3">
+                              <div className="text-sm text-gray-600">Processing</div>
+                              <div className="text-xl font-bold text-blue-600">{embeddingJobs.processingJobs}</div>
+                            </div>
+                            <div className="bg-green-50 rounded-lg p-3">
+                              <div className="text-sm text-gray-600">Completed</div>
+                              <div className="text-xl font-bold text-green-600">{embeddingJobs.completedJobs}</div>
+                            </div>
+                            <div className="bg-red-50 rounded-lg p-3">
+                              <div className="text-sm text-gray-600">Failed</div>
+                              <div className="text-xl font-bold text-red-600">{embeddingJobs.failedJobs}</div>
+                            </div>
+                          </div>
+                          
+                          {/* Recent Jobs Table */}
+                          {embeddingJobs.recentJobs.length > 0 && (
+                            <div className="border rounded-lg overflow-hidden">
+                              <div className="bg-gray-50 px-4 py-2 border-b">
+                                <h4 className="font-medium text-sm">Recent Jobs (24h)</h4>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead className="border-b bg-gray-50">
+                                    <tr>
+                                      <th className="text-left p-2">Job ID</th>
+                                      <th className="text-left p-2">Type</th>
+                                      <th className="text-left p-2">Status</th>
+                                      <th className="text-left p-2">Progress</th>
+                                      <th className="text-left p-2">Started</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {embeddingJobs.recentJobs.map(job => (
+                                      <tr key={job.jobId} className="border-b hover:bg-gray-50">
+                                        <td className="p-2 font-mono text-xs">{job.jobId.slice(0, 16)}...</td>
+                                        <td className="p-2 capitalize">{job.jobType.replace('_', ' ')}</td>
+                                        <td className="p-2">
+                                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                            job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                            job.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                            job.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
+                                          }`}>
+                                            {job.status}
+                                          </span>
+                                        </td>
+                                        <td className="p-2">
+                                          {job.progress.completed}/{job.progress.total}
+                                          {job.progress.failed > 0 && (
+                                            <span className="text-red-600 ml-1">({job.progress.failed} failed)</span>
+                                          )}
+                                        </td>
+                                        <td className="p-2">
+                                          {job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-purple-500 mx-auto mb-2" />
+                          <p className="text-gray-500">Loading embedding jobs...</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Compliance Crawler Health */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Compliance Crawler Health</h3>
+                      {crawlerHealth ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <h4 className="font-medium mb-3">Recent Activity (24h)</h4>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span>Rules checked:</span>
+                                  <span className="font-medium">{crawlerHealth.rulesChecked}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Changes detected:</span>
+                                  <span className="font-medium text-orange-600">{crawlerHealth.changesDetected}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Successful crawls:</span>
+                                  <span className="font-medium text-green-600">{crawlerHealth.successfulCrawls}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Failed crawls:</span>
+                                  <span className="font-medium text-red-600">{crawlerHealth.failedCrawls}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Success rate:</span>
+                                  <span className="font-medium">{crawlerHealth.crawlSuccessRate}%</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium mb-3">System Components</h4>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${crawlerHealth.workpoolHealthy ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                  <span className="text-sm">Workpool: {crawlerHealth.workpoolHealthy ? 'Healthy' : 'Issues detected'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${crawlerHealth.firecrawlHealthy ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                  <span className="text-sm">FireCrawl: {crawlerHealth.firecrawlHealthy ? 'Healthy' : 'Issues detected'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${crawlerHealth.geminiHealthy ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                  <span className="text-sm">Gemini AI: {crawlerHealth.geminiHealthy ? 'Healthy' : 'Issues detected'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Recent Activity */}
+                          {crawlerHealth.recentActivity.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-3">Recent Crawler Activity</h4>
+                              <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                  <thead className="border-b bg-gray-50">
+                                    <tr>
+                                      <th className="text-left p-2">Rule ID</th>
+                                      <th className="text-left p-2">Status</th>
+                                      <th className="text-left p-2">Changes</th>
+                                      <th className="text-left p-2">Time</th>
+                                      <th className="text-left p-2">Duration</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {crawlerHealth.recentActivity.map((activity, index) => (
+                                      <tr key={index} className="border-b hover:bg-gray-50">
+                                        <td className="p-2 font-mono text-xs">{activity.ruleId}</td>
+                                        <td className="p-2">
+                                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                            activity.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                          }`}>
+                                            {activity.status}
+                                          </span>
+                                        </td>
+                                        <td className="p-2">
+                                          {activity.changesDetected ? 
+                                            <span className="text-orange-600 font-medium">Yes</span> : 
+                                            <span className="text-gray-500">No</span>
+                                          }
+                                        </td>
+                                        <td className="p-2">{new Date(activity.timestamp).toLocaleString()}</td>
+                                        <td className="p-2">{activity.processingTime ? `${activity.processingTime}ms` : '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-purple-500 mx-auto mb-2" />
+                          <p className="text-gray-500">Loading crawler health...</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Raw Data Access */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Raw Data & Debugging</h3>
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const data = JSON.stringify(cronStatus, null, 2);
+                              const blob = new Blob([data], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `cron-status-${new Date().toISOString().split('T')[0]}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            Export Cron Logs (JSON)
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const data = JSON.stringify(embeddingJobs, null, 2);
+                              const blob = new Blob([data], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `embedding-jobs-${new Date().toISOString().split('T')[0]}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            Export Embedding Jobs (JSON)
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const data = JSON.stringify(crawlerHealth, null, 2);
+                              const blob = new Blob([data], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `crawler-health-${new Date().toISOString().split('T')[0]}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            Export Crawler Results (JSON)
+                          </Button>
+                        </div>
+                        
+                        <details className="border rounded-lg p-3">
+                          <summary className="cursor-pointer font-medium text-sm">View Raw System Status (JSON)</summary>
+                          <pre className="mt-3 p-3 bg-gray-50 rounded text-xs overflow-auto max-h-64">
+                            {JSON.stringify({ 
+                              cronStatus, 
+                              embeddingJobs, 
+                              crawlerHealth, 
+                              systemStatus 
+                            }, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
                     </div>
                   </div>
                 </div>

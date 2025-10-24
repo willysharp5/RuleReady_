@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 import { Loader2, ArrowLeft, Webhook, Copy, Check, Trash2, CheckCircle, XCircle, Clock, AlertCircle, HelpCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
@@ -92,9 +93,7 @@ export default function WebhookPlaygroundPage() {
   }
 
   const handleClearAll = async () => {
-    if (confirm('Are you sure you want to clear all webhook payloads?')) {
-      await clearPayloads()
-    }
+    await clearPayloads()
   }
   
   return (
@@ -159,7 +158,7 @@ export default function WebhookPlaygroundPage() {
                 className="flex-1 font-mono text-sm"
               />
               <Button
-                variant="orange"
+                variant="default"
                 size="sm"
                 onClick={copyWebhookUrl}
               >
@@ -197,14 +196,22 @@ export default function WebhookPlaygroundPage() {
                 </span>
               </h2>
               {webhookPayloads.length > 0 && (
-                <Button
-                  variant="code"
-                  size="sm"
-                  onClick={handleClearAll}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Clear All
-                </Button>
+                <DeleteConfirmationPopover
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Clear All
+                    </Button>
+                  }
+                  title="Clear All Webhooks"
+                  description="This will permanently delete all received webhook payloads from the playground."
+                  itemName={`${webhookPayloads.length} webhook payload${webhookPayloads.length !== 1 ? 's' : ''}`}
+                  onConfirm={handleClearAll}
+                />
               )}
             </div>
 

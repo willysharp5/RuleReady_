@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Coins, Scale } from 'lucide-react'
+import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Scale } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -68,22 +68,16 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
       <div className="flex items-center justify-between max-w-7xl mx-auto">
         <Link href="/" className="flex items-center">
           <div className="flex items-center space-x-2">
-            <Scale className="h-8 w-8 text-blue-600" />
+            <Scale className="h-8 w-8 text-purple-600" />
             <span className="text-xl font-bold text-gray-900">RuleReady</span>
           </div>
         </Link>
         
         <div className="flex items-center gap-4">
-          {isAuthenticated && tokenUsage?.remaining_tokens !== undefined && (
-            <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-              <Coins className="h-4 w-4" />
-              <span>{tokenUsage.remaining_tokens.toLocaleString()} credits remaining</span>
-            </div>
-          )}
           {isAuthenticated ? (
             <>
               <Link href="/api-docs">
-                <Button variant="orange" size="sm" className="gap-2">
+                <Button variant="default" size="sm" className="gap-2">
                   <Code className="h-4 w-4" />
                   <span className="hidden sm:inline">API</span>
                 </Button>

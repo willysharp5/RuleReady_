@@ -17,18 +17,18 @@ html, body {
   box-shadow: inset 0px -2px 0px 0px #e4e4e7, 0px 1px 4px 0px rgba(228, 228, 231, 40%);
 }
 .input-shadow:focus {
-  box-shadow: inset 0px -2px 0px 0px #f97316, 0px 1px 4px 0px rgba(249, 115, 22, 20%);
+  box-shadow: inset 0px -2px 0px 0px #a855f7, 0px 1px 4px 0px rgba(168, 85, 247, 20%);
 }
 
 /* Custom button shadows */
-.btn-orange-shadow {
-  box-shadow: inset 0px -2px 0px 0px #c2410c, 0px 1px 6px 0px rgba(234, 88, 12, 58%);
+.btn-purple-shadow {
+  box-shadow: inset 0px -2px 0px 0px #7c3aed, 0px 1px 6px 0px rgba(168, 85, 247, 58%);
 }
-.btn-orange-shadow:hover {
-  box-shadow: inset 0px -1px 0px 0px #c2410c, 0px 1px 3px 0px rgba(234, 88, 12, 40%);
+.btn-purple-shadow:hover {
+  box-shadow: inset 0px -1px 0px 0px #7c3aed, 0px 1px 3px 0px rgba(168, 85, 247, 40%);
 }
-.btn-orange-shadow:active {
-  box-shadow: inset 0px 1px 1px 0px #c2410c, 0px 1px 2px 0px rgba(234, 88, 12, 30%);
+.btn-purple-shadow:active {
+  box-shadow: inset 0px 1px 1px 0px #7c3aed, 0px 1px 2px 0px rgba(168, 85, 247, 30%);
 }
 
 @layer utilities {
@@ -52,7 +52,7 @@ html, body {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 25 95% 53%;
+    --primary: 270 91% 65%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -64,7 +64,7 @@ html, body {
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 25 95% 53%;
+    --ring: 270 91% 65%;
     --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -80,7 +80,7 @@ html, body {
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 25 95% 53%;
+    --primary: 270 91% 65%;
     --primary-foreground: 240 5.9% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;

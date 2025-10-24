@@ -110,7 +110,7 @@ export const detectSemanticChanges: any = internalAction({
     
     // Get existing embeddings for this entity
     const allEmbeddings = await ctx.runQuery(
-      internal.embeddingManager.getEmbeddingsLimited,
+      api.embeddingManager.getEmbeddingsLimited,
       { 
         limit: 20 // Reduced to prevent byte overflow
       }

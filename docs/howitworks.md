@@ -144,8 +144,8 @@ Note: `convex/crons.ts` has cron entries disabled in this repo to avoid multiple
   - Injects top‑k sources (jurisdiction, topic, similarity%, URL) into Gemini system context
   - Returns structured answer with citations and source attribution
 
-- UI: `src/app/chat/page.tsx`
-  - Renders assistant messages with ReactMarkdown formatting
+- UI: Embedded in Settings page (`/settings` → AI Chat Assistant)
+  - Renders assistant messages with ReactMarkdown formatting and sources
   - "Sources (embedding matches)" section shows jurisdiction, topic, similarity%, and URLs
   - Jurisdiction/topic filters guide retrieval and context for focused answers
   - Search and filter by name, jurisdiction, topic, priority

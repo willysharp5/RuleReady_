@@ -247,7 +247,7 @@ export default function ApiDocsPage() {
                 )}
               </div>
               <Button
-                variant="orange"
+                variant="default"
                 size="sm"
                 onClick={() => setShowNewApiKey(true)}
                 disabled={apiKeys && apiKeys.length >= 5}
@@ -268,7 +268,7 @@ export default function ApiDocsPage() {
                     className="flex-1"
                   />
                   <Button
-                    variant="orange"
+                    variant="default"
                     size="sm"
                     onClick={handleCreateApiKey}
                     disabled={!newApiKeyName.trim()}

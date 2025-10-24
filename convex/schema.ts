@@ -149,6 +149,14 @@ const schema = defineSchema({
     // AI-based notification filtering
     emailOnlyIfMeaningful: v.optional(v.boolean()), // only send email if AI deems meaningful
     webhookOnlyIfMeaningful: v.optional(v.boolean()), // only send webhook if AI deems meaningful
+    
+    // Chat settings
+    chatSystemPrompt: v.optional(v.string()),
+    chatModel: v.optional(v.string()),
+    enableComplianceContext: v.optional(v.boolean()),
+    maxContextReports: v.optional(v.number()),
+    enableSemanticSearch: v.optional(v.boolean()),
+    
     createdAt: v.number(),
     updatedAt: v.number(),
   })

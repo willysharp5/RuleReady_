@@ -534,7 +534,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" variant="orange">
+              <Button type="submit" variant="default">
                 Save Settings
               </Button>
             </div>

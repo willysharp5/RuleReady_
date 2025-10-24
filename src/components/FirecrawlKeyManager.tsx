@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Key, Trash2, Edit2, Check, AlertCircle, Coins, RefreshCw } from 'lucide-react'
 import { useMutation, useQuery, useAction } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 
 export function FirecrawlKeyManager() {
   const [isEditing, setIsEditing] = useState(false)
@@ -64,12 +65,10 @@ export function FirecrawlKeyManager() {
   }
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete your Firecrawl Auth?')) {
-      try {
-        await deleteFirecrawlKey()
-      } catch (err) {
-        setError((err as Error).message || 'Failed to delete API key')
-      }
+    try {
+      await deleteFirecrawlKey()
+    } catch (err) {
+      setError((err as Error).message || 'Failed to delete API key')
     }
   }
 
@@ -81,7 +80,7 @@ export function FirecrawlKeyManager() {
         <p className="text-sm text-gray-500 mb-4">
           Add your API key to enable website monitoring
         </p>
-        <Button onClick={() => setIsEditing(true)} variant="orange">
+        <Button onClick={() => setIsEditing(true)} variant="default">
           Add API Key
         </Button>
       </div>
@@ -125,7 +124,7 @@ export function FirecrawlKeyManager() {
           )}
           
           <div className="flex gap-2">
-            <Button type="submit" variant="orange" disabled={!apiKey}>
+            <Button type="submit" variant="default" disabled={!apiKey}>
               {success ? (
                 <>
                   <Check className="h-4 w-4 mr-2" />
@@ -201,14 +200,21 @@ export function FirecrawlKeyManager() {
           >
             <Edit2 className="h-4 w-4" />
           </Button>
-          <Button
-            onClick={handleDelete}
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <DeleteConfirmationPopover
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            }
+            title="Delete Firecrawl API Key"
+            description="This will remove your Firecrawl API key and disable website monitoring functionality."
+            itemName="Firecrawl API Key"
+            onConfirm={handleDelete}
+          />
         </div>
       </div>
     </div>

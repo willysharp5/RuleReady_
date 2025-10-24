@@ -11,20 +11,22 @@ This document explains how the main UIs interact with the backend and how data i
 
 ## UI Surfaces
 - **Home**: Overview and components (not central to persistence).
-- **Chat** (`/chat`): AI compliance assistant UI.
-- **Settings** (`/settings`): Email settings, webhooks, Firecrawl key, Observer API keys, AI analysis, AI Chat settings.
+- **Settings** (`/settings`): Email settings, webhooks, Firecrawl key, Observer API keys, AI analysis, AI Chat Assistant (embedded chat UI).
 - **Monitoring Status** (component): Shows testing mode, workpool status, websites, recent activity, cron status.
 - **API Docs & Webhook Playground**: Helper pages and test endpoints (e.g., `/api/test-webhook`).
 
 ## Data Flow by Feature
 
-### 1) Compliance Chat (`src/app/chat/page.tsx` → `/api/compliance-chat`)
-- UI uses `useQuery(api.complianceQueries.getJurisdictions)` and `useQuery(api.complianceQueries.getTopics)` to populate filters from Convex tables `jurisdictions` and `complianceTopics`.
-- Messages are sent via Vercel AI SDK `useChat` to the Next.js route `POST /api/compliance-chat` with body `{ messages, jurisdiction, topic }`.
+### 1) Compliance Chat (Settings Page → `/api/compliance-chat`)
+- UI: Embedded in Settings page (`/settings` → AI Chat Assistant section)
+- Uses `useQuery(api.complianceQueries.getJurisdictions)` and `useQuery(api.complianceQueries.getTopics)` to populate filters from Convex tables `jurisdictions` and `complianceTopics`.
+- Messages sent to `/api/compliance-chat` with body `{ messages, jurisdiction, topic }`.
 - Backend (`src/app/api/compliance-chat/route.ts`):
-  - Builds a structured system prompt and calls Gemini (`gemini-2.0-flash-exp`) using `GEMINI_API_KEY`.
-  - Returns `{ role: 'assistant', content }` as JSON to the UI.
-- Persistence: The current implementation does not store chat messages. Compliance datasets (jurisdictions/topics) are read from Convex. RAG/embeddings tables exist in schema for future augmentation but are not wired in this route yet.
+  - Performs RAG search using `api.embeddingManager.embeddingTopKSources` with 2,759 embeddings
+  - Builds structured system prompt and calls Gemini (`gemini-2.0-flash-exp`) using `GEMINI_API_KEY`.
+  - Returns `{ role: 'assistant', content, sources }` as JSON to the UI.
+- Sources: Displays clickable links with jurisdiction, topic, similarity scores, and URLs
+- Persistence: Chat messages are not stored. Uses real-time embedding search for compliance data.
 
 ### 2) Settings
 Settings page is a client component that calls Convex to read/write settings and keys, and uses a Next route for email verification.

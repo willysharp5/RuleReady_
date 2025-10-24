@@ -19,6 +19,7 @@ import { LoadingOverlay } from '@/components/ui/loading-overlay'
 import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo, JurisdictionInfo } from '@/components/ComplianceInfo'
 import { ComplianceGuide } from '@/components/ComplianceGuide'
 import { MonitoringStatus } from '@/components/MonitoringStatus'
+import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -40,9 +41,9 @@ function getFaviconUrl(url: string): string {
   try {
     const domain = new URL(url).hostname;
     // Use Google's favicon service (most reliable)
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
   } catch {
-    return '';
+    return '/ruleready-icon.svg'; // Use local fallback
   }
 }
 
@@ -53,7 +54,7 @@ function getFallbackFaviconUrl(url: string): string {
     // Direct favicon.ico fallback
     return `https://${domain}/favicon.ico`;
   } catch {
-    return '';
+    return '/ruleready-icon.svg'; // Use local fallback
   }
 }
 
@@ -505,7 +506,7 @@ export default function HomePage() {
                     
                     <Button 
                       type="submit" 
-                      variant="orange" 
+                      variant="default" 
                       className="w-full"
                       disabled={isAuthenticating}
                     >
@@ -595,7 +596,7 @@ export default function HomePage() {
           <MonitoringStatus />
           {/* Add Website Form - Full Width */}
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <h3 className="text-xl font-semibold">Add Additional Website</h3>
             </div>
                     
@@ -614,7 +615,7 @@ export default function HomePage() {
                         />
                         <Button 
                           type="submit"
-                          variant="orange"
+                          variant="default"
                           size="sm"
                           disabled={isAdding || !url.trim()}
                         >
@@ -644,9 +645,9 @@ export default function HomePage() {
               <div className="bg-white rounded-lg shadow-sm flex flex-col">
                 {/* Search Header */}
                 <div className="p-6 border-b flex-shrink-0">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <h3 className="text-xl font-semibold">Currently Tracked Websites</h3>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       {websites ? (
                         <>
                           <span className="text-sm text-gray-500">
@@ -659,7 +660,7 @@ export default function HomePage() {
                           </span>
                           {websites.length > 0 && (
                             <Button
-                              variant="orange"
+                              variant="default"
                               size="sm"
                               onClick={async () => {
                                 const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
@@ -1153,36 +1154,41 @@ export default function HomePage() {
                                   <Settings2 className="h-4 w-4" />
                                 </Button>
 
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone.`)) {
-                                      setDeletingWebsites(prev => new Set([...prev, website._id]))
-                                      try {
-                                        await deleteWebsite({ websiteId: website._id })
-                                      } catch (error) {
-                                        alert('Failed to delete website. Please try again.')
-                                      } finally {
-                                        setDeletingWebsites(prev => {
-                                          const newSet = new Set(prev)
-                                          newSet.delete(website._id)
-                                          return newSet
-                                        })
-                                      }
+                                <DeleteConfirmationPopover
+                                  trigger={
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      title="Remove"
+                                      className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                      disabled={deletingWebsites.has(website._id)}
+                                    >
+                                      {deletingWebsites.has(website._id) ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <X className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  }
+                                  title="Delete Website"
+                                  description="This will permanently remove the website from monitoring. This action cannot be undone."
+                                  itemName={website.name}
+                                  isLoading={deletingWebsites.has(website._id)}
+                                  onConfirm={async () => {
+                                    setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                    try {
+                                      await deleteWebsite({ websiteId: website._id })
+                                    } catch (error) {
+                                      throw new Error('Failed to delete website. Please try again.')
+                                    } finally {
+                                      setDeletingWebsites(prev => {
+                                        const newSet = new Set(prev)
+                                        newSet.delete(website._id)
+                                        return newSet
+                                      })
                                     }
                                   }}
-                                  title="Remove"
-                                  className="w-8 h-8 p-0"
-                                  disabled={isDeleting}
-                                >
-                                  {isDeleting ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <X className="h-4 w-4" />
-                                  )}
-                                </Button>
+                                />
                             </div>
                           </div>
                           
@@ -1219,7 +1225,7 @@ export default function HomePage() {
                                 <span>Every {formatInterval(website.checkInterval)}</span>
                               </div>
                               <Button 
-                                variant="orange"
+                                variant="default"
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1251,13 +1257,13 @@ export default function HomePage() {
                             {/* Pagination Controls */}
                             {totalPages > 1 && (
                               <div className="sticky bottom-0 bg-white border-t p-3">
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+                                  <span className="text-gray-600 text-center sm:text-left">
                                     Page {websitesPage} of {totalPages}
                                   </span>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 justify-center sm:justify-end">
                                     <Button
-                                      variant="orange"
+                                      variant="default"
                                       size="sm"
                                       onClick={() => setWebsitesPage(websitesPage - 1)}
                                       disabled={websitesPage === 1}
@@ -1265,7 +1271,7 @@ export default function HomePage() {
                                       <ChevronLeft className="h-4 w-4" />
                                     </Button>
                                     <Button
-                                      variant="orange"
+                                      variant="default"
                                       size="sm"
                                       onClick={() => setWebsitesPage(websitesPage + 1)}
                                       disabled={websitesPage === totalPages}
@@ -1287,9 +1293,9 @@ export default function HomePage() {
           <div className="space-y-4">
             <div className="bg-white rounded-lg shadow-sm flex flex-col">
               <div className="p-6 border-b flex-shrink-0">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
                   <h3 className="text-xl font-semibold">Change Tracking Log</h3>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       variant={checkLogFilter === 'all' ? 'default' : 'outline'}
                       size="sm"
@@ -1524,13 +1530,13 @@ export default function HomePage() {
                       {/* Pagination Controls for Changes */}
                       {totalChangesPages > 1 && (
                         <div className="sticky bottom-0 bg-white border-t p-3">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+                            <span className="text-gray-600 text-center sm:text-left">
                               Page {changesPage} of {totalChangesPages}
                             </span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 justify-center sm:justify-end">
                               <Button
-                                variant="orange"
+                                variant="default"
                                 size="sm"
                                 onClick={() => setChangesPage(changesPage - 1)}
                                 disabled={changesPage === 1}
@@ -1538,7 +1544,7 @@ export default function HomePage() {
                                 <ChevronLeft className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="orange"
+                                variant="default"
                                 size="sm"
                                 onClick={() => setChangesPage(changesPage + 1)}
                                 disabled={changesPage === totalChangesPages}
@@ -1605,7 +1611,7 @@ export default function HomePage() {
                         )}
                         {websites && websites.length > 0 && (
                           <Button
-                            variant="orange"
+                            variant="default"
                             size="sm"
                             onClick={async () => {
                               const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
@@ -1749,36 +1755,41 @@ export default function HomePage() {
                                         <Settings2 className="h-4 w-4" />
                                       </Button>
 
-                                      <Button 
-                                        variant="default" 
-                                        size="sm"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          if (confirm(`Are you sure you want to delete "${website.name}"? This action cannot be undone.`)) {
-                                            setDeletingWebsites(prev => new Set([...prev, website._id]))
-                                            try {
-                                              await deleteWebsite({ websiteId: website._id })
-                                            } catch (error) {
-                                              alert('Failed to delete website. Please try again.')
-                                            } finally {
-                                              setDeletingWebsites(prev => {
-                                                const newSet = new Set(prev)
-                                                newSet.delete(website._id)
-                                                return newSet
-                                              })
-                                            }
+                                      <DeleteConfirmationPopover
+                                        trigger={
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            title="Remove"
+                                            className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                            disabled={deletingWebsites.has(website._id)}
+                                          >
+                                            {deletingWebsites.has(website._id) ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <X className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        }
+                                        title="Delete Website"
+                                        description="This will permanently remove the website from monitoring. This action cannot be undone."
+                                        itemName={website.name}
+                                        isLoading={deletingWebsites.has(website._id)}
+                                        onConfirm={async () => {
+                                          setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                          try {
+                                            await deleteWebsite({ websiteId: website._id })
+                                          } catch (error) {
+                                            throw new Error('Failed to delete website. Please try again.')
+                                          } finally {
+                                            setDeletingWebsites(prev => {
+                                              const newSet = new Set(prev)
+                                              newSet.delete(website._id)
+                                              return newSet
+                                            })
                                           }
                                         }}
-                                        title="Remove"
-                                        className="w-8 h-8 p-0"
-                                        disabled={isDeleting}
-                                      >
-                                        {isDeleting ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <X className="h-4 w-4" />
-                                        )}
-                                      </Button>
+                                      />
                                     </div>
                                   </div>
                                   
@@ -1810,7 +1821,7 @@ export default function HomePage() {
                                         <span>Every {formatInterval(website.checkInterval)}</span>
                                       </div>
                                       <Button 
-                                        variant="orange"
+                                        variant="default"
                                         size="sm"
                                         onClick={(e) => {
                                           e.stopPropagation();

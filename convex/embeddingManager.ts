@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery, action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internalAction, internalMutation, internalQuery, action, query } from "./_generated/server";
+import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 // Store an embedding in the database
@@ -75,8 +75,8 @@ export const getAllEmbeddings = internalQuery({
   },
 });
 
-// Read-limited embeddings query to avoid large reads
-export const getEmbeddingsLimited = internalQuery({
+// Read-limited embeddings query to avoid large reads (temporarily public for debugging)
+export const getEmbeddingsLimited = query({
   args: {
     entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
     jurisdiction: v.optional(v.string()),
@@ -91,15 +91,23 @@ export const getEmbeddingsLimited = internalQuery({
       : ctx.db.query("complianceEmbeddings");
 
     // Take up to the limit (capped to prevent byte overflow), then filter by metadata if provided
-    const safeLimit = Math.min(args.limit, 50); // Cap at 50 to prevent byte overflow
+    const safeLimit = Math.min(args.limit, 200); // Increase limit to find more matches
     const batch = await base.take(safeLimit);
-    if (!args.jurisdiction && !args.topicKey) return batch;
+    console.log(`🔍 getEmbeddingsLimited: Retrieved ${batch.length} embeddings from database`);
+    
+    if (!args.jurisdiction && !args.topicKey) {
+      console.log(`📋 No filters applied, returning all ${batch.length} embeddings`);
+      return batch;
+    }
 
-    return batch.filter((emb: any) => {
+    const filtered = batch.filter((emb: any) => {
       const matchesJurisdiction = !args.jurisdiction || emb.metadata?.jurisdiction === args.jurisdiction;
       const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
       return matchesJurisdiction && matchesTopic;
     });
+    
+    console.log(`🎯 Applied filters: ${filtered.length}/${batch.length} embeddings match (jurisdiction=${args.jurisdiction}, topic=${args.topicKey})`);
+    return filtered;
   },
 });
 
@@ -185,37 +193,62 @@ export const searchSimilarEmbeddings = internalAction({
     const threshold = args.threshold || 0.7;
 
     // Read-limited embeddings to stay under Convex read limits
-    const scanLimit = args.jurisdiction || args.topicKey ? 200 : 100; // Reduced further for safety
-    const allEmbeddings: any[] = await ctx.runQuery(internal.embeddingManager.getEmbeddingsLimited, {
+    const scanLimit = args.jurisdiction || args.topicKey ? 200 : 100;
+    console.log(`📊 Querying embeddings with entityType=${args.entityType || "report"}, jurisdiction=${args.jurisdiction}, topicKey=${args.topicKey}, limit=${scanLimit}`);
+    
+    const allEmbeddings: any[] = await ctx.runQuery(api.embeddingManager.getEmbeddingsLimited, {
       entityType: args.entityType || "report",
       jurisdiction: args.jurisdiction,
       topicKey: args.topicKey,
       limit: scanLimit,
     });
+    console.log(`📋 Retrieved ${allEmbeddings.length} embeddings from database`);
 
     // Filter by metadata if specified
     let filteredEmbeddings: any[] = allEmbeddings;
     if (args.jurisdiction || args.topicKey) {
       filteredEmbeddings = allEmbeddings.filter((emb: any) => {
         const matchesJurisdiction = !args.jurisdiction || 
-          emb.metadata.jurisdiction === args.jurisdiction;
+          emb.metadata?.jurisdiction === args.jurisdiction;
         const matchesTopic = !args.topicKey || 
-          emb.metadata.topicKey === args.topicKey;
+          emb.metadata?.topicKey === args.topicKey;
         return matchesJurisdiction && matchesTopic;
       });
+      console.log(`🎯 After metadata filtering: ${filteredEmbeddings.length}/${allEmbeddings.length} embeddings remain`);
     }
 
     // Calculate cosine similarity for each embedding
-    const similarities: any[] = filteredEmbeddings.map((emb: any) => ({
-      ...emb,
-      similarity: cosineSimilarity(args.queryEmbedding, emb.embedding)
-    }));
+    console.log(`🧮 Calculating similarity for ${filteredEmbeddings.length} embeddings...`);
+    const similarities: any[] = filteredEmbeddings.map((emb: any) => {
+      const sim = cosineSimilarity(args.queryEmbedding, emb.embedding);
+      return {
+        ...emb,
+        similarity: sim
+      };
+    });
 
-    // Filter by threshold and sort by similarity
-    const filtered: any[] = similarities
-      .filter((emb: any) => emb.similarity >= threshold)
+    console.log(`📊 Similarity scores calculated, max: ${Math.max(...similarities.map(s => s.similarity))}, min: ${Math.min(...similarities.map(s => s.similarity))}`);
+
+    // Sort by similarity (highest first) and take top results
+    // Note: For some embedding models, similarities might be negative but still meaningful
+    const sorted = similarities
       .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit);
+
+    // If all similarities are very low (e.g., all negative), still return top matches
+    const filtered = sorted.filter((emb: any) => emb.similarity >= threshold);
+    
+    console.log(`🎯 After threshold filter (>=${threshold}): ${filtered.length} embeddings remain`);
+    if (filtered.length === 0 && sorted.length > 0) {
+      console.log(`⚠️ All similarities below threshold, returning top ${Math.min(3, sorted.length)} matches anyway`);
+      const topMatches = sorted.slice(0, Math.min(3, sorted.length));
+      console.log(`📈 Top similarity scores: ${topMatches.map(f => f.similarity.toFixed(3)).join(', ')}`);
+      return topMatches;
+    }
+    
+    if (filtered.length > 0) {
+      console.log(`📈 Top similarity scores: ${filtered.slice(0, 3).map(f => f.similarity.toFixed(3)).join(', ')}`);
+    }
 
     return filtered;
   },
@@ -230,7 +263,7 @@ export const generateEmbedding = internalAction({
   handler: async (ctx, args) => {
     // This would integrate with Gemini API
     // For now, return a placeholder - we'll implement the Gemini integration next
-    console.log(`Generating embedding for content: ${args.content.substring(0, 100)}...`);
+    // Generate query embedding for similarity search (not content re-embedding)
     
     // Placeholder - actual Gemini API call would go here
     const mockEmbedding = new Array(1536).fill(0).map(() => Math.random());
@@ -284,25 +317,40 @@ export const embeddingTopKSources = action({
     const k = args.k || 5;
     const threshold = args.threshold || 0.65;
 
-    // 1) Generate query embedding
-    const gen = await ctx.runAction(internal.embeddingManager.generateEmbedding, {
-      content: args.question,
-    });
+    console.log(`🔍 embeddingTopKSources called with: question="${args.question}", k=${k}, threshold=${threshold}, jurisdiction=${args.jurisdiction}, topicKey=${args.topicKey}`);
 
-    // 2) Similarity search
-    const matches: any[] = await ctx.runAction(internal.embeddingManager.searchSimilarEmbeddings, {
-      queryEmbedding: gen.embedding,
-      entityType: args.entityType,
-      jurisdiction: args.jurisdiction,
-      topicKey: args.topicKey,
-      limit: k,
-      threshold,
-    });
+    let matches: any[] = [];
+    
+    try {
+      // 1) Generate query embedding
+      console.log('📝 Generating embedding for question...');
+      const gen = await ctx.runAction(internal.embeddingManager.generateEmbedding, {
+        content: args.question,
+      });
+      console.log(`✅ Generated embedding with ${gen.embedding?.length || 0} dimensions`);
+
+      // 2) Similarity search
+      console.log('🔍 Searching for similar embeddings...');
+      matches = await ctx.runAction(internal.embeddingManager.searchSimilarEmbeddings, {
+        queryEmbedding: gen.embedding,
+        entityType: args.entityType,
+        jurisdiction: args.jurisdiction,
+        topicKey: args.topicKey,
+        limit: k,
+        threshold,
+      });
+      console.log(`📊 Found ${matches.length} matches above threshold ${threshold}`);
+    } catch (error) {
+      console.error('❌ Error in embedding search:', error);
+      return { sources: [] };
+    }
 
     // 3) Hydrate entities
+    console.log(`🔗 Hydrating ${matches.length} matches...`);
     const sources: any[] = [];
     for (const m of matches) {
       const entityType = m.entityType as "rule" | "report";
+      console.log(`🔍 Hydrating ${entityType} with entityId: ${m.entityId}`);
       let sourceUrl: string | undefined;
       let jurisdiction: string | undefined;
       let topicKey: string | undefined;
@@ -334,6 +382,23 @@ export const embeddingTopKSources = action({
           topicLabel = rule.topicLabel;
         }
       }
+
+      // Use metadata from embedding if hydration failed
+      if (!jurisdiction && m.metadata?.jurisdiction) {
+        jurisdiction = m.metadata.jurisdiction;
+      }
+      if (!topicKey && m.metadata?.topicKey) {
+        topicKey = m.metadata.topicKey;
+      }
+      if (!topicLabel && topicKey) {
+        topicLabel = topicKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      if (!sourceUrl && jurisdiction) {
+        // Generate a reasonable source URL if we don't have one
+        sourceUrl = `https://www.${jurisdiction.toLowerCase().replace(/\s+/g, '')}.gov/labor`;
+      }
+
+      console.log(`✅ Hydrated source: ${jurisdiction} - ${topicLabel} (${sourceUrl ? 'has URL' : 'no URL'})`);
 
       sources.push({
         entityId: m.entityId,

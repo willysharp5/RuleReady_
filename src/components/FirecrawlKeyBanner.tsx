@@ -77,7 +77,7 @@ export function ApiKeyBanner() {
                 className="flex-1"
                 required
               />
-              <Button type="submit" variant="orange" disabled={!apiKey}>
+              <Button type="submit" variant="default" disabled={!apiKey}>
                 {success ? (
                   <>
                     <Check className="h-4 w-4 mr-2" />
@@ -111,7 +111,7 @@ export function ApiKeyBanner() {
           <div className="flex gap-2">
             <Button
               onClick={() => setShowForm(true)}
-              variant="orange"
+              variant="default"
               size="sm"
               className="gap-2"
             >
