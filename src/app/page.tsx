@@ -1343,7 +1343,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit">
                     <span>Filtered:</span>
                     <span className="font-medium">
-                      {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
+                      {cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown')}
                     </span>
                     <button
                       onClick={() => {
@@ -2265,7 +2265,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full inline-flex w-fit mb-4">
                         <span>Filtered:</span>
                         <span className="font-medium">
-                          {websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown'}
+                          {cleanWebsiteName(websites.find(w => w._id === selectedWebsiteId)?.name || 'Unknown')}
                         </span>
                         <button
                           onClick={() => {

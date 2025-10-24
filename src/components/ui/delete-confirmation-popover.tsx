@@ -43,10 +43,7 @@ export function DeleteConfirmationPopover({
   }
 
   return (
-    <Popover open={open} onOpenChange={(newOpen) => {
-      console.log('Popover onOpenChange:', { newOpen, title, itemName });
-      setOpen(newOpen);
-    }}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild disabled={disabled}>
         {trigger}
       </PopoverTrigger>
