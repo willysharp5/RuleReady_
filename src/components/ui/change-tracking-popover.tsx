@@ -16,7 +16,6 @@ import {
   AlertCircle, 
   CheckCircle, 
   Bot,
-  Globe,
   Calendar,
   Hash
 } from 'lucide-react'
@@ -190,31 +189,6 @@ export function ChangeTrackingPopover({ trigger, scrapeData }: ChangeTrackingPop
                 </div>
               )}
 
-              {/* Website Info */}
-              <div className="pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      <span>Website: {scrapeData.websiteName}</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="text-xs"
-                  >
-                    <a href={scrapeData.url} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Visit Website
-                    </a>
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2 break-all">
-                  {scrapeData.url}
-                </p>
-              </div>
             </div>
       </PopoverContent>
     </Popover>

@@ -1738,91 +1738,126 @@ export default function HomePage() {
                                       <div className="flex items-center gap-1">
                                         {/* Priority Icon */}
                                         {website.complianceMetadata?.isComplianceWebsite && (
-                                          <div className={`w-4 h-4 rounded-full ${
-                                            website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
-                                            website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
-                                            website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
-                                            website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
-                                          }`} />
+                                          <Tooltip content={`${website.complianceMetadata.priority} priority - ${
+                                            website.complianceMetadata.priority === 'critical' ? 'Requires immediate attention' :
+                                            website.complianceMetadata.priority === 'high' ? 'High importance compliance rule' :
+                                            website.complianceMetadata.priority === 'medium' ? 'Medium importance compliance rule' :
+                                            website.complianceMetadata.priority === 'low' ? 'Low importance compliance rule' : 'Standard compliance rule'
+                                          }`}>
+                                            <div className={`w-4 h-4 rounded-full ${
+                                              website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
+                                              website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
+                                              website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
+                                              website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
+                                            }`} />
+                                          </Tooltip>
                                         )}
                                         
                                         {/* Monitor Type Icon */}
-                                        {website.monitorType === 'full_site' ? (
-                                          <Monitor className="w-4 h-4 text-orange-600" />
-                                        ) : (
-                                          <File className="w-4 h-4 text-gray-600" />
-                                        )}
+                                        <Tooltip content={website.monitorType === 'full_site' ? 'Full Site Monitoring' : 'Single Page Monitoring'}>
+                                          {website.monitorType === 'full_site' ? (
+                                            <Monitor className="w-4 h-4 text-orange-600" />
+                                          ) : (
+                                            <File className="w-4 h-4 text-gray-600" />
+                                          )}
+                                        </Tooltip>
                                         
                                         {/* Status Icon */}
-                                        {website.isPaused ? (
-                                          <Pause className="w-4 h-4 text-yellow-600" />
-                                        ) : website.isActive ? (
-                                          <Play className="w-4 h-4 text-green-600" />
-                                        ) : (
-                                          <X className="w-4 h-4 text-gray-400" />
-                                        )}
+                                        <Tooltip content={
+                                          website.isPaused ? 'Monitoring is paused' :
+                                          website.isActive ? 'Monitoring is active' : 'Monitoring is inactive'
+                                        }>
+                                          {website.isPaused ? (
+                                            <Pause className="w-4 h-4 text-yellow-600" />
+                                          ) : website.isActive ? (
+                                            <Play className="w-4 h-4 text-green-600" />
+                                          ) : (
+                                            <X className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </Tooltip>
                                       </div>
                                       
                                       {/* Action Buttons */}
                                       <div className="flex items-center gap-1">
-                                        <Button 
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCheckNow(website._id)
-                                          }}
-                                          disabled={isProcessing}
-                                          className="w-7 h-7 p-0"
-                                        >
-                                          {isProcessing ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <RefreshCw className="h-3 w-3" />
-                                          )}
-                                        </Button>
-                                        
-                                        <DeleteConfirmationPopover
-                                          trigger={
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              disabled={isDeleting}
-                                              className="w-7 h-7 p-0"
-                                            >
-                                              {isDeleting ? (
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                              ) : (
-                                                <X className="h-3 w-3" />
-                                              )}
-                                            </Button>
-                                          }
-                                          title="Delete Website"
-                                          description="This will permanently remove the website from monitoring. This action cannot be undone."
-                                          itemName={cleanWebsiteName(website.name)}
-                                          isLoading={deletingWebsites.has(website._id)}
-                                          onConfirm={async () => {
-                                            setDeletingWebsites(prev => new Set([...prev, website._id]))
-                                            try {
-                                              await deleteWebsite({ websiteId: website._id })
-                                            } catch (error) {
-                                              throw new Error('Failed to delete website. Please try again.')
-                                            } finally {
-                                              setDeletingWebsites(prev => {
-                                                const newSet = new Set(prev)
-                                                newSet.delete(website._id)
-                                                return newSet
+                                        <Tooltip content={website.isPaused ? "Resume monitoring" : "Pause monitoring"}>
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              pauseWebsite({ 
+                                                websiteId: website._id, 
+                                                isPaused: !website.isPaused 
                                               })
+                                            }}
+                                            className="w-7 h-7 p-0"
+                                          >
+                                            {website.isPaused ? (
+                                              <Play className="h-4 w-4" />
+                                            ) : (
+                                              <Pause className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </Tooltip>
+                                        
+                                        <Tooltip content="Website settings and configuration">
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingWebsiteId(website._id)
+                                              setShowWebhookModal(true)
+                                            }}
+                                            className="w-7 h-7 p-0"
+                                          >
+                                            <Settings2 className="h-4 w-4" />
+                                          </Button>
+                                        </Tooltip>
+                                        
+                                        <Tooltip content="Remove website from monitoring">
+                                          <DeleteConfirmationPopover
+                                            trigger={
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={isDeleting}
+                                                className="w-7 h-7 p-0"
+                                              >
+                                                {isDeleting ? (
+                                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                  <X className="h-3 w-3" />
+                                                )}
+                                              </Button>
                                             }
-                                          }}
-                                        />
+                                            title="Delete Website"
+                                            description="This will permanently remove the website from monitoring. This action cannot be undone."
+                                            itemName={cleanWebsiteName(website.name)}
+                                            isLoading={deletingWebsites.has(website._id)}
+                                            onConfirm={async () => {
+                                              setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                              try {
+                                                await deleteWebsite({ websiteId: website._id })
+                                              } catch (error) {
+                                                throw new Error('Failed to delete website. Please try again.')
+                                              } finally {
+                                                setDeletingWebsites(prev => {
+                                                  const newSet = new Set(prev)
+                                                  newSet.delete(website._id)
+                                                  return newSet
+                                                })
+                                              }
+                                            }}
+                                          />
+                                        </Tooltip>
                                       </div>
                                     </div>
                                   </div>
                                   
                                   {/* Compliance Topic Info - Bottom */}
                                   {website.complianceMetadata?.isComplianceWebsite && (
-                                    <div>
+                                    <div className="mt-3 space-y-2">
                                       {/* Tags */}
                                       <div className="flex items-center gap-2">
                                         <TopicBadge 
@@ -1833,210 +1868,58 @@ export default function HomePage() {
                                       
                                       {/* URL below tag */}
                                       <div>
-                                        <a 
-                                          href={website.url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
-                                        >
-                                          <span className="truncate">{website.url}</span>
-                                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                                        </a>
+                                        <Tooltip content={website.url}>
+                                          <a 
+                                            href={website.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
+                                          >
+                                            <span className="truncate">{website.url}</span>
+                                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                          </a>
+                                        </Tooltip>
                                       </div>
                                       
                                       {/* Check Info with Button */}
-                                      <div className="flex items-center justify-between">
+                                      <div className="flex items-center justify-between pt-1">
                                         <div className="flex items-center gap-3 text-xs text-gray-500">
-                                          <span>{formatInterval(website.checkInterval)}</span>
-                                          <span>{formatTimeAgo(website.lastChecked)}</span>
+                                          <Tooltip content="Check interval" side="top">
+                                            <span>{formatInterval(website.checkInterval)}</span>
+                                          </Tooltip>
+                                          <Tooltip content="Last checked" side="top">
+                                            <span>{formatTimeAgo(website.lastChecked)}</span>
+                                          </Tooltip>
                                         </div>
-                                        <Button 
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCheckNow(website._id)
-                                          }}
-                                          disabled={isProcessing}
-                                          className="gap-1"
-                                        >
-                                          {isProcessing ? (
-                                            <>
-                                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                              {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
-                                            </>
-                                          ) : (
-                                            <>
-                                              <RefreshCw className="mr-1 h-3 w-3" />
-                                              Check Now
-                                            </>
-                                          )}
-                                        </Button>
+                                        <Tooltip content={isProcessing ? 'Checking for changes...' : 'Check now for changes'}>
+                                          <Button 
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCheckNow(website._id)
+                                            }}
+                                            disabled={isProcessing}
+                                            className="gap-1"
+                                          >
+                                            {isProcessing ? (
+                                              <>
+                                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                                {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
+                                              </>
+                                            ) : (
+                                              <>
+                                                <RefreshCw className="mr-1 h-3 w-3" />
+                                                Check Now
+                                              </>
+                                            )}
+                                          </Button>
+                                        </Tooltip>
                                       </div>
                                     </div>
                                   )}
                                 </div>
                                 
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="text-lg font-medium text-gray-900">{cleanWebsiteName(website.name)}</h4>
-                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
-                                          website.monitorType === 'full_site' 
-                                            ? 'bg-orange-100 text-orange-700' 
-                                            : 'bg-gray-100 text-gray-700'
-                                        }`}>
-                                          {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
-                                        </span>
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                          website.isPaused 
-                                            ? 'bg-yellow-100 text-yellow-700'
-                                            : website.isActive 
-                                            ? 'bg-green-100 text-green-700' 
-                                            : 'bg-gray-100 text-gray-500'
-                                        }`}>
-                                          {website.isPaused ? 'Paused' : website.isActive ? 'Active' : 'Inactive'}
-                                        </span>
-                                      </div>
-                                      <Tooltip content={website.url}>
-                                        <a 
-                                          href={website.url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer" 
-                                          className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-md"
-                                        >
-                                          <span className="truncate">{website.url}</span>
-                                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                                        </a>
-                                      </Tooltip>
-                                    </div>
-                                    
-                                    {/* Action buttons */}
-                                    <div className="flex items-center gap-1">
-                                      <Button 
-                                        variant="default" 
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          pauseWebsite({ 
-                                            websiteId: website._id, 
-                                            isPaused: !website.isPaused 
-                                          })
-                                        }}
-                                        title={website.isPaused ? "Resume monitoring" : "Pause monitoring"}
-                                        className="w-8 h-8 p-0"
-                                      >
-                                        {website.isPaused ? (
-                                          <Play className="h-4 w-4" />
-                                        ) : (
-                                          <Pause className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                      <Button 
-                                        variant="default" 
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingWebsiteId(website._id)
-                                          setShowWebhookModal(true)
-                                        }}
-                                        title="Settings"
-                                        className="w-8 h-8 p-0"
-                                      >
-                                        <Settings2 className="h-4 w-4" />
-                                      </Button>
-
-                                      <DeleteConfirmationPopover
-                                        trigger={
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            title="Remove"
-                                            className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                            disabled={deletingWebsites.has(website._id)}
-                                          >
-                                            {deletingWebsites.has(website._id) ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <X className="h-4 w-4" />
-                                            )}
-                                          </Button>
-                                        }
-                                        title="Delete Website"
-                                        description="This will permanently remove the website from monitoring. This action cannot be undone."
-                                        itemName={cleanWebsiteName(website.name)}
-                                        isLoading={deletingWebsites.has(website._id)}
-                                        onConfirm={async () => {
-                                          setDeletingWebsites(prev => new Set([...prev, website._id]))
-                                          try {
-                                            await deleteWebsite({ websiteId: website._id })
-                                          } catch (error) {
-                                            throw new Error('Failed to delete website. Please try again.')
-                                          } finally {
-                                            setDeletingWebsites(prev => {
-                                              const newSet = new Set(prev)
-                                              newSet.delete(website._id)
-                                              return newSet
-                                            })
-                                          }
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Status info */}
-                                  {(!website.isPaused && latestScrape) && (
-                                    <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                                      <div className="flex items-center gap-3">
-                                        {(newlyCreatedWebsites.has(website._id) || isProcessing) ? (
-                                          <div className="flex items-center gap-1">
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                            <span>{newlyCreatedWebsites.has(website._id) ? 'Setting up monitoring...' : 'Checking for changes...'}</span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center gap-1">
-                                            {hasChanged ? (
-                                              <>
-                                                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                                                <span>Changes detected</span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                                <span>No changes</span>
-                                              </>
-                                            )}
-                                          </div>
-                                        )}
-                                        <span>Checked {formatTimeAgo(website.lastChecked)}</span>
-                                        <span>Every {formatInterval(website.checkInterval)}</span>
-                                      </div>
-                                      <Button 
-                                        variant="default"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCheckNow(website._id)
-                                        }}
-                                        disabled={isProcessing}
-                                        className="text-xs"
-                                      >
-                                        {isProcessing ? (
-                                          <>
-                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                            {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
-                                          </>
-                                        ) : (
-                                          <>
-                                            <RefreshCw className="mr-1 h-3 w-3" />
-                                            Check Now
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
                               </div>
                             </div>
                           )

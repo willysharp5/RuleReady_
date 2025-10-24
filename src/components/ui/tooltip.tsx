@@ -10,27 +10,46 @@ interface TooltipProps {
 
 export function Tooltip({ content, children, side = "top", className }: TooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false)
+  const [position, setPosition] = React.useState({ x: 0, y: 0 })
+  const triggerRef = React.useRef<HTMLDivElement>(null)
+
+  const updatePosition = React.useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      setPosition({ 
+        x: rect.left + rect.width / 2, 
+        y: side === "top" ? rect.top : rect.bottom 
+      })
+    }
+  }, [side])
+
+  const handleMouseEnter = () => {
+    setIsVisible(true)
+    updatePosition()
+  }
 
   return (
-    <div 
-      className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-    >
-      {children}
+    <>
+      <div 
+        ref={triggerRef}
+        className="relative inline-block"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
       {isVisible && (
         <div
           className={cn(
-            "absolute z-50 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg whitespace-nowrap",
+            "fixed z-[9999] px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg whitespace-nowrap pointer-events-none",
             "transition-opacity duration-200",
-            {
-              "bottom-full left-1/2 transform -translate-x-1/2 mb-2": side === "top",
-              "top-full left-1/2 transform -translate-x-1/2 mt-2": side === "bottom",
-              "right-full top-1/2 transform -translate-y-1/2 mr-2": side === "left",
-              "left-full top-1/2 transform -translate-y-1/2 ml-2": side === "right",
-            },
             className
           )}
+          style={{
+            left: position.x,
+            top: side === "top" ? position.y - 8 : position.y + 8,
+            transform: "translateX(-50%)" + (side === "top" ? " translateY(-100%)" : "")
+          }}
         >
           {content}
           {/* Arrow */}
@@ -47,6 +66,6 @@ export function Tooltip({ content, children, side = "top", className }: TooltipP
           />
         </div>
       )}
-    </div>
+    </>
   )
 }
