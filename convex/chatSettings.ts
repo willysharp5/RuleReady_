@@ -12,13 +12,18 @@ export const updateChatSettings = mutation({
     enableSemanticSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    // Get existing settings
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    // Single-user mode: skip authentication
+    const user = await getCurrentUser(ctx);
+    
+    // Get existing settings (single-user mode: get first settings record)
+    const existingSettings = user ? 
+      await ctx.db
+        .query("userSettings")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .first() :
+      await ctx.db
+        .query("userSettings")
+        .first();
 
     const now = Date.now();
 
@@ -33,9 +38,9 @@ export const updateChatSettings = mutation({
         updatedAt: now,
       });
     } else {
-      // Create new settings
+      // Create new settings (single-user mode: use placeholder or skip userId)
       await ctx.db.insert("userSettings", {
-        userId: user._id,
+        userId: user?._id || ("single-user" as any),
         defaultWebhookUrl: undefined,
         emailNotificationsEnabled: true,
         emailTemplate: undefined,
@@ -65,20 +70,16 @@ export const updateChatSettings = mutation({
 export const getChatSettings = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) {
-      return {
-        chatSystemPrompt: "You are a professional compliance assistant specializing in US employment law.",
-        chatModel: "gemini-2.0-flash-exp",
-        enableComplianceContext: true,
-        maxContextReports: 5,
-        enableSemanticSearch: true,
-      };
-    }
-
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    
+    // Get settings (single-user mode: get first settings record if no user)
+    const settings = user ?
+      await ctx.db
+        .query("userSettings")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .first() :
+      await ctx.db
+        .query("userSettings")
+        .first();
 
     if (!settings) {
       return {

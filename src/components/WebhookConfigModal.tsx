@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Mail, Copy, Check, Network, FileText, FlaskConical, Zap, AlertCircle, Timer, Turtle, Scale, MapPin } from 'lucide-react'
+import { X, Mail, Copy, Check, Network, FileText, FlaskConical, Zap, AlertCircle, Timer, Turtle, Scale, MapPin, AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -220,8 +220,9 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 </label>
                 {overrideInterval && (
                   <div className="mt-2">
-                    <p className="text-xs text-orange-600 mb-2">
-                      ⚠️ Manual override may affect compliance monitoring effectiveness
+                    <p className="text-xs text-orange-600 mb-2 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Manual override may affect compliance monitoring effectiveness
                     </p>
                     <Label htmlFor="priority-reason">Reason for Override</Label>
                     <Input
@@ -283,18 +284,21 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
                 <option value="10080">7 days</option>
               </Select>
               {isComplianceWebsite && !overrideInterval && (
-                <p className="text-xs text-blue-600 mt-1">
-                  ℹ️ Interval automatically set based on compliance priority above
+                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Interval automatically set based on compliance priority above
                 </p>
               )}
               {isComplianceWebsite && overrideInterval && (
                 <div className="mt-1 space-y-1">
-                  <p className="text-xs text-orange-600">
-                    ⚠️ Using manual interval override - ensure appropriate for compliance monitoring
+                  <p className="text-xs text-orange-600 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Using manual interval override - ensure appropriate for compliance monitoring
                   </p>
                   {(checkInterval === "0.25" || checkInterval === "1") && (
-                    <p className="text-xs text-blue-600">
-                      🧪 Testing interval selected - remember to adjust for production use
+                    <p className="text-xs text-blue-600 flex items-center gap-1">
+                      <FlaskConical className="h-3 w-3" />
+                      Testing interval selected - remember to adjust for production use
                     </p>
                   )}
                 </div>

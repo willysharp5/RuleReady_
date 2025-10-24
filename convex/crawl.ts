@@ -14,20 +14,18 @@ import { getFirecrawlClient } from "./firecrawl";
 export const performCrawl = internalAction({
   args: {
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
+    // Removed userId - not needed in single-user mode
   },
   handler: async (ctx, args) => {
-    // Skip legacy crawling in compliance mode - use compliance-specific crawler instead
-    if (FEATURES.complianceMode) {
-      console.log("Legacy crawling disabled in compliance mode - use complianceCrawler instead");
-      return;
-    }
+    // Legacy crawling completely disabled in single-user mode
+    console.log("Legacy crawling disabled in single-user mode - use complianceCrawler instead");
+    return { success: true, message: "Legacy crawling disabled" };
     // Starting crawl for website
     
     // Get website details
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
-      userId: args.userId || undefined,
+      // userId removed for single-user mode
     });
 
     if (!website || website.monitorType !== "full_site") {
@@ -44,12 +42,12 @@ export const performCrawl = internalAction({
     // Create crawl session
     const sessionId = await ctx.runMutation(internal.crawl.createCrawlSession, {
       websiteId: args.websiteId,
-      userId: args.userId || undefined,
+      // userId removed for single-user mode
     });
 
     try {
       // Perform the crawl using Firecrawl
-      const firecrawl = await getFirecrawlClient(ctx, args.userId);
+      const firecrawl = await getFirecrawlClient(ctx, null);
       
       // Initiating Firecrawl crawl
       
@@ -80,7 +78,6 @@ export const performCrawl = internalAction({
           sessionId,
           jobId,
           websiteId: args.websiteId,
-          userId: args.userId || undefined,
           attempt: 1,
         });
         
@@ -104,7 +101,7 @@ export const performCrawl = internalAction({
           console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
           // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
           //   websiteId: args.websiteId,
-          //   userId: args.userId || undefined,
+          //   // userId removed for single-user mode
           //   markdown: page.markdown,
           //   changeStatus: page.changeTracking?.changeStatus || "new",
           //   visibility: page.changeTracking?.visibility || "visible",
@@ -127,7 +124,7 @@ export const performCrawl = internalAction({
           // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
           //   await ctx.runMutation(internal.websites.createChangeAlert, {
           //     websiteId: args.websiteId,
-          //     userId: args.userId || undefined,
+          //     // userId removed for single-user mode
           //     scrapeResultId: scrapeResultId,
           //     changeType: "content_changed",
           //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
@@ -161,12 +158,12 @@ export const performCrawl = internalAction({
 export const createCrawlSession = internalMutation({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    // Removed userId - not needed in single-user mode
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("crawlSessions", {
       websiteId: args.websiteId,
-      userId: args.userId || undefined,
+      userId: "single-user-mode" as Id<"users">, // Dummy value for schema compatibility
       startedAt: Date.now(),
       status: "running",
       pagesFound: 0,
@@ -218,12 +215,12 @@ export const failCrawlSession = internalMutation({
 export const checkCrawledPages = internalAction({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    // userId removed for single-user mode
   },
   handler: async (ctx, args): Promise<{ pagesChecked: number; errors: number } | undefined> => {
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
-      userId: args.userId || undefined,
+      // userId removed for single-user mode
     });
 
     if (!website) return;
@@ -234,7 +231,7 @@ export const checkCrawledPages = internalAction({
       // Perform a full crawl to discover any new pages
       await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId: args.websiteId,
-        userId: args.userId || undefined,
+        // userId removed for single-user mode
       });
       
       return { 
@@ -247,7 +244,7 @@ export const checkCrawledPages = internalAction({
     await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
       websiteId: args.websiteId,
       url: website.url,
-      userId: args.userId || undefined,
+      // userId removed for single-user mode
     });
 
     return { 
@@ -287,19 +284,17 @@ export const checkCrawlJobStatus = internalAction({
     sessionId: v.id("crawlSessions"),
     jobId: v.string(),
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    // userId removed for single-user mode
     attempt: v.number(),
   },
   handler: async (ctx, args) => {
-    // Skip legacy crawl status in compliance mode
-    if (FEATURES.complianceMode) {
-      console.log("Legacy crawl status checking disabled in compliance mode");
-      return;
-    }
+    // Legacy crawl status checking completely disabled in single-user mode
+    console.log("Legacy crawl status checking disabled in single-user mode");
+    return { success: true, message: "Legacy crawl status disabled" };
     console.log(`Checking crawl job status: ${args.jobId} (attempt ${args.attempt})`);
     
     try {
-      const firecrawl = await getFirecrawlClient(ctx, args.userId);
+      const firecrawl = await getFirecrawlClient(ctx, null);
       
       // Check job status
       const status = await firecrawl.checkCrawlStatus(args.jobId) as any;
@@ -320,7 +315,7 @@ export const checkCrawlJobStatus = internalAction({
             console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
             // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
             //   websiteId: args.websiteId,
-            //   userId: args.userId || undefined,
+            //   // userId removed for single-user mode
             //   markdown: page.markdown,
             //   changeStatus: page.changeTracking?.changeStatus || "new",
             //   visibility: page.changeTracking?.visibility || "visible",
@@ -343,7 +338,7 @@ export const checkCrawlJobStatus = internalAction({
             // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
             //   await ctx.runMutation(internal.websites.createChangeAlert, {
             //     websiteId: args.websiteId,
-            //     userId: args.userId || undefined,
+            //     // userId removed for single-user mode
             //     scrapeResultId: scrapeResultId,
             //     changeType: "content_changed",
             //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
@@ -370,10 +365,9 @@ export const checkCrawlJobStatus = internalAction({
         if (args.attempt < 60) { // Max 10 minutes of checking
           await ctx.scheduler.runAfter(10000, internal.crawl.checkCrawlJobStatus, {
             sessionId: args.sessionId,
-            jobId: args.jobId,
-            websiteId: args.websiteId,
-            userId: args.userId || undefined,
-            attempt: args.attempt + 1,
+          jobId: args.jobId,
+          websiteId: args.websiteId,
+          attempt: args.attempt + 1,
           });
         } else {
           throw new Error("Crawl job timed out after 10 minutes");

@@ -1,4 +1,4 @@
-import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical } from "lucide-react"
+import { Info, Clock, AlertTriangle, CheckCircle, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, FileText, MapPin } from "lucide-react"
 import { Tooltip } from "./ui/tooltip"
 import { Badge } from "./ui/badge"
 
@@ -177,7 +177,9 @@ export function TopicBadge({ topicKey, topicName }: {
     <Tooltip 
       content={
         <div className="max-w-sm">
-          <div className="font-medium mb-1">📋 {topicName}</div>
+          <div className="font-medium mb-1">
+            {topicName}
+          </div>
           <div className="text-xs mb-2">{info.description}</div>
           <div className="text-xs mb-2">
             <strong>Category:</strong> {info.category}
@@ -189,7 +191,7 @@ export function TopicBadge({ topicKey, topicName }: {
       }
     >
       <Badge variant="outline" className="cursor-help">
-        📋 {topicName}
+        {topicName}
       </Badge>
     </Tooltip>
   )
@@ -284,7 +286,10 @@ export function JurisdictionInfo({ jurisdiction }: { jurisdiction: string }) {
     <Tooltip 
       content={
         <div className="max-w-sm">
-          <div className="font-medium mb-1">📍 {jurisdiction}</div>
+          <div className="font-medium mb-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {jurisdiction}
+          </div>
           <div className="text-xs mb-2">{info.description}</div>
           <div className="text-xs mb-1">
             <strong>Scope:</strong> {info.scope}
@@ -298,8 +303,9 @@ export function JurisdictionInfo({ jurisdiction }: { jurisdiction: string }) {
         </div>
       }
     >
-      <span className="text-blue-600 cursor-help hover:text-blue-800">
-        📍 {jurisdiction}
+      <span className="text-blue-600 cursor-help hover:text-blue-800 flex items-center gap-1">
+        <MapPin className="h-3 w-3" />
+        {jurisdiction}
       </span>
     </Tooltip>
   )

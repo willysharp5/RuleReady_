@@ -1,51 +1,43 @@
 import { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { api } from "./_generated/api";
+
+// Single-user mode: No authentication required
+// All functions return null or dummy values to bypass auth checks
 
 export async function getCurrentUser(
   ctx: QueryCtx | MutationCtx
 ): Promise<Doc<"users"> | null> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    return null;
-  }
-
-  // The subject contains "userId|sessionId", we need to extract the userId
-  const [userId] = identity.subject.split("|");
-  
-  const user = await ctx.db.get(userId as Id<"users">);
-  return user;
+  // Single-user mode: always return null (no user required)
+  return null;
 }
 
 export async function requireCurrentUser(
   ctx: QueryCtx | MutationCtx
 ): Promise<Doc<"users">> {
-  const user = await getCurrentUser(ctx);
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-  return user;
+  // Single-user mode: throw error to indicate this function should not be used
+  throw new Error("Authentication disabled in single-user mode. Use getCurrentUser() and handle null case.");
 }
 
 export async function getCurrentUserForAction(
   ctx: ActionCtx
 ): Promise<Id<"users"> | null> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    return null;
-  }
-
-  // The subject contains "userId|sessionId", we need to extract the userId
-  const [userId] = identity.subject.split("|");
-  return userId as Id<"users">;
+  // Single-user mode: always return null (no user required)
+  return null;
 }
 
 export async function requireCurrentUserForAction(
   ctx: ActionCtx
 ): Promise<Id<"users">> {
-  const userId = await getCurrentUserForAction(ctx);
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-  return userId;
+  // Single-user mode: throw error to indicate this function should not be used
+  throw new Error("Authentication disabled in single-user mode. Use getCurrentUserForAction() and handle null case.");
+}
+
+// Helper function to get a dummy user ID when needed for database operations
+export function getDummyUserId(): Id<"users"> {
+  return "single-user-mode" as Id<"users">;
+}
+
+// Helper function to check if we're in single-user mode (always true now)
+export function isSingleUserMode(): boolean {
+  return true;
 }

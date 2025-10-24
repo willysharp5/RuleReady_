@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText, Monitor, File, CheckCircle2 } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -16,10 +16,12 @@ import { APP_CONFIG } from '@/config/app.config'
 import { validateEmail, validatePassword } from '@/lib/validation'
 import { useToast } from '@/hooks/use-toast'
 import { LoadingOverlay } from '@/components/ui/loading-overlay'
-import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo, JurisdictionInfo } from '@/components/ComplianceInfo'
+import { PriorityBadge, TopicBadge, PriorityExplanationPanel, MonitoringStatusInfo } from '@/components/ComplianceInfo'
+import { Tooltip } from '@/components/ui/tooltip'
 import { ComplianceGuide } from '@/components/ComplianceGuide'
 import { MonitoringStatus } from '@/components/MonitoringStatus'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
+import { ChangeTrackingPopover } from '@/components/ui/change-tracking-popover'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -56,6 +58,12 @@ function getFallbackFaviconUrl(url: string): string {
   } catch {
     return '/ruleready-icon.svg'; // Use local fallback
   }
+}
+
+// Helper function to clean website name by removing priority prefixes
+function cleanWebsiteName(name: string): string {
+  // Remove priority prefixes like [CRITICAL], [HIGH], [MEDIUM], [LOW], [TEST]
+  return name.replace(/^\[(CRITICAL|HIGH|MEDIUM|LOW|TEST)\]\s*/, '');
 }
 
 export default function HomePage() {
@@ -727,10 +735,10 @@ export default function HomePage() {
                       </div>
                       
                       {/* Compliance Filters */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {/* Jurisdiction Filter */}
                         <select 
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          className="px-2 py-1 border border-gray-300 rounded text-xs min-w-0 flex-shrink-0"
                           value={selectedJurisdiction}
                           onChange={(e) => setSelectedJurisdiction(e.target.value)}
                         >
@@ -741,76 +749,45 @@ export default function HomePage() {
                         </select>
                         
                         {/* Priority Filter */}
-                        <div className="relative">
-                          <select 
-                            className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full"
-                            value={selectedPriority}
-                            onChange={(e) => setSelectedPriority(e.target.value)}
-                          >
-                            <option value="">All Priorities</option>
-                            <optgroup label="Production">
-                              <option value="critical">Critical (Daily checks)</option>
-                              <option value="high">High (Every 2 days)</option>
-                              <option value="medium">Medium (Weekly)</option>
-                              <option value="low">Low (Monthly)</option>
-                            </optgroup>
-                            <optgroup label="Testing">
-                              <option value="testing">Testing (15 seconds)</option>
-                            </optgroup>
-                          </select>
-                          <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <Info className="h-3 w-3 text-gray-400" />
-                          </div>
-                        </div>
+                        <select 
+                          className="px-2 py-1 border border-gray-300 rounded text-xs min-w-0 flex-shrink-0"
+                          value={selectedPriority}
+                          onChange={(e) => setSelectedPriority(e.target.value)}
+                        >
+                          <option value="">All Priorities</option>
+                          <option value="critical">Critical</option>
+                          <option value="high">High</option>
+                          <option value="medium">Medium</option>
+                          <option value="low">Low</option>
+                          <option value="testing">Testing</option>
+                        </select>
                         
                         {/* Topic Filter */}
-                        <div className="relative">
-                          <select 
-                            className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full"
-                            value={selectedTopic}
-                            onChange={(e) => setSelectedTopic(e.target.value)}
-                          >
-                            <option value="">All Topics</option>
-                            <optgroup label="Wages & Hours">
-                              <option value="minimum_wage">Minimum Wage</option>
-                              <option value="overtime">Overtime & Hours</option>
-                              <option value="pay_frequency">Pay Frequency</option>
-                              <option value="meal_rest_breaks">Meal & Rest Breaks</option>
-                            </optgroup>
-                            <optgroup label="Leave & Benefits">
-                              <option value="paid_sick_leave">Paid Sick Leave</option>
-                              <option value="family_medical_leave">Family Medical Leave</option>
-                              <option value="jury_duty_leave">Jury Duty Leave</option>
-                              <option value="bereavement_leave">Bereavement Leave</option>
-                            </optgroup>
-                            <optgroup label="Safety & Training">
-                              <option value="harassment_training">Harassment Training</option>
-                              <option value="workplace_safety">Workplace Safety</option>
-                              <option value="workers_comp">Workers Compensation</option>
-                            </optgroup>
-                            <optgroup label="Employment Practices">
-                              <option value="background_checks">Background Checks</option>
-                              <option value="posting_requirements">Posting Requirements</option>
-                              <option value="everify">E-Verify</option>
-                            </optgroup>
-                            <optgroup label="Emerging Issues">
-                              <option value="biometric_privacy">Biometric Privacy</option>
-                              <option value="pregnancy_accommodation">Pregnancy Accommodation</option>
-                              <option value="domestic_violence_leave">Domestic Violence Leave</option>
-                            </optgroup>
-                          </select>
-                          <div className="absolute right-8 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <Scale className="h-3 w-3 text-gray-400" />
-                          </div>
-                        </div>
+                        <select 
+                          className="px-2 py-1 border border-gray-300 rounded text-xs min-w-0 flex-shrink-0"
+                          value={selectedTopic}
+                          onChange={(e) => setSelectedTopic(e.target.value)}
+                        >
+                          <option value="">All Topics</option>
+                          <option value="minimum_wage">Minimum Wage</option>
+                          <option value="overtime">Overtime</option>
+                          <option value="paid_sick_leave">Sick Leave</option>
+                          <option value="harassment_training">Harassment Training</option>
+                          <option value="workplace_safety">Workplace Safety</option>
+                          <option value="background_checks">Background Checks</option>
+                          <option value="workers_comp">Workers Comp</option>
+                          <option value="posting_requirements">Posting Requirements</option>
+                          <option value="family_medical_leave">Family Leave</option>
+                          <option value="biometric_privacy">Biometric Privacy</option>
+                        </select>
                         
                         {/* Compliance Only Toggle */}
-                        <label className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer">
+                        <label className="flex items-center px-2 py-1 border border-gray-300 rounded text-xs cursor-pointer min-w-0 flex-shrink-0">
                           <input
                             type="checkbox"
                             checked={showComplianceOnly}
                             onChange={(e) => setShowComplianceOnly(e.target.checked)}
-                            className="mr-2"
+                            className="mr-1 w-3 h-3"
                           />
                           Compliance Only
                         </label>
@@ -818,11 +795,10 @@ export default function HomePage() {
                       
                       {/* Filter Summary */}
                       {(selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly) && (
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-1 pt-2">
                           <span className="text-xs text-gray-500">Filters:</span>
                           {selectedJurisdiction && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                              <MapPin className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
                               {selectedJurisdiction}
                               <button 
                                 onClick={() => setSelectedJurisdiction('')}
@@ -831,12 +807,7 @@ export default function HomePage() {
                             </span>
                           )}
                           {selectedPriority && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-                              {selectedPriority === 'testing' ? <FlaskConical className="h-3 w-3 mr-1" /> :
-                               selectedPriority === 'critical' ? <Zap className="h-3 w-3 mr-1" /> : 
-                               selectedPriority === 'high' ? <AlertCircle className="h-3 w-3 mr-1" /> : 
-                               selectedPriority === 'medium' ? <Timer className="h-3 w-3 mr-1" /> : 
-                               <Turtle className="h-3 w-3 mr-1" />}
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-orange-100 text-orange-800">
                               {selectedPriority}
                               <button 
                                 onClick={() => setSelectedPriority('')}
@@ -845,8 +816,7 @@ export default function HomePage() {
                             </span>
                           )}
                           {selectedTopic && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                              <FileText className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">
                               {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
                               <button 
                                 onClick={() => setSelectedTopic('')}
@@ -855,8 +825,7 @@ export default function HomePage() {
                             </span>
                           )}
                           {showComplianceOnly && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                              <Scale className="h-3 w-3 mr-1" />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
                               Compliance Only
                               <button 
                                 onClick={() => setShowComplianceOnly(false)}
@@ -882,7 +851,7 @@ export default function HomePage() {
                 </div>
                     
                     {/* Website List */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y-2 divide-gray-300">
                       {(() => {
                         // Show loading state while websites is undefined
                         if (!websites) {
@@ -900,7 +869,7 @@ export default function HomePage() {
                           // Search query filter
                           if (searchQuery) {
                             const query = searchQuery.toLowerCase()
-                            const matchesSearch = website.name.toLowerCase().includes(query) || 
+                            const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
                                                 website.url.toLowerCase().includes(query)
                             if (!matchesSearch) return false
                           }
@@ -1035,7 +1004,7 @@ export default function HomePage() {
                   return (
                     <div 
                       key={website._id}
-                      className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
+                      className={`p-4 border-b-4 border-gray-700 hover:bg-gray-50 transition-colors cursor-pointer ${
                         isProcessing 
                           ? 'bg-orange-50' 
                           : isDeleting
@@ -1070,109 +1039,115 @@ export default function HomePage() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-base font-medium text-gray-900">{website.name}</h4>
-                                
-                                {/* Compliance Priority Badge */}
-                                {website.complianceMetadata?.isComplianceWebsite && (
-                                  <PriorityBadge priority={website.complianceMetadata.priority} />
-                                )}
-                                
-                                {/* Monitor Type Badge */}
-                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
-                                  website.monitorType === 'full_site' 
-                                    ? 'bg-orange-100 text-orange-700' 
-                                    : 'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {website.monitorType === 'full_site' ? 'Full Site' : 'Single Page'}
-                                </span>
-                                
-                                {/* Monitoring Status */}
-                                <MonitoringStatusInfo status={
-                                  website.isPaused ? 'paused' : website.isActive ? 'active' : 'inactive'
-                                } />
+                              {/* Card Title */}
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-900">{cleanWebsiteName(website.name)}</h3>
                               </div>
-                              
-                              {/* Compliance Topic Info */}
-                              {website.complianceMetadata?.isComplianceWebsite && (
-                                <div className="flex items-center gap-2 mb-2">
-                                  <JurisdictionInfo jurisdiction={website.complianceMetadata.jurisdiction} />
-                                  <TopicBadge 
-                                    topicKey={website.complianceMetadata.topicKey}
-                                    topicName={website.name.split(' - ')[1] || website.complianceMetadata.topicKey}
-                                  />
-                                  <span className="text-xs text-gray-500">
-                                    Check interval: {formatInterval(website.checkInterval)}
-                                  </span>
-                                </div>
-                              )}
-                              <a 
-                                href={website.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
-                              >
-                                {website.url}
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
                             </div>
                             
-                            {/* Action buttons */}
-                            <div className="flex items-center gap-1">
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    pauseWebsite({ 
-                                      websiteId: website._id, 
-                                      isPaused: !website.isPaused 
-                                    })
-                                  }}
-                                  title={website.isPaused ? "Resume monitoring" : "Pause monitoring"}
-                                  className="w-8 h-8 p-0"
-                                >
-                                  {website.isPaused ? (
-                                    <Play className="h-4 w-4" />
+                            <div className="flex flex-col items-end gap-1">
+                              {/* Status Icons - Top Right, Horizontal */}
+                              <div className="flex items-center gap-1">
+                                {/* Priority Icon */}
+                                {website.complianceMetadata?.isComplianceWebsite && (
+                                  <Tooltip content={`${website.complianceMetadata.priority} priority - ${
+                                    website.complianceMetadata.priority === 'critical' ? 'Daily checks' :
+                                    website.complianceMetadata.priority === 'high' ? 'Every 2 days' :
+                                    website.complianceMetadata.priority === 'medium' ? 'Weekly' :
+                                    website.complianceMetadata.priority === 'low' ? 'Monthly' : 'Testing'
+                                  }`}>
+                                    <div className={`w-4 h-4 rounded-full ${
+                                      website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
+                                      website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
+                                      website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
+                                      website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
+                                    }`} />
+                                  </Tooltip>
+                                )}
+                                
+                                {/* Monitor Type Icon */}
+                                <Tooltip content={website.monitorType === 'full_site' ? 'Full Site Monitoring' : 'Single Page Monitoring'}>
+                                  {website.monitorType === 'full_site' ? (
+                                    <Monitor className="w-4 h-4 text-orange-600" />
                                   ) : (
-                                    <Pause className="h-4 w-4" />
+                                    <File className="w-4 h-4 text-gray-600" />
                                   )}
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingWebsiteId(website._id)
-                                    setShowWebhookModal(true)
-                                  }}
-                                  title="Settings"
-                                  className="w-8 h-8 p-0"
-                                >
-                                  <Settings2 className="h-4 w-4" />
-                                </Button>
+                                </Tooltip>
+                                
+                                {/* Status Icon */}
+                                <Tooltip content={
+                                  website.isPaused ? 'Monitoring Paused' : 
+                                  website.isActive ? 'Actively Monitoring' : 'Inactive'
+                                }>
+                                  {website.isPaused ? (
+                                    <Pause className="w-4 h-4 text-yellow-600" />
+                                  ) : website.isActive ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  ) : (
+                                    <Clock className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </Tooltip>
+                              </div>
+                              
+                              {/* Action buttons */}
+                              <div className="flex items-center gap-1">
+                                <Tooltip content={website.isPaused ? "Resume monitoring" : "Pause monitoring"}>
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      pauseWebsite({ 
+                                        websiteId: website._id, 
+                                        isPaused: !website.isPaused 
+                                      })
+                                    }}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    {website.isPaused ? (
+                                      <Play className="h-4 w-4" />
+                                    ) : (
+                                      <Pause className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip content="Settings">
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingWebsiteId(website._id)
+                                      setShowWebhookModal(true)
+                                    }}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    <Settings2 className="h-4 w-4" />
+                                  </Button>
+                                </Tooltip>
 
                                 <DeleteConfirmationPopover
                                   trigger={
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      title="Remove"
-                                      className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                      disabled={deletingWebsites.has(website._id)}
-                                    >
-                                      {deletingWebsites.has(website._id) ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <X className="h-4 w-4" />
-                                      )}
-                                    </Button>
+                                    <Tooltip content="Remove website">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                        disabled={deletingWebsites.has(website._id)}
+                                      >
+                                        {deletingWebsites.has(website._id) ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <X className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </Tooltip>
                                   }
                                   title="Delete Website"
                                   description="This will permanently remove the website from monitoring. This action cannot be undone."
-                                  itemName={website.name}
+                                  itemName={cleanWebsiteName(website.name)}
                                   isLoading={deletingWebsites.has(website._id)}
                                   onConfirm={async () => {
                                     setDeletingWebsites(prev => new Set([...prev, website._id]))
@@ -1189,63 +1164,82 @@ export default function HomePage() {
                                     }
                                   }}
                                 />
+                              </div>
                             </div>
                           </div>
                           
                           {/* Bottom row with status */}
                           {isProcessing ? (
-                            <div className="mt-2 flex items-center gap-2 text-orange-600">
+                            <div className="mt-1 flex items-center gap-2 text-orange-600">
                               <RefreshCw className="w-3 h-3 animate-spin" />
                               <span className="text-xs">
                                 {newlyCreatedWebsites.has(website._id) 
-                                  ? 'Setting up monitoring...' 
-                                  : 'Checking for changes...'
+                                  ? 'Setting up...' 
+                                  : 'Checking...'
                                 }
                               </span>
                             </div>
                           ) : (
-                            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center">
+                              <div className="flex items-center gap-2">
                                 {latestScrape && latestScrape.changeStatus !== 'new' && (
-                                  <div className="flex items-center gap-1">
-                                    {hasChanged ? (
-                                      <>
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                                        <span>Changes detected</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span>No changes</span>
-                                      </>
-                                    )}
-                                  </div>
+                                  <Tooltip content={hasChanged ? 'Changes detected in last check' : 'No changes detected'}>
+                                    <div className={`w-2 h-2 rounded-full ${hasChanged ? 'bg-orange-500' : 'bg-green-500'}`} />
+                                  </Tooltip>
                                 )}
-                                <span>Checked {formatTimeAgo(website.lastChecked)}</span>
-                                <span>Every {formatInterval(website.checkInterval)}</span>
                               </div>
-                              <Button 
-                                variant="default"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCheckNow(website._id)
-                                }}
-                                disabled={isProcessing}
-                                className="text-xs"
-                              >
-                                {isProcessing ? (
-                                  <>
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
-                                  </>
-                                ) : (
-                                  <>
-                                    <RefreshCw className="mr-1 h-3 w-3" />
-                                    Check Now
-                                  </>
-                                )}
-                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* Compliance Topic Info - Bottom */}
+                          {website.complianceMetadata?.isComplianceWebsite && (
+                            <div>
+                              {/* Tags */}
+                              <div className="flex items-center gap-2">
+                                <TopicBadge 
+                                  topicKey={website.complianceMetadata.topicKey}
+                                  topicName={cleanWebsiteName(website.name).split(' - ')[1] || website.complianceMetadata.topicKey}
+                                />
+                              </div>
+                              
+                              {/* URL below tag */}
+                              <div>
+                                <Tooltip content={website.url}>
+                                  <a 
+                                    href={website.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
+                                  >
+                                    <span className="truncate">{website.url}</span>
+                                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                  </a>
+                                </Tooltip>
+                              </div>
+                              
+                              {/* Check Info with Button */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <Tooltip content="Check interval">
+                                    <span>{formatInterval(website.checkInterval)}</span>
+                                  </Tooltip>
+                                  <Tooltip content="Last checked">
+                                    <span>{formatTimeAgo(website.lastChecked)}</span>
+                                  </Tooltip>
+                                </div>
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCheckNow(website._id)
+                                  }}
+                                  disabled={isProcessing}
+                                  className="text-xs h-6 px-2"
+                                >
+                                  Check Now
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1494,18 +1488,26 @@ export default function HomePage() {
                               ) : (
                                 <div className="w-7 h-7"></div>
                               )}
-                              {scrape.changeStatus !== 'checking' && (
-                                <Button
-                                  variant="code"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)
+                              {scrape.changeStatus !== 'checking' && scrape.markdown && (
+                                <ChangeTrackingPopover
+                                  trigger={
+                                    <button
+                                      className="w-7 h-7 p-0 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center cursor-pointer"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </button>
+                                  }
+                                  scrapeData={{
+                                    _id: scrape._id,
+                                    websiteId: scrape.websiteId,
+                                    websiteName: scrape.websiteName,
+                                    url: scrape.url,
+                                    markdown: scrape.markdown,
+                                    changeStatus: scrape.changeStatus,
+                                    scrapedAt: scrape.scrapedAt,
+                                    aiAnalysis: scrape.aiAnalysis,
                                   }}
-                                  className="w-7 h-7 p-0"
-                                >
-                                  <Download className="h-3 w-3" />
-                                </Button>
+                                />
                               )}
                             </div>
                             <div className="w-20 flex justify-end">
@@ -1657,7 +1659,7 @@ export default function HomePage() {
                       <div className="divide-y">
                         {websites.filter(website => {
                           const query = searchQuery.toLowerCase()
-                          return website.name.toLowerCase().includes(query) || 
+                          return cleanWebsiteName(website.name).toLowerCase().includes(query) || 
                                  website.url.toLowerCase().includes(query)
                         }).map((website) => {
                           const latestScrape = latestScrapes ? latestScrapes[website._id] : null;
@@ -1691,7 +1693,7 @@ export default function HomePage() {
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2">
-                                        <h4 className="text-lg font-medium text-gray-900">{website.name}</h4>
+                                        <h4 className="text-lg font-medium text-gray-900">{cleanWebsiteName(website.name)}</h4>
                                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${
                                           website.monitorType === 'full_site' 
                                             ? 'bg-orange-100 text-orange-700' 
@@ -1709,15 +1711,17 @@ export default function HomePage() {
                                           {website.isPaused ? 'Paused' : website.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                       </div>
-                                      <a 
-                                        href={website.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
-                                      >
-                                        {website.url}
-                                        <ExternalLink className="w-3 h-3" />
-                                      </a>
+                                      <Tooltip content={website.url}>
+                                        <a 
+                                          href={website.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer" 
+                                          className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-md"
+                                        >
+                                          <span className="truncate">{website.url}</span>
+                                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                        </a>
+                                      </Tooltip>
                                     </div>
                                     
                                     {/* Action buttons */}
@@ -1773,7 +1777,7 @@ export default function HomePage() {
                                         }
                                         title="Delete Website"
                                         description="This will permanently remove the website from monitoring. This action cannot be undone."
-                                        itemName={website.name}
+                                        itemName={cleanWebsiteName(website.name)}
                                         isLoading={deletingWebsites.has(website._id)}
                                         onConfirm={async () => {
                                           setDeletingWebsites(prev => new Set([...prev, website._id]))
@@ -2009,18 +2013,26 @@ export default function HomePage() {
                                     ) : (
                                       <div className="w-7 h-7"></div>
                                     )}
-                                    {scrape.changeStatus !== 'checking' && (
-                                      <Button
-                                        variant="code"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          downloadMarkdown(scrape.markdown, scrape.websiteName, scrape.scrapedAt)
+                                    {scrape.changeStatus !== 'checking' && scrape.markdown && (
+                                      <ChangeTrackingPopover
+                                        trigger={
+                                          <button
+                                            className="w-7 h-7 p-0 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center cursor-pointer"
+                                          >
+                                            <Eye className="h-3 w-3" />
+                                          </button>
+                                        }
+                                        scrapeData={{
+                                          _id: scrape._id,
+                                          websiteId: scrape.websiteId,
+                                          websiteName: scrape.websiteName,
+                                          url: scrape.url,
+                                          markdown: scrape.markdown,
+                                          changeStatus: scrape.changeStatus,
+                                          scrapedAt: scrape.scrapedAt,
+                                          aiAnalysis: scrape.aiAnalysis,
                                         }}
-                                        className="w-7 h-7 p-0"
-                                      >
-                                        <Download className="h-3 w-3" />
-                                      </Button>
+                                      />
                                     )}
                                   </div>
                                   <div className="w-20 flex justify-end">
@@ -2264,7 +2276,7 @@ export default function HomePage() {
               crawlDepth: 3
             }
           }
-          websiteName={pendingWebsite?.name || websites?.find(w => w._id === editingWebsiteId)?.name || 'Website'}
+          websiteName={pendingWebsite?.name || cleanWebsiteName(websites?.find(w => w._id === editingWebsiteId)?.name || 'Website')}
         />
       )}
       

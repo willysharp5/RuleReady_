@@ -8,58 +8,96 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, jurisdiction, topic } = body;
 
-    // Top‑K embedding retrieval for RAG context
+    // Get user's custom system prompt and settings FIRST
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
-    const lastUser = messages[messages.length - 1]?.content || "";
-    console.log(`🔍 Chat API: Processing question "${lastUser}"`);
-    let sources: unknown[] = [];
+    let userChatSettings: any = {};
     try {
-      console.log('📝 Calling embeddingTopKSources...');
-      const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
-        question: lastUser,
-        k: 5,
-        threshold: 0.3, // Lower threshold to find matches
-        jurisdiction: jurisdiction || undefined,
-        topicKey: topic || undefined,
-      });
-      sources = (res as { sources?: unknown[] })?.sources || [];
-      console.log(`📊 Chat API: Received ${sources.length} sources from embedding search`);
+      userChatSettings = await convex.query("chatSettings:getChatSettings") || {};
     } catch (e) {
-      console.error("Embedding retrieval failed:", e);
-      sources = [];
+      console.log("Could not load chat settings, using defaults");
     }
 
-    // Fallback: much lower threshold if no sources were found
-    if (!sources.length) {
-      console.log('🔄 No sources found, trying with threshold 0.1...');
+    const lastUser = messages[messages.length - 1]?.content || "";
+    console.log(`🔍 Chat API: Processing question "${lastUser}"`);
+    console.log(`⚙️ Settings: compliance=${userChatSettings.enableComplianceContext}, semantic=${userChatSettings.enableSemanticSearch}`);
+    
+    let sources: unknown[] = [];
+    
+    // Do embedding search if semantic search is enabled OR if compliance context is enabled
+    if (userChatSettings.enableSemanticSearch !== false || userChatSettings.enableComplianceContext !== false) {
       try {
-        const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
+        console.log('📝 Calling embeddingTopKSources...');
+        const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
           question: lastUser,
-          k: 5,
-          threshold: 0.1,
+          k: userChatSettings.maxContextReports || 5,
+          threshold: 0.3,
           jurisdiction: jurisdiction || undefined,
           topicKey: topic || undefined,
         });
-        sources = (resLow as { sources?: unknown[] })?.sources || [];
-        console.log(`📊 Low threshold search returned ${sources.length} sources`);
+        sources = (res as { sources?: unknown[] })?.sources || [];
+        console.log(`📊 Chat API: Received ${sources.length} sources from embedding search`);
       } catch (e) {
-        console.error("Low threshold search failed:", e);
+        console.error("Embedding retrieval failed:", e);
+        sources = [];
       }
+
+      // Fallback: much lower threshold if no sources were found
+      if (!sources.length) {
+        console.log('🔄 No sources found, trying with threshold 0.1...');
+        try {
+          const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
+            question: lastUser,
+            k: userChatSettings.maxContextReports || 5,
+            threshold: 0.1,
+            jurisdiction: jurisdiction || undefined,
+            topicKey: topic || undefined,
+          });
+          sources = (resLow as { sources?: unknown[] })?.sources || [];
+          console.log(`📊 Low threshold search returned ${sources.length} sources`);
+        } catch (e) {
+          console.error("Low threshold search failed:", e);
+        }
+      }
+    } else {
+      console.log('🚫 Both semantic search AND compliance context disabled - skipping embedding search');
     }
     
-    // Final fallback: use mock sources if embedding search completely fails
+    // If no sources found, return insufficient context response
     if (!sources.length) {
-      console.log('🧪 Using mock sources as final fallback...');
-      try {
-        const mockRes: unknown = await convex.action(api.testChatSources.getMockSources, {
-          question: lastUser,
-          k: 3,
-          jurisdiction: jurisdiction || undefined,
-          topicKey: topic || undefined,
-        });
-        sources = (mockRes as { sources?: unknown[] })?.sources || [];
-        console.log(`📊 Mock fallback returned ${sources.length} sources for ${jurisdiction || 'Federal'}`);
-      } catch {}
+      console.log('❌ No sources found, returning insufficient context response');
+      return new Response(
+        JSON.stringify({ 
+          role: 'assistant', 
+          content: `# Insufficient Context
+
+I don't have sufficient compliance data to answer your question about ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : ''}requirements.
+
+## What You Can Do
+
+- Try a different jurisdiction or topic combination
+- Check if compliance data has been imported for this area
+- Use broader search terms in your question
+- Contact your compliance team for specific guidance
+
+The system currently has limited coverage for this specific compliance area.`,
+          title: "Insufficient Context",
+          sources: [],
+          settings: {
+            systemPrompt: userChatSettings.chatSystemPrompt || "Default compliance assistant prompt",
+            model: userChatSettings.chatModel || "gemini-2.0-flash-exp",
+            complianceContext: userChatSettings.enableComplianceContext ?? true,
+            maxContextReports: userChatSettings.maxContextReports || 5,
+            semanticSearch: userChatSettings.enableSemanticSearch ?? true,
+            sourcesFound: 0,
+            jurisdiction: jurisdiction || "All Jurisdictions",
+            topic: topic || "All Topics",
+          },
+        }),
+        { 
+          status: 200, 
+          headers: { 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Type guard for source objects
@@ -69,27 +107,40 @@ export async function POST(req: NextRequest) {
       topicKey?: string;
       similarity?: number;
       sourceUrl?: string;
+      extractedSections?: {
+        overview?: string;
+        coveredEmployers?: string;
+        coveredEmployees?: string;
+        employerResponsibilities?: string;
+        trainingRequirements?: string;
+        postingRequirements?: string;
+        penalties?: string;
+        sources?: string;
+      };
     };
     
     const typedSources = sources as SourceObject[];
 
-    // Get user's custom system prompt and settings
-    const convexForSettings = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
-    let userChatSettings: any = {};
-    try {
-      userChatSettings = await convexForSettings.query("chatSettings:getChatSettings") || {};
-    } catch (e) {
-      console.log("Could not load chat settings, using defaults");
+    // Get relevant compliance data based on context (only if compliance context enabled)
+    let complianceContext = "";
+    if (userChatSettings.enableComplianceContext !== false) {
+      complianceContext = await getComplianceContext(jurisdiction, topic);
+      console.log(`📋 Using compliance context (${complianceContext.length} chars)`);
+    } else {
+      console.log('🚫 Compliance context disabled - using general knowledge only');
     }
-
-    // Get relevant compliance data based on context
-    const complianceContext = await getComplianceContext(jurisdiction, topic);
     
     // Use custom system prompt or default
     const baseSystemPrompt = userChatSettings.chatSystemPrompt || `You are a professional compliance assistant specializing in US employment law.`;
+    const isCustomPrompt = !!userChatSettings.chatSystemPrompt;
+    console.log(`📝 Using ${isCustomPrompt ? 'CUSTOM' : 'DEFAULT'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
     
-    // Create system prompt with compliance template structure + sources
-    const systemPrompt = baseSystemPrompt + `
+    // Create system prompt based on settings
+    let systemPrompt = baseSystemPrompt;
+    
+    // Add compliance context and sources if either setting is enabled and we have data
+    if ((userChatSettings.enableComplianceContext !== false || userChatSettings.enableSemanticSearch !== false) && (complianceContext || sources.length > 0)) {
+      systemPrompt += `
 
 You have access to comprehensive compliance data from 1,175 reports across all US jurisdictions, structured according to this template:
 
@@ -115,9 +166,41 @@ CURRENT CONTEXT:
 ${complianceContext}
 
 SOURCES (most relevant first):
-${(typedSources || []).map((s: SourceObject, i: number) => `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`).join('\n\n')}
+${(typedSources || []).map((s: SourceObject, i: number) => {
+  let sourceText = `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`;
+  
+  // Add extracted sections if available
+  if (s.extractedSections) {
+    if (s.extractedSections.overview) {
+      sourceText += `\nOverview: ${s.extractedSections.overview.slice(0, 300)}`;
+    }
+    if (s.extractedSections.coveredEmployers) {
+      sourceText += `\nCovered Employers: ${s.extractedSections.coveredEmployers.slice(0, 200)}`;
+    }
+    if (s.extractedSections.penalties) {
+      sourceText += `\nPenalties: ${s.extractedSections.penalties.slice(0, 200)}`;
+    }
+  }
+  
+  return sourceText;
+}).join('\n\n')}
 
-Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.
+Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
+    } else {
+      systemPrompt += `
+
+You are responding based on your general knowledge of employment law. You do not have access to specific compliance data or current regulations for this request.
+
+Please provide general guidance but recommend that users:
+- Consult current official sources
+- Verify information with legal counsel
+- Check the latest regulations from relevant agencies
+
+Be clear about the limitations of your response.`;
+    }
+    
+    // Add formatting instructions
+    systemPrompt += `
 
 FORMAT THE ANSWER CLEARLY:
 - Do NOT include a title or heading at the start - the title will be added separately

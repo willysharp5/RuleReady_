@@ -137,6 +137,56 @@ export const crawlComplianceRule = action({
       changeDetected: changeAnalysis.hasSignificantChanges,
     });
     
+    // 7.5. Store in scrapeResults for change tracking log visibility
+    const ruleWebsites = await ctx.runQuery(api.websites.getUserWebsites);
+    const website = ruleWebsites.find((w: any) => w.complianceMetadata?.ruleId === args.ruleId);
+    
+    if (website) {
+      // Always create meaningful content for change tracking log
+      let displayContent = crawlResult.content;
+      if (!displayContent || displayContent.length === 0) {
+        displayContent = `# ${rule.jurisdiction} - ${rule.topicLabel}
+
+## Compliance Check Completed
+
+**Source:** ${rule.sourceUrl}
+**Checked:** ${new Date().toLocaleString()}
+**Status:** ${changeAnalysis.hasSignificantChanges ? 'Changes detected' : 'No changes detected'}
+
+## Note
+This compliance rule was monitored but content could not be extracted. This may be due to:
+- PDF format that requires manual review
+- Website access restrictions  
+- Dynamic content loading
+- Authentication requirements
+
+## Recommendation
+Please review the official source directly for the most current compliance information.
+
+**Rule ID:** ${rule.ruleId}
+**Priority:** ${rule.priority}`;
+      }
+      
+      try {
+        const scrapeResultId = await ctx.runMutation(api.websites.storeScrapeResult, {
+          websiteId: website._id,
+          userId: undefined, // Single-user mode
+          markdown: displayContent.substring(0, 10000), // Increased limit
+          changeStatus: changeAnalysis.hasSignificantChanges ? "changed" : "same",
+          visibility: "visible",
+          scrapedAt: Date.now(),
+          url: rule.sourceUrl,
+          title: `${rule.jurisdiction} - ${rule.topicLabel}`,
+          description: `Compliance check for ${rule.topicLabel}`,
+          isManualCheck: true, // Flag to allow in compliance mode
+        });
+        
+        console.log(`✅ Successfully stored scrape result: ${scrapeResultId} for ${website.name}`);
+      } catch (storageError) {
+        console.error(`❌ Failed to store scrape result for ${website.name}:`, storageError);
+      }
+    }
+    
     // 8. Generate change alerts with severity scoring
     if (changeAnalysis.hasSignificantChanges) {
       await generateComplianceAlert(ctx, rule, changeAnalysis);
@@ -476,15 +526,11 @@ async function performComplianceCrawl(ctx: any, rule: any, strategy: any) {
       console.log("No previous content found for comparison");
     }
     
-    // Enhanced FireCrawl scraping with strategy-specific settings
+    // Enhanced FireCrawl scraping (only pass valid arguments)
     const scrapeConfig = {
       websiteId: ruleWebsite._id,
       url: rule.sourceUrl,
       userId: undefined, // Single-user mode
-      // Strategy-specific crawl settings
-      crawlDepth: strategy.depth,
-      selectors: strategy.selectors,
-      waitTime: strategy.priority === "critical" ? 2000 : 5000, // Faster for critical
     };
     
     const scrapeResult = await ctx.runAction(internal.firecrawl.scrapeUrl, scrapeConfig);

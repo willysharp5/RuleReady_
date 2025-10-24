@@ -178,10 +178,16 @@ export const toggleWebsiteActive = mutation({
     websiteId: v.id("websites"),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
+    // Single-user mode: skip authentication
+    const user = await getCurrentUser(ctx);
 
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
+    if (!website) {
+      throw new Error("Website not found");
+    }
+    
+    // Skip user ownership check in single-user mode
+    if (user && website.userId !== user._id) {
       throw new Error("Website not found");
     }
 
@@ -392,8 +398,8 @@ export const removeCheckingStatus = internalMutation({
   },
 });
 
-// LEGACY: Store scrape result - DEPRECATED (disabled in compliance mode)
-export const storeScrapeResult = internalMutation({
+// Store scrape result (public for manual checks, internal for automated)
+export const storeScrapeResult = mutation({
   args: {
     websiteId: v.id("websites"),
     userId: v.optional(v.id("users")), // Optional for single-user mode
@@ -417,11 +423,13 @@ export const storeScrapeResult = internalMutation({
       text: v.string(),
       json: v.any(),
     })),
+    isManualCheck: v.optional(v.boolean()), // Allow in compliance mode for manual checks
   },
   handler: async (ctx, args) => {
-    // Skip in compliance mode - use complianceReports instead
-    if (FEATURES.complianceMode) {
-      console.log("Legacy storeScrapeResult disabled in compliance mode");
+    // Allow storing scrape results in compliance mode for change tracking log visibility
+    // (but only for manual "Check Now" operations)
+    if (FEATURES.complianceMode && !args.isManualCheck) {
+      console.log("Legacy storeScrapeResult disabled in compliance mode (except manual checks)");
       return "legacy-disabled" as any;
     }
     
@@ -463,28 +471,25 @@ export const storeScrapeResult = internalMutation({
   },
 });
 
-// LEGACY: Create change alert - DEPRECATED (disabled in compliance mode)
-export const createChangeAlert = internalMutation({
+// Create change alert (single-user mode compatible)
+export const createChangeAlert = mutation({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
   },
   handler: async (ctx, args) => {
-    // Skip in compliance mode - use complianceChanges instead
-    if (FEATURES.complianceMode) {
-      console.log("Legacy createChangeAlert disabled in compliance mode");
-      return;
-    }
+    // Allow in single-user mode even in compliance mode
+    console.log(`Creating change alert for ${args.changeType}: ${args.summary}`);
     
     const website = await ctx.db.get(args.websiteId);
     if (!website) throw new Error("Website not found");
     freezeIfLegacy(website);
     await ctx.db.insert("changeAlerts", {
       websiteId: args.websiteId,
-      userId: args.userId,
+      userId: args.userId || ("single-user-mode" as Id<"users">), // Dummy value for single-user mode
       scrapeResultId: args.scrapeResultId,
       changeType: args.changeType,
       summary: args.summary,
@@ -611,9 +616,15 @@ export const markAlertAsRead = mutation({
 // Get all scrape history for check log (single-user mode)
 export const getAllScrapeHistory = query({
   handler: async (ctx) => {
-    // Compliance mode: derive a compatible history view from compliance reports (limited)
+    // Compliance mode: combine compliance reports with recent manual scrape results
     if (FEATURES.complianceMode) {
-      const reports = await ctx.db.query("complianceReports").take(50); // Limit to avoid read caps
+      // Get recent manual scrape results (from Check Now buttons)
+      const recentScrapes = await ctx.db
+        .query("scrapeResults")
+        .order("desc")
+        .take(20); // Recent manual checks
+      
+      const reports = await ctx.db.query("complianceReports").take(30); // Reduced to make room
       const rulesById = new Map<string, any>();
       for (const report of reports) {
         if (!rulesById.has(report.ruleId)) {
@@ -627,7 +638,31 @@ export const getAllScrapeHistory = query({
       const sorted = [...reports]
         .sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0))
         .slice(0, 50);
-      return sorted.map((r, i) => {
+      // Combine recent scrapes with compliance reports
+      const recentScrapeData = recentScrapes.map(s => ({
+        _id: s._id,
+        websiteId: s.websiteId,
+        userId: s.userId,
+        markdown: s.markdown,
+        changeStatus: s.changeStatus,
+        visibility: s.visibility,
+        previousScrapeAt: s.previousScrapeAt,
+        scrapedAt: s.scrapedAt,
+        firecrawlMetadata: s.firecrawlMetadata,
+        ogImage: s.ogImage,
+        title: s.title,
+        description: s.description,
+        url: s.url,
+        diff: s.diff,
+        websiteName: s.title || "Manual Check",
+        websiteUrl: s.url || "",
+        aiAnalysis: undefined,
+        isFirstScrape: false,
+        scrapeNumber: 0,
+        totalScrapes: 0,
+      }));
+      
+      const reportData = sorted.map((r, i) => {
         const rule = rulesById.get(r.ruleId);
         return {
           _id: `${r.reportId}` as any,
@@ -652,6 +687,13 @@ export const getAllScrapeHistory = query({
           totalScrapes: sorted.length,
         };
       });
+      
+      // Combine and sort by most recent first
+      const combined = [...recentScrapeData, ...reportData]
+        .sort((a, b) => b.scrapedAt - a.scrapedAt)
+        .slice(0, 50);
+      
+      return combined;
     }
 
     // Legacy mode: return real scrape history (limited to avoid read caps)

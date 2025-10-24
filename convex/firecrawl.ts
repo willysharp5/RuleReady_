@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import FirecrawlApp from "@mendable/firecrawl-js";
 import { requireCurrentUserForAction, getCurrentUserForAction } from "./helpers";
@@ -34,7 +34,7 @@ export const scrapeUrl = internalAction({
   args: {
     websiteId: v.id("websites"),
     url: v.string(),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
+    // Removed userId - not needed in single-user mode
   },
   handler: async (ctx, args): Promise<{
     success: boolean;
@@ -43,7 +43,7 @@ export const scrapeUrl = internalAction({
     visibility: string | undefined;
     previousScrapeAt: string | undefined;
   }> => {
-    const firecrawl = await getFirecrawlClient(ctx, args.userId || null);
+    const firecrawl = await getFirecrawlClient(ctx, null);
 
     try {
       // Scraping URL with change tracking
@@ -52,7 +52,10 @@ export const scrapeUrl = internalAction({
         formats: ["markdown", "changeTracking"],
         changeTrackingOptions: {
           modes: ["git-diff"], // Enable git-diff to see what changed
-        }
+        },
+        // Try to get more content with valid options
+        onlyMainContent: false, // Include all content, not just main content
+        waitFor: 2000, // Wait longer for content to load
       }) as any;
 
       if (!result.success) {
@@ -71,10 +74,10 @@ export const scrapeUrl = internalAction({
         console.log(`Change detected for ${args.url}: ${changeTracking.changeStatus}`);
       }
 
-      // Store the scrape result
-      const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
+      // Store the scrape result (single-user mode)
+      const scrapeResultId = await ctx.runMutation(api.websites.storeScrapeResult, {
         websiteId: args.websiteId,
-        userId: args.userId,
+        userId: undefined, // Single-user mode
         markdown: markdown,
         changeStatus: changeTracking?.changeStatus || "new",
         visibility: changeTracking?.visibility || "visible",
@@ -91,51 +94,63 @@ export const scrapeUrl = internalAction({
           text: changeTracking.diff.text || "",
           json: changeTracking.diff.json || null,
         } : undefined,
+        isManualCheck: true, // Allow in compliance mode
       }) as Id<"scrapeResults">;
 
-      // If content changed, create an alert and send notifications
+      // If content changed, create alerts and send notifications (single-user mode)
       if (changeTracking?.changeStatus === "changed" || changeTracking?.diff) {
         const diffPreview = changeTracking?.diff?.text ? 
           changeTracking.diff.text.substring(0, 200) + (changeTracking.diff.text.length > 200 ? "..." : "") :
           "Website content has changed since last check";
           
-        if (args.userId) {
-          await ctx.runMutation(internal.websites.createChangeAlert, {
+        // Create change alert (single-user mode - always create)
+        try {
+          await ctx.runMutation(api.websites.createChangeAlert, {
             websiteId: args.websiteId,
-            userId: args.userId,
+            userId: undefined, // Single-user mode
             scrapeResultId,
             changeType: "content_changed",
             summary: diffPreview,
           });
+        } catch (e) {
+          console.log("Change alert creation skipped:", e.message);
         }
 
-        // Trigger AI analysis if enabled and there's a diff and a userId
-        if (changeTracking?.diff && args.userId) {
-          await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeChange, {
-            userId: args.userId,
-            scrapeResultId,
-            websiteName: metadata?.title || args.url,
-            websiteUrl: args.url,
-            diff: changeTracking.diff,
+        // Trigger AI analysis if there's a diff (single-user mode - always try)
+        if (changeTracking?.diff) {
+          try {
+            await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeChange, {
+              userId: undefined, // Single-user mode
+              scrapeResultId,
+              websiteName: metadata?.title || args.url,
+              websiteUrl: args.url,
+              diff: changeTracking.diff,
+            });
+          } catch (e) {
+            console.log("AI analysis scheduling skipped:", e.message);
+          }
+        }
+
+        // Get user settings to check if AI analysis is enabled (single-user mode)
+        let userSettings = null;
+        try {
+          userSettings = await ctx.runQuery(api.userSettings.getUserSettings);
+        } catch (e) {
+          console.log("User settings not available, using defaults");
+        }
+
+        // Get website details for notifications (single-user mode)
+        let website = null;
+        try {
+          website = await ctx.runQuery(internal.websites.getWebsiteById, {
+            websiteId: args.websiteId,
           });
+        } catch (e) {
+          console.log("Website details not available");
         }
 
-        // Get user settings to check if AI analysis is enabled
-        const userSettings = args.userId
-          ? await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
-              userId: args.userId,
-            })
-          : null;
-
-        // If AI analysis is NOT enabled, send notifications immediately
+        // Send notifications if enabled (single-user mode)
         if ((!userSettings || !userSettings.aiAnalysisEnabled) || !changeTracking?.diff) {
-          // Get website details for notifications
-          const website = args.userId
-            ? await ctx.runQuery(internal.websites.getWebsite, {
-                websiteId: args.websiteId,
-                userId: args.userId,
-              })
-            : null;
 
           if (website && website.notificationPreference !== "none") {
             // Send webhook notification
@@ -157,11 +172,14 @@ export const scrapeUrl = internalAction({
             }
 
             // Send email notification
-            if ((website.notificationPreference === "email" || website.notificationPreference === "both") && args.userId) {
-              // Get user's email configuration
-              const emailConfig = await ctx.runQuery(internal.emailManager.getEmailConfigInternal, {
-                userId: args.userId,
-              });
+            if (website.notificationPreference === "email" || website.notificationPreference === "both") {
+              // Get email configuration (single-user mode)
+              let emailConfig = null;
+              try {
+                emailConfig = await ctx.runQuery(api.emailConfig.getEmailConfig);
+              } catch (e) {
+                console.log("Email config not available:", e.message);
+              }
               
               if (emailConfig?.email && emailConfig.isVerified) {
                 await ctx.scheduler.runAfter(0, internal.notifications.sendEmailNotification, {
@@ -173,7 +191,7 @@ export const scrapeUrl = internalAction({
                   diff: changeTracking?.diff,
                   title: metadata?.title,
                   scrapedAt: Date.now(),
-                  userId: args.userId,
+                  userId: undefined, // Single-user mode
                 });
               }
             }
@@ -202,7 +220,7 @@ export const triggerScrape = action({
     websiteId: v.id("websites"),
   },
   handler: async (ctx, args) => {
-    // Single-user mode: get website without user authentication
+    // Single-user mode: get website without any authentication
     const website = await ctx.runQuery(internal.websites.getWebsiteById, {
       websiteId: args.websiteId,
     });
@@ -211,11 +229,10 @@ export const triggerScrape = action({
       throw new Error("Website not found");
     }
 
-    // Create immediate checking status entry (skip in single-user mode)
-    // await ctx.runMutation(internal.websites.createCheckingStatus, {
-    //   websiteId: args.websiteId,
-    //   userId: userId,
-    // });
+    // Check Now overrides active status - always proceed with manual checks
+    console.log(`🎯 Manual "Check Now" triggered for: ${website.name}`);
+    console.log(`📊 Website status: Active=${website.isActive}, Paused=${website.isPaused || false}`);
+    console.log(`🚀 Proceeding with manual check regardless of status...`);
 
     // Update lastChecked immediately to prevent duplicate checks
     await ctx.runMutation(internal.websites.updateLastChecked, {
@@ -226,12 +243,18 @@ export const triggerScrape = action({
     if (website.complianceMetadata?.ruleId) {
       // This is a compliance website, use compliance crawler
       console.log(`🎯 Triggering compliance crawl for rule: ${website.complianceMetadata.ruleId}`);
-      await ctx.scheduler.runAfter(0, internal.complianceCrawler.crawlComplianceRule, {
+      await ctx.scheduler.runAfter(0, internal.complianceCrawler.crawlComplianceRuleInternal, {
         ruleId: website.complianceMetadata.ruleId,
         forceRecrawl: true,
       });
     } else {
-      console.log("⚠️ Manual scraping disabled in single-user mode for non-compliance websites");
+      // For non-compliance websites, use direct scraping
+      console.log(`🌐 Triggering direct scrape for: ${website.url}`);
+      await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
+        websiteId: args.websiteId,
+        url: website.url,
+        userId: undefined,
+      });
     }
 
     return { success: true };
@@ -255,6 +278,8 @@ export const crawlWebsite = action({
         limit: args.limit || 10,
         scrapeOptions: {
           formats: ["markdown", "changeTracking"],
+          onlyMainContent: false,
+          waitFor: 2000,
         },
       }) as any;
 

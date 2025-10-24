@@ -401,10 +401,10 @@ export const embeddingTopKSources = action({
 
       console.log(`✅ Hydrated source: ${jurisdiction} - ${topicLabel} (${sourceUrl ? 'has URL' : 'no URL'})`);
 
-      // Create richer snippet from structured data if available
+      // Create richer snippet from extracted sections if available
       let snippet = (m.content || "").slice(0, 500);
-      if (entityType === "report" && reportData?.structuredData?.overview) {
-        snippet = reportData.structuredData.overview.slice(0, 500);
+      if (entityType === "report" && reportData?.extractedSections?.overview) {
+        snippet = reportData.extractedSections.overview.slice(0, 500);
       }
 
       sources.push({
@@ -418,7 +418,7 @@ export const embeddingTopKSources = action({
         topicLabel,
         reportId,
         ruleId,
-        hasStructuredData: !!(reportData?.structuredData),
+        extractedSections: reportData?.extractedSections,
       });
     }
 
@@ -430,39 +430,10 @@ export const embeddingTopKSources = action({
 export const _getReportById = internalQuery({
   args: { reportId: v.string() },
   handler: async (ctx, args) => {
-    // First try to get from AI reports (structured data)
-    const aiReport = await ctx.db
-      .query("complianceAIReports")
-      .filter(q => q.eq(q.field("reportId"), args.reportId))
-      .first();
-    
-    if (aiReport) {
-      return {
-        reportId: aiReport.reportId,
-        ruleId: aiReport.ruleId,
-        reportContent: aiReport.rawContent || '',
-        structuredData: aiReport.structuredData,
-        contentLength: aiReport.rawContent?.length || 0,
-        generatedAt: aiReport.processedAt,
-        isAIReport: true,
-      };
-    }
-    
-    // Fallback to regular reports if AI report not found
-    const report = await ctx.db
+    return await ctx.db
       .query("complianceReports")
       .withIndex("by_report_id", (q) => q.eq("reportId", args.reportId))
       .first();
-    
-    return report ? {
-      reportId: report.reportId,
-      ruleId: report.ruleId,
-      reportContent: report.reportContent,
-      extractedSections: report.extractedSections,
-      contentLength: report.contentLength,
-      generatedAt: report.generatedAt,
-      isAIReport: false,
-    } : null;
   },
 });
 

@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye, FileText, Lightbulb } from 'lucide-react'
 // Removed auth imports for single-user mode
 // import { useConvexAuth } from "convex/react"
 // import { useAuthActions } from "@convex-dev/auth/react"
@@ -332,7 +332,8 @@ function EmbeddedChatUI() {
               )}
               {selectedTopic && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                  📋 {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
+                  <FileText className="h-3 w-3" />
+                  {topics?.find(t => t.topicKey === selectedTopic)?.name || selectedTopic}
                   <button
                     onClick={() => setSelectedTopic('')}
                     className="ml-1 text-green-600 hover:text-green-800"
@@ -2634,7 +2635,10 @@ Analyze the provided diff and return a JSON response with:
                     {/* Filter Instructions */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-800">
-                        <strong>💡 Tip:</strong> Use "View Details" to filter rules by topic and priority within each jurisdiction.
+                        <strong className="flex items-center gap-1">
+                          <Lightbulb className="h-3 w-3" />
+                          Tip:
+                        </strong> Use "View Details" to filter rules by topic and priority within each jurisdiction.
                       </p>
                     </div>
                     
