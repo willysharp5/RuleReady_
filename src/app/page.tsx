@@ -285,6 +285,23 @@ export default function HomePage() {
     setFirecrawlConfig(JSON.stringify(config, null, 2))
   }, [monitorType, maxPages, maxCrawlDepth])
   
+  // Auto-adjust frequency based on priority (following system logic)
+  useEffect(() => {
+    const baseInterval = 1440 // 1 day default
+    let adjustedInterval = baseInterval
+    
+    if (selectedPriorityLevel === "critical") {
+      adjustedInterval = Math.floor(baseInterval * 0.5) // 2x more frequent = 12 hours
+    } else if (selectedPriorityLevel === "high") {
+      adjustedInterval = Math.floor(baseInterval * 0.75) // 1.33x more frequent = 18 hours
+    } else if (selectedPriorityLevel === "low") {
+      adjustedInterval = Math.floor(baseInterval * 1.5) // Less frequent = 36 hours
+    }
+    // Medium stays at base interval (1440 = 1 day)
+    
+    setCheckInterval(adjustedInterval)
+  }, [selectedPriorityLevel])
+  
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
@@ -751,233 +768,250 @@ export default function HomePage() {
                <h3 className="text-xl font-semibold">Add Website to Track</h3>
             </div>
                     
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleAddWebsite();
-            }} className="space-y-6">
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddWebsite();
+            }} className="space-y-8">
               
-              {/* URL Input */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Website URL</label>
-                <div className="relative">
-                  <Input 
-                    type="text" 
-                    placeholder="https://example.com" 
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    disabled={isAdding}
-                    className={`w-full pr-10 ${
-                      urlValidation.isValid === true ? 'border-green-500 focus:ring-green-500' :
-                      urlValidation.isValid === false ? 'border-red-500 focus:ring-red-500' :
-                      'border-gray-300'
-                    }`}
-                  />
-                  {/* Validation Icon and Button */}
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
-                    {urlValidation.isValidating ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                    ) : urlValidation.isValid === true ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : urlValidation.isValid === false ? (
-                      <X className="h-4 w-4 text-red-500" />
-                    ) : null}
-                    
-                    {url.trim() && !urlValidation.isValidating && (
+              {/* Section 1: Basic Website Information */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="h-5 w-5 text-blue-600" />
+                  <h4 className="text-lg font-medium text-blue-900">Website Information</h4>
+                </div>
+                
+                {/* Email Notifications */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={notificationType === 'email'}
+                      onChange={(e) => setNotificationType(e.target.checked ? 'email' : 'none')}
+                      className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                    />
+                    Enable Email Notifications
+                  </label>
+                  <p className="text-xs text-gray-500 ml-6">
+                    Get notified when changes are detected on this website
+                  </p>
+                </div>
+
+                {/* Website URL */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Website URL</label>
+                  <div className="relative">
+                        <Input 
+                          type="text" 
+                          placeholder="https://example.com" 
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          disabled={isAdding}
+                      className={`w-full pr-10 ${
+                        urlValidation.isValid === true ? 'border-green-500 focus:ring-green-500' :
+                        urlValidation.isValid === false ? 'border-red-500 focus:ring-red-500' :
+                        'border-gray-300'
+                      }`}
+                    />
+                    {/* Validation Icon and Button */}
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+                      {urlValidation.isValidating ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                      ) : urlValidation.isValid === true ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : urlValidation.isValid === false ? (
+                        <X className="h-4 w-4 text-red-500" />
+                      ) : null}
+                      
+                      {url.trim() && !urlValidation.isValidating && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => validateUrl(url)}
+                          className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                          title="Validate URL"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Validation Message */}
+                  {urlValidation.message && (
+                    <div className={`text-sm ${
+                      urlValidation.isValid === true ? 'text-green-600' :
+                      urlValidation.isValid === false ? 'text-red-600' :
+                      'text-gray-600'
+                    }`}>
+                      {urlValidation.message}
+                    </div>
+                  )}
+                  
+                  {/* Site Preview */}
+                  {urlValidation.isValid === true && (urlValidation.siteTitle || urlValidation.siteDescription) && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <Globe className="h-5 w-5 text-green-600 mt-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {urlValidation.siteTitle && (
+                            <h4 className="text-sm font-medium text-green-900 truncate">
+                              {urlValidation.siteTitle}
+                            </h4>
+                          )}
+                          {urlValidation.siteDescription && (
+                            <p className="text-xs text-green-700 mt-1 line-clamp-2">
+                              {urlValidation.siteDescription}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 2: AI Analysis and Priority */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Bot className="h-5 w-5 text-purple-600" />
+                  <h4 className="text-lg font-medium text-purple-900">AI Analysis & Priority</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* AI Analysis Toggle */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">AI Analysis</label>
+                        <p className="text-xs text-gray-500">Enable AI-powered change analysis</p>
+                      </div>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => validateUrl(url)}
-                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-                        title="Validate URL"
+                        onClick={() => {
+                          router.push('/settings?section=ai')
+                        }}
+                        className="text-xs"
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        Settings
                       </Button>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Validation Message */}
-                {urlValidation.message && (
-                  <div className={`text-sm ${
-                    urlValidation.isValid === true ? 'text-green-600' :
-                    urlValidation.isValid === false ? 'text-red-600' :
-                    'text-gray-600'
-                  }`}>
-                    {urlValidation.message}
-                  </div>
-                )}
-                
-                {/* Site Preview */}
-                {urlValidation.isValid === true && (urlValidation.siteTitle || urlValidation.siteDescription) && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        <Globe className="h-5 w-5 text-green-600 mt-0.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {urlValidation.siteTitle && (
-                          <h4 className="text-sm font-medium text-green-900 truncate">
-                            {urlValidation.siteTitle}
-                          </h4>
-                        )}
-                        {urlValidation.siteDescription && (
-                          <p className="text-xs text-green-700 mt-1 line-clamp-2">
-                            {urlValidation.siteDescription}
-                          </p>
-                        )}
-                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={enableAiAnalysis}
+                          onChange={(e) => setEnableAiAnalysis(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                      <span className="text-sm text-gray-700">
+                        {enableAiAnalysis ? 'Enabled' : 'Disabled'}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* AI Analysis Toggle */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">AI Analysis</label>
-                    <p className="text-xs text-gray-500">Enable AI-powered change analysis and insights</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={enableAiAnalysis}
-                        onChange={(e) => setEnableAiAnalysis(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        router.push('/settings?section=ai')
-                      }}
-                      className="text-xs"
+                  {/* Priority Level */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Priority Level</label>
+                    <select
+                      value={selectedPriorityLevel}
+                      onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      Settings
-                    </Button>
+                      <option value="critical">🔴 Critical - Checks every 12 hours</option>
+                      <option value="high">🟠 High - Checks every 18 hours</option>
+                      <option value="medium">🟡 Medium - Checks daily</option>
+                      <option value="low">🟢 Low - Checks every 36 hours</option>
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* Website Type Toggle */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Website Type</label>
-                    <p className="text-xs text-gray-500">Choose between regular website or compliance site monitoring</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm ${!isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Website</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isComplianceSite}
-                        onChange={(e) => setIsComplianceSite(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                    <span className={`text-sm ${isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Compliance</span>
-                  </div>
+              {/* Section 3: Website Type and Monitor Type */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Monitor className="h-5 w-5 text-orange-600" />
+                  <h4 className="text-lg font-medium text-orange-900">Monitoring Configuration</h4>
                 </div>
                 
-                {/* Compliance Template Options */}
-                {isComplianceSite && (
-                  <div className="ml-4 p-4 bg-purple-50 rounded-lg space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Website Type Toggle */}
+                  <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-700">Compliance Template</label>
-                      <select
-                        value={complianceTemplate}
-                        onChange={(e) => setComplianceTemplate(e.target.value)}
-                        className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      >
-                        <option value="">Select template...</option>
-                        {templates?.map((template) => (
-                          <option key={template.templateId} value={template.templateId}>
-                            {template.title}
-                          </option>
-                        ))}
-                      </select>
+                      <label className="text-sm font-medium text-gray-700">Website Type</label>
+                      <p className="text-xs text-gray-500">Regular website or compliance site</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm ${!isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Website</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isComplianceSite}
+                          onChange={(e) => setIsComplianceSite(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                      <span className={`text-sm ${isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Compliance</span>
                     </div>
                     
-                    {/* Template Description */}
-                    {complianceTemplate && (
-                      <div className="text-xs text-gray-600">
-                        {(() => {
-                          const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate);
-                          return selectedTemplate?.description || 'Compliance monitoring template';
-                        })()}
+                    {/* Compliance Template Options */}
+                    {isComplianceSite && (
+                      <div className="mt-4 p-4 bg-purple-100 border border-purple-300 rounded-lg space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Compliance Template</label>
+                          <select
+                            value={complianceTemplate}
+                            onChange={(e) => setComplianceTemplate(e.target.value)}
+                            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="">Select template...</option>
+                            {templates?.map((template) => (
+                              <option key={template.templateId} value={template.templateId}>
+                                {template.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* Template Description */}
+                        {complianceTemplate && (
+                          <div className="text-xs text-gray-600">
+                            {(() => {
+                              const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate);
+                              return selectedTemplate?.description || 'Compliance monitoring template';
+                            })()}
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (complianceTemplate) {
+                              router.push(`/settings?section=templates&template=${complianceTemplate}`)
+                            } else {
+                              router.push('/settings?section=templates')
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          Manage Templates
+                        </Button>
                       </div>
                     )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (complianceTemplate) {
-                          router.push(`/settings?section=templates&template=${complianceTemplate}`)
-                        } else {
-                          router.push('/settings?section=templates')
-                        }
-                      }}
-                      className="text-xs"
-                    >
-                      Manage Templates
-                    </Button>
                   </div>
-                )}
-              </div>
 
-              {/* Priority Level and Scraping Frequency - Side by Side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Priority Level */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Priority Level</label>
-                  <select
-                    value={selectedPriorityLevel}
-                    onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="critical">🔴 Critical - Requires immediate attention</option>
-                    <option value="high">🟠 High - Significant business impact</option>
-                    <option value="medium">🟡 Medium - Moderate business impact</option>
-                    <option value="low">🟢 Low - Minimal business impact</option>
-                  </select>
-                  <p className="text-xs text-gray-500">
-                    Priority level affects monitoring frequency and alert urgency
-                  </p>
-                </div>
-
-                {/* Scraping Frequency */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Scraping Frequency</label>
-                  <select
-                    value={checkInterval}
-                    onChange={(e) => setCheckInterval(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value={15}>⚡ 15 seconds - Testing only</option>
-                    <option value={60}>🔴 1 hour - Very frequent</option>
-                    <option value={360}>🟠 6 hours - Frequent</option>
-                    <option value={1440}>🟡 1 day - Daily (Recommended)</option>
-                    <option value={2880}>🔵 2 days - Bi-daily</option>
-                    <option value={10080}>🟢 1 week - Weekly</option>
-                  </select>
-                  <p className="text-xs text-gray-500">
-                    How often should this website be checked for changes
-                  </p>
-                </div>
-              </div>
-
-              {/* Monitor Type */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">Monitor Type</label>
-                <div className="grid grid-cols-2 gap-4">
+                  {/* Monitor Type */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-gray-700">Monitor Type</label>
+                    <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
                     <input
                       type="radio"
@@ -1061,34 +1095,16 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-
-              {/* Notification Type */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">Notification Type</label>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="email"
-                      name="notificationType"
-                      value="email"
-                      checked={notificationType === 'email'}
-                      onChange={(e) => setNotificationType(e.target.value)}
-                      className="w-4 h-4 text-purple-600 bg-white border-gray-300 focus:ring-purple-500 focus:ring-2"
-                    />
-                    <label htmlFor="email" className="text-sm text-gray-700">Email</label>
+                  )}
                   </div>
-                  <span className="text-xs text-gray-500">(More notification types coming soon)</span>
                 </div>
               </div>
 
-               {/* Firecrawl Configuration */}
-               <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bot className="h-5 w-5 text-purple-600" />
-                  <h4 className="text-lg font-medium text-gray-900">AI Prompt</h4>
+              {/* Section 4: AI Prompt Configuration */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Bot className="h-5 w-5 text-gray-600" />
+                  <h4 className="text-lg font-medium text-gray-900">AI Prompt Configuration</h4>
                 </div>
                 
                 {/* Website Scraping Prompt */}
@@ -1194,37 +1210,37 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                      </div>
                    )}
                  </div>
-               </div>
+              </div>
 
-               {/* Submit Button */}
+              {/* Submit Button */}
                <div className="flex justify-end">
-                 <Button 
-                   type="submit"
-                   variant="default"
+                        <Button 
+                          type="submit"
+                          variant="default"
                    size="default"
                    disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
                    className="gap-2"
-                 >
-                   {isAdding ? (
-                     <>
+                        >
+                          {isAdding ? (
+                            <>
                        <Loader2 className="h-4 w-4 animate-spin" />
                        Adding Website...
-                     </>
-                   ) : (
+                            </>
+                          ) : (
                      <>
                        <Globe className="h-4 w-4" />
                        Start Monitoring
                      </>
-                   )}
-                 </Button>
-               </div>
-            </form>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
             
-               {error && (
+                    {error && (
                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                    <p className="text-sm text-red-700">{error}</p>
                  </div>
-               )}
+                    )}
                
           </div>
           
@@ -1797,22 +1813,22 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
 
                                 <DeleteConfirmationPopover
                                   trigger={
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                      disabled={deletingWebsites.has(website._id)}
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                        disabled={deletingWebsites.has(website._id)}
                                       title="Remove website"
                                       onPointerDown={(e) => {
                                         e.stopPropagation();
                                       }}
-                                    >
-                                      {deletingWebsites.has(website._id) ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <X className="h-4 w-4" />
-                                      )}
-                                    </Button>
+                                      >
+                                        {deletingWebsites.has(website._id) ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <X className="h-4 w-4" />
+                                        )}
+                                      </Button>
                                   }
                                   title="Delete Website"
                                   description="This will permanently remove the website from monitoring. This action cannot be undone."
@@ -2342,7 +2358,7 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                       </div>
                       
                       {/* Bulk Action Buttons - positioned on the right */}
-                      {websites && websites.length > 0 && (
+                        {websites && websites.length > 0 && (
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
@@ -2426,24 +2442,24 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                             Check Selected ({selectedWebsiteIds.size})
                           </Button>
                         </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
                     <div className="space-y-4">
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Search className="h-4 w-4 text-gray-400" />
-                        </div>
-                        <Input
-                          type="text"
-                          placeholder="Search by name or URL..."
-                          value={searchQuery}
-                          onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setModalWebsitesPage(1); // Reset to first page when searching
-                          }}
-                          className="pl-10"
-                          disabled={!websites}
-                        />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Search by name or URL..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setModalWebsitesPage(1); // Reset to first page when searching
+                        }}
+                        className="pl-10"
+                        disabled={!websites}
+                      />
                       </div>
                       
                       {/* Filter Controls */}
@@ -2639,7 +2655,7 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                             // Search query filter
                             const query = searchQuery.toLowerCase()
                             const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
-                                                 website.url.toLowerCase().includes(query)
+                                   website.url.toLowerCase().includes(query)
                             if (!matchesSearch) return false
                             
                             // Compliance only filter
@@ -2768,22 +2784,22 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                             website.complianceMetadata.priority === 'medium' ? 'Medium importance compliance rule' :
                                             website.complianceMetadata.priority === 'low' ? 'Low importance compliance rule' : 'Standard compliance rule'
                                           }`}>
-                                            <div className={`w-4 h-4 rounded-full ${
-                                              website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
-                                              website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
-                                              website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
-                                              website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
-                                            }`} />
+                                          <div className={`w-4 h-4 rounded-full ${
+                                            website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
+                                            website.complianceMetadata.priority === 'high' ? 'bg-orange-500' :
+                                            website.complianceMetadata.priority === 'medium' ? 'bg-yellow-500' :
+                                            website.complianceMetadata.priority === 'low' ? 'bg-green-500' : 'bg-purple-500'
+                                          }`} />
                                           </Tooltip>
                                         )}
                                         
                                         {/* Monitor Type Icon */}
                                         <Tooltip content={website.monitorType === 'full_site' ? 'Full Site Monitoring' : 'Single Page Monitoring'}>
-                                          {website.monitorType === 'full_site' ? (
-                                            <Monitor className="w-4 h-4 text-orange-600" />
-                                          ) : (
-                                            <File className="w-4 h-4 text-gray-600" />
-                                          )}
+                                        {website.monitorType === 'full_site' ? (
+                                          <Monitor className="w-4 h-4 text-orange-600" />
+                                        ) : (
+                                          <File className="w-4 h-4 text-gray-600" />
+                                        )}
                                         </Tooltip>
                                         
                                         {/* Status Icon */}
@@ -2791,37 +2807,37 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                           website.isPaused ? 'Monitoring is paused' :
                                           website.isActive ? 'Monitoring is active' : 'Monitoring is inactive'
                                         }>
-                                          {website.isPaused ? (
-                                            <Pause className="w-4 h-4 text-yellow-600" />
-                                          ) : website.isActive ? (
-                                            <Play className="w-4 h-4 text-green-600" />
-                                          ) : (
-                                            <X className="w-4 h-4 text-gray-400" />
-                                          )}
+                                        {website.isPaused ? (
+                                          <Pause className="w-4 h-4 text-yellow-600" />
+                                        ) : website.isActive ? (
+                                          <Play className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                          <X className="w-4 h-4 text-gray-400" />
+                                        )}
                                         </Tooltip>
                                       </div>
                                       
                                       {/* Action Buttons */}
                                       <div className="flex items-center gap-1">
                                         <Tooltip content={website.isPaused ? "Resume monitoring" : "Pause monitoring"}>
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                               pauseWebsite({ 
                                                 websiteId: website._id, 
                                                 isPaused: !website.isPaused 
                                               })
-                                            }}
-                                            className="w-7 h-7 p-0"
-                                          >
+                                          }}
+                                          className="w-7 h-7 p-0"
+                                        >
                                             {website.isPaused ? (
                                               <Play className="h-4 w-4" />
-                                            ) : (
+                                          ) : (
                                               <Pause className="h-4 w-4" />
-                                            )}
-                                          </Button>
+                                          )}
+                                        </Button>
                                         </Tooltip>
                                         
                                         <Tooltip content="Website settings and configuration">
@@ -2840,40 +2856,40 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                         </Tooltip>
                                         
                                         <Tooltip content="Remove website from monitoring">
-                                          <DeleteConfirmationPopover
-                                            trigger={
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={isDeleting}
-                                                className="w-7 h-7 p-0"
-                                              >
-                                                {isDeleting ? (
-                                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                                ) : (
-                                                  <X className="h-3 w-3" />
-                                                )}
-                                              </Button>
+                                        <DeleteConfirmationPopover
+                                          trigger={
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={isDeleting}
+                                              className="w-7 h-7 p-0"
+                                            >
+                                              {isDeleting ? (
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                              ) : (
+                                                <X className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                          }
+                                          title="Delete Website"
+                                          description="This will permanently remove the website from monitoring. This action cannot be undone."
+                                          itemName={cleanWebsiteName(website.name)}
+                                          isLoading={deletingWebsites.has(website._id)}
+                                          onConfirm={async () => {
+                                            setDeletingWebsites(prev => new Set([...prev, website._id]))
+                                            try {
+                                              await deleteWebsite({ websiteId: website._id })
+                                            } catch (error) {
+                                              throw new Error('Failed to delete website. Please try again.')
+                                            } finally {
+                                              setDeletingWebsites(prev => {
+                                                const newSet = new Set(prev)
+                                                newSet.delete(website._id)
+                                                return newSet
+                                              })
                                             }
-                                            title="Delete Website"
-                                            description="This will permanently remove the website from monitoring. This action cannot be undone."
-                                            itemName={cleanWebsiteName(website.name)}
-                                            isLoading={deletingWebsites.has(website._id)}
-                                            onConfirm={async () => {
-                                              setDeletingWebsites(prev => new Set([...prev, website._id]))
-                                              try {
-                                                await deleteWebsite({ websiteId: website._id })
-                                              } catch (error) {
-                                                throw new Error('Failed to delete website. Please try again.')
-                                              } finally {
-                                                setDeletingWebsites(prev => {
-                                                  const newSet = new Set(prev)
-                                                  newSet.delete(website._id)
-                                                  return newSet
-                                                })
-                                              }
-                                            }}
-                                          />
+                                          }}
+                                        />
                                         </Tooltip>
                                       </div>
                                     </div>
@@ -2893,15 +2909,15 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                       {/* URL below tag */}
                                       <div>
                                         <Tooltip content={website.url}>
-                                          <a 
-                                            href={website.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
-                                          >
-                                            <span className="truncate">{website.url}</span>
-                                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                                          </a>
+                                        <a 
+                                          href={website.url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-gray-500 hover:text-gray-700 inline-flex items-center gap-1 max-w-xs"
+                                        >
+                                          <span className="truncate">{website.url}</span>
+                                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                        </a>
                                         </Tooltip>
                                       </div>
                                       
@@ -2909,35 +2925,35 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                       <div className="flex items-center justify-between pt-1">
                                         <div className="flex items-center gap-3 text-xs text-gray-500">
                                           <Tooltip content="Check interval" side="top">
-                                            <span>{formatInterval(website.checkInterval)}</span>
+                                          <span>{formatInterval(website.checkInterval)}</span>
                                           </Tooltip>
                                           <Tooltip content="Last checked" side="top">
-                                            <span>{formatTimeAgo(website.lastChecked)}</span>
+                                          <span>{formatTimeAgo(website.lastChecked)}</span>
                                           </Tooltip>
                                         </div>
                                         <Tooltip content={isProcessing ? 'Checking for changes...' : 'Check now for changes'}>
-                                          <Button 
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleCheckNow(website._id)
-                                            }}
-                                            disabled={isProcessing}
-                                            className="gap-1"
-                                          >
-                                            {isProcessing ? (
-                                              <>
-                                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                                {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
-                                              </>
-                                            ) : (
-                                              <>
-                                                <RefreshCw className="mr-1 h-3 w-3" />
-                                                Check Now
-                                              </>
-                                            )}
-                                          </Button>
+                                        <Button 
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCheckNow(website._id)
+                                          }}
+                                          disabled={isProcessing}
+                                          className="gap-1"
+                                        >
+                                          {isProcessing ? (
+                                            <>
+                                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                              {newlyCreatedWebsites.has(website._id) ? 'Setting up' : 'Checking'}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RefreshCw className="mr-1 h-3 w-3" />
+                                              Check Now
+                                            </>
+                                          )}
+                                        </Button>
                                         </Tooltip>
                                       </div>
                                     </div>
