@@ -118,8 +118,10 @@ export default function HomePage() {
   // Pagination states
   const [websitesPage, setWebsitesPage] = useState(1)
   const [changesPage, setChangesPage] = useState(1)
+  const [modalWebsitesPage, setModalWebsitesPage] = useState(1)
   const ITEMS_PER_PAGE_WEBSITES = 5
   const ITEMS_PER_PAGE_CHANGES = 10
+  const ITEMS_PER_PAGE_MODAL = 10 // For expanded modal
   
   // Expanded panel state
   const [expandedPanel, setExpandedPanel] = useState<'websites' | 'changes' | null>(null)
@@ -653,52 +655,52 @@ export default function HomePage() {
               <div className="bg-white rounded-lg shadow-sm flex flex-col">
                 {/* Search Header */}
                 <div className="p-6 border-b flex-shrink-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center justify-between">
                     <h3 className="text-xl font-semibold">Currently Tracked Websites</h3>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {websites ? (
-                        <>
-                          <span className="text-sm text-gray-500">
-                            {websites.length} site{websites.length !== 1 ? 's' : ''} 
-                            {(() => {
-                              const complianceCount = websites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
-                              const regularCount = websites.length - complianceCount
-                              return complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''
-                            })()}
-                          </span>
-                          {websites.length > 0 && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={async () => {
-                                const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
-                                for (const website of activeWebsites) {
-                                  await handleCheckNow(website._id);
-                                }
-                              }}
-                              className="gap-2"
-                            >
-                              <RefreshCw className="h-3 w-3" />
-                              Check All
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-400">Loading...</span>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setExpandedPanel(expandedPanel === 'websites' ? null : 'websites')}
-                        className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
-                        title={expandedPanel === 'websites' ? "Minimize" : "Expand"}
-                      >
-                        {expandedPanel === 'websites' ? (
-                          <Minimize2 className="h-4 w-4 text-white" />
-                        ) : (
-                          <Maximize2 className="h-4 w-4 text-white" />
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {websites && websites.length > 0 && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={async () => {
+                              const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
+                              for (const website of activeWebsites) {
+                                await handleCheckNow(website._id);
+                              }
+                            }}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Check All
+                          </Button>
                         )}
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setExpandedPanel(expandedPanel === 'websites' ? null : 'websites')}
+                          className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:bg-gray-800 hover:text-gray-200 hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
+                          title={expandedPanel === 'websites' ? "Minimize" : "Expand"}
+                        >
+                          {expandedPanel === 'websites' ? (
+                            <Minimize2 className="h-4 w-4" />
+                          ) : (
+                            <Maximize2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {websites ? (
+                        <span className="text-xs text-gray-500">
+                          {websites.length} site{websites.length !== 1 ? 's' : ''} 
+                          {(() => {
+                            const complianceCount = websites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
+                            const regularCount = websites.length - complianceCount
+                            return complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''
+                          })()}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Loading...</span>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4">
@@ -1317,13 +1319,13 @@ export default function HomePage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setExpandedPanel(expandedPanel === 'changes' ? null : 'changes')}
-                      className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
+                      className="w-8 h-8 p-0 bg-black text-white border-black rounded-[10px] [box-shadow:inset_0px_-2px_0px_0px_#18181b,_0px_1px_6px_0px_rgba(24,_24,_27,_58%)] hover:bg-gray-800 hover:text-gray-200 hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#18181b,_0px_1px_3px_0px_rgba(24,_24,_27,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#18181b,_0px_1px_2px_0px_rgba(24,_24,_27,_30%)] transition-all duration-200"
                       title={expandedPanel === 'changes' ? "Minimize" : "Expand"}
                     >
                       {expandedPanel === 'changes' ? (
-                        <Minimize2 className="h-4 w-4 text-white" />
+                        <Minimize2 className="h-4 w-4" />
                       ) : (
-                        <Maximize2 className="h-4 w-4 text-white" />
+                        <Maximize2 className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
@@ -1637,7 +1639,10 @@ export default function HomePage() {
                         type="text"
                         placeholder="Search by name or URL..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setModalWebsitesPage(1); // Reset to first page when searching
+                        }}
                         className="pl-10"
                         disabled={!websites}
                       />
@@ -1657,11 +1662,26 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <div className="divide-y">
-                        {websites.filter(website => {
-                          const query = searchQuery.toLowerCase()
-                          return cleanWebsiteName(website.name).toLowerCase().includes(query) || 
-                                 website.url.toLowerCase().includes(query)
-                        }).map((website) => {
+                        {(() => {
+                          // Filter websites
+                          const filteredWebsites = websites.filter(website => {
+                            const query = searchQuery.toLowerCase()
+                            return cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                   website.url.toLowerCase().includes(query)
+                          });
+                          
+                          // Pagination calculations for modal
+                          const totalModalPages = Math.ceil(filteredWebsites.length / ITEMS_PER_PAGE_MODAL);
+                          const modalStartIndex = (modalWebsitesPage - 1) * ITEMS_PER_PAGE_MODAL;
+                          const modalEndIndex = modalStartIndex + ITEMS_PER_PAGE_MODAL;
+                          const paginatedModalWebsites = filteredWebsites.slice(modalStartIndex, modalEndIndex);
+                          
+                          // Reset to page 1 if current page is out of bounds
+                          if (modalWebsitesPage > totalModalPages && totalModalPages > 0) {
+                            setModalWebsitesPage(1);
+                          }
+                          
+                          return paginatedModalWebsites.map((website) => {
                           const latestScrape = latestScrapes ? latestScrapes[website._id] : null;
                           const hasChanged = latestScrape?.changeStatus === 'changed';
                           const isProcessing = processingWebsites.has(website._id);
@@ -1852,7 +1872,46 @@ export default function HomePage() {
                               </div>
                             </div>
                           )
-                        })}
+                        });
+                        })()}
+                        
+                        {/* Pagination Controls for Modal */}
+                        {(() => {
+                          const filteredWebsites = websites.filter(website => {
+                            const query = searchQuery.toLowerCase()
+                            return cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                   website.url.toLowerCase().includes(query)
+                          });
+                          const totalModalPages = Math.ceil(filteredWebsites.length / ITEMS_PER_PAGE_MODAL);
+                          
+                          return totalModalPages > 1 && (
+                            <div className="sticky bottom-0 bg-white border-t p-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+                                <span className="text-gray-600 text-center sm:text-left">
+                                  Page {modalWebsitesPage} of {totalModalPages} ({filteredWebsites.length} websites)
+                                </span>
+                                <div className="flex items-center gap-2 justify-center sm:justify-end">
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => setModalWebsitesPage(modalWebsitesPage - 1)}
+                                    disabled={modalWebsitesPage === 1}
+                                  >
+                                    <ChevronLeft className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => setModalWebsitesPage(modalWebsitesPage + 1)}
+                                    disabled={modalWebsitesPage === totalModalPages}
+                                  >
+                                    <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

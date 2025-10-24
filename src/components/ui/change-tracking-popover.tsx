@@ -3,6 +3,11 @@
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { 
   Clock, 
   ExternalLink, 
@@ -61,24 +66,11 @@ export function ChangeTrackingPopover({ trigger, scrapeData }: ChangeTrackingPop
   }
 
   return (
-    <>
-      <div onClick={(e) => {
-        e.stopPropagation();
-        setOpen(true);
-      }}>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         {trigger}
-      </div>
-      
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Muted background overlay */}
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setOpen(false)}
-          />
-          
-          {/* Modal content */}
-          <div className="relative bg-white rounded-lg shadow-xl w-[90vw] max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      </PopoverTrigger>
+      <PopoverContent className="w-[90vw] max-w-4xl h-[80vh] overflow-hidden flex flex-col p-0" align="center" side="top">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center gap-3">
@@ -224,9 +216,7 @@ export function ChangeTrackingPopover({ trigger, scrapeData }: ChangeTrackingPop
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-    </>
+      </PopoverContent>
+    </Popover>
   )
 }
