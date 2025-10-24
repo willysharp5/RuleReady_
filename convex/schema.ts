@@ -541,6 +541,40 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_created_at", ["createdAt"])
     .index("by_session_id", ["sessionId"]),
+
+  // Compliance templates for legal counsel
+  complianceTemplates: defineTable({
+    templateId: v.string(), // topicKey for the compliance area
+    topicKey: v.string(), // Links to topics
+    topicName: v.string(), // Human readable name
+    templateContent: v.string(), // Full template content
+    sections: v.object({
+      overview: v.string(),
+      coveredEmployers: v.string(),
+      coveredEmployees: v.string(),
+      employerResponsibilities: v.string(),
+      trainingRequirements: v.optional(v.string()),
+      trainingDeadlines: v.optional(v.string()),
+      qualifiedTrainers: v.optional(v.string()),
+      specialRequirements: v.optional(v.string()),
+      coverageElection: v.optional(v.string()),
+      reciprocity: v.optional(v.string()),
+      employerDeadlines: v.string(),
+      notificationRequirements: v.optional(v.string()),
+      postingRequirements: v.optional(v.string()),
+      recordkeepingRequirements: v.string(),
+      penalties: v.string(),
+      sources: v.string(),
+    }),
+    legalCounselNotes: v.optional(v.string()), // Special notes for legal teams
+    isDefault: v.boolean(), // Whether this is the default template for the topic
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createdBy: v.optional(v.id("users")),
+  })
+    .index("by_topic", ["topicKey"])
+    .index("by_template_id", ["templateId"])
+    .index("by_default", ["isDefault"]),
 });
 
 export default schema;

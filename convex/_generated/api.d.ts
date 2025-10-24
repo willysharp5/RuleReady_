@@ -23,6 +23,7 @@ import type * as complianceParser from "../complianceParser.js";
 import type * as compliancePriority from "../compliancePriority.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceRAG from "../complianceRAG.js";
+import type * as complianceTemplates from "../complianceTemplates.js";
 import type * as complianceWebsiteIntegration from "../complianceWebsiteIntegration.js";
 import type * as crawl from "../crawl.js";
 import type * as crons from "../crons.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   compliancePriority: typeof compliancePriority;
   complianceQueries: typeof complianceQueries;
   complianceRAG: typeof complianceRAG;
+  complianceTemplates: typeof complianceTemplates;
   complianceWebsiteIntegration: typeof complianceWebsiteIntegration;
   crawl: typeof crawl;
   crons: typeof crons;

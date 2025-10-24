@@ -22,6 +22,7 @@ import { ComplianceGuide } from '@/components/ComplianceGuide'
 import { MonitoringStatus } from '@/components/MonitoringStatus'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 import { ChangeTrackingPopover } from '@/components/ui/change-tracking-popover'
+import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -102,6 +103,7 @@ export default function HomePage() {
   const deleteWebsite = useMutation(api.websites.deleteWebsite)
   const pauseWebsite = useMutation(api.websites.pauseWebsite)
   const updateWebsite = useMutation(api.websites.updateWebsite)
+  const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
   const triggerScrape = useAction(api.firecrawl.triggerScrape)
 
   // Track scrape results
@@ -151,6 +153,103 @@ export default function HomePage() {
   
   // Bulk selection state
   const [selectedWebsiteIds, setSelectedWebsiteIds] = useState<Set<string>>(new Set())
+  
+  // Advanced add website form state
+  const [enableAiAnalysis, setEnableAiAnalysis] = useState(true)
+  const [isComplianceSite, setIsComplianceSite] = useState(false)
+  const [selectedPriorityLevel, setSelectedPriorityLevel] = useState<'critical' | 'high' | 'medium' | 'low'>('medium')
+  const [monitorType, setMonitorType] = useState<'single' | 'full_site'>('single')
+  const [maxPages, setMaxPages] = useState(10)
+  const [maxCrawlDepth, setMaxCrawlDepth] = useState(2)
+  const [notificationType, setNotificationType] = useState('email')
+  const [complianceTemplate, setComplianceTemplate] = useState('')
+  
+  // URL validation state
+  const [urlValidation, setUrlValidation] = useState<{
+    isValid: boolean | null
+    isValidating: boolean
+    message: string
+    siteTitle?: string
+    siteDescription?: string
+  }>({
+    isValid: null,
+    isValidating: false,
+    message: ''
+  })
+  
+  // Template editor state
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<{
+    topicKey: string
+    topicName: string
+  } | null>(null)
+  
+  // URL validation function
+  const validateUrl = async (inputUrl: string) => {
+    if (!inputUrl.trim()) {
+      setUrlValidation({
+        isValid: null,
+        isValidating: false,
+        message: ''
+      })
+      return
+    }
+
+    // Basic URL format validation
+    try {
+      const url = new URL(inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`)
+      
+      setUrlValidation({
+        isValid: null,
+        isValidating: true,
+        message: 'Validating URL...'
+      })
+
+      // Try to fetch the URL to verify it's accessible
+      const response = await fetch('/api/validate-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url.toString() }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.isValid) {
+        setUrlValidation({
+          isValid: true,
+          isValidating: false,
+          message: 'URL is valid and accessible',
+          siteTitle: result.title,
+          siteDescription: result.description
+        })
+      } else {
+        setUrlValidation({
+          isValid: false,
+          isValidating: false,
+          message: result.error || 'URL is not accessible or invalid'
+        })
+      }
+    } catch (error) {
+      setUrlValidation({
+        isValid: false,
+        isValidating: false,
+        message: 'Invalid URL format'
+      })
+    }
+  }
+
+  // Debounced URL validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (url.trim()) {
+        validateUrl(url)
+      }
+    }, 1000) // Wait 1 second after user stops typing
+
+    return () => clearTimeout(timeoutId)
+  }, [url])
   
   
   // Get latest scrape for each website
@@ -614,48 +713,382 @@ export default function HomePage() {
           
           {/* Monitoring Status with Active Jobs Filter */}
           <MonitoringStatus />
-          {/* Add Website Form - Full Width */}
+          {/* Advanced Add Website Form */}
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <h3 className="text-xl font-semibold">Add Additional Website</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h3 className="text-xl font-semibold">Add Additional Website to Track</h3>
             </div>
                     
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      handleAddWebsite();
-                    }} className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="text" 
-                          placeholder="https://example.com" 
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                          disabled={isAdding}
-                          className="flex-1"
-                        />
-                        <Button 
-                          type="submit"
-                          variant="default"
-                          size="sm"
-                          disabled={isAdding || !url.trim()}
-                        >
-                          {isAdding ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Adding...
-                            </>
-                          ) : (
-                            'Start Observing'
-                          )}
-                        </Button>
-                      </div>
-                    </form>
-                    {error && (
-                      <p className="text-sm text-orange-500 mt-2">{error}</p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleAddWebsite();
+            }} className="space-y-6">
+              
+              {/* URL Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Website URL</label>
+                <div className="relative">
+                  <Input 
+                    type="text" 
+                    placeholder="https://example.com" 
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    disabled={isAdding}
+                    className={`w-full pr-10 ${
+                      urlValidation.isValid === true ? 'border-green-500 focus:ring-green-500' :
+                      urlValidation.isValid === false ? 'border-red-500 focus:ring-red-500' :
+                      'border-gray-300'
+                    }`}
+                  />
+                  {/* Validation Icon and Button */}
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+                    {urlValidation.isValidating ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    ) : urlValidation.isValid === true ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : urlValidation.isValid === false ? (
+                      <X className="h-4 w-4 text-red-500" />
+                    ) : null}
+                    
+                    {url.trim() && !urlValidation.isValidating && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => validateUrl(url)}
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                        title="Validate URL"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
                     )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Configure monitor type, check intervals, and notifications after adding
-                    </p>
+                  </div>
+                </div>
+                
+                {/* Validation Message */}
+                {urlValidation.message && (
+                  <div className={`text-sm ${
+                    urlValidation.isValid === true ? 'text-green-600' :
+                    urlValidation.isValid === false ? 'text-red-600' :
+                    'text-gray-600'
+                  }`}>
+                    {urlValidation.message}
+                  </div>
+                )}
+                
+                {/* Site Preview */}
+                {urlValidation.isValid === true && (urlValidation.siteTitle || urlValidation.siteDescription) && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <Globe className="h-5 w-5 text-green-600 mt-0.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {urlValidation.siteTitle && (
+                          <h4 className="text-sm font-medium text-green-900 truncate">
+                            {urlValidation.siteTitle}
+                          </h4>
+                        )}
+                        {urlValidation.siteDescription && (
+                          <p className="text-xs text-green-700 mt-1 line-clamp-2">
+                            {urlValidation.siteDescription}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* AI Analysis Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">AI Analysis</label>
+                    <p className="text-xs text-gray-500">Enable AI-powered change analysis and insights</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enableAiAnalysis}
+                        onChange={(e) => setEnableAiAnalysis(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        router.push('/settings?section=ai')
+                      }}
+                      className="text-xs"
+                    >
+                      Settings
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Website Type Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Website Type</label>
+                    <p className="text-xs text-gray-500">Choose between regular website or compliance site monitoring</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm ${!isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Website</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isComplianceSite}
+                        onChange={(e) => setIsComplianceSite(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                    <span className={`text-sm ${isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Compliance</span>
+                  </div>
+                </div>
+                
+                {/* Compliance Template Options */}
+                {isComplianceSite && (
+                  <div className="ml-4 p-4 bg-purple-50 rounded-lg space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Compliance Template</label>
+                      <select
+                        value={complianceTemplate}
+                        onChange={(e) => setComplianceTemplate(e.target.value)}
+                        className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Select compliance topic...</option>
+                        {topics?.map((topic) => (
+                          <option key={topic.topicKey} value={topic.topicKey}>
+                            {topic.name} Template
+                          </option>
+                        ))}
+                        <option value="custom">Custom Template</option>
+                      </select>
+                    </div>
+                    
+                    {/* Template Description */}
+                    {complianceTemplate && complianceTemplate !== 'custom' && (
+                      <div className="text-xs text-gray-600">
+                        {(() => {
+                          const selectedTopic = topics?.find(t => t.topicKey === complianceTemplate);
+                          return selectedTopic ? `Template for ${selectedTopic.name.toLowerCase()} compliance monitoring` : '';
+                        })()}
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (complianceTemplate) {
+                          const selectedTopic = topics?.find(t => t.topicKey === complianceTemplate);
+                          if (selectedTopic) {
+                            setEditingTemplate({
+                              topicKey: complianceTemplate,
+                              topicName: selectedTopic.name
+                            });
+                            setShowTemplateEditor(true);
+                          }
+                        } else {
+                          addToast({
+                            title: "Select Template",
+                            description: "Please select a compliance template first"
+                          });
+                        }
+                      }}
+                      className="text-xs"
+                      disabled={!complianceTemplate}
+                    >
+                      Customize Template
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Priority Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Priority Level</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { value: 'critical', label: 'Critical', color: 'bg-red-500', description: 'Requires immediate attention - legal compliance risk' },
+                    { value: 'high', label: 'High', color: 'bg-orange-500', description: 'High importance - significant business impact' },
+                    { value: 'medium', label: 'Medium', color: 'bg-yellow-500', description: 'Medium importance - moderate business impact' },
+                    { value: 'low', label: 'Low', color: 'bg-green-500', description: 'Low importance - minimal business impact' }
+                  ].map((priority) => (
+                    <div key={priority.value} className="relative">
+                      <input
+                        type="radio"
+                        id={priority.value}
+                        name="priority"
+                        value={priority.value}
+                        checked={selectedPriorityLevel === priority.value}
+                        onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
+                        className="sr-only peer"
+                      />
+                      <label
+                        htmlFor={priority.value}
+                        className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          selectedPriorityLevel === priority.value
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full ${priority.color} mb-2`}></div>
+                        <span className="text-sm font-medium">{priority.label}</span>
+                        <span className="text-xs text-gray-500 text-center mt-1">{priority.description}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Monitor Type */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Monitor Type</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      id="single"
+                      name="monitorType"
+                      value="single"
+                      checked={monitorType === 'single'}
+                      onChange={(e) => setMonitorType(e.target.value as 'single' | 'full_site')}
+                      className="sr-only peer"
+                    />
+                    <label
+                      htmlFor="single"
+                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        monitorType === 'single'
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <File className="w-5 h-5 text-gray-600" />
+                        <span className="font-medium">Single Page</span>
+                      </div>
+                      <span className="text-sm text-gray-600">Monitor specific page only</span>
+                    </label>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="radio"
+                      id="full_site"
+                      name="monitorType"
+                      value="full_site"
+                      checked={monitorType === 'full_site'}
+                      onChange={(e) => setMonitorType(e.target.value as 'single' | 'full_site')}
+                      className="sr-only peer"
+                    />
+                    <label
+                      htmlFor="full_site"
+                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        monitorType === 'full_site'
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Monitor className="w-5 h-5 text-orange-600" />
+                        <span className="font-medium">Full Site</span>
+                      </div>
+                      <span className="text-sm text-gray-600">Monitor entire website</span>
+                    </label>
+                  </div>
+                </div>
+                
+                {/* Full Site Options */}
+                {monitorType === 'full_site' && (
+                  <div className="ml-4 p-4 bg-orange-50 rounded-lg space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Maximum Pages</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={maxPages}
+                          onChange={(e) => setMaxPages(parseInt(e.target.value) || 10)}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Limit pages to crawl (1-100)</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">Maximum Crawl Depth</label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={maxCrawlDepth}
+                          onChange={(e) => setMaxCrawlDepth(parseInt(e.target.value) || 2)}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">How deep to crawl links (1-5)</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification Type */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Notification Type</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="email"
+                      name="notificationType"
+                      value="email"
+                      checked={notificationType === 'email'}
+                      onChange={(e) => setNotificationType(e.target.value)}
+                      className="w-4 h-4 text-purple-600 bg-white border-gray-300 focus:ring-purple-500 focus:ring-2"
+                    />
+                    <label htmlFor="email" className="text-sm text-gray-700">Email</label>
+                  </div>
+                  <span className="text-xs text-gray-500">(More notification types coming soon)</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <Button 
+                  type="submit"
+                  variant="default"
+                  size="default"
+                  disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
+                  className="gap-2"
+                >
+                  {isAdding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Adding Website...
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-4 w-4" />
+                      Start Monitoring
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+            
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
           </div>
           
           {/* Two Column Layout */}
@@ -2854,6 +3287,22 @@ export default function HomePage() {
             }
           }
           websiteName={pendingWebsite?.name || cleanWebsiteName(websites?.find(w => w._id === editingWebsiteId)?.name || 'Website')}
+        />
+      )}
+      
+      {/* Compliance Template Editor */}
+      {showTemplateEditor && editingTemplate && (
+        <ComplianceTemplateEditor
+          isOpen={showTemplateEditor}
+          onClose={() => {
+            setShowTemplateEditor(false)
+            setEditingTemplate(null)
+          }}
+          topicKey={editingTemplate.topicKey}
+          topicName={editingTemplate.topicName}
+          onSave={async (templateData) => {
+            await upsertTemplate(templateData)
+          }}
         />
       )}
       

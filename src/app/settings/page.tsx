@@ -671,6 +671,8 @@ function SettingsContent() {
       setActiveSection('firecrawl')
     } else if (section === 'email') {
       setActiveSection('email')
+    } else if (section === 'ai') {
+      setActiveSection('ai')
     }
     
     // Handle verification success
