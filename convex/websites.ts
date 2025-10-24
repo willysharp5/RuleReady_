@@ -147,14 +147,28 @@ export const getUserWebsites = query({
 export const getWebsite = internalQuery({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
   },
   handler: async (ctx, args) => {
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== args.userId) {
+    if (!website) {
+      return null;
+    }
+    // In single-user mode, skip userId check if no userId provided
+    if (args.userId && website.userId !== args.userId) {
       return null;
     }
     return website;
+  },
+});
+
+// Get website by ID (single-user mode - no authentication)
+export const getWebsiteById = internalQuery({
+  args: {
+    websiteId: v.id("websites"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.websiteId);
   },
 });
 

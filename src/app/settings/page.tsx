@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye } from 'lucide-react'
 // Removed auth imports for single-user mode
 // import { useConvexAuth } from "convex/react"
 // import { useAuthActions } from "@convex-dev/auth/react"
@@ -20,6 +20,7 @@ import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
 import { validateEmailTemplate } from '@/lib/validateTemplate'
 import { APP_CONFIG, getFromEmail } from '@/config/app.config'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
+import { JurisdictionDetailsPopover } from '@/components/ui/jurisdiction-details-popover'
 // Removed useChat - using custom implementation
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -570,7 +571,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring'>('email')
+  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring' | 'jurisdictions'>('email')
   
   // API Key state
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -621,6 +622,9 @@ function SettingsContent() {
   const [isUpdatingChat, setIsUpdatingChat] = useState(false)
   const [chatSuccess, setChatSuccess] = useState(false)
   
+  // Jurisdictions page state
+  const [jurisdictionFilter, setJurisdictionFilter] = useState('')
+  
   // API Key queries and mutations
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
   const createApiKey = useMutation(api.apiKeys.createApiKey)
@@ -635,6 +639,10 @@ function SettingsContent() {
   // Chat settings queries and mutations
   const chatSettings = useQuery(api.chatSettings.getChatSettings)
   const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
+  
+  // Compliance data queries for jurisdictions page
+  const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
+  const topics = useQuery(api.complianceQueries.getTopics)
   
   // Webhook playground queries and mutations
   const webhookPayloads = useQuery(api.webhookPlayground.getWebhookPayloads, { limit: 50 })
@@ -926,6 +934,17 @@ Analyze the provided diff and return a JSON response with:
                 >
                   <Bot className="h-4 w-4" />
                   System Health
+                </button>
+                <button
+                  onClick={() => setActiveSection('jurisdictions')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'jurisdictions'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Jurisdictions
                 </button>
               </nav>
             </div>
@@ -2598,6 +2617,130 @@ Analyze the provided diff and return a JSON response with:
                             }, null, 2)}
                           </pre>
                         </details>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'jurisdictions' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <MapPin className="h-6 w-6" />
+                    Jurisdictions & Compliance Rules
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    {/* Filter Instructions */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        <strong>💡 Tip:</strong> Use "View Details" to filter rules by topic and priority within each jurisdiction.
+                      </p>
+                    </div>
+                    
+                    {/* Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="jurisdiction-filter">Filter by Jurisdiction</Label>
+                        <select
+                          id="jurisdiction-filter"
+                          value={jurisdictionFilter}
+                          onChange={(e) => setJurisdictionFilter(e.target.value)}
+                          className="w-full mt-1 p-2 border rounded-md text-sm"
+                        >
+                          <option value="">All Jurisdictions</option>
+                          {jurisdictions?.map((j) => (
+                            <option key={j.code} value={j.name}>{j.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {/* Jurisdictions Table */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-3 border-b">
+                        <h3 className="font-medium text-sm">
+                          Compliance Rules by Jurisdiction
+                          {jurisdictionFilter && (
+                            <span className="ml-2 text-gray-500">
+                              (filtered by: {jurisdictionFilter})
+                            </span>
+                          )}
+                        </h3>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="border-b bg-gray-50">
+                            <tr>
+                              <th className="text-left p-3 font-medium">Jurisdiction</th>
+                              <th className="text-left p-3 font-medium">Type</th>
+                              <th className="text-left p-3 font-medium">Rules</th>
+                              <th className="text-left p-3 font-medium">Last Updated</th>
+                              <th className="text-left p-3 font-medium">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {jurisdictions
+                              ?.filter(j => !jurisdictionFilter || j.name === jurisdictionFilter)
+                              .map((jurisdiction) => (
+                              <tr key={jurisdiction.code} className="border-b hover:bg-gray-50">
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-gray-400" />
+                                    <span className="font-medium">{jurisdiction.name}</span>
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    jurisdiction.type === 'federal' ? 'bg-blue-100 text-blue-800' :
+                                    jurisdiction.type === 'state' ? 'bg-green-100 text-green-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {jurisdiction.type}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  <span className="font-medium">{jurisdiction.ruleCount}</span>
+                                  <span className="text-gray-500 ml-1">rules</span>
+                                </td>
+                                <td className="p-3 text-gray-600">
+                                  {jurisdiction.lastUpdated ? 
+                                    new Date(jurisdiction.lastUpdated).toLocaleDateString() : 
+                                    'N/A'
+                                  }
+                                </td>
+                                <td className="p-3">
+                                  <JurisdictionDetailsPopover
+                                    trigger={
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                        View Details
+                                      </Button>
+                                    }
+                                    jurisdiction={jurisdiction.name}
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Summary */}
+                      <div className="bg-gray-50 px-4 py-3 border-t text-sm text-gray-600">
+                        <div className="flex justify-between items-center">
+                          <span>
+                            Showing {jurisdictions?.filter(j => !jurisdictionFilter || j.name === jurisdictionFilter).length || 0} jurisdictions
+                          </span>
+                          <span>
+                            Total: {jurisdictions?.reduce((sum, j) => sum + j.ruleCount, 0) || 0} compliance rules
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>

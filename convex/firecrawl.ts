@@ -3,7 +3,7 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import FirecrawlApp from "@mendable/firecrawl-js";
-import { requireCurrentUserForAction } from "./helpers";
+import { requireCurrentUserForAction, getCurrentUserForAction } from "./helpers";
 
 // Initialize Firecrawl client with user's API key (single-user mode compatible)
 export const getFirecrawlClient = async (ctx: any, userId: string | null | undefined) => {
@@ -202,43 +202,36 @@ export const triggerScrape = action({
     websiteId: v.id("websites"),
   },
   handler: async (ctx, args) => {
-    const userId = await requireCurrentUserForAction(ctx);
-
-    // Get website details
-    const website = await ctx.runQuery(internal.websites.getWebsite, {
+    // Single-user mode: get website without user authentication
+    const website = await ctx.runQuery(internal.websites.getWebsiteById, {
       websiteId: args.websiteId,
-      userId: userId,
     });
 
     if (!website) {
       throw new Error("Website not found");
     }
 
-    // Create immediate checking status entry
-    await ctx.runMutation(internal.websites.createCheckingStatus, {
-      websiteId: args.websiteId,
-      userId: userId,
-    });
+    // Create immediate checking status entry (skip in single-user mode)
+    // await ctx.runMutation(internal.websites.createCheckingStatus, {
+    //   websiteId: args.websiteId,
+    //   userId: userId,
+    // });
 
     // Update lastChecked immediately to prevent duplicate checks
     await ctx.runMutation(internal.websites.updateLastChecked, {
       websiteId: args.websiteId,
     });
 
-    // Trigger the appropriate check based on monitor type
-    if (website.monitorType === "full_site") {
-      // For full site, perform a crawl
-      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
-        websiteId: args.websiteId,
-        userId: userId,
+    // Single-user mode: Use compliance-specific crawler instead of legacy system
+    if (website.complianceMetadata?.ruleId) {
+      // This is a compliance website, use compliance crawler
+      console.log(`🎯 Triggering compliance crawl for rule: ${website.complianceMetadata.ruleId}`);
+      await ctx.scheduler.runAfter(0, internal.complianceCrawler.crawlComplianceRule, {
+        ruleId: website.complianceMetadata.ruleId,
+        forceRecrawl: true,
       });
     } else {
-      // For single page, just scrape the URL
-      await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
-        websiteId: args.websiteId,
-        url: website.url,
-        userId: userId,
-      });
+      console.log("⚠️ Manual scraping disabled in single-user mode for non-compliance websites");
     }
 
     return { success: true };
@@ -252,7 +245,8 @@ export const crawlWebsite = action({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireCurrentUserForAction(ctx);
+    // Single-user mode: make authentication optional
+    const userId = await getCurrentUserForAction(ctx);
 
     const firecrawl = await getFirecrawlClient(ctx, userId);
 

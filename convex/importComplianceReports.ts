@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 
 // Import and process existing compliance reports with Gemini
@@ -241,6 +241,25 @@ async function calculateContentHash(content: string): Promise<string> {
 export const getAllAIReports = internalQuery({
   handler: async (ctx): Promise<any> => {
     return await ctx.db.query("complianceAIReports").collect();
+  },
+});
+
+// Public query to get AI reports (for testing)
+export const getAIReports = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("complianceAIReports").take(args.limit || 10);
+  },
+});
+
+// Get AI report by rule ID
+export const getAIReportByRuleId = query({
+  args: { ruleId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("complianceAIReports")
+      .filter(q => q.eq(q.field("ruleId"), args.ruleId))
+      .first();
   },
 });
 

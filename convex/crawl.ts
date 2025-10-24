@@ -14,7 +14,7 @@ import { getFirecrawlClient } from "./firecrawl";
 export const performCrawl = internalAction({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for single-user mode
   },
   handler: async (ctx, args) => {
     // Skip legacy crawling in compliance mode - use compliance-specific crawler instead
@@ -27,7 +27,7 @@ export const performCrawl = internalAction({
     // Get website details
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
-      userId: args.userId,
+      userId: args.userId || undefined,
     });
 
     if (!website || website.monitorType !== "full_site") {
@@ -44,7 +44,7 @@ export const performCrawl = internalAction({
     // Create crawl session
     const sessionId = await ctx.runMutation(internal.crawl.createCrawlSession, {
       websiteId: args.websiteId,
-      userId: args.userId,
+      userId: args.userId || undefined,
     });
 
     try {
@@ -80,7 +80,7 @@ export const performCrawl = internalAction({
           sessionId,
           jobId,
           websiteId: args.websiteId,
-          userId: args.userId,
+          userId: args.userId || undefined,
           attempt: 1,
         });
         
@@ -104,7 +104,7 @@ export const performCrawl = internalAction({
           console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
           // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
           //   websiteId: args.websiteId,
-          //   userId: args.userId,
+          //   userId: args.userId || undefined,
           //   markdown: page.markdown,
           //   changeStatus: page.changeTracking?.changeStatus || "new",
           //   visibility: page.changeTracking?.visibility || "visible",
@@ -127,7 +127,7 @@ export const performCrawl = internalAction({
           // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
           //   await ctx.runMutation(internal.websites.createChangeAlert, {
           //     websiteId: args.websiteId,
-          //     userId: args.userId,
+          //     userId: args.userId || undefined,
           //     scrapeResultId: scrapeResultId,
           //     changeType: "content_changed",
           //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
@@ -166,7 +166,7 @@ export const createCrawlSession = internalMutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("crawlSessions", {
       websiteId: args.websiteId,
-      userId: args.userId,
+      userId: args.userId || undefined,
       startedAt: Date.now(),
       status: "running",
       pagesFound: 0,
@@ -223,7 +223,7 @@ export const checkCrawledPages = internalAction({
   handler: async (ctx, args): Promise<{ pagesChecked: number; errors: number } | undefined> => {
     const website = await ctx.runQuery(internal.websites.getWebsite, {
       websiteId: args.websiteId,
-      userId: args.userId,
+      userId: args.userId || undefined,
     });
 
     if (!website) return;
@@ -234,7 +234,7 @@ export const checkCrawledPages = internalAction({
       // Perform a full crawl to discover any new pages
       await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId: args.websiteId,
-        userId: args.userId,
+        userId: args.userId || undefined,
       });
       
       return { 
@@ -247,7 +247,7 @@ export const checkCrawledPages = internalAction({
     await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
       websiteId: args.websiteId,
       url: website.url,
-      userId: args.userId,
+      userId: args.userId || undefined,
     });
 
     return { 
@@ -320,7 +320,7 @@ export const checkCrawlJobStatus = internalAction({
             console.log(`Legacy scrape storage disabled for ${pageUrl} - use compliance crawler instead`);
             // const scrapeResultId = await ctx.runMutation(internal.websites.storeScrapeResult, {
             //   websiteId: args.websiteId,
-            //   userId: args.userId,
+            //   userId: args.userId || undefined,
             //   markdown: page.markdown,
             //   changeStatus: page.changeTracking?.changeStatus || "new",
             //   visibility: page.changeTracking?.visibility || "visible",
@@ -343,7 +343,7 @@ export const checkCrawlJobStatus = internalAction({
             // if (page.changeTracking?.changeStatus === "changed" && page.changeTracking?.diff) {
             //   await ctx.runMutation(internal.websites.createChangeAlert, {
             //     websiteId: args.websiteId,
-            //     userId: args.userId,
+            //     userId: args.userId || undefined,
             //     scrapeResultId: scrapeResultId,
             //     changeType: "content_changed",
             //     summary: page.changeTracking.diff.text?.substring(0, 200) + "..." || "Page content changed",
@@ -372,7 +372,7 @@ export const checkCrawlJobStatus = internalAction({
             sessionId: args.sessionId,
             jobId: args.jobId,
             websiteId: args.websiteId,
-            userId: args.userId,
+            userId: args.userId || undefined,
             attempt: args.attempt + 1,
           });
         } else {

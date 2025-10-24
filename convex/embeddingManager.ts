@@ -357,14 +357,15 @@ export const embeddingTopKSources = action({
       let topicLabel: string | undefined;
       let reportId: string | undefined;
       let ruleId: string | undefined;
+      let reportData: any = null;
 
       if (entityType === "report") {
         // Find report row by reportId
-        const report = await ctx.runQuery(internal.embeddingManager._getReportById, { reportId: m.entityId });
-        if (report) {
-          reportId = report.reportId;
-          ruleId = report.ruleId;
-          const rule = await ctx.runQuery(internal.embeddingManager._getRuleByRuleId, { ruleId: report.ruleId });
+        reportData = await ctx.runQuery(internal.embeddingManager._getReportById, { reportId: m.entityId });
+        if (reportData) {
+          reportId = reportData.reportId;
+          ruleId = reportData.ruleId;
+          const rule = await ctx.runQuery(internal.embeddingManager._getRuleByRuleId, { ruleId: reportData.ruleId });
           if (rule) {
             sourceUrl = rule.sourceUrl;
             jurisdiction = rule.jurisdiction;
@@ -400,17 +401,24 @@ export const embeddingTopKSources = action({
 
       console.log(`✅ Hydrated source: ${jurisdiction} - ${topicLabel} (${sourceUrl ? 'has URL' : 'no URL'})`);
 
+      // Create richer snippet from structured data if available
+      let snippet = (m.content || "").slice(0, 500);
+      if (entityType === "report" && reportData?.structuredData?.overview) {
+        snippet = reportData.structuredData.overview.slice(0, 500);
+      }
+
       sources.push({
         entityId: m.entityId,
         entityType,
         similarity: m.similarity,
-        snippet: (m.content || "").slice(0, 500),
+        snippet,
         sourceUrl,
         jurisdiction,
         topicKey,
         topicLabel,
         reportId,
         ruleId,
+        hasStructuredData: !!(reportData?.structuredData),
       });
     }
 
@@ -422,10 +430,39 @@ export const embeddingTopKSources = action({
 export const _getReportById = internalQuery({
   args: { reportId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    // First try to get from AI reports (structured data)
+    const aiReport = await ctx.db
+      .query("complianceAIReports")
+      .filter(q => q.eq(q.field("reportId"), args.reportId))
+      .first();
+    
+    if (aiReport) {
+      return {
+        reportId: aiReport.reportId,
+        ruleId: aiReport.ruleId,
+        reportContent: aiReport.rawContent || '',
+        structuredData: aiReport.structuredData,
+        contentLength: aiReport.rawContent?.length || 0,
+        generatedAt: aiReport.processedAt,
+        isAIReport: true,
+      };
+    }
+    
+    // Fallback to regular reports if AI report not found
+    const report = await ctx.db
       .query("complianceReports")
       .withIndex("by_report_id", (q) => q.eq("reportId", args.reportId))
       .first();
+    
+    return report ? {
+      reportId: report.reportId,
+      ruleId: report.ruleId,
+      reportContent: report.reportContent,
+      extractedSections: report.extractedSections,
+      contentLength: report.contentLength,
+      generatedAt: report.generatedAt,
+      isAIReport: false,
+    } : null;
   },
 });
 
