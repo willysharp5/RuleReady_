@@ -142,6 +142,13 @@ export default function HomePage() {
   const [selectedTopic, setSelectedTopic] = useState<string>('')
   const [showComplianceOnly, setShowComplianceOnly] = useState(false)
   
+  // Modal filter states
+  const [modalSelectedJurisdiction, setModalSelectedJurisdiction] = useState<string>('')
+  const [modalSelectedPriority, setModalSelectedPriority] = useState<string>('')
+  const [modalSelectedTopic, setModalSelectedTopic] = useState<string>('')
+  const [modalSelectedStatus, setModalSelectedStatus] = useState<string>('')
+  const [modalShowComplianceOnly, setModalShowComplianceOnly] = useState(false)
+  
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
@@ -1605,47 +1612,269 @@ export default function HomePage() {
                       <div className="flex items-center gap-3">
                         {websites && (
                           <span className="text-sm text-gray-500">
-                            {websites.length} site{websites.length !== 1 ? 's' : ''} 
                             {(() => {
-                              const complianceCount = websites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
-                              const regularCount = websites.length - complianceCount
-                              return complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''
+                              // Calculate filtered websites count
+                              const filteredWebsites = websites.filter(website => {
+                                // Search query filter
+                                const query = searchQuery.toLowerCase()
+                                const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                     website.url.toLowerCase().includes(query)
+                                if (!matchesSearch) return false
+                                
+                                // Compliance only filter
+                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) {
+                                  return false
+                                }
+                                
+                                // Jurisdiction filter
+                                if (modalSelectedJurisdiction) {
+                                  const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                                  if (websiteJurisdiction !== modalSelectedJurisdiction) return false
+                                }
+                                
+                                // Topic filter
+                                if (modalSelectedTopic) {
+                                  if (website.complianceMetadata?.topicKey !== modalSelectedTopic) return false
+                                }
+                                
+                                // Priority filter
+                                if (modalSelectedPriority) {
+                                  if (website.complianceMetadata?.priority !== modalSelectedPriority) return false
+                                }
+                                
+                                // Status filter
+                                if (modalSelectedStatus) {
+                                  if (modalSelectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                                  if (modalSelectedStatus === 'paused' && !website.isPaused) return false
+                                  if (modalSelectedStatus === 'inactive' && website.isActive) return false
+                                }
+                                
+                                return true
+                              });
+                              
+                              const hasFilters = modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly || searchQuery
+                              const totalCount = websites.length
+                              const filteredCount = filteredWebsites.length
+                              const complianceCount = filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
+                              const regularCount = filteredCount - complianceCount
+                              
+                              if (hasFilters && filteredCount !== totalCount) {
+                                return `${filteredCount} of ${totalCount} site${totalCount !== 1 ? 's' : ''}${complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''}`
+                              } else {
+                                return `${totalCount} site${totalCount !== 1 ? 's' : ''}${complianceCount > 0 ? ` (${complianceCount} compliance, ${regularCount} regular)` : ''}`
+                              }
                             })()}
                           </span>
                         )}
-                        {websites && websites.length > 0 && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={async () => {
-                              const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
-                              for (const website of activeWebsites) {
-                                await handleCheckNow(website._id);
-                              }
+                      </div>
+                      
+                      {/* Check All Button - positioned on the right */}
+                      {websites && websites.length > 0 && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={async () => {
+                            const activeWebsites = websites.filter(w => w.isActive && !w.isPaused);
+                            for (const website of activeWebsites) {
+                              await handleCheckNow(website._id);
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Check All
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="Search by name or URL..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setModalWebsitesPage(1); // Reset to first page when searching
+                          }}
+                          className="pl-10"
+                          disabled={!websites}
+                        />
+                      </div>
+                      
+                      {/* Filter Controls */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {/* Jurisdiction Filter */}
+                        <div>
+                          <select
+                            value={modalSelectedJurisdiction}
+                            onChange={(e) => {
+                              setModalSelectedJurisdiction(e.target.value);
+                              setModalWebsitesPage(1);
                             }}
-                            className="gap-2"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           >
-                            <RefreshCw className="h-3 w-3" />
-                            Check All
+                            <option value="">All Jurisdictions</option>
+                            {jurisdictions?.map((jurisdiction) => (
+                              <option key={jurisdiction.name} value={jurisdiction.name}>
+                                {jurisdiction.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* Topic Filter */}
+                        <div>
+                          <select
+                            value={modalSelectedTopic}
+                            onChange={(e) => {
+                              setModalSelectedTopic(e.target.value);
+                              setModalWebsitesPage(1);
+                            }}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="">All Topics</option>
+                            {topics?.map((topic) => (
+                              <option key={topic.topicKey} value={topic.topicKey}>
+                                {topic.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        {/* Priority Filter */}
+                        <div>
+                          <select
+                            value={modalSelectedPriority}
+                            onChange={(e) => {
+                              setModalSelectedPriority(e.target.value);
+                              setModalWebsitesPage(1);
+                            }}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="">All Priorities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                          </select>
+                        </div>
+                        
+                        {/* Status Filter */}
+                        <div>
+                          <select
+                            value={modalSelectedStatus}
+                            onChange={(e) => {
+                              setModalSelectedStatus(e.target.value);
+                              setModalWebsitesPage(1);
+                            }}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="paused">Paused</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {/* Filter Toggles */}
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={modalShowComplianceOnly}
+                            onChange={(e) => {
+                              setModalShowComplianceOnly(e.target.checked);
+                              setModalWebsitesPage(1);
+                            }}
+                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          />
+                          <span>Compliance websites only</span>
+                        </label>
+                        
+                        {/* Clear All Filters Button */}
+                        {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setModalSelectedJurisdiction('');
+                              setModalSelectedTopic('');
+                              setModalSelectedPriority('');
+                              setModalSelectedStatus('');
+                              setModalShowComplianceOnly(false);
+                              setModalWebsitesPage(1);
+                            }}
+                            className="text-xs"
+                          >
+                            Clear All Filters
                           </Button>
                         )}
                       </div>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <Input
-                        type="text"
-                        placeholder="Search by name or URL..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          setModalWebsitesPage(1); // Reset to first page when searching
-                        }}
-                        className="pl-10"
-                        disabled={!websites}
-                      />
+                      
+                      {/* Active Filters Display */}
+                      {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly) && (
+                        <div className="flex flex-wrap gap-2">
+                          {modalSelectedJurisdiction && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Jurisdiction: {modalSelectedJurisdiction}
+                              <button
+                                onClick={() => setModalSelectedJurisdiction('')}
+                                className="hover:text-purple-900"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          )}
+                          {modalSelectedTopic && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Topic: {topics?.find(t => t.topicKey === modalSelectedTopic)?.name || modalSelectedTopic}
+                              <button
+                                onClick={() => setModalSelectedTopic('')}
+                                className="hover:text-purple-900"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          )}
+                          {modalSelectedPriority && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Priority: {modalSelectedPriority}
+                              <button
+                                onClick={() => setModalSelectedPriority('')}
+                                className="hover:text-purple-900"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          )}
+                          {modalSelectedStatus && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Status: {modalSelectedStatus}
+                              <button
+                                onClick={() => setModalSelectedStatus('')}
+                                className="hover:text-purple-900"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          )}
+                          {modalShowComplianceOnly && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              Compliance Only
+                              <button
+                                onClick={() => setModalShowComplianceOnly(false)}
+                                className="hover:text-purple-900"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto">
@@ -1665,9 +1894,41 @@ export default function HomePage() {
                         {(() => {
                           // Filter websites
                           const filteredWebsites = websites.filter(website => {
+                            // Search query filter
                             const query = searchQuery.toLowerCase()
-                            return cleanWebsiteName(website.name).toLowerCase().includes(query) || 
-                                   website.url.toLowerCase().includes(query)
+                            const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
+                                                 website.url.toLowerCase().includes(query)
+                            if (!matchesSearch) return false
+                            
+                            // Compliance only filter
+                            if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) {
+                              return false
+                            }
+                            
+                            // Jurisdiction filter
+                            if (modalSelectedJurisdiction) {
+                              const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
+                              if (websiteJurisdiction !== modalSelectedJurisdiction) return false
+                            }
+                            
+                            // Topic filter
+                            if (modalSelectedTopic) {
+                              if (website.complianceMetadata?.topicKey !== modalSelectedTopic) return false
+                            }
+                            
+                            // Priority filter
+                            if (modalSelectedPriority) {
+                              if (website.complianceMetadata?.priority !== modalSelectedPriority) return false
+                            }
+                            
+                            // Status filter
+                            if (modalSelectedStatus) {
+                              if (modalSelectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                              if (modalSelectedStatus === 'paused' && !website.isPaused) return false
+                              if (modalSelectedStatus === 'inactive' && website.isActive) return false
+                            }
+                            
+                            return true
                           });
                           
                           // Pagination calculations for modal
