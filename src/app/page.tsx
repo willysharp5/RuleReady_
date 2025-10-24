@@ -1139,20 +1139,22 @@ export default function HomePage() {
 
                                 <DeleteConfirmationPopover
                                   trigger={
-                                    <Tooltip content="Remove website">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                        disabled={deletingWebsites.has(website._id)}
-                                      >
-                                        {deletingWebsites.has(website._id) ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <X className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </Tooltip>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="w-8 h-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                      disabled={deletingWebsites.has(website._id)}
+                                      title="Remove website"
+                                      onPointerDown={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    >
+                                      {deletingWebsites.has(website._id) ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <X className="h-4 w-4" />
+                                      )}
+                                    </Button>
                                   }
                                   title="Delete Website"
                                   description="This will permanently remove the website from monitoring. This action cannot be undone."
