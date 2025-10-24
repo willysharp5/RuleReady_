@@ -23,13 +23,8 @@ import {
   Loader2,
   Info,
   BookOpen,
-  Scale,
-  Clock,
-  Users,
-  Building,
-  AlertTriangle,
-  FileCheck,
-  Gavel
+  Copy,
+  Download
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import ReactMarkdown from 'react-markdown'
@@ -38,100 +33,89 @@ import remarkGfm from 'remark-gfm'
 interface ComplianceTemplateEditorProps {
   isOpen: boolean
   onClose: () => void
-  topicKey: string
-  topicName: string
+  templateId?: string
   initialTemplate?: {
-    templateContent: string
-    sections: {
-      overview: string
-      coveredEmployers: string
-      coveredEmployees: string
-      employerResponsibilities: string
-      trainingRequirements?: string
-      trainingDeadlines?: string
-      qualifiedTrainers?: string
-      specialRequirements?: string
-      coverageElection?: string
-      reciprocity?: string
-      employerDeadlines: string
-      notificationRequirements?: string
-      postingRequirements?: string
-      recordkeepingRequirements: string
-      penalties: string
-      sources: string
-    }
-    legalCounselNotes?: string
+    title: string
+    description?: string
+    markdownContent: string
+    topicKey?: string
+    isDefault?: boolean
   }
-  onSave: (template: any) => Promise<void>
+  onSave: (template: {
+    templateId?: string
+    title: string
+    description?: string
+    markdownContent: string
+    topicKey?: string
+    isDefault?: boolean
+    isActive?: boolean
+  }) => Promise<void>
 }
-
-const sectionConfig = [
-  { key: 'overview', label: 'Overview', icon: Info, required: true, description: 'Brief description of the law/requirement' },
-  { key: 'coveredEmployers', label: 'Covered Employers', icon: Building, required: true, description: 'Who must comply with this requirement' },
-  { key: 'coveredEmployees', label: 'Covered Employees', icon: Users, required: true, description: 'Which employees are covered/protected' },
-  { key: 'employerResponsibilities', label: 'Employer Responsibilities', icon: CheckCircle, required: true, description: 'Specific actions employers must take' },
-  { key: 'trainingRequirements', label: 'Training Requirements', icon: BookOpen, required: false, description: 'Training content and format requirements' },
-  { key: 'trainingDeadlines', label: 'Training Deadlines', icon: Clock, required: false, description: 'Timing requirements for training' },
-  { key: 'qualifiedTrainers', label: 'Qualified Trainers', icon: Users, required: false, description: 'Who can provide training/services' },
-  { key: 'specialRequirements', label: 'Special Requirements', icon: AlertCircle, required: false, description: 'Exceptions and special cases' },
-  { key: 'coverageElection', label: 'Coverage Election', icon: FileCheck, required: false, description: 'Optional coverage choices' },
-  { key: 'reciprocity', label: 'Reciprocity/Extraterritorial', icon: Scale, required: false, description: 'Cross-jurisdiction rules' },
-  { key: 'employerDeadlines', label: 'Employer Deadlines', icon: Clock, required: true, description: 'Ongoing obligations and deadlines' },
-  { key: 'notificationRequirements', label: 'Notification Requirements', icon: AlertTriangle, required: false, description: 'Required employee notifications' },
-  { key: 'postingRequirements', label: 'Posting Requirements', icon: FileText, required: false, description: 'Workplace posting requirements' },
-  { key: 'recordkeepingRequirements', label: 'Recordkeeping Requirements', icon: FileCheck, required: true, description: 'Record maintenance requirements' },
-  { key: 'penalties', label: 'Penalties for Non-Compliance', icon: Gavel, required: true, description: 'Fines and consequences' },
-  { key: 'sources', label: 'Sources', icon: BookOpen, required: true, description: 'Official resources and statutes' },
-];
 
 export function ComplianceTemplateEditor({
   isOpen,
   onClose,
-  topicKey,
-  topicName,
+  templateId,
   initialTemplate,
   onSave
 }: ComplianceTemplateEditorProps) {
   const { addToast } = useToast()
   const [isPreviewMode, setIsPreviewMode] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
-  const [sections, setSections] = React.useState(() => {
-    if (initialTemplate) {
-      return initialTemplate.sections
-    }
-    
-    // Initialize with empty sections
-    const emptySections: any = {}
-    sectionConfig.forEach(section => {
-      emptySections[section.key] = ''
-    })
-    return emptySections
-  })
-  const [legalCounselNotes, setLegalCounselNotes] = React.useState(initialTemplate?.legalCounselNotes || '')
+  
+  // Form state
+  const [title, setTitle] = React.useState(initialTemplate?.title || '')
+  const [description, setDescription] = React.useState(initialTemplate?.description || '')
+  const [markdownContent, setMarkdownContent] = React.useState(initialTemplate?.markdownContent || getDefaultMarkdownTemplate())
+  const [topicKey, setTopicKey] = React.useState(initialTemplate?.topicKey || '')
 
-  const updateSection = (key: string, value: string) => {
-    setSections(prev => ({ ...prev, [key]: value }))
-  }
+  // Reset form when template changes
+  React.useEffect(() => {
+    if (initialTemplate) {
+      setTitle(initialTemplate.title)
+      setDescription(initialTemplate.description || '')
+      setMarkdownContent(initialTemplate.markdownContent)
+      setTopicKey(initialTemplate.topicKey || '')
+    } else {
+      setTitle('')
+      setDescription('')
+      setMarkdownContent(getDefaultMarkdownTemplate())
+      setTopicKey('')
+    }
+  }, [initialTemplate, templateId])
 
   const handleSave = async () => {
+    if (!title.trim()) {
+      addToast({
+        title: "Title Required",
+        description: "Please enter a title for the template"
+      })
+      return
+    }
+
+    if (!markdownContent.trim()) {
+      addToast({
+        title: "Content Required", 
+        description: "Please enter template content"
+      })
+      return
+    }
+
     setIsSaving(true)
     try {
-      // Generate full template content
-      const templateContent = generateTemplateContent(sections, topicName)
-      
       await onSave({
-        templateId: topicKey,
-        topicKey,
-        topicName,
-        templateContent,
-        sections,
-        legalCounselNotes,
-        isDefault: true
+        templateId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        markdownContent: markdownContent.trim(),
+        topicKey: topicKey.trim() || undefined,
+        isDefault: initialTemplate?.isDefault,
+        isActive: true
       })
 
       addToast({
         title: "Template Saved",
-        description: `${topicName} template has been saved successfully`
+        description: `${title} template has been saved successfully`
       })
       
       onClose()
@@ -145,47 +129,65 @@ export function ComplianceTemplateEditor({
     }
   }
 
-  const generateTemplateContent = (sections: any, topicName: string) => {
-    let content = `${topicName} Compliance Template\n\n`
-    
-    sectionConfig.forEach(config => {
-      const sectionContent = sections[config.key]
-      if (sectionContent && sectionContent.trim()) {
-        content += `${config.label}\n${sectionContent.trim()}\n\n`
-      }
-    })
-    
-    if (legalCounselNotes.trim()) {
-      content += `Legal Counsel Notes\n${legalCounselNotes.trim()}\n\n`
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      addToast({
+        title: "Copied",
+        description: "Template content copied to clipboard"
+      })
+    } catch (error) {
+      addToast({
+        title: "Copy Failed",
+        description: "Failed to copy to clipboard"
+      })
     }
-    
-    content += `---\nGenerated on: ${new Date().toISOString()}\nProcessing method: RuleReady Template Editor`
-    
-    return content
   }
 
-  const requiredSections = sectionConfig.filter(s => s.required)
-  const optionalSections = sectionConfig.filter(s => !s.required)
-  const completedRequired = requiredSections.filter(s => sections[s.key]?.trim()).length
-  const completionPercentage = Math.round((completedRequired / requiredSections.length) * 100)
+  const downloadTemplate = () => {
+    const blob = new Blob([markdownContent], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_template.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-7xl h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-xl font-semibold">
-                {topicName} Template Editor
+                {templateId ? 'Edit Template' : 'Create New Template'}
               </DialogTitle>
               <DialogDescription className="mt-1">
-                Create comprehensive legal counsel guidance for {topicName.toLowerCase()} compliance
+                Create or edit markdown templates that guide AI parsing of compliance information
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-600">
-                {completedRequired}/{requiredSections.length} required sections ({completionPercentage}%)
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(markdownContent)}
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadTemplate}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -208,126 +210,92 @@ export function ComplianceTemplateEditor({
           </div>
         </DialogHeader>
 
+        {/* Template Metadata */}
+        <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <Label htmlFor="template-title" className="text-sm font-medium">
+              Template Title *
+            </Label>
+            <Input
+              id="template-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Minimum Wage Compliance Template"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="topic-key" className="text-sm font-medium">
+              Topic Key (Optional)
+            </Label>
+            <Input
+              id="topic-key"
+              value={topicKey}
+              onChange={(e) => setTopicKey(e.target.value)}
+              placeholder="e.g., minimum_wage"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="description" className="text-sm font-medium">
+              Description (Optional)
+            </Label>
+            <Input
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of template purpose"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
         <div className="flex-1 overflow-hidden flex gap-6">
           {!isPreviewMode ? (
-            // Edit Mode
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-              {/* Required Sections */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  Required Sections
-                </h3>
-                <div className="space-y-4">
-                  {requiredSections.map((config) => {
-                    const Icon = config.icon
-                    return (
-                      <div key={config.key} className="space-y-2">
-                        <Label className="flex items-center gap-2 text-sm font-medium">
-                          <Icon className="h-4 w-4 text-gray-600" />
-                          {config.label}
-                          <span className="text-red-500">*</span>
-                        </Label>
-                        <p className="text-xs text-gray-500">{config.description}</p>
-                        <Textarea
-                          value={sections[config.key] || ''}
-                          onChange={(e) => updateSection(config.key, e.target.value)}
-                          placeholder={`Enter ${config.label.toLowerCase()} details for legal counsel...`}
-                          className="min-h-[100px] resize-y"
-                        />
-                      </div>
-                    )
-                  })}
+            // Edit Mode - Markdown Editor
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">
+                  Template Content (Markdown)
+                </Label>
+                <div className="text-xs text-gray-500">
+                  {markdownContent.length} characters
                 </div>
               </div>
-
-              {/* Optional Sections */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Info className="h-5 w-5 text-blue-500" />
-                  Optional Sections
-                </h3>
-                <div className="space-y-4">
-                  {optionalSections.map((config) => {
-                    const Icon = config.icon
-                    return (
-                      <div key={config.key} className="space-y-2">
-                        <Label className="flex items-center gap-2 text-sm font-medium">
-                          <Icon className="h-4 w-4 text-gray-600" />
-                          {config.label}
-                        </Label>
-                        <p className="text-xs text-gray-500">{config.description}</p>
-                        <Textarea
-                          value={sections[config.key] || ''}
-                          onChange={(e) => updateSection(config.key, e.target.value)}
-                          placeholder={`Enter ${config.label.toLowerCase()} details (optional)...`}
-                          className="min-h-[80px] resize-y"
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Legal Counsel Notes */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-purple-500" />
-                  Legal Counsel Notes
-                </h3>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Special guidance and priority areas for legal counsel
-                  </Label>
-                  <Textarea
-                    value={legalCounselNotes}
-                    onChange={(e) => setLegalCounselNotes(e.target.value)}
-                    placeholder="Enter special notes, priority areas, and key considerations for legal counsel..."
-                    className="min-h-[100px] resize-y"
-                  />
-                </div>
+              <Textarea
+                value={markdownContent}
+                onChange={(e) => setMarkdownContent(e.target.value)}
+                placeholder="Enter your compliance template in markdown format..."
+                className="flex-1 font-mono text-sm resize-none"
+              />
+              <div className="mt-2 text-xs text-gray-500">
+                <p>💡 <strong>Tip:</strong> Use markdown formatting (# headers, ** bold **, * lists) to structure your template.</p>
+                <p>This template will guide AI parsing of compliance websites to extract structured information.</p>
               </div>
             </div>
           ) : (
             // Preview Mode
             <div className="flex-1 overflow-y-auto">
               <div className="prose prose-sm max-w-none">
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h1 className="text-xl font-bold text-gray-900 mb-4">{topicName} Compliance Template</h1>
-                  
-                  {sectionConfig.map((config) => {
-                    const content = sections[config.key]
-                    if (!content?.trim()) return null
-                    
-                    const Icon = config.icon
-                    return (
-                      <div key={config.key} className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                          <Icon className="h-5 w-5 text-gray-600" />
-                          {config.label}
-                        </h2>
-                        <div className="text-gray-700 leading-relaxed">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {content}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  
-                  {legalCounselNotes.trim() && (
-                    <div className="mt-8 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <h2 className="text-lg font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                        <Scale className="h-5 w-5" />
-                        Legal Counsel Notes
-                      </h2>
-                      <div className="text-purple-700">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {legalCounselNotes}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  )}
+                <div className="bg-white border rounded-lg p-6">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h1: ({children}) => <h1 className="text-2xl font-bold mb-4 text-gray-900 border-b pb-2">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-xl font-semibold mt-6 mb-3 text-gray-800">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-lg font-medium mt-4 mb-2 text-gray-800">{children}</h3>,
+                      p: ({children}) => <p className="mb-3 leading-relaxed text-gray-700">{children}</p>,
+                      ul: ({children}) => <ul className="mb-3 space-y-1 ml-4 list-disc">{children}</ul>,
+                      ol: ({children}) => <ol className="mb-3 space-y-1 ml-4 list-decimal">{children}</ol>,
+                      li: ({children}) => <li className="leading-relaxed text-gray-700">{children}</li>,
+                      strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                      em: ({children}) => <em className="italic text-gray-800">{children}</em>,
+                      code: ({children}) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+                      blockquote: ({children}) => <blockquote className="border-l-4 border-purple-200 pl-4 italic text-gray-600 my-4">{children}</blockquote>,
+                    }}
+                  >
+                    {markdownContent}
+                  </ReactMarkdown>
                 </div>
               </div>
             </div>
@@ -338,12 +306,12 @@ export function ComplianceTemplateEditor({
         <div className="flex-shrink-0 border-t pt-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-600">
-              Template for: <span className="font-medium">{topicName}</span>
+              {title ? `Template: ${title}` : 'New Template'}
             </div>
-            {completionPercentage < 100 && (
+            {!title.trim() && (
               <div className="flex items-center gap-2 text-sm text-amber-600">
-                <AlertTriangle className="h-4 w-4" />
-                {requiredSections.length - completedRequired} required sections remaining
+                <AlertCircle className="h-4 w-4" />
+                Title is required
               </div>
             )}
           </div>
@@ -358,7 +326,7 @@ export function ComplianceTemplateEditor({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isSaving || completionPercentage < 100}
+              disabled={isSaving || !title.trim() || !markdownContent.trim()}
               className="gap-2"
             >
               {isSaving ? (
@@ -378,4 +346,60 @@ export function ComplianceTemplateEditor({
       </DialogContent>
     </Dialog>
   )
+}
+
+// Default markdown template structure
+function getDefaultMarkdownTemplate(): string {
+  return `# Compliance Template
+
+## Overview
+Brief description of the law/requirement, including key legislation and purpose
+
+## Covered Employers
+Who must comply with this requirement - employee thresholds, business types, etc.
+
+## Covered Employees
+Which employees are covered/protected - employment types, locations, exemptions
+
+## What Should Employers Do?
+Specific actions employers must take to comply
+
+## Training Requirements
+If applicable - training content, duration, format requirements
+
+## Training Deadlines
+If applicable - timing requirements for different employee types
+
+## Qualified Trainers
+If applicable - who can provide the training/services
+
+## Special Requirements
+Any special cases, exceptions, industry-specific requirements, or additional obligations
+
+## Coverage Election
+If applicable - optional coverage choices or rejection options
+
+## Reciprocity/Extraterritorial Coverage
+If applicable - cross-state/jurisdiction coverage rules
+
+## Employer Responsibilities & Deadlines
+Ongoing obligations, verification processes, renewal requirements, key deadlines
+
+## Employer Notification Requirements
+Required notifications to employees about rights, processes, or programs
+
+## Posting Requirements
+Required workplace postings, notices, and display requirements
+
+## Recordkeeping Requirements
+What records must be maintained, retention periods, required documentation
+
+## Penalties for Non-Compliance
+Fines, penalties, consequences, and enforcement actions
+
+## Sources
+Relevant statutes, regulations, agency websites, and official resources
+
+---
+*This template guides AI parsing of compliance information*`
 }

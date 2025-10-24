@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye, FileText, Lightbulb } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye, FileText, Lightbulb, Search, Edit3 } from 'lucide-react'
 // Removed auth imports for single-user mode
 // import { useConvexAuth } from "convex/react"
 // import { useAuthActions } from "@convex-dev/auth/react"
@@ -21,6 +21,7 @@ import { validateEmailTemplate } from '@/lib/validateTemplate'
 import { APP_CONFIG, getFromEmail } from '@/config/app.config'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 import { JurisdictionDetailsPopover } from '@/components/ui/jurisdiction-details-popover'
+import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 // Removed useChat - using custom implementation
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -572,7 +573,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring' | 'jurisdictions'>('email')
+  const [activeSection, setActiveSection] = useState<'email' | 'webhooks' | 'firecrawl' | 'api' | 'ai' | 'ai-chat' | 'monitoring' | 'jurisdictions' | 'templates'>('email')
   
   // API Key state
   const [showNewApiKey, setShowNewApiKey] = useState(false)
@@ -661,21 +662,54 @@ function SettingsContent() {
   const testAIModel = useAction(api.testActions.testAIModel)
   const testEmailSending = useAction(api.testActions.testEmailSending)
   
+  // Template management queries and mutations
+  const allTemplates = useQuery(api.complianceTemplates.getAllTemplates)
+  const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
+  const deleteTemplateAction = useMutation(api.complianceTemplates.deleteTemplate)
+  
+  // Template management state
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<{
+    topicKey: string
+    topicName: string
+    template?: any
+  } | null>(null)
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('')
+  
   // Query currentUser - it will return null if not authenticated
   // const currentUser = useQuery(api.users.getCurrentUser)
   
   // Handle query parameter navigation
   useEffect(() => {
     const section = searchParams.get('section')
+    const templateParam = searchParams.get('template')
+    
     if (section === 'firecrawl') {
       setActiveSection('firecrawl')
     } else if (section === 'email') {
       setActiveSection('email')
     } else if (section === 'ai') {
       setActiveSection('ai')
+    } else if (section === 'templates') {
+      setActiveSection('templates')
+      
+      // If template parameter is provided, auto-open that template for editing
+      if (templateParam && allTemplates) {
+        const template = allTemplates.find(t => t.templateId === templateParam)
+        if (template) {
+          setEditingTemplate({
+            topicKey: template.topicKey || '',
+            topicName: template.title,
+            template: template
+          })
+          setShowTemplateEditor(true)
+        }
+      }
     }
+  }, [searchParams, allTemplates])
     
     // Handle verification success
+  useEffect(() => {
     if (searchParams.get('verified') === 'true') {
       setEmailSuccess(true)
       setTimeout(() => setEmailSuccess(false), 5000)
@@ -926,6 +960,17 @@ Analyze the provided diff and return a JSON response with:
                 >
                   <MessageCircle className="h-4 w-4" />
                   AI Chat Assistant
+                </button>
+                <button
+                  onClick={() => setActiveSection('templates')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'templates'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  Compliance Templates
                 </button>
                 <button
                   onClick={() => setActiveSection('monitoring')}
@@ -2753,10 +2798,229 @@ Analyze the provided diff and return a JSON response with:
                 </div>
               )}
               
+              {activeSection === 'templates' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <FileText className="h-6 w-6" />
+                        Compliance Templates
+                      </h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Manage legal counsel templates for compliance monitoring
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setEditingTemplate({
+                          topicKey: 'new',
+                          topicName: 'New Template'
+                        });
+                        setShowTemplateEditor(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create New Template
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {/* Search and Filter */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                          </div>
+                          <Input
+                            type="text"
+                            placeholder="Search templates by name or topic..."
+                            value={templateSearchQuery}
+                            onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {allTemplates?.length || 0} templates
+                      </div>
+                    </div>
+                    
+                    {/* Templates Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {allTemplates
+        ?.filter(template => 
+          !templateSearchQuery || 
+          template.title.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+          (template.topicKey && template.topicKey.toLowerCase().includes(templateSearchQuery.toLowerCase())) ||
+          (template.description && template.description.toLowerCase().includes(templateSearchQuery.toLowerCase()))
+        )
+                        ?.map((template) => (
+                        <div
+                          key={template._id}
+                          className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 hover:shadow-sm transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900 mb-1">
+                                {template.title}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                {template.description || `Topic: ${template.topicKey || 'General'}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {template.isDefault && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-gray-600 mb-3">
+                            <div className="flex items-center justify-between">
+                              <span>
+                                {template.markdownContent.length} characters
+                              </span>
+                              <span>
+                                Updated {new Date(template.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingTemplate({
+                                  topicKey: template.topicKey || '',
+                                  topicName: template.title,
+                                  template: template
+                                });
+                                setShowTemplateEditor(true);
+                              }}
+                              className="flex-1 text-xs"
+                            >
+                              <Edit3 className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // TODO: Show template preview
+                                addToast({
+                                  title: "Template Preview",
+                                  description: "Template preview coming soon"
+                                });
+                              }}
+                              className="text-xs"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            
+                            {!template.isDefault && (
+                              <DeleteConfirmationPopover
+                                trigger={
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                }
+                                title="Delete Template"
+                                description="This will permanently delete this compliance template. This action cannot be undone."
+                                itemName={template.title}
+                                onConfirm={async () => {
+                                  await deleteTemplateAction({ templateId: template.templateId });
+                                  addToast({
+                                    title: "Template Deleted",
+                                    description: `${template.title} template has been deleted`
+                                  });
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Empty State */}
+                    {(!allTemplates || allTemplates.length === 0) && (
+                      <div className="text-center py-12 text-gray-500">
+                        <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium mb-2">No templates found</p>
+                        <p className="text-sm mb-4">Create your first compliance template to get started</p>
+                        <Button
+                          onClick={() => {
+                            setEditingTemplate({
+                              topicKey: 'new',
+                              topicName: 'New Template'
+                            });
+                            setShowTemplateEditor(true);
+                          }}
+                          className="gap-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Create Template
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Filtered Empty State */}
+                    {allTemplates && allTemplates.length > 0 && 
+                     allTemplates.filter(template => 
+                       !templateSearchQuery || 
+                       template.title.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+                       (template.topicKey && template.topicKey.toLowerCase().includes(templateSearchQuery.toLowerCase())) ||
+                       (template.description && template.description.toLowerCase().includes(templateSearchQuery.toLowerCase()))
+                     ).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Search className="h-8 w-8 mx-auto mb-3 text-gray-300" />
+                        <p className="text-sm">No templates match your search</p>
+                        <p className="text-xs mt-1">Try a different search term</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
             </div>
           </div>
         </div>
       </MainContent>
+      
+      {/* Compliance Template Editor */}
+      {showTemplateEditor && editingTemplate && (
+        <ComplianceTemplateEditor
+          isOpen={showTemplateEditor}
+          onClose={() => {
+            setShowTemplateEditor(false)
+            setEditingTemplate(null)
+          }}
+          templateId={editingTemplate.template?.templateId}
+          initialTemplate={editingTemplate.template ? {
+            title: editingTemplate.template.title,
+            description: editingTemplate.template.description,
+            markdownContent: editingTemplate.template.markdownContent,
+            topicKey: editingTemplate.template.topicKey,
+            isDefault: editingTemplate.template.isDefault
+          } : undefined}
+          onSave={async (templateData) => {
+            await upsertTemplate(templateData)
+            addToast({
+              title: "Template Saved",
+              description: `${templateData.title} template has been saved successfully`
+            });
+          }}
+        />
+      )}
       
       <Footer />
     </Layout>

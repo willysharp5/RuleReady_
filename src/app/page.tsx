@@ -92,12 +92,14 @@ export default function HomePage() {
   const allScrapeHistoryQuery = useQuery(api.websites.getAllScrapeHistory)
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
+  const templatesQuery = useQuery(api.complianceTemplates.getActiveTemplates)
   
   // Use fallback empty arrays to prevent loading states when query returns undefined
   const websites = websitesQuery || []
   const allScrapeHistory = allScrapeHistoryQuery || []
   const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
+  const templates = templatesQuery || []
 
   const createWebsite = useMutation(api.websites.createWebsite)
   const deleteWebsite = useMutation(api.websites.deleteWebsite)
@@ -158,6 +160,7 @@ export default function HomePage() {
   const [enableAiAnalysis, setEnableAiAnalysis] = useState(true)
   const [isComplianceSite, setIsComplianceSite] = useState(false)
   const [selectedPriorityLevel, setSelectedPriorityLevel] = useState<'critical' | 'high' | 'medium' | 'low'>('medium')
+  const [checkInterval, setCheckInterval] = useState(1440) // Default to 1 day
   const [monitorType, setMonitorType] = useState<'single' | 'full_site'>('single')
   const [maxPages, setMaxPages] = useState(10)
   const [maxCrawlDepth, setMaxCrawlDepth] = useState(2)
@@ -716,7 +719,7 @@ export default function HomePage() {
           {/* Advanced Add Website Form */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h3 className="text-xl font-semibold">Add Additional Website to Track</h3>
+               <h3 className="text-xl font-semibold">Add Website to Track</h3>
             </div>
                     
             <form onSubmit={(e) => {
@@ -864,22 +867,21 @@ export default function HomePage() {
                         onChange={(e) => setComplianceTemplate(e.target.value)}
                         className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
-                        <option value="">Select compliance topic...</option>
-                        {topics?.map((topic) => (
-                          <option key={topic.topicKey} value={topic.topicKey}>
-                            {topic.name} Template
+                        <option value="">Select template...</option>
+                        {templates?.map((template) => (
+                          <option key={template.templateId} value={template.templateId}>
+                            {template.title}
                           </option>
                         ))}
-                        <option value="custom">Custom Template</option>
                       </select>
                     </div>
                     
                     {/* Template Description */}
-                    {complianceTemplate && complianceTemplate !== 'custom' && (
+                    {complianceTemplate && (
                       <div className="text-xs text-gray-600">
                         {(() => {
-                          const selectedTopic = topics?.find(t => t.topicKey === complianceTemplate);
-                          return selectedTopic ? `Template for ${selectedTopic.name.toLowerCase()} compliance monitoring` : '';
+                          const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate);
+                          return selectedTemplate?.description || 'Compliance monitoring template';
                         })()}
                       </div>
                     )}
@@ -889,66 +891,95 @@ export default function HomePage() {
                       size="sm"
                       onClick={() => {
                         if (complianceTemplate) {
-                          const selectedTopic = topics?.find(t => t.topicKey === complianceTemplate);
-                          if (selectedTopic) {
-                            setEditingTemplate({
-                              topicKey: complianceTemplate,
-                              topicName: selectedTopic.name
-                            });
-                            setShowTemplateEditor(true);
-                          }
+                          router.push(`/settings?section=templates&template=${complianceTemplate}`)
                         } else {
-                          addToast({
-                            title: "Select Template",
-                            description: "Please select a compliance template first"
-                          });
+                          router.push('/settings?section=templates')
                         }
                       }}
                       className="text-xs"
-                      disabled={!complianceTemplate}
                     >
-                      Customize Template
+                      Manage Templates
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* Priority Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">Priority Level</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { value: 'critical', label: 'Critical', color: 'bg-red-500', description: 'Requires immediate attention - legal compliance risk' },
-                    { value: 'high', label: 'High', color: 'bg-orange-500', description: 'High importance - significant business impact' },
-                    { value: 'medium', label: 'Medium', color: 'bg-yellow-500', description: 'Medium importance - moderate business impact' },
-                    { value: 'low', label: 'Low', color: 'bg-green-500', description: 'Low importance - minimal business impact' }
-                  ].map((priority) => (
-                    <div key={priority.value} className="relative">
-                      <input
-                        type="radio"
-                        id={priority.value}
-                        name="priority"
-                        value={priority.value}
-                        checked={selectedPriorityLevel === priority.value}
-                        onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
-                        className="sr-only peer"
-                      />
-                      <label
-                        htmlFor={priority.value}
-                        className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                          selectedPriorityLevel === priority.value
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className={`w-4 h-4 rounded-full ${priority.color} mb-2`}></div>
-                        <span className="text-sm font-medium">{priority.label}</span>
-                        <span className="text-xs text-gray-500 text-center mt-1">{priority.description}</span>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+               {/* Priority Selection */}
+               <div className="space-y-3">
+                 <label className="text-sm font-medium text-gray-700">Priority Level</label>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                   {[
+                     { value: 'critical', label: 'Critical', color: 'bg-red-500', description: 'Requires immediate attention - legal compliance risk' },
+                     { value: 'high', label: 'High', color: 'bg-orange-500', description: 'High importance - significant business impact' },
+                     { value: 'medium', label: 'Medium', color: 'bg-yellow-500', description: 'Medium importance - moderate business impact' },
+                     { value: 'low', label: 'Low', color: 'bg-green-500', description: 'Low importance - minimal business impact' }
+                   ].map((priority) => (
+                     <div key={priority.value} className="relative">
+                       <input
+                         type="radio"
+                         id={priority.value}
+                         name="priority"
+                         value={priority.value}
+                         checked={selectedPriorityLevel === priority.value}
+                         onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
+                         className="sr-only peer"
+                       />
+                       <label
+                         htmlFor={priority.value}
+                         className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all h-24 ${
+                           selectedPriorityLevel === priority.value
+                             ? 'border-purple-500 bg-purple-50'
+                             : 'border-gray-200 hover:border-gray-300'
+                         }`}
+                       >
+                         <div className={`w-4 h-4 rounded-full ${priority.color} mb-2`}></div>
+                         <span className="text-sm font-medium">{priority.label}</span>
+                         <span className="text-xs text-gray-500 text-center mt-1 leading-tight">{priority.description}</span>
+                       </label>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Scraping Frequency */}
+               <div className="space-y-3">
+                 <label className="text-sm font-medium text-gray-700">Scraping Frequency</label>
+                 <p className="text-xs text-gray-500">How often should this website be checked for changes</p>
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                   {[
+                     { value: 15, label: '15 seconds', description: 'Testing only', color: 'bg-purple-500' },
+                     { value: 60, label: '1 hour', description: 'Very frequent', color: 'bg-red-500' },
+                     { value: 360, label: '6 hours', description: 'Frequent', color: 'bg-orange-500' },
+                     { value: 1440, label: '1 day', description: 'Daily', color: 'bg-yellow-500' },
+                     { value: 2880, label: '2 days', description: 'Bi-daily', color: 'bg-blue-500' },
+                     { value: 10080, label: '1 week', description: 'Weekly', color: 'bg-green-500' }
+                   ].map((frequency) => (
+                     <div key={frequency.value} className="relative">
+                       <input
+                         type="radio"
+                         id={`freq-${frequency.value}`}
+                         name="frequency"
+                         value={frequency.value}
+                         checked={checkInterval === frequency.value}
+                         onChange={(e) => setCheckInterval(parseInt(e.target.value))}
+                         className="sr-only peer"
+                       />
+                       <label
+                         htmlFor={`freq-${frequency.value}`}
+                         className={`flex flex-col items-center p-3 border-2 rounded-lg cursor-pointer transition-all h-20 ${
+                           checkInterval === frequency.value
+                             ? 'border-purple-500 bg-purple-50'
+                             : 'border-gray-200 hover:border-gray-300'
+                         }`}
+                       >
+                         <div className={`w-3 h-3 rounded-full ${frequency.color} mb-1`}></div>
+                         <span className="text-sm font-medium">{frequency.label}</span>
+                         <span className="text-xs text-gray-500 text-center">{frequency.description}</span>
+                       </label>
+                     </div>
+                   ))}
+                 </div>
+               </div>
 
               {/* Monitor Type */}
               <div className="space-y-3">
@@ -1084,11 +1115,134 @@ export default function HomePage() {
               </div>
             </form>
             
-            {error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
+               {error && (
+                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                   <p className="text-sm text-red-700">{error}</p>
+                 </div>
+               )}
+               
+               {/* Firecrawl Configuration Preview */}
+               <div className="mt-6 space-y-4">
+                 <div className="border-t pt-4">
+                   <h4 className="text-sm font-medium text-gray-700 mb-3">Firecrawl Configuration</h4>
+                   
+                   {/* Regular Website Scraping */}
+                   {!isComplianceSite && (
+                     <div className="bg-gray-50 rounded-lg p-4">
+                       <h5 className="text-xs font-medium text-gray-600 mb-2">Regular Website Scraping Configuration</h5>
+                       <div className="text-xs text-gray-600 font-mono bg-white p-3 rounded border">
+                         {`{
+  formats: ["markdown", "changeTracking"],
+  changeTrackingOptions: {
+    modes: ["git-diff"]
+  },
+  onlyMainContent: false,
+  waitFor: 2000${monitorType === 'full_site' ? `,
+  limit: ${maxPages},
+  maxDepth: ${maxCrawlDepth}` : ''}
+}`}
+                       </div>
+                     </div>
+                   )}
+                   
+                   {/* Compliance Crawling */}
+                   {isComplianceSite && (
+                     <div className="bg-purple-50 rounded-lg p-4">
+                       <h5 className="text-xs font-medium text-purple-700 mb-2">Compliance Crawling + AI Analysis</h5>
+                       <div className="space-y-3">
+                         <div>
+                           <h6 className="text-xs font-medium text-gray-600 mb-1">Firecrawl Configuration</h6>
+                           <div className="text-xs text-gray-600 font-mono bg-white p-3 rounded border">
+                             {`{
+  formats: ["markdown", "changeTracking"],
+  changeTrackingOptions: {
+    modes: ["git-diff"]
+  },
+  onlyMainContent: false,
+  waitFor: 2000${monitorType === 'full_site' ? `,
+  limit: ${maxPages},
+  maxDepth: ${maxCrawlDepth}` : ''}
+}`}
+                           </div>
+                         </div>
+                         
+                         <div>
+                           <h6 className="text-xs font-medium text-gray-600 mb-1">AI Analysis Prompt (Gemini Flash Lite)</h6>
+                           <textarea
+                             value={`Analyze this compliance content and extract information according to the compliance template structure.
+
+CONTENT TO ANALYZE:
+[Scraped website content will be inserted here]
+
+EXTRACTION TEMPLATE:
+Please extract and structure the following sections based on the content above:
+
+1. OVERVIEW
+   - Brief description of the law/requirement, including key legislation and purpose
+
+2. COVERED EMPLOYERS
+   - Who must comply with this requirement - employee thresholds, business types, etc.
+
+3. COVERED EMPLOYEES
+   - Which employees are covered/protected - employment types, locations, exemptions
+
+4. WHAT SHOULD EMPLOYERS DO?
+   - Specific actions employers must take to comply
+
+5. TRAINING REQUIREMENTS
+   - If applicable - training content, duration, format requirements
+
+6. TRAINING DEADLINES
+   - If applicable - timing requirements for different employee types
+
+7. QUALIFIED TRAINERS
+   - If applicable - who can provide the training/services
+
+8. SPECIAL REQUIREMENTS
+   - Any special cases, exceptions, industry-specific requirements, or additional obligations
+
+9. COVERAGE ELECTION
+   - If applicable - optional coverage choices or rejection options
+
+10. RECIPROCITY/EXTRATERRITORIAL COVERAGE
+    - If applicable - cross-state/jurisdiction coverage rules
+
+11. EMPLOYER RESPONSIBILITIES & DEADLINES
+    - Ongoing obligations, verification processes, renewal requirements, key deadlines
+
+12. EMPLOYER NOTIFICATION REQUIREMENTS
+    - Required notifications to employees about rights, processes, or programs
+
+13. POSTING REQUIREMENTS
+    - Required workplace postings, notices, and display requirements
+
+14. RECORDKEEPING REQUIREMENTS
+    - What records must be maintained, retention periods, required documentation
+
+15. PENALTIES FOR NON-COMPLIANCE
+    - Fines, penalties, consequences, and enforcement actions
+
+16. SOURCES
+    - Relevant statutes, regulations, agency websites, and official resources
+
+Please provide structured output in JSON format with each section clearly labeled.
+For sections where information is not available, use "Not specified in available documentation".
+
+JURISDICTION: [Will be set based on detected jurisdiction]
+TOPIC: [Will be set based on selected compliance topic]
+SOURCE: [Website URL being crawled]`}
+                             readOnly
+                             className="w-full h-64 text-xs font-mono bg-white border border-gray-300 rounded p-3 resize-none"
+                           />
+                           <p className="text-xs text-gray-500 mt-1">
+                             This prompt is used to extract structured compliance information from the scraped content using AI analysis.
+                           </p>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               </div>
           </div>
           
           {/* Two Column Layout */}
