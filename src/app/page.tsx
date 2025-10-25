@@ -2083,8 +2083,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </label>
                   </div>
                 </div>
-                  </div>
-                </div>
               </div>
 
               {/* Section 4: Firecrawl Configuration */}
