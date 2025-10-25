@@ -223,6 +223,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [emailOnlyIfMeaningful, setEmailOnlyIfMeaningful] = useState(false)
   const [webhookOnlyIfMeaningful, setWebhookOnlyIfMeaningful] = useState(false)
   
+  // JSON preview state
+  const [showJsonPreview, setShowJsonPreview] = useState(false)
+  
+  // Add website section visibility
+  const [showAddWebsiteSection, setShowAddWebsiteSection] = useState(false)
+  
   // URL validation function
   const validateUrl = async (inputUrl: string) => {
     if (!inputUrl.trim()) {
@@ -309,19 +315,74 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setFirecrawlConfig(JSON.stringify(config, null, 2))
   }, [monitorType, maxPages, maxCrawlDepth])
   
-  // Auto-adjust frequency based on priority (following system logic)
+  // Generate complete Firecrawl payload for preview
+  const generateFirecrawlPayload = () => {
+    const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate)
+    
+    const payload: any = {
+      url: url || "https://example.com",
+      formats: ["markdown", "changeTracking"],
+      changeTrackingOptions: {
+        modes: ["git-diff"]
+      },
+      onlyMainContent: false,
+      waitFor: 2000
+    }
+    
+    // Add crawl settings for full site
+    if (monitorType === 'full_site') {
+      payload.limit = maxPages
+      payload.maxDepth = maxCrawlDepth
+    }
+    
+    // Add AI analysis configuration
+    if (enableAiAnalysis) {
+      payload.aiAnalysis = {
+        enabled: true,
+        systemPrompt: aiSystemPrompt,
+        meaningfulChangeThreshold: meaningfulChangeThreshold / 100, // Convert percentage to decimal
+        emailOnlyIfMeaningful: emailOnlyIfMeaningful
+      }
+    }
+    
+    // Add compliance template if selected
+    if (isComplianceSite && selectedTemplate) {
+      payload.complianceTemplate = {
+        templateId: selectedTemplate.templateId,
+        title: selectedTemplate.title,
+        markdownContent: selectedTemplate.markdownContent,
+        topicKey: selectedTemplate.topicKey
+      }
+    }
+    
+    // Add website metadata
+    payload.websiteMetadata = {
+      priority: selectedPriorityLevel,
+      checkInterval: checkInterval,
+      monitorType: monitorType,
+      isComplianceSite: isComplianceSite,
+      enableAiAnalysis: enableAiAnalysis,
+      notificationType: notificationType
+    }
+    
+    return payload
+  }
+  
+  // Auto-adjust frequency based on priority (following documented system logic)
   useEffect(() => {
-    const baseInterval = 1440 // 1 day default
-    let adjustedInterval = baseInterval
+    let adjustedInterval: number
     
     if (selectedPriorityLevel === "critical") {
-      adjustedInterval = Math.floor(baseInterval * 0.5) // 2x more frequent = 12 hours
+      adjustedInterval = 1440 // Daily (24 hours)
     } else if (selectedPriorityLevel === "high") {
-      adjustedInterval = Math.floor(baseInterval * 0.75) // 1.33x more frequent = 18 hours
+      adjustedInterval = 2880 // Every 2 days (48 hours)
+    } else if (selectedPriorityLevel === "medium") {
+      adjustedInterval = 10080 // Weekly (7 days)
     } else if (selectedPriorityLevel === "low") {
-      adjustedInterval = Math.floor(baseInterval * 1.5) // Less frequent = 36 hours
+      adjustedInterval = 43200 // Monthly (30 days)
+    } else {
+      adjustedInterval = 1440 // Default to daily
     }
-    // Medium stays at base interval (1440 = 1 day)
     
     setCheckInterval(adjustedInterval)
   }, [selectedPriorityLevel])
@@ -787,10 +848,37 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           <ComplianceGuide />
           
           {/* Advanced Add Website Form */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-               <h3 className="text-xl font-semibold">Add Website to Track</h3>
+          <div className="bg-white rounded-lg shadow-sm">
+            {/* Collapsible Header */}
+            <div className="p-6 border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowAddWebsiteSection(!showAddWebsiteSection)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <Globe className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">Add Website to Track</h3>
+                    <p className="text-sm text-gray-600 mt-1">Configure monitoring for a new website</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    {showAddWebsiteSection ? 'Hide' : 'Show'} form
+                  </span>
+                  <div className={`transform transition-transform ${showAddWebsiteSection ? 'rotate-180' : ''}`}>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
             </div>
+            
+            {/* Collapsible Content */}
+            {showAddWebsiteSection && (
+              <div className="p-6">
                     
                     <form onSubmit={(e) => {
                       e.preventDefault();
@@ -1058,10 +1146,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <option value="critical">🔴 Critical - Checks every 12 hours</option>
-                      <option value="high">🟠 High - Checks every 18 hours</option>
-                      <option value="medium">🟡 Medium - Checks daily</option>
-                      <option value="low">🟢 Low - Checks every 36 hours</option>
+                      <option value="critical">🔴 Critical - Checked Daily (High-impact rules)</option>
+                      <option value="high">🟠 High - Every 2 Days (Important requirements)</option>
+                      <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
+                      <option value="low">🟢 Low - Monthly (Stable rules)</option>
                     </select>
                   </div>
                 </div>
@@ -1264,36 +1352,6 @@ Focus on content that would be relevant for change detection and monitoring.`}
                    </p>
                  </div>
                  
-                 {/* Compliance Specific Prompt */}
-                 {isComplianceSite && (
-                   <div className="space-y-2">
-                     <label className="text-sm font-medium text-gray-700">
-                       Compliance Extraction Instructions
-                     </label>
-                     <textarea
-                       rows={8}
-                       className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                       defaultValue={`Extract compliance information according to this template structure:
-
-1. OVERVIEW - Brief description of the law/requirement
-2. COVERED EMPLOYERS - Who must comply (thresholds, business types)
-3. COVERED EMPLOYEES - Which employees are protected
-4. EMPLOYER RESPONSIBILITIES - Specific actions required
-5. TRAINING REQUIREMENTS - Required training content/duration
-6. TRAINING DEADLINES - Timing requirements
-7. POSTING REQUIREMENTS - Required workplace postings
-8. RECORDKEEPING REQUIREMENTS - Documentation requirements
-9. PENALTIES FOR NON-COMPLIANCE - Fines and consequences
-10. SOURCES - Relevant statutes and regulations
-
-Focus on extracting specific requirements, deadlines, thresholds, and penalty amounts.`}
-                       placeholder="Enter compliance-specific extraction instructions..."
-                     />
-                     <p className="text-xs text-gray-500">
-                       Instructions for extracting structured compliance information from government websites
-                     </p>
-                   </div>
-                 )}
                  
                  {/* Current Firecrawl Options - Collapsible */}
                  <div className="bg-gray-50 rounded-lg p-4">
@@ -1343,6 +1401,62 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                        </div>
                      </div>
                    )}
+                   
+                   {/* Complete Firecrawl Payload Preview */}
+                   <div className="mt-4 border-t border-gray-300 pt-4">
+                     <button
+                       type="button"
+                       onClick={() => setShowJsonPreview(!showJsonPreview)}
+                       className="flex items-center justify-between w-full text-left"
+                     >
+                       <h5 className="text-sm font-medium text-gray-700">Complete Firecrawl API Payload</h5>
+                       <div className="flex items-center gap-2">
+                         <span className="text-xs text-gray-500">
+                           {showJsonPreview ? 'Hide' : 'Show'} full JSON payload
+                         </span>
+                         <div className={`transform transition-transform ${showJsonPreview ? 'rotate-180' : ''}`}>
+                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                           </svg>
+                         </div>
+                       </div>
+                     </button>
+                     
+                     {showJsonPreview && (
+                       <div className="mt-3 space-y-2">
+                         <div className="flex items-center justify-between">
+                           <label className="text-xs font-medium text-gray-600">
+                             Complete API Payload (Live Preview)
+                           </label>
+                           <Button
+                             type="button"
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               navigator.clipboard.writeText(JSON.stringify(generateFirecrawlPayload(), null, 2))
+                               addToast({
+                                 title: "Copied",
+                                 description: "Firecrawl payload copied to clipboard"
+                               })
+                             }}
+                             className="text-xs"
+                           >
+                             Copy JSON
+                           </Button>
+                         </div>
+                         <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
+                           <pre>{JSON.stringify(generateFirecrawlPayload(), null, 2)}</pre>
+                         </div>
+                         <div className="flex items-start gap-2 text-xs text-gray-600">
+                           <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                           <div>
+                             <p className="font-medium">This is the exact JSON payload that will be sent to the Firecrawl API.</p>
+                             <p className="mt-1">It includes all your form settings, AI configuration, templates, and technical parameters. Use this to verify your configuration is correct before submitting.</p>
+                           </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
                  </div>
               </div>
 
@@ -1375,7 +1489,8 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                    <p className="text-sm text-red-700">{error}</p>
                  </div>
                     )}
-               
+              </div>
+            )}
           </div>
           
           {/* Two Column Layout */}
@@ -1870,10 +1985,10 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                 {/* Priority Icon */}
                                 {website.complianceMetadata?.isComplianceWebsite && (
                                   <Tooltip content={`${website.complianceMetadata.priority} priority - ${
-                                    website.complianceMetadata.priority === 'critical' ? 'Daily checks' :
-                                    website.complianceMetadata.priority === 'high' ? 'Every 2 days' :
-                                    website.complianceMetadata.priority === 'medium' ? 'Weekly' :
-                                    website.complianceMetadata.priority === 'low' ? 'Monthly' : 'Testing'
+                                    website.complianceMetadata.priority === 'critical' ? 'Checked Daily (High-impact rules)' :
+                                    website.complianceMetadata.priority === 'high' ? 'Every 2 Days (Important requirements)' :
+                                    website.complianceMetadata.priority === 'medium' ? 'Weekly (Standard compliance)' :
+                                    website.complianceMetadata.priority === 'low' ? 'Monthly (Stable rules)' : 'Testing'
                                   }`}>
                                     <div className={`w-4 h-4 rounded-full ${
                                       website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :
@@ -2913,10 +3028,10 @@ Focus on extracting specific requirements, deadlines, thresholds, and penalty am
                                         {/* Priority Icon */}
                                         {website.complianceMetadata?.isComplianceWebsite && (
                                           <Tooltip content={`${website.complianceMetadata.priority} priority - ${
-                                            website.complianceMetadata.priority === 'critical' ? 'Requires immediate attention' :
-                                            website.complianceMetadata.priority === 'high' ? 'High importance compliance rule' :
-                                            website.complianceMetadata.priority === 'medium' ? 'Medium importance compliance rule' :
-                                            website.complianceMetadata.priority === 'low' ? 'Low importance compliance rule' : 'Standard compliance rule'
+                                            website.complianceMetadata.priority === 'critical' ? 'Checked Daily (High-impact rules)' :
+                                            website.complianceMetadata.priority === 'high' ? 'Every 2 Days (Important requirements)' :
+                                            website.complianceMetadata.priority === 'medium' ? 'Weekly (Standard compliance)' :
+                                            website.complianceMetadata.priority === 'low' ? 'Monthly (Stable rules)' : 'Testing'
                                           }`}>
                                           <div className={`w-4 h-4 rounded-full ${
                                             website.complianceMetadata.priority === 'critical' ? 'bg-red-500' :

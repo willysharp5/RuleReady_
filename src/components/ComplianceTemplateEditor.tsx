@@ -211,41 +211,45 @@ export function ComplianceTemplateEditor({
         </DialogHeader>
 
         {/* Template Metadata */}
-        <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <Label htmlFor="template-title" className="text-sm font-medium">
-              Template Title *
-            </Label>
-            <Input
-              id="template-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Minimum Wage Compliance Template"
-              className="mt-1"
-            />
+        <div className="flex-shrink-0 space-y-4 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="template-title" className="text-sm font-medium">
+                Template Title *
+              </Label>
+              <Input
+                id="template-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Minimum Wage Compliance Template"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="topic-key" className="text-sm font-medium">
+                Topic Key (Optional)
+              </Label>
+              <Input
+                id="topic-key"
+                value={topicKey}
+                onChange={(e) => setTopicKey(e.target.value)}
+                placeholder="e.g., minimum_wage"
+                className="mt-1"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="topic-key" className="text-sm font-medium">
-              Topic Key (Optional)
-            </Label>
-            <Input
-              id="topic-key"
-              value={topicKey}
-              onChange={(e) => setTopicKey(e.target.value)}
-              placeholder="e.g., minimum_wage"
-              className="mt-1"
-            />
-          </div>
+          
           <div>
             <Label htmlFor="description" className="text-sm font-medium">
               Description (Optional)
             </Label>
-            <Input
+            <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of template purpose"
+              placeholder="Brief description of what this template is for and how it should be used..."
               className="mt-1"
+              rows={3}
             />
           </div>
         </div>
