@@ -140,6 +140,53 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"]),
 
+  // COMPLIANCE GENERATION TABLES
+  sourceCollections: defineTable({
+    collectionId: v.string(),
+    name: v.string(),
+    jurisdiction: v.string(),
+    topicKey: v.string(),
+    seedUrls: v.array(v.string()),
+    crawlConfig: v.object({
+      maxDepth: v.number(),
+      maxPages: v.number(),
+      includePdfLinks: v.boolean(),
+      respectRobots: v.boolean(),
+    }),
+    status: v.union(v.literal("created"), v.literal("ingesting"), v.literal("completed"), v.literal("failed")),
+    ingestedCount: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_jurisdiction_topic", ["jurisdiction", "topicKey"])
+    .index("by_status", ["status"])
+    .index("by_collection_id", ["collectionId"]),
+
+  sourceDocuments: defineTable({
+    sourceId: v.string(),
+    collectionId: v.string(),
+    url: v.string(),
+    contentType: v.union(v.literal("html"), v.literal("pdf")),
+    title: v.optional(v.string()),
+    textContent: v.string(), // normalized markdown/text
+    metadata: v.optional(v.any()), // {publisher, publishedDate, og, headers}
+    contentHash: v.string(),
+    fetchedAt: v.number(),
+    status: v.union(v.literal("ok"), v.literal("failed")),
+  })
+    .index("by_collection", ["collectionId"])
+    .index("by_hash", ["contentHash"])
+    .index("by_source_id", ["sourceId"]),
+
+  reportSources: defineTable({
+    reportId: v.string(),
+    sourceId: v.string(),
+    section: v.optional(v.string()), // template section name
+    citation: v.optional(v.string()), // excerpt/anchor for traceability
+  })
+    .index("by_report", ["reportId"])
+    .index("by_source", ["sourceId"]),
+
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({
     ruleId: v.string(), // Composite key: jurisdiction_topickey
@@ -163,6 +210,9 @@ const schema = defineSchema({
       lastAmended: v.optional(v.string()),
       penalties: v.optional(v.string()),
     }),
+    // New fields for compliance generation
+    composedFromCount: v.optional(v.number()), // Number of sources used to generate this rule
+    lastSynthesizedAt: v.optional(v.number()), // When this rule was last generated from sources
     createdAt: v.number(),
     updatedAt: v.number(),
   })

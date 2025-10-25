@@ -212,13 +212,15 @@ export default function HomePage() {
   // Firecrawl options state
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
-      // Default config focuses on Scrape payload and nested scrapeOptions for Crawl
-      formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }],
+      formats: ["markdown", "changeTracking"],
+      changeTrackingOptions: {
+        modes: ["git-diff"]
+      },
       onlyMainContent: false,
       waitFor: 2000,
-      parsers: ["pdf"],
+      parsers: ["pdf"], // Include PDF parsing capability
       proxy: "auto",
-      maxAge: 172800000
+      maxAge: 172800000 // 48 hours cache
     }, null, 2)
   })
   
@@ -579,7 +581,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
         modes: ["git-diff"]
       },
       onlyMainContent: false,
-      waitFor: 2000
+      waitFor: 2000,
+      parsers: ["pdf"], // Include PDF parsing capability
+      proxy: "auto",
+      maxAge: 172800000 // 48 hours cache
     }
     
     if (monitorType === 'full_site') {

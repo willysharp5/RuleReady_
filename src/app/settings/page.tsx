@@ -11,12 +11,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye, FileText, Lightbulb, Search, Edit3 } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, AlertCircle, Key, Copy, Plus, Webhook, CheckCircle, Check, HelpCircle, Clock, XCircle, ExternalLink, Bot, Info, Trash2, MessageCircle, Send, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MapPin, Eye, FileText, Lightbulb, Search, Edit3, Globe, CheckCircle2, Zap } from 'lucide-react'
 // Removed auth imports for single-user mode
 // import { useConvexAuth } from "convex/react"
 // import { useAuthActions } from "@convex-dev/auth/react"
 import Link from 'next/link'
-import { FirecrawlKeyManager } from '@/components/FirecrawlKeyManager'
+// API key manager removed
 import { validateEmailTemplate } from '@/lib/validateTemplate'
 import { APP_CONFIG, getFromEmail } from '@/config/app.config'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
@@ -73,21 +73,15 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'email' | 'firecrawl' | 'monitoring' | 'jurisdictions' | 'templates'>('email')
+  const [activeSection, setActiveSection] = useState<'monitoring' | 'jurisdictions' | 'templates' | 'generation'>('monitoring')
   
-  // API Key state
-  const [showNewApiKey, setShowNewApiKey] = useState(false)
-  const [newApiKeyName, setNewApiKeyName] = useState('')
-  const [createdApiKey, setCreatedApiKey] = useState<string | null>(null)
-  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null)
-  
+  // API keys removed
   // Webhook playground state
   const [copiedWebhook, setCopiedWebhook] = useState(false)
   const [expandedPayload, setExpandedPayload] = useState<string | null>(null)
   
   // Notification settings state
-  const [notificationEmail, setNotificationEmail] = useState('')
-  // Removed default webhook settings
+  // Email notifications removed
   const [emailTemplate, setEmailTemplate] = useState('')
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
   
@@ -97,7 +91,7 @@ function SettingsContent() {
   
   const [templateSuccess, setTemplateSuccess] = useState(false)
   const [showHtmlSource, setShowHtmlSource] = useState(true)
-  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false)
+  // Test email removed
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null)
   
   // AI settings state
@@ -107,7 +101,8 @@ function SettingsContent() {
   const [aiSystemPrompt, setAiSystemPrompt] = useState('')
   const [aiThreshold, setAiThreshold] = useState(70)
   const [aiApiKey, setAiApiKey] = useState('')
-  const [emailOnlyIfMeaningful, setEmailOnlyIfMeaningful] = useState(false)
+  // Email-only preference removed
+  const [webhookOnlyIfMeaningful, setWebhookOnlyIfMeaningful] = useState(false)
   
   const [isUpdatingAI, setIsUpdatingAI] = useState(false)
   const [aiSuccess, setAiSuccess] = useState(false)
@@ -130,11 +125,7 @@ function SettingsContent() {
   const [jurisdictionPage, setJurisdictionPage] = useState(1)
   const [jurisdictionPageSize, setJurisdictionPageSize] = useState(10)
   
-  // API Key queries and mutations
-  const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
-  const createApiKey = useMutation(api.apiKeys.createApiKey)
-  const deleteApiKey = useMutation(api.apiKeys.deleteApiKey)
-  
+  // API key queries removed
   // Monitoring queries
   const cronStatus = useQuery(api.monitoring.getCronJobStatus)
   const embeddingJobs = useQuery(api.monitoring.getEmbeddingJobMetrics)
@@ -154,8 +145,9 @@ function SettingsContent() {
   const userSettings = useQuery(api.userSettings.getUserSettings)
   const updateAISettings = useMutation(api.userSettings.updateAISettings)
   const updateNotificationFiltering = useMutation(api.userSettings.updateNotificationFiltering)
+  // Removed test email action
   const testAIModel = useAction(api.testActions.testAIModel)
-  const testEmailSending = useAction(api.testActions.testEmailSending)
+  // Removed test email action
   
   // Template management queries and mutations
   const allTemplates = useQuery(api.complianceTemplates.getAllTemplates)
@@ -179,11 +171,7 @@ function SettingsContent() {
     const section = searchParams.get('section')
     const templateParam = searchParams.get('template')
     
-    if (section === 'firecrawl') {
-      setActiveSection('firecrawl')
-    } else if (section === 'email') {
-      setActiveSection('email')
-    } else if (section === 'templates') {
+    if (section === 'templates') {
       setActiveSection('templates')
       
       // If template parameter is provided, auto-open that template for editing
@@ -237,7 +225,7 @@ function SettingsContent() {
   // Populate form fields with existing data
   useEffect(() => {
     if (userSettings?.defaultWebhookUrl) {
-      setDefaultWebhook(userSettings.defaultWebhookUrl)
+      // setDefaultWebhook(userSettings.defaultWebhookUrl) // This line was removed
     }
     if (userSettings?.emailTemplate) {
       setEmailTemplate(userSettings.emailTemplate)
@@ -293,7 +281,6 @@ Analyze the provided diff and return a JSON response with:
       setAiSystemPrompt(userSettings.aiSystemPrompt || defaultSystemPrompt)
       setAiThreshold(userSettings.aiMeaningfulChangeThreshold || 70)
       setAiApiKey(userSettings.aiApiKey || '')
-      setEmailOnlyIfMeaningful(userSettings.emailOnlyIfMeaningful || false)
       setWebhookOnlyIfMeaningful(userSettings.webhookOnlyIfMeaningful || false)
     }
   }, [userSettings])
@@ -309,11 +296,7 @@ Analyze the provided diff and return a JSON response with:
     }
   }, [chatSettings])
   
-  useEffect(() => {
-    if (emailConfig?.email) {
-      setNotificationEmail(emailConfig.email)
-    }
-  }, [emailConfig])
+  // Removed emailConfig handling
   
   // Show loading while auth is loading
   if (authLoading) {
@@ -342,34 +325,7 @@ Analyze the provided diff and return a JSON response with:
   }
 
   
-  const handleCreateApiKey = async () => {
-    if (!newApiKeyName.trim()) return
-    
-    try {
-      const result = await createApiKey({ name: newApiKeyName })
-      setCreatedApiKey(result.key)
-      setNewApiKeyName('')
-      setShowNewApiKey(false)
-    } catch (error) {
-      console.error('Failed to create API key:', error)
-    }
-  }
-  
-  const handleCopyApiKey = (key: string, keyId: string) => {
-    navigator.clipboard.writeText(key)
-    setCopiedKeyId(keyId)
-    setTimeout(() => setCopiedKeyId(null), 2000)
-  }
-  
-  const handleDeleteApiKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) return
-    
-    try {
-      await deleteApiKey({ keyId: keyId as Id<"apiKeys"> })
-    } catch (error) {
-      console.error('Failed to delete API key:', error)
-    }
-  }
+  // API key handlers removed
   
   return (
     <Layout>
@@ -388,28 +344,8 @@ Analyze the provided diff and return a JSON response with:
             {/* Sidebar */}
             <div className="w-64 flex-shrink-0">
               <nav className="space-y-1">
-                <button
-                  onClick={() => setActiveSection('email')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === 'email'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Mail className="h-4 w-4" />
-                  Email Notifications
-                </button>
-                <button
-                  onClick={() => setActiveSection('firecrawl')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === 'firecrawl'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Key className="h-4 w-4" />
-                  Firecrawl Auth
-                </button>
+                {/* Email Notifications removed */}
+                {/* Firecrawl Auth removed */}
                 <button
                   onClick={() => setActiveSection('monitoring')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -443,413 +379,23 @@ Analyze the provided diff and return a JSON response with:
                   <FileText className="h-4 w-4" />
                   Compliance Templates
                 </button>
+                <button
+                  onClick={() => setActiveSection('generation')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'generation'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Bot className="h-4 w-4" />
+                  Compliance Generation
+                </button>
               </nav>
             </div>
             
             {/* Content */}
             <div className="flex-1">
-              {activeSection === 'email' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold mb-6">Email Notifications</h2>
-                  
-                  {/* Error message */}
-                  {emailError && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-600" />
-                        <p className="text-sm text-red-700">{emailError}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="space-y-8">
-                    {/* Email Configuration */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                        <Mail className="h-5 w-5" />
-                        Email Notifications
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="notification-email">Notification Email</Label>
-                          <div className="flex gap-2 mt-1">
-                            <Input
-                              id="notification-email"
-                              type="email"
-                              placeholder={APP_CONFIG.email.defaultRecipient}
-                              value={notificationEmail}
-                              onChange={(e) => setNotificationEmail(e.target.value)}
-                              className="flex-1"
-                            />
-                            <Button 
-                              variant="default" 
-                              size="sm"
-                              disabled={isUpdatingEmail || !notificationEmail || notificationEmail === emailConfig?.email}
-                              onClick={async () => {
-                                setIsUpdatingEmail(true)
-                                try {
-                                  await updateEmailConfig({ email: notificationEmail })
-                                  setEmailSuccess(true)
-                                  setTimeout(() => setEmailSuccess(false), 3000)
-                                } catch (error) {
-                                  console.error('Failed to update email:', error)
-                                } finally {
-                                  setIsUpdatingEmail(false)
-                                }
-                              }}
-                            >
-                              {isUpdatingEmail ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : emailSuccess ? (
-                                <CheckCircle className="h-4 w-4" />
-                              ) : (
-                                'Save'
-                              )}
-                            </Button>
-                          </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            We&apos;ll send change notifications to this email address
-                          </p>
-                        </div>
-                        
-                        {/* Email verification status */}
-                        {emailConfig && (
-                          <div className={`flex items-center justify-between p-3 rounded-lg ${
-                            emailConfig.isVerified 
-                              ? 'bg-green-50 border border-green-200' 
-                              : 'bg-amber-50 border border-amber-200'
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              {emailConfig.isVerified ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                  <p className="text-sm text-green-700">
-                                    Email verified and ready to receive notifications
-                                  </p>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                                  <p className="text-sm text-amber-700">
-                                    Please verify your email address to receive notifications
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                            <div className="flex gap-2">
-                              {emailConfig.isVerified && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={async () => {
-                                    setIsSendingTestEmail(true)
-                                    setTestEmailResult(null)
-                                    try {
-                                      const result = await testEmailSending()
-                                      setTestEmailResult({
-                                        success: result.success,
-                                        message: result.message
-                                      })
-                                    } catch (error) {
-                                      setTestEmailResult({
-                                        success: false,
-                                        message: (error as Error).message || 'Failed to send test email'
-                                      })
-                                    } finally {
-                                      setIsSendingTestEmail(false)
-                                    }
-                                  }}
-                                  disabled={isSendingTestEmail}
-                                >
-                                  {isSendingTestEmail ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    'Send Test Email'
-                                  )}
-                                </Button>
-                              )}
-                              {!emailConfig.isVerified && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={async () => {
-                                    try {
-                                      await resendVerificationEmail()
-                                      alert('Verification email sent!')
-                                    } catch (error) {
-                                      console.error('Failed to resend email:', error)
-                                      alert('Failed to resend verification email')
-                                    }
-                                  }}
-                                >
-                                  Resend
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Test email result */}
-                        {testEmailResult && (
-                          <div className={`p-3 rounded-lg text-sm ${
-                            testEmailResult.success 
-                              ? 'bg-green-50 text-green-700 border border-green-200' 
-                              : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}>
-                            {testEmailResult.success ? '✅' : '❌'} {testEmailResult.message}
-                          </div>
-                        )}
-                        
-                        {/* Email template preview */}
-                        <div>
-                          <h4 className="font-medium mb-2">Email Preview</h4>
-                          <div className="border rounded-lg p-4 bg-gray-50">
-                            <div className="space-y-2 text-sm">
-                              <p className="font-semibold">Subject: Changes detected on example.com</p>
-                              <div className="border-t pt-2">
-                                <p className="text-gray-600">Hi there,</p>
-                                <p className="text-gray-600 mt-2">
-                                  We&apos;ve detected changes on the website you&apos;re monitoring:
-                                </p>
-                                <div className="mt-2 p-3 bg-white rounded border">
-                                  <p className="font-medium">example.com</p>
-                                  <p className="text-gray-500 text-xs mt-1">Changed at: <span suppressHydrationWarning>{new Date().toLocaleString()}</span></p>
-                                </div>
-                                <p className="text-gray-600 mt-2">
-                                  <a href="#" className="text-purple-600 underline">View changes →</a>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Email Template Editor */}
-                    <div className="border-t pt-6">
-                      <h4 className="font-medium mb-3">Email Template</h4>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Customize the email template that will be sent when changes are detected. Use variables to insert dynamic content.
-                      </p>
-                      
-                      {/* Available Variables */}
-                      <div className="mb-4 p-3 border rounded-lg">
-                        <h5 className="font-medium mb-2">Available Variables</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{websiteName}}"}</span> - Website name
-                          </div>
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{websiteUrl}}"}</span> - Website URL
-                          </div>
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{changeDate}}"}</span> - When change was detected
-                          </div>
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{changeType}}"}</span> - Type of change
-                          </div>
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{pageTitle}}"}</span> - Page title
-                          </div>
-                          <div>
-                            <span className="font-mono bg-gray-100 px-1 rounded">{"{{viewChangesUrl}}"}</span> - Link to view changes
-                          </div>
-                          {aiEnabled && (
-                            <>
-                              <div>
-                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiMeaningfulScore}}"}</span> - AI score (0-100)
-                              </div>
-                              <div>
-                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiIsMeaningful}}"}</span> - Yes/No meaningful
-                              </div>
-                              <div>
-                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiReasoning}}"}</span> - AI reasoning
-                              </div>
-                              <div>
-                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiModel}}"}</span> - AI model used
-                              </div>
-                              <div>
-                                <span className="font-mono bg-gray-100 px-1 rounded">{"{{aiAnalyzedAt}}"}</span> - AI analysis time
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        {aiEnabled && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            AI variables are only available when AI analysis is enabled and a change is analyzed.
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Toggle between editor and HTML view */}
-                      <div className="mb-4 flex gap-2">
-                        <Button
-                          variant={showHtmlSource ? "outline" : "code"}
-                          size="sm"
-                          onClick={() => setShowHtmlSource(false)}
-                        >
-                          Editor
-                        </Button>
-                        <Button
-                          variant={showHtmlSource ? "code" : "outline"}
-                          size="sm"
-                          onClick={() => setShowHtmlSource(true)}
-                        >
-                          HTML Source
-                        </Button>
-                      </div>
-                      
-                      {showHtmlSource ? (
-                        <div className="border rounded-lg">
-                          <textarea
-                            value={emailTemplate}
-                            onChange={(e) => setEmailTemplate(e.target.value)}
-                            className="w-full p-4 font-mono text-sm min-h-[300px] rounded-lg"
-                            placeholder="Enter your HTML template here..."
-                            disabled={isUpdatingTemplate}
-                          />
-                        </div>
-                      ) : (
-                        <EmailTemplateEditor
-                          value={emailTemplate}
-                          onChange={setEmailTemplate}
-                          disabled={isUpdatingTemplate}
-                        />
-                      )}
-                      
-                      {/* Email Preview */}
-                      <div className="mt-6">
-                        <h4 className="font-medium mb-3">Preview</h4>
-                        <div className="border rounded-lg p-6 bg-gray-50">
-                          <div className="max-w-xl mx-auto bg-white rounded-lg shadow-sm p-6">
-                            <div className="mb-4 text-sm text-gray-500 border-b pb-2">
-                              <p><strong>From:</strong> {getFromEmail()}</p>
-                              <p><strong>To:</strong> {notificationEmail || APP_CONFIG.email.defaultRecipient}</p>
-                              <p><strong>Subject:</strong> Changes detected on Example Website</p>
-                            </div>
-                            <div 
-                              className="prose prose-sm max-w-none"
-                              suppressHydrationWarning
-                              dangerouslySetInnerHTML={{ 
-                                __html: emailTemplate
-                                  .replace(/{{websiteName}}/g, 'Example Website')
-                                  .replace(/{{websiteUrl}}/g, 'https://example.com')
-                                  .replace(/{{changeDate}}/g, new Date().toLocaleString())
-                                  .replace(/{{changeType}}/g, 'Content changed')
-                                  .replace(/{{pageTitle}}/g, 'Example Page Title')
-                                  .replace(/{{viewChangesUrl}}/g, '#')
-                                  .replace(/{{aiMeaningfulScore}}/g, '85')
-                                  .replace(/{{aiIsMeaningful}}/g, 'Yes')
-                                  .replace(/{{aiReasoning}}/g, 'The page content has been updated with new product information and pricing changes.')
-                                  .replace(/{{aiModel}}/g, 'gpt-4o-mini')
-                                  .replace(/{{aiAnalyzedAt}}/g, new Date().toLocaleString())
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 flex items-center justify-between">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const defaultTemplate = `
-<h2>Website Change Alert</h2>
-<p>We've detected changes on the website you're monitoring:</p>
-<div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-  <h3>{{websiteName}}</h3>
-  <p><a href="{{websiteUrl}}">{{websiteUrl}}</a></p>
-  <p><strong>Changed at:</strong> {{changeDate}}</p>
-  <p><strong>Page Title:</strong> {{pageTitle}}</p>
-</div>
-<p><a href="{{viewChangesUrl}}" style="background: #ff6600; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Changes</a></p>
-                            `.trim()
-                            setEmailTemplate(defaultTemplate)
-                            setTemplateSuccess(false)
-                          }}
-                          disabled={isUpdatingTemplate || !emailTemplate}
-                        >
-                          Reset to Default
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={async () => {
-                            // Validate template first
-                            const validation = validateEmailTemplate(emailTemplate)
-                            if (!validation.isValid) {
-                              alert('Template validation failed:\n\n' + validation.errors.join('\n'))
-                              return
-                            }
-                            
-                            setIsUpdatingTemplate(true)
-                            try {
-                              await updateEmailTemplate({ template: emailTemplate })
-                              setTemplateSuccess(true)
-                              setTimeout(() => setTemplateSuccess(false), 3000)
-                            } catch (error) {
-                              console.error('Failed to update template:', error)
-                              alert('Failed to save template. Please try again.')
-                            } finally {
-                              setIsUpdatingTemplate(false)
-                            }
-                          }}
-                          disabled={isUpdatingTemplate || emailTemplate === (userSettings?.emailTemplate || '')}
-                        >
-                          {isUpdatingTemplate ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : templateSuccess ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Saved
-                            </>
-                          ) : (
-                            'Save Template'
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Global email preferences */}
-                    <div className="border-t pt-6">
-                      <h4 className="font-medium mb-3">Email Preferences</h4>
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-3">
-                          <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-orange-500" defaultChecked />
-                          <span className="text-sm">Send instant notifications for each change</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {activeSection === 'firecrawl' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold mb-6">Firecrawl Auth</h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-gray-600 mb-4">
-                        Connect your Firecrawl API key to enable website monitoring. Firecrawl powers the web scraping and change detection functionality.
-                      </p>
-                      
-                      <a 
-                        href="https://www.firecrawl.dev/app/api-keys" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-purple-600 hover:text-orange-700 text-sm font-medium"
-                      >
-                        Get your Firecrawl API key →
-                      </a>
-                    </div>
-                    
-                    <FirecrawlKeyManager />
-                  </div>
-                </div>
-              )}
+              {/* Firecrawl Auth section removed */}
               
               {activeSection === 'monitoring' && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
@@ -1516,10 +1062,7 @@ Analyze the provided diff and return a JSON response with:
                                 itemName={template.title}
                                 onConfirm={async () => {
                                   await deleteTemplateAction({ templateId: template.templateId });
-                                  addToast({
-                                    title: "Template Deleted",
-                                    description: `${template.title} template has been deleted`
-                                  });
+                                  // Removed addToast as it's not defined
                                 }}
                               />
                             )}
@@ -1568,6 +1111,261 @@ Analyze the provided diff and return a JSON response with:
                 </div>
               )}
               
+              {activeSection === 'generation' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Bot className="h-6 w-6" />
+                        Compliance Generation
+                      </h2>
+                      <p className="text-gray-600 mt-1">
+                        Use LLM to combine multiple scraped results and generate compliance rules with templates
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-8">
+                    {/* Step 1: Source Collection */}
+                    <div className="border border-blue-200 rounded-lg p-6 bg-blue-50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Globe className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-lg font-medium text-blue-900">Step 1: Source Collection</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Jurisdiction</label>
+                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <option value="">Select jurisdiction...</option>
+                              {jurisdictions?.map(j => (
+                                <option key={j.code} value={j.name}>{j.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Topic</label>
+                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <option value="">Select topic...</option>
+                              {topics?.map(t => (
+                                <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Collection Name</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., California Sexual Harassment Sources"
+                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">Seed URLs</label>
+                          <textarea
+                            rows={4}
+                            placeholder="Enter URLs, one per line:&#10;https://example.gov/harassment-policy&#10;https://agency.gov/training-requirements&#10;https://dept.gov/compliance.pdf"
+                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Add government websites, PDFs, and authoritative sources (2-5 URLs recommended)
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Max Depth</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="5"
+                              defaultValue="2"
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Max Pages</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              defaultValue="20"
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                defaultChecked
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              Include PDFs
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                defaultChecked
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              Respect robots.txt
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <Button className="w-full">
+                          <Globe className="h-4 w-4 mr-2" />
+                          Create & Ingest Collection
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Step 2: LLM Synthesis */}
+                    <div className="border border-purple-200 rounded-lg p-6 bg-purple-50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Bot className="h-5 w-5 text-purple-600" />
+                        <h3 className="text-lg font-medium text-purple-900">Step 2: LLM Synthesis</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Source Collection</label>
+                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                              <option value="">Select collection...</option>
+                              <option value="ca-harassment">CA Sexual Harassment (15 sources)</option>
+                              <option value="tx-minimum-wage">TX Minimum Wage (8 sources)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Template</label>
+                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                              <option value="">Select template...</option>
+                              {allTemplates?.filter(t => t.isActive).map(t => (
+                                <option key={t.templateId} value={t.templateId}>{t.title}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Source Limit</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="20"
+                              defaultValue="5"
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Top N sources to use</p>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-700">LLM Synthesis Prompt</label>
+                          <textarea
+                            rows={6}
+                            defaultValue={`You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule following the provided template structure.
+
+Instructions:
+- Combine information from all provided sources
+- Follow the template structure exactly
+- Include citations using [n] markers for each source
+- Avoid speculation - only include information found in sources
+- Ensure all template sections are filled with relevant information
+- Maintain legal accuracy and clarity`}
+                            className="mt-1 w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                        
+                        <Button className="w-full" variant="default">
+                          <Bot className="h-4 w-4 mr-2" />
+                          Generate Compliance Rule
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Step 3: Review & Publish */}
+                    <div className="border border-green-200 rounded-lg p-6 bg-green-50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <h3 className="text-lg font-medium text-green-900">Step 3: Review & Publish</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="bg-white border border-green-200 rounded-lg p-4">
+                          <h4 className="font-medium text-gray-900 mb-2">Generated Rule Preview</h4>
+                          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border">
+                            <em>Generated compliance rule will appear here after synthesis...</em>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white border border-green-200 rounded-lg p-4">
+                          <h4 className="font-medium text-gray-900 mb-2">Source Citations</h4>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <div>[1] example.gov/policy - Overview section</div>
+                            <div>[2] agency.gov/requirements.pdf - Training requirements</div>
+                            <div>[3] dept.gov/penalties - Penalties section</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3">
+                          <Button variant="outline" className="flex-1">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview Full Report
+                          </Button>
+                          <Button className="flex-1">
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Approve & Publish
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Step 4: Generate Embeddings */}
+                    <div className="border border-orange-200 rounded-lg p-6 bg-orange-50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Zap className="h-5 w-5 text-orange-600" />
+                        <h3 className="text-lg font-medium text-orange-900">Step 4: Generate Embeddings</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <p className="text-sm text-gray-700">
+                          Generate embeddings for the published compliance rule to make it searchable in the chat system.
+                        </p>
+                        
+                        <div className="bg-white border border-orange-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-gray-900">Embedding Status</h4>
+                              <p className="text-sm text-gray-600">Ready to generate embeddings for new rule</p>
+                            </div>
+                            <Button>
+                              <Zap className="h-4 w-4 mr-2" />
+                              Generate Embeddings
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs text-gray-600 bg-white border border-orange-200 rounded p-3">
+                          <strong>What happens:</strong>
+                          <ul className="mt-1 space-y-1 ml-4 list-disc">
+                            <li>Rule content is chunked into optimal sizes</li>
+                            <li>Each chunk gets a Gemini embedding vector</li>
+                            <li>Embeddings are saved to complianceEmbeddings table</li>
+                            <li>Rule becomes searchable in chat system</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
             </div>
           </div>
         </div>
@@ -1591,10 +1389,7 @@ Analyze the provided diff and return a JSON response with:
           } : undefined}
           onSave={async (templateData) => {
             await upsertTemplate(templateData)
-            addToast({
-              title: "Template Saved",
-              description: `${templateData.title} template has been saved successfully`
-            });
+            // Removed addToast as it's not defined
           }}
         />
       )}
