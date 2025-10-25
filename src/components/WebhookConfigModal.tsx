@@ -77,7 +77,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
       overrideComplianceInterval: isComplianceWebsite ? overrideInterval : undefined,
       priorityChangeReason: isComplianceWebsite && priorityChangeReason ? priorityChangeReason : undefined,
     })
-  }, [notificationPreference, webhookUrl, url, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
+  }, [notificationPreference, url, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
 
   // Handle keyboard shortcuts
   useEffect(() => {
