@@ -4517,46 +4517,57 @@ Focus on content that would be relevant for change detection and monitoring.`}
                       {scrape.websiteName} • {formatTimeAgo(scrape.scrapedAt)}
                     </p>
                   </div>
-                  <div className="overflow-y-auto max-h-[70vh] bg-gray-900">
+                  <div className="overflow-y-auto max-h-[70vh] bg-white">
                     {scrape.diff && scrape.diff.text ? (
-                      <div className="p-4">
-                        <div className="font-mono text-sm text-gray-100">
-                          {diffLines.map((line: string, index: number) => {
-                            const isAddition = line.startsWith('+') && !line.startsWith('+++');
-                            const isDeletion = line.startsWith('-') && !line.startsWith('---');
-                            const isContext = line.startsWith('@@');
-                            const isFileHeader = line.startsWith('+++') || line.startsWith('---');
-                            
-                            // Filter based on checkboxes
-                            if (onlyShowDiff && !isAddition && !isDeletion) return null;
-                            if (!onlyShowDiff) {
-                              if (isAddition && !showAddedLines) return null;
-                              if (isDeletion && !showRemovedLines) return null;
-                            }
-                            
-                            return (
-                              <div
-                                key={index}
-                                className={`px-2 py-0.5 ${
-                                  isAddition ? 'bg-green-900/30 text-green-400' :
-                                  isDeletion ? 'bg-red-900/30 text-red-400' :
-                                  isContext ? 'bg-gray-800/50 text-gray-300 font-bold' :
-                                  isFileHeader ? 'text-gray-400' :
-                                  'text-gray-200'
-                                }`}
-                              >
-                                <span className="select-none text-gray-500 mr-2">
-                                  {String(index + 1).padStart(4, ' ')}
-                                </span>
-                                <span className="break-all">{line || ' '}</span>
+                      <div className="p-4 space-y-4">
+                        {(() => {
+                          const isAddition = (line: string) => line.startsWith('+') && !line.startsWith('+++');
+                          const isDeletion = (line: string) => line.startsWith('-') && !line.startsWith('---');
+                          const additions = diffLines.filter(isAddition).map(l => l.replace(/^\+/, ''));
+                          const deletions = diffLines.filter(isDeletion).map(l => l.replace(/^\-/, ''));
+
+                          return (
+                            <>
+                              {/* Summary chips */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800 border border-green-200">+ {additions.length} added</span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800 border border-red-200">- {deletions.length} removed</span>
                               </div>
-                            );
-                          })}
-                        </div>
+
+                              {/* Added content */}
+                              {additions.length > 0 && (onlyShowDiff || (!onlyShowDiff && showAddedLines)) && (
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold text-green-800">Added</h4>
+                                  <div className="space-y-1.5">
+                                    {additions.map((text, idx) => (
+                                      <div key={`add-${idx}`} className="rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-900 whitespace-pre-wrap break-words">
+                                        {text || ' '}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Removed content */}
+                              {deletions.length > 0 && (onlyShowDiff || (!onlyShowDiff && showRemovedLines)) && (
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold text-red-800">Removed</h4>
+                                  <div className="space-y-1.5">
+                                    {deletions.map((text, idx) => (
+                                      <div key={`del-${idx}`} className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-900 whitespace-pre-wrap break-words">
+                                        {text || ' '}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-gray-400">No diff available for this change.</p>
+                        <p className="text-gray-500">No diff available for this change.</p>
                       </div>
                     )}
                   </div>

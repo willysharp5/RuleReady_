@@ -19,7 +19,6 @@ export const APP_CONFIG = {
   // URLs
   urls: {
     github: 'https://github.com/your-org/ruleready-compliance',
-    documentation: '/docs',
     // api removed
   },
   

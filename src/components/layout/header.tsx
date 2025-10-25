@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Code, BookOpen, Settings, Scale } from 'lucide-react'
+import { Github, LogOut, User, Loader2, ChevronDown, Code, Settings, Scale } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -99,12 +99,6 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
                   <Link href="/settings" className="flex items-center cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/docs" className="flex items-center cursor-pointer">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    <span>Documentation</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

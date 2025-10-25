@@ -1476,13 +1476,7 @@ Analyze the provided diff and return a JSON response with:
                                 {template.description || `Topic: ${template.topicKey || 'General'}`}
                               </p>
                             </div>
-                            <div className="flex items-center gap-1">
-                              {template.isDefault && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Default
-                                </span>
-                              )}
-                            </div>
+                            <div className="flex items-center gap-1" />
                           </div>
                           
                           <div className="text-xs text-gray-600 mb-3">
