@@ -700,7 +700,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Add warning message when both context and embedding are disabled
   useEffect(() => {
-    if (messages.length > 1 && !enableComplianceContext && !enableSemanticSearch) {
+    if (!enableComplianceContext && !enableSemanticSearch) {
       // Only add if both were just disabled or if this is a new state
       const shouldAddWarning = (
         (prevComplianceContextRef.current === true && !enableComplianceContext) ||
@@ -714,7 +714,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
         )
       }
     }
-  }, [enableComplianceContext, enableSemanticSearch, messages.length, addSystemMessage])
+  }, [enableComplianceContext, enableSemanticSearch, addSystemMessage])
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
