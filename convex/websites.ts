@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { requireCurrentUser, getCurrentUser } from "./helpers";
+import { getCurrentUser } from "./helpers";
 import { internal } from "./_generated/api";
 // Feature flags (environment-overridable). Avoid Next.js path aliases in Convex.
 const FEATURES = {
@@ -38,7 +38,7 @@ export const createWebsite = mutation({
     if (FEATURES.complianceMode && FEATURES.freezeLegacyWrites) {
       throw new Error("Legacy website creation is disabled in compliance mode");
     }
-    const user = await requireCurrentUser(ctx);
+    // Single-user mode: no auth required
     
     // Webhook support removed
 
@@ -573,10 +573,9 @@ export const markAlertAsRead = mutation({
     alertId: v.id("changeAlerts"),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
+    // Single-user mode: no auth required
     const alert = await ctx.db.get(args.alertId);
-    if (!alert || alert.userId !== user._id) {
+    if (!alert) {
       throw new Error("Alert not found");
     }
 
@@ -753,10 +752,9 @@ export const deleteWebsite = mutation({
     websiteId: v.id("websites"),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
+    // Single-user mode: no auth required
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
+    if (!website) {
       throw new Error("Website not found");
     }
 
@@ -855,7 +853,6 @@ export const createWebsiteFromApi = internalMutation({
       isActive: true,
       checkInterval: args.checkInterval,
       notificationPreference: args.notificationPreference || "none",
-      webhookUrl: args.webhookUrl,
       monitorType: args.monitorType || "single_page",
       crawlLimit: args.crawlLimit,
       crawlDepth: args.crawlDepth,
@@ -978,7 +975,7 @@ export const getScrapeResult = internalQuery({
 // Create websites from compliance rules
 export const createWebsitesFromComplianceRules = mutation({
   handler: async (ctx) => {
-    const user = await requireCurrentUser(ctx);
+    // Single-user mode: no auth required
     
     console.log("🔄 Creating websites from compliance rules...");
     
@@ -1017,7 +1014,7 @@ export const createWebsitesFromComplianceRules = mutation({
         // Determine monitoring settings
         const monitoringSettings = {
           testing: { interval: 0.25, notification: "none" as const },   // 15 seconds (testing)
-          critical: { interval: 1440, notification: "both" as const }, // Daily
+          critical: { interval: 1440, notification: "email" as const }, // Daily
           high: { interval: 2880, notification: "email" as const },     // Every 2 days
           medium: { interval: 10080, notification: "email" as const },  // Weekly
           low: { interval: 43200, notification: "none" as const }       // Monthly

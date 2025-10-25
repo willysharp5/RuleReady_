@@ -968,15 +968,27 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setIsMonitoringOnce(true)
     
     try {
+      // Prepare AI/Firecrawl options from UI
+      let parsedConfig: Record<string, unknown> | undefined
+      try {
+        parsedConfig = firecrawlConfig ? JSON.parse(firecrawlConfig) : undefined
+      } catch {
+        parsedConfig = undefined
+      }
+
       const result = await crawlWebsite({ 
         url: processedUrl,
-        limit: monitorType === 'full_site' ? maxPages : 1
+        limit: monitorType === 'full_site' ? maxPages : 1,
+        saveToDb: true,
+        instructions: (document.getElementById('website-scraping-instructions') as HTMLTextAreaElement | null)?.value || undefined,
+        templateMarkdown: isComplianceSite && complianceTemplate ? templatesQuery?.find(t => t.templateId === complianceTemplate)?.markdownContent : undefined,
+        config: parsedConfig
       })
       
       addToast({
         variant: 'success',
         title: 'One-time monitoring completed',
-        description: `Successfully scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}`,
+        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} (stored ${result.storedPages || 0}) from ${processedUrl}`,
         duration: 5000
       })
       
@@ -1870,7 +1882,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   <h4 className="text-lg font-medium text-purple-900">AI Analysis & Priority</h4>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   {/* AI Analysis Toggle */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -2033,7 +2045,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                 </div>
               </div>
 
-              {/* Section 3: Website Type and Monitor Type */}
+              {/* Section 3: Monitoring Configuration */}
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Monitor className="h-5 w-5 text-orange-600" />
@@ -2041,78 +2053,11 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Website Type Toggle */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Website Type</label>
-                      <p className="text-xs text-gray-500">Regular website or compliance site</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm ${!isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Website</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isComplianceSite}
-                          onChange={(e) => setIsComplianceSite(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                      </label>
-                      <span className={`text-sm ${isComplianceSite ? 'font-medium text-gray-900' : 'text-gray-500'}`}>Compliance</span>
-                    </div>
-                    
-                    {/* Compliance Template Options */}
-                    {isComplianceSite && (
-                      <div className="mt-4 p-4 bg-purple-100 border border-purple-300 rounded-lg space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Compliance Template</label>
-                          <select
-                            value={complianceTemplate}
-                            onChange={(e) => setComplianceTemplate(e.target.value)}
-                            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          >
-                            <option value="">Select template...</option>
-                            {templates?.map((template) => (
-                              <option key={template.templateId} value={template.templateId}>
-                                {template.title}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        {/* Template Description */}
-                        {complianceTemplate && (
-                          <div className="text-xs text-gray-600">
-                            {(() => {
-                              const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate);
-                              return selectedTemplate?.description || 'Compliance monitoring template';
-                            })()}
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (complianceTemplate) {
-                              router.push(`/settings?section=templates&template=${complianceTemplate}`)
-                            } else {
-                              router.push('/settings?section=templates')
-                            }
-                          }}
-                          className="text-xs"
-                        >
-                          Manage Templates
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
                   {/* Monitor Type */}
                   <div className="space-y-3">
                     <label className="text-sm font-medium text-gray-700">Monitor Type</label>
-                    <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
+                    <div className="grid grid-cols-2 gap-4 items-stretch w-full">
+                  <div className="relative h-full w-full">
                     <input
                       type="radio"
                       id="single"
@@ -2124,7 +2069,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     />
                     <label
                       htmlFor="single"
-                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all h-full w-full ${
                         monitorType === 'single'
                           ? 'border-purple-500 bg-purple-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -2138,7 +2083,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </label>
                   </div>
                   
-                  <div className="relative">
+                  <div className="relative h-full w-full">
                     <input
                       type="radio"
                       id="full_site"
@@ -2150,7 +2095,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     />
                     <label
                       htmlFor="full_site"
-                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all h-full w-full ${
                         monitorType === 'full_site'
                           ? 'border-purple-500 bg-purple-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -2212,7 +2157,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                    <label className="text-sm font-medium text-gray-700">
                      Website Scraping Instructions
                    </label>
-                   <textarea
+                  <textarea
+                    id="website-scraping-instructions"
                      rows={12}
                      className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                      defaultValue={`Extract all meaningful content from this webpage including:
@@ -2360,26 +2306,26 @@ Focus on content that would be relevant for change detection and monitoring.`}
                      </>
                    )}
                  </Button>
-                 <Button 
-                   type="submit"
-                   variant="default"
+                        <Button 
+                          type="submit"
+                          variant="default"
                    size="default"
                    disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
                    className="gap-2"
-                 >
-                   {isAdding ? (
-                     <>
+                        >
+                          {isAdding ? (
+                            <>
                        <Loader2 className="h-4 w-4 animate-spin" />
                        Adding Website...
-                     </>
-                   ) : (
+                            </>
+                          ) : (
                      <>
                        <Globe className="h-4 w-4" />
                        Start Monitoring
                      </>
-                   )}
-                 </Button>
-               </div>
+                          )}
+                        </Button>
+                      </div>
                     </form>
             
                     {error && (
@@ -3114,7 +3060,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                                         <>
                                           {adjustedStartPage > 1 && (
                                             <>
-                                              <Button
+                                    <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => setWebsitesPage(1)}
@@ -3468,7 +3414,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                                   <>
                                     {adjustedStartPage > 1 && (
                                       <>
-                                        <Button
+                              <Button
                                           variant="outline"
                                           size="sm"
                                           onClick={() => setChangesPage(1)}
@@ -4525,8 +4471,8 @@ Focus on content that would be relevant for change detection and monitoring.`}
                           const isDeletion = (line: string) => line.startsWith('-') && !line.startsWith('---');
                           const additions = diffLines.filter(isAddition).map(l => l.replace(/^\+/, ''));
                           const deletions = diffLines.filter(isDeletion).map(l => l.replace(/^\-/, ''));
-
-                          return (
+                            
+                            return (
                             <>
                               {/* Summary chips */}
                               <div className="flex flex-wrap items-center gap-2">
@@ -4542,7 +4488,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                                     {additions.map((text, idx) => (
                                       <div key={`add-${idx}`} className="rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-sm text-green-900 whitespace-pre-wrap break-words">
                                         {text || ' '}
-                                      </div>
+                        </div>
                                     ))}
                                   </div>
                                 </div>

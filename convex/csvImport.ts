@@ -475,7 +475,7 @@ export const createWebsiteForRule = internalMutation({
     
     // Determine notification settings
     const notificationPreference = {
-      critical: "both" as const,  // Email and webhook for critical
+      critical: "email" as const,
       high: "email" as const,     // Email for high priority
       medium: "email" as const,   // Email for medium priority
       low: "none" as const        // No notifications for low priority

@@ -48,7 +48,7 @@ export const createAllComplianceWebsites = mutation({
         // Determine monitoring settings
         const monitoringSettings = {
           testing: { interval: 0.25, notification: "none" as const },   // 15 seconds (testing)
-          critical: { interval: 1440, notification: "both" as const }, // Daily
+          critical: { interval: 1440, notification: "email" as const }, // Daily
           high: { interval: 2880, notification: "email" as const },     // Every 2 days
           medium: { interval: 10080, notification: "email" as const },  // Weekly
           low: { interval: 43200, notification: "none" as const }       // Monthly

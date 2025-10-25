@@ -1,336 +1,84 @@
 import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
-import { requireCurrentUser, getCurrentUser } from "./helpers";
-import { encrypt, decrypt, isEncrypted } from "./lib/encryption";
+import { mutation, query } from "./_generated/server";
 
-// Get user settings
+// Get user settings (single-user mode)
 export const getUserSettings = query({
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
-      return null;
-    }
-
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
+    // Single-user mode: get the first (and only) settings record
+    const settings = await ctx.db.query("userSettings").first();
 
     if (!settings) {
       // Return default settings if none exist
       return {
-        defaultWebhookUrl: null,
         emailNotificationsEnabled: true,
-        emailTemplate: null,
-        aiAnalysisEnabled: false,
-        aiModel: null,
-        aiBaseUrl: null,
-        aiSystemPrompt: null,
-        aiMeaningfulChangeThreshold: 70,
-        aiApiKey: null,
-        emailOnlyIfMeaningful: false,
-        webhookOnlyIfMeaningful: false,
+        chatSystemPrompt: undefined,
+        enableComplianceContext: true,
+        maxContextReports: 5,
+        enableSemanticSearch: true,
       };
-    }
-
-    // Decrypt API key if it exists and is encrypted
-    if (settings.aiApiKey && isEncrypted(settings.aiApiKey)) {
-      try {
-        const decryptedKey = await decrypt(settings.aiApiKey);
-        return {
-          ...settings,
-          aiApiKey: decryptedKey
-        };
-      } catch (error) {
-        console.error("Failed to decrypt API key:", error);
-        // Return settings without the API key if decryption fails
-        return {
-          ...settings,
-          aiApiKey: null
-        };
-      }
     }
 
     return settings;
   },
 });
 
-// Update default webhook URL
-export const updateDefaultWebhook = mutation({
+// Update chat settings (single-user mode)
+export const updateChatSettings = mutation({
   args: {
-    webhookUrl: v.optional(v.string()),
+    chatSystemPrompt: v.optional(v.string()),
+    enableComplianceContext: v.optional(v.boolean()),
+    maxContextReports: v.optional(v.number()),
+    enableSemanticSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    // Validate webhook URL if provided
-    if (args.webhookUrl) {
-      try {
-        new URL(args.webhookUrl);
-      } catch {
-        throw new Error("Invalid webhook URL");
-      }
-    }
-
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const now = Date.now();
-
-    if (existingSettings) {
-      await ctx.db.patch(existingSettings._id, {
-        defaultWebhookUrl: args.webhookUrl || undefined,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("userSettings", {
-        userId: user._id,
-        defaultWebhookUrl: args.webhookUrl || undefined,
-        emailNotificationsEnabled: true,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    return { success: true };
-  },
-});
-
-// Toggle email notifications
-export const toggleEmailNotifications = mutation({
-  args: {
-    enabled: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const now = Date.now();
-
-    if (existingSettings) {
-      await ctx.db.patch(existingSettings._id, {
-        emailNotificationsEnabled: args.enabled,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("userSettings", {
-        userId: user._id,
-        emailNotificationsEnabled: args.enabled,
-        defaultWebhookUrl: undefined,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    return { success: true };
-  },
-});
-
-// Update email template
-export const updateEmailTemplate = mutation({
-  args: {
-    template: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const now = Date.now();
-
-    if (existingSettings) {
-      await ctx.db.patch(existingSettings._id, {
-        emailTemplate: args.template,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("userSettings", {
-        userId: user._id,
-        emailTemplate: args.template,
-        emailNotificationsEnabled: true,
-        defaultWebhookUrl: undefined,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    return { success: true };
-  },
-});
-
-// Update AI analysis settings
-export const updateAISettings = mutation({
-  args: {
-    enabled: v.boolean(),
-    model: v.optional(v.string()), // Now accepts any model string
-    baseUrl: v.optional(v.string()), // Custom base URL for OpenAI-compatible APIs
-    systemPrompt: v.optional(v.string()),
-    threshold: v.optional(v.number()),
-    apiKey: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const now = Date.now();
-
-    // Default system prompt if not provided
-    const defaultPrompt = `You are an AI assistant specialized in analyzing website changes. Your task is to determine if a detected change is "meaningful" or just noise.
-
-Meaningful changes include:
-- Content updates (text, images, prices)
-- New features or sections
-- Important announcements
-- Product availability changes
-- Policy updates
-
-NOT meaningful (ignore these):
-- Rotating banners/carousels
-- Dynamic timestamps
-- View counters
-- Session IDs
-- Random promotional codes
-- Cookie consent banners
-- Advertising content
-- Social media feed updates
-
-Analyze the provided diff and return a JSON response with:
-{
-  "score": 0-100 (how meaningful the change is),
-  "isMeaningful": true/false,
-  "reasoning": "Brief explanation of your decision"
-}`;
-
-    // Encrypt API key if provided
-    let encryptedApiKey: string | undefined;
-    if (args.apiKey !== undefined) {
-      if (args.apiKey) {
-        try {
-          encryptedApiKey = await encrypt(args.apiKey);
-        } catch (error) {
-          console.error("Failed to encrypt API key:", error);
-          throw new Error("Failed to secure API key. Please check server configuration.");
-        }
-      } else {
-        // If empty string, store as empty (user is clearing the key)
-        encryptedApiKey = "";
-      }
-    }
-
+    // Single-user mode: update or create the single settings record
+    const existingSettings = await ctx.db.query("userSettings").first();
+    
     const updateData = {
-      aiAnalysisEnabled: args.enabled,
-      ...(args.model && { aiModel: args.model }),
-      ...(args.baseUrl !== undefined && { aiBaseUrl: args.baseUrl }),
-      ...(args.systemPrompt !== undefined && { aiSystemPrompt: args.systemPrompt || defaultPrompt }),
-      ...(args.threshold !== undefined && { aiMeaningfulChangeThreshold: args.threshold }),
-      ...(encryptedApiKey !== undefined && { aiApiKey: encryptedApiKey }),
-      updatedAt: now,
+      chatSystemPrompt: args.chatSystemPrompt,
+      enableComplianceContext: args.enableComplianceContext,
+      maxContextReports: args.maxContextReports,
+      enableSemanticSearch: args.enableSemanticSearch,
+      updatedAt: Date.now(),
     };
 
     if (existingSettings) {
       await ctx.db.patch(existingSettings._id, updateData);
     } else {
       await ctx.db.insert("userSettings", {
-        userId: user._id,
         emailNotificationsEnabled: true,
-        defaultWebhookUrl: undefined,
         ...updateData,
-        aiSystemPrompt: updateData.aiSystemPrompt || defaultPrompt,
-        aiMeaningfulChangeThreshold: updateData.aiMeaningfulChangeThreshold || 70,
-        createdAt: now,
+        createdAt: Date.now(),
       });
     }
-
-    return { success: true };
   },
 });
 
-// Update notification filtering settings
-export const updateNotificationFiltering = mutation({
+// Update email notification settings (single-user mode)
+export const updateEmailSettings = mutation({
   args: {
-    emailOnlyIfMeaningful: v.optional(v.boolean()),
-    webhookOnlyIfMeaningful: v.optional(v.boolean()),
+    emailNotificationsEnabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const user = await requireCurrentUser(ctx);
-
-    const existingSettings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-
-    const now = Date.now();
+    // Single-user mode: update or create the single settings record
+    const existingSettings = await ctx.db.query("userSettings").first();
+    
+    const updateData = {
+      emailNotificationsEnabled: args.emailNotificationsEnabled,
+      updatedAt: Date.now(),
+    };
 
     if (existingSettings) {
-      const updateData: any = {
-        updatedAt: now,
-      };
-      
-      if (args.emailOnlyIfMeaningful !== undefined) {
-        updateData.emailOnlyIfMeaningful = args.emailOnlyIfMeaningful;
-      }
-      
-      if (args.webhookOnlyIfMeaningful !== undefined) {
-        updateData.webhookOnlyIfMeaningful = args.webhookOnlyIfMeaningful;
-      }
-
       await ctx.db.patch(existingSettings._id, updateData);
     } else {
       await ctx.db.insert("userSettings", {
-        userId: user._id,
-        emailNotificationsEnabled: true,
-        defaultWebhookUrl: undefined,
-        emailOnlyIfMeaningful: args.emailOnlyIfMeaningful || false,
-        webhookOnlyIfMeaningful: args.webhookOnlyIfMeaningful || false,
-        createdAt: now,
-        updatedAt: now,
+        chatSystemPrompt: undefined,
+        enableComplianceContext: true,
+        maxContextReports: 5,
+        enableSemanticSearch: true,
+        ...updateData,
+        createdAt: Date.now(),
       });
     }
-
-    return { success: true };
-  },
-});
-
-// Internal query to get user settings (single-user mode)
-export const getUserSettingsInternal = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    // In single-user mode, get the first user's settings
-    const settings = await ctx.db
-      .query("userSettings")
-      .first();
-
-    // Decrypt API key if it exists and is encrypted
-    if (settings?.aiApiKey && isEncrypted(settings.aiApiKey)) {
-      try {
-        const decryptedKey = await decrypt(settings.aiApiKey);
-        return {
-          ...settings,
-          aiApiKey: decryptedKey
-        };
-      } catch (error) {
-        console.error("Failed to decrypt API key:", error);
-        // Return settings without the API key if decryption fails
-        return {
-          ...settings,
-          aiApiKey: null
-        };
-      }
-    }
-
-    return settings;
   },
 });

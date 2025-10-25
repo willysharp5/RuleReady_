@@ -152,7 +152,7 @@ function getMonitoringSettings(priority: string, topicKey: string) {
     case "critical":
       return {
         checkInterval: 1440, // Daily (24 hours)
-        notificationPreference: "both" as const, // Email and webhook
+        notificationPreference: "email" as const,
       };
     case "high":
       return {

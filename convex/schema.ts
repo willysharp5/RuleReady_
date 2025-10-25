@@ -1,29 +1,20 @@
 import { defineSchema, defineTable } from "convex/server";
-import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  ...authTables,
-  
-  // (Removed) API Keys - no external API access required
-
-  // Firecrawl Auth
-  firecrawlApiKeys: defineTable({
-    userId: v.id("users"),
-    encryptedKey: v.string(),
-    lastUsed: v.optional(v.number()),
+  // Single user table for simplified auth
+  users: defineTable({
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
     createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
+  }),
 
-  // Website monitoring tables (now includes compliance websites)
+  // Website monitoring tables
   websites: defineTable({
     url: v.string(),
     name: v.string(),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
     isActive: v.boolean(),
-    isPaused: v.optional(v.boolean()), // For manual pause separate from isActive
+    isPaused: v.optional(v.boolean()),
     checkInterval: v.number(), // in minutes
     lastChecked: v.optional(v.number()),
     notificationPreference: v.optional(v.union(
@@ -34,33 +25,23 @@ const schema = defineSchema({
       v.literal("single_page"),
       v.literal("full_site")
     )),
-    crawlLimit: v.optional(v.number()), // max pages to crawl
-    crawlDepth: v.optional(v.number()), // max depth to crawl
-    lastCrawlAt: v.optional(v.number()),
-    totalPages: v.optional(v.number()), // total pages found in last crawl
-    // NEW: Compliance metadata
+    crawlLimit: v.optional(v.number()),
+    crawlDepth: v.optional(v.number()),
     complianceMetadata: v.optional(v.object({
       ruleId: v.string(),
       jurisdiction: v.string(),
       topicKey: v.string(),
       priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
       isComplianceWebsite: v.boolean(),
-      hasManualOverride: v.optional(v.boolean()), // Track manual priority/interval overrides
-      originalPriority: v.optional(v.string()),   // Track original compliance priority
-      lastPriorityChange: v.optional(v.number()), // Track when priority was changed
-      priorityChangeReason: v.optional(v.string()), // Track why priority was changed
     })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
-    .index("by_active", ["isActive"])
-    .index("by_compliance", ["complianceMetadata.isComplianceWebsite"]),
+    .index("by_active", ["isActive"]),
 
-  // LEGACY: scrapeResults table - DEPRECATED (use complianceReports in compliance mode)
+  // Scrape results for website monitoring
   scrapeResults: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -73,17 +54,15 @@ const schema = defineSchema({
     previousScrapeAt: v.optional(v.number()),
     scrapedAt: v.number(),
     firecrawlMetadata: v.optional(v.any()),
-    ogImage: v.optional(v.string()),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
-    url: v.optional(v.string()), // The actual URL that was scraped
+    url: v.optional(v.string()),
     diff: v.optional(v.object({
       text: v.string(),
       json: v.any(),
     })),
-    // AI Analysis results
     aiAnalysis: v.optional(v.object({
-      meaningfulChangeScore: v.number(), // 0-100
+      meaningfulChangeScore: v.number(),
       isMeaningfulChange: v.boolean(),
       reasoning: v.string(),
       analyzedAt: v.number(),
@@ -91,68 +70,21 @@ const schema = defineSchema({
     })),
   })
     .index("by_website", ["websiteId"])
-    .index("by_website_time", ["websiteId", "scrapedAt"])
-    .index("by_user_time", ["userId", "scrapedAt"]),
+    .index("by_website_time", ["websiteId", "scrapedAt"]),
 
-  // LEGACY: changeAlerts table - DEPRECATED (use complianceChanges in compliance mode)
+  // Legacy tables - keeping for now
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
     isRead: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_user", ["userId"])
-    .index("by_website", ["websiteId"])
-    .index("by_read_status", ["userId", "isRead"]),
-
-  emailConfig: defineTable({
-    userId: v.id("users"),
-    email: v.string(),
-    isVerified: v.boolean(),
-    verificationToken: v.optional(v.string()),
-    verificationExpiry: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_email", ["email"])
-    .index("by_token", ["verificationToken"]),
-    
-  // User settings for defaults
-  userSettings: defineTable({
-    userId: v.id("users"),
-    emailNotificationsEnabled: v.boolean(),
-    emailTemplate: v.optional(v.string()),
-    // AI Analysis settings
-    aiAnalysisEnabled: v.optional(v.boolean()),
-    aiModel: v.optional(v.string()), // Changed to string to support any model name
-    aiBaseUrl: v.optional(v.string()), // Custom base URL for OpenAI-compatible APIs
-    aiSystemPrompt: v.optional(v.string()),
-    aiMeaningfulChangeThreshold: v.optional(v.number()), // 0-100 score threshold
-    aiApiKey: v.optional(v.string()), // encrypted API key
-    // AI-based notification filtering
-    emailOnlyIfMeaningful: v.optional(v.boolean()), // only send email if AI deems meaningful
-    
-    // Chat settings
-    chatSystemPrompt: v.optional(v.string()),
-    chatModel: v.optional(v.string()),
-    enableComplianceContext: v.optional(v.boolean()),
-    maxContextReports: v.optional(v.number()),
-    enableSemanticSearch: v.optional(v.boolean()),
-    
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
-
-  // (Removed) Webhook playground table
+    .index("by_website", ["websiteId"]),
 
   crawlSessions: defineTable({
     websiteId: v.id("websites"),
-    userId: v.id("users"),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     status: v.union(
@@ -162,13 +94,23 @@ const schema = defineSchema({
     ),
     pagesFound: v.number(),
     pagesChanged: v.optional(v.number()),
-    pagesAdded: v.optional(v.number()),
-    pagesRemoved: v.optional(v.number()),
     error: v.optional(v.string()),
-    jobId: v.optional(v.string()), // Firecrawl async job ID
+    jobId: v.optional(v.string()),
   })
-    .index("by_website", ["websiteId"])
-    .index("by_user_time", ["userId", "startedAt"]),
+    .index("by_website", ["websiteId"]),
+
+  // Simplified user settings
+  userSettings: defineTable({
+    emailNotificationsEnabled: v.boolean(),
+    // Chat settings
+    chatSystemPrompt: v.optional(v.string()),
+    chatModel: v.optional(v.string()),
+    enableComplianceContext: v.optional(v.boolean()),
+    maxContextReports: v.optional(v.number()),
+    enableSemanticSearch: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
 
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({
@@ -501,7 +443,6 @@ const schema = defineSchema({
   // Compliance chat sessions
   complianceChatSessions: defineTable({
     sessionId: v.string(),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
     messages: v.array(v.object({
       role: v.union(v.literal("user"), v.literal("assistant")),
       content: v.string(),
@@ -515,27 +456,24 @@ const schema = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
     .index("by_created_at", ["createdAt"])
     .index("by_session_id", ["sessionId"]),
 
-  // Compliance templates - markdown documents for AI parsing
+  // Compliance templates
   complianceTemplates: defineTable({
-    templateId: v.string(), // Unique identifier for the template
-    title: v.string(), // Template title shown in dropdown
-    description: v.optional(v.string()), // Brief description of what this template is for
-    markdownContent: v.string(), // Full markdown template content for AI parsing
-    topicKey: v.optional(v.string()), // Optional link to specific topic
-    isDefault: v.boolean(), // Whether this is a default system template
-    isActive: v.boolean(), // Whether this template is available for use
+    templateId: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    markdownContent: v.string(),
+    topicKey: v.optional(v.string()),
+    isDefault: v.boolean(),
+    isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-    createdBy: v.optional(v.id("users")),
   })
     .index("by_template_id", ["templateId"])
     .index("by_topic", ["topicKey"])
-    .index("by_active", ["isActive"])
-    .index("by_default", ["isDefault"]),
+    .index("by_active", ["isActive"]),
 });
 
 export default schema;

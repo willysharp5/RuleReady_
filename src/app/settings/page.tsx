@@ -149,17 +149,9 @@ function SettingsContent() {
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
   const topics = useQuery(api.complianceQueries.getTopics)
   
-  // Webhook playground queries and mutations
-  const webhookPayloads = useQuery(api.webhookPlayground.getWebhookPayloads, { limit: 50 })
-  const clearPayloads = useMutation(api.webhookPlayground.clearWebhookPayloads)
   
   // User settings queries and mutations
   const userSettings = useQuery(api.userSettings.getUserSettings)
-  const emailConfig = useQuery(api.emailManager.getEmailConfig)
-  const updateDefaultWebhook = useMutation(api.userSettings.updateDefaultWebhook)
-  const updateEmailConfig = useMutation(api.emailManager.updateEmailConfig)
-  const updateEmailTemplate = useMutation(api.userSettings.updateEmailTemplate)
-  const resendVerificationEmail = useAction(api.emailManager.resendVerificationEmail)
   const updateAISettings = useMutation(api.userSettings.updateAISettings)
   const updateNotificationFiltering = useMutation(api.userSettings.updateNotificationFiltering)
   const testAIModel = useAction(api.testActions.testAIModel)
@@ -1415,7 +1407,7 @@ Analyze the provided diff and return a JSON response with:
                       <p className="text-sm text-gray-600 mt-1">
                         Manage legal counsel templates for compliance monitoring
                       </p>
-                    </div>
+            </div>
                     <Button
                       onClick={() => {
                         setEditingTemplate({

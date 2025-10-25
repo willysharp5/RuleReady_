@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireCurrentUser, getCurrentUser } from "./helpers";
 
-// Update chat settings
+// Update chat settings (single-user mode)
 export const updateChatSettings = mutation({
   args: {
     chatSystemPrompt: v.optional(v.string()),
@@ -12,18 +11,8 @@ export const updateChatSettings = mutation({
     enableSemanticSearch: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // Single-user mode: skip authentication
-    const user = await getCurrentUser(ctx);
-    
-    // Get existing settings (single-user mode: get first settings record)
-    const existingSettings = user ? 
-      await ctx.db
-        .query("userSettings")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .first() :
-      await ctx.db
-        .query("userSettings")
-        .first();
+    // Single-user mode: get the first (and only) settings record
+    const existingSettings = await ctx.db.query("userSettings").first();
 
     const now = Date.now();
 
@@ -38,20 +27,9 @@ export const updateChatSettings = mutation({
         updatedAt: now,
       });
     } else {
-      // Create new settings (single-user mode: use placeholder or skip userId)
+      // Create new settings
       await ctx.db.insert("userSettings", {
-        userId: user?._id || ("single-user" as any),
-        defaultWebhookUrl: undefined,
         emailNotificationsEnabled: true,
-        emailTemplate: undefined,
-        aiAnalysisEnabled: false,
-        aiModel: undefined,
-        aiBaseUrl: undefined,
-        aiSystemPrompt: undefined,
-        aiMeaningfulChangeThreshold: 70,
-        aiApiKey: undefined,
-        emailOnlyIfMeaningful: false,
-        webhookOnlyIfMeaningful: false,
         chatSystemPrompt: args.chatSystemPrompt,
         chatModel: args.chatModel,
         enableComplianceContext: args.enableComplianceContext,
@@ -66,20 +44,11 @@ export const updateChatSettings = mutation({
   },
 });
 
-// Get chat settings
+// Get chat settings (single-user mode)
 export const getChatSettings = query({
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    
-    // Get settings (single-user mode: get first settings record if no user)
-    const settings = user ?
-      await ctx.db
-        .query("userSettings")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .first() :
-      await ctx.db
-        .query("userSettings")
-        .first();
+    // Single-user mode: get the first settings record
+    const settings = await ctx.db.query("userSettings").first();
 
     if (!settings) {
       return {

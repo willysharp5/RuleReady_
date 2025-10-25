@@ -10,7 +10,6 @@
 
 import type * as aiAnalysis from "../aiAnalysis.js";
 import type * as alertEmail from "../alertEmail.js";
-import type * as auth from "../auth.js";
 import type * as autoSetup from "../autoSetup.js";
 import type * as chatSettings from "../chatSettings.js";
 import type * as complianceAI from "../complianceAI.js";
@@ -27,8 +26,6 @@ import type * as complianceWebsiteIntegration from "../complianceWebsiteIntegrat
 import type * as crawl from "../crawl.js";
 import type * as crons from "../crons.js";
 import type * as csvImport from "../csvImport.js";
-import type * as emailConfig from "../emailConfig.js";
-import type * as emailManager from "../emailManager.js";
 import type * as embeddingJobs from "../embeddingJobs.js";
 import type * as embeddingManager from "../embeddingManager.js";
 import type * as firecrawl from "../firecrawl.js";
@@ -36,7 +33,6 @@ import type * as firecrawlKeys from "../firecrawlKeys.js";
 import type * as geminiFlashLite from "../geminiFlashLite.js";
 import type * as generateEmbeddings from "../generateEmbeddings.js";
 import type * as helpers from "../helpers.js";
-import type * as http from "../http.js";
 import type * as importComplianceReports from "../importComplianceReports.js";
 import type * as jurisdictionDetails from "../jurisdictionDetails.js";
 import type * as lib_encryption from "../lib/encryption.js";
@@ -52,8 +48,6 @@ import type * as testChatSources from "../testChatSources.js";
 import type * as testEmbeddings from "../testEmbeddings.js";
 import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
-import type * as users from "../users.js";
-import type * as webhookPlayground from "../webhookPlayground.js";
 import type * as websites from "../websites.js";
 import type * as workpoolSimple from "../workpoolSimple.js";
 
@@ -74,7 +68,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   aiAnalysis: typeof aiAnalysis;
   alertEmail: typeof alertEmail;
-  auth: typeof auth;
   autoSetup: typeof autoSetup;
   chatSettings: typeof chatSettings;
   complianceAI: typeof complianceAI;
@@ -91,8 +84,6 @@ declare const fullApi: ApiFromModules<{
   crawl: typeof crawl;
   crons: typeof crons;
   csvImport: typeof csvImport;
-  emailConfig: typeof emailConfig;
-  emailManager: typeof emailManager;
   embeddingJobs: typeof embeddingJobs;
   embeddingManager: typeof embeddingManager;
   firecrawl: typeof firecrawl;
@@ -100,7 +91,6 @@ declare const fullApi: ApiFromModules<{
   geminiFlashLite: typeof geminiFlashLite;
   generateEmbeddings: typeof generateEmbeddings;
   helpers: typeof helpers;
-  http: typeof http;
   importComplianceReports: typeof importComplianceReports;
   jurisdictionDetails: typeof jurisdictionDetails;
   "lib/encryption": typeof lib_encryption;
@@ -116,8 +106,6 @@ declare const fullApi: ApiFromModules<{
   testEmbeddings: typeof testEmbeddings;
   testingMode: typeof testingMode;
   userSettings: typeof userSettings;
-  users: typeof users;
-  webhookPlayground: typeof webhookPlayground;
   websites: typeof websites;
   workpoolSimple: typeof workpoolSimple;
 }>;

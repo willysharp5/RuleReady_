@@ -245,6 +245,10 @@ export const crawlWebsite = action({
   args: {
     url: v.string(),
     limit: v.optional(v.number()),
+    saveToDb: v.optional(v.boolean()),
+    instructions: v.optional(v.string()),
+    templateMarkdown: v.optional(v.string()),
+    config: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     // Single-user mode: make authentication optional
@@ -253,22 +257,73 @@ export const crawlWebsite = action({
     const firecrawl = await getFirecrawlClient(ctx, userId);
 
     try {
-      const crawlResult = await firecrawl.crawlUrl(args.url, {
+      // Build scrape options with safe defaults and allow optional overrides
+      const baseOptions: any = {
         limit: args.limit || 10,
         scrapeOptions: {
           formats: ["markdown", "changeTracking"],
           onlyMainContent: false,
           waitFor: 2000,
         },
-      }) as any;
+      };
+
+      // Inject AI prompt/instructions if provided (Firecrawl may ignore unknown keys safely)
+      if (args.instructions) {
+        (baseOptions.scrapeOptions as any).instructions = args.instructions;
+      }
+      if (args.templateMarkdown) {
+        (baseOptions.scrapeOptions as any).extractTemplate = args.templateMarkdown;
+      }
+      // Merge user-provided config last to allow expert overrides
+      const mergedOptions = args.config ? { ...baseOptions, ...args.config } : baseOptions;
+
+      const crawlResult = await firecrawl.crawlUrl(args.url, mergedOptions) as any;
 
       if (!crawlResult.success) {
         throw new Error(`Firecrawl crawl failed: ${crawlResult.error}`);
       }
 
+      let storedCount = 0;
+      if (args.saveToDb) {
+        // Try to find an existing website record for this URL to attach results
+        const websites = await ctx.runQuery(internal.websites.getAllWebsites, {});
+        const match = (websites || []).find((w: any) => w.url === args.url);
+
+        if (match && Array.isArray(crawlResult.data)) {
+          for (const page of crawlResult.data) {
+            try {
+              await ctx.runMutation(api.websites.storeScrapeResult, {
+                websiteId: match._id,
+                markdown: page.markdown || page.text || "",
+                changeStatus: page.changeTracking?.changeStatus || "new",
+                visibility: page.changeTracking?.visibility || "visible",
+                previousScrapeAt: page.changeTracking?.previousScrapeAt
+                  ? new Date(page.changeTracking.previousScrapeAt).getTime()
+                  : undefined,
+                scrapedAt: Date.now(),
+                firecrawlMetadata: page.metadata,
+                ogImage: page.metadata?.ogImage,
+                title: page.metadata?.title,
+                description: page.metadata?.description,
+                url: page.url || args.url,
+                diff: page.changeTracking?.diff ? {
+                  text: page.changeTracking.diff.text || "",
+                  json: page.changeTracking.diff.json || null,
+                } : undefined,
+                isManualCheck: true,
+              });
+              storedCount += 1;
+            } catch (e) {
+              console.log("One-time crawl store skipped:", (e as Error).message);
+            }
+          }
+        }
+      }
+
       return {
         success: true,
         totalPages: crawlResult.data?.length || 0,
+        storedPages: storedCount,
         pages: crawlResult.data?.map((page: any) => ({
           url: page.url,
           title: page.metadata?.title,

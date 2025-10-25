@@ -1,36 +1,33 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Mail, Copy, Check, Network, FileText, FlaskConical, Zap, AlertCircle, Timer, Turtle, Scale, MapPin, AlertTriangle, Info } from 'lucide-react'
+import { X, Bot, Globe, Monitor, File, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
+import { useRouter } from 'next/navigation'
 
 interface WebhookConfigModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (config: {
     notificationPreference: 'none' | 'email'
-    url?: string // NEW: Allow URL editing
+    url?: string
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
     crawlDepth?: number
     checkNow?: boolean
-    // NEW: Compliance priority fields
     compliancePriority?: 'critical' | 'high' | 'medium' | 'low' | 'testing'
     overrideComplianceInterval?: boolean
     priorityChangeReason?: string
   }) => void
   initialConfig?: {
     notificationPreference: 'none' | 'email'
-    url?: string // NEW: Current URL
+    url?: string
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
     crawlLimit?: number
     crawlDepth?: number
-    // NEW: Compliance metadata
     complianceMetadata?: {
       priority: 'critical' | 'high' | 'medium' | 'low' | 'testing'
       isComplianceWebsite: boolean
@@ -45,39 +42,141 @@ interface WebhookConfigModalProps {
 }
 
 export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, websiteName }: WebhookConfigModalProps) {
-  const [notificationPreference, setNotificationPreference] = useState(initialConfig?.notificationPreference || 'none')
-  // Webhook removed
-  const [url, setUrl] = useState(initialConfig?.url || '') // NEW: URL state
-  const [checkInterval, setCheckInterval] = useState(String(initialConfig?.checkInterval || 60))
-  const [monitorType, setMonitorType] = useState(initialConfig?.monitorType || 'single_page')
-  const [crawlLimit, setCrawlLimit] = useState(String(initialConfig?.crawlLimit || 5))
-  const [crawlDepth, setCrawlDepth] = useState(String(initialConfig?.crawlDepth || 3))
-  const [copied, setCopied] = useState(false)
-  const [checkNow, setCheckNow] = useState(true) // Default to true for new websites
+  const router = useRouter()
   
-  // NEW: Compliance priority state
-  const [compliancePriority, setCompliancePriority] = useState(initialConfig?.complianceMetadata?.priority || 'medium')
-  const [overrideInterval, setOverrideInterval] = useState(initialConfig?.complianceMetadata?.hasManualOverride || false)
-  const [priorityChangeReason, setPriorityChangeReason] = useState('')
+  // Form state - exactly matching the add form
+  const [url, setUrl] = useState(initialConfig?.url || '')
+  const [enableAiAnalysis, setEnableAiAnalysis] = useState(true)
+  // Compliance toggle removed per simplified monitoring plan
+  const [selectedPriorityLevel, setSelectedPriorityLevel] = useState<'critical' | 'high' | 'medium' | 'low'>(
+    (initialConfig?.complianceMetadata?.priority as 'critical' | 'high' | 'medium' | 'low') || 'medium'
+  )
+  const [checkInterval, setCheckInterval] = useState(initialConfig?.checkInterval || 1440)
+  const [monitorType, setMonitorType] = useState<'single' | 'full_site'>(
+    initialConfig?.monitorType === 'full_site' ? 'full_site' : 'single'
+  )
+  const [maxPages, setMaxPages] = useState(initialConfig?.crawlLimit || 10)
+  const [maxCrawlDepth, setMaxCrawlDepth] = useState(initialConfig?.crawlDepth || 2)
+  const [notificationType, setNotificationType] = useState(initialConfig?.notificationPreference || 'none')
+  // Compliance template removed per simplified monitoring plan
+  const [checkNow, setCheckNow] = useState(true)
   
-  // Check if this is a compliance website
-  const isComplianceWebsite = initialConfig?.complianceMetadata?.isComplianceWebsite || false
+  // AI Settings state
+  const [showAiSettings, setShowAiSettings] = useState(false)
+  const [emailOnlyIfMeaningful, setEmailOnlyIfMeaningful] = useState(true)
+  const [meaningfulChangeThreshold, setMeaningfulChangeThreshold] = useState(75)
+  const [aiSystemPrompt, setAiSystemPrompt] = useState(`You are an AI assistant specialized in analyzing website changes for compliance monitoring. Your task is to determine if a detected change is "meaningful" for compliance purposes.
+
+MEANINGFUL changes for compliance include:
+- Legal requirement updates
+- Deadline modifications  
+- Rate/fee changes
+- New regulations or rules
+- Policy updates
+- Compliance threshold changes
+- Training requirement updates
+- Penalty/fine changes
+
+NOT meaningful (ignore these):
+- Cosmetic modifications
+- Temporary notices
+- Marketing content changes
+
+Provide a meaningful change score (0-1) and reasoning for the assessment.`)
+
+  // URL validation state
+  const [urlValidation, setUrlValidation] = useState<{
+    isValid: boolean | null
+    isValidating: boolean
+    message: string
+    siteTitle?: string
+    siteDescription?: string
+  }>({
+    isValid: null,
+    isValidating: false,
+    message: ''
+  })
+
+  // URL validation function
+  const validateUrl = async (inputUrl: string) => {
+    if (!inputUrl.trim()) {
+      setUrlValidation({
+        isValid: null,
+        isValidating: false,
+        message: ''
+      })
+      return
+    }
+
+    try {
+      const urlObj = new URL(inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`)
+      
+      setUrlValidation({
+        isValid: null,
+        isValidating: true,
+        message: 'Validating URL...'
+      })
+
+      // Try to fetch the URL to verify it's accessible
+      const response = await fetch('/api/validate-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: urlObj.toString() }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.isValid) {
+        setUrlValidation({
+          isValid: true,
+          isValidating: false,
+          message: 'URL is valid and accessible',
+          siteTitle: result.title,
+          siteDescription: result.description
+        })
+      } else {
+        setUrlValidation({
+          isValid: false,
+          isValidating: false,
+          message: result.error || 'URL is not accessible or invalid'
+        })
+      }
+    } catch {
+      setUrlValidation({
+        isValid: false,
+        isValidating: false,
+        message: 'Invalid URL format'
+      })
+    }
+  }
+
+  // Debounced URL validation
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (url.trim() && url !== initialConfig?.url) {
+        validateUrl(url)
+      }
+    }, 1000)
+
+    return () => clearTimeout(timeoutId)
+  }, [url, initialConfig?.url])
 
   const handleSave = useCallback(() => {
     onSave({
-      notificationPreference: notificationPreference as 'none' | 'email',
-      url: url.trim() || undefined, // NEW: Include URL in save
-      checkInterval: parseInt(checkInterval),
-      monitorType: monitorType as 'single_page' | 'full_site',
-      crawlLimit: monitorType === 'full_site' ? parseInt(crawlLimit) : undefined,
-      crawlDepth: monitorType === 'full_site' ? parseInt(crawlDepth) : undefined,
+      notificationPreference: notificationType as 'none' | 'email',
+      url: url.trim() || undefined,
+      checkInterval: checkInterval,
+      monitorType: monitorType === 'single' ? 'single_page' : 'full_site',
+      crawlLimit: monitorType === 'full_site' ? maxPages : undefined,
+      crawlDepth: monitorType === 'full_site' ? maxCrawlDepth : undefined,
       checkNow: checkNow,
-      // NEW: Include compliance priority data
-      compliancePriority: isComplianceWebsite ? compliancePriority as 'critical' | 'high' | 'medium' | 'low' : undefined,
-      overrideComplianceInterval: isComplianceWebsite ? overrideInterval : undefined,
-      priorityChangeReason: isComplianceWebsite && priorityChangeReason ? priorityChangeReason : undefined,
+      compliancePriority: selectedPriorityLevel,
+      overrideComplianceInterval: false,
+      priorityChangeReason: undefined,
     })
-  }, [notificationPreference, url, checkInterval, monitorType, crawlLimit, crawlDepth, checkNow, compliancePriority, overrideInterval, priorityChangeReason, isComplianceWebsite, onSave])
+  }, [notificationType, url, checkInterval, monitorType, maxPages, maxCrawlDepth, checkNow, selectedPriorityLevel, onSave])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -87,7 +186,6 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
       if (e.key === 'Escape') {
         onClose()
       } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        // Cmd/Ctrl + Enter to submit
         handleSave()
       }
     }
@@ -98,378 +196,344 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
 
   if (!isOpen) return null
 
-  const copyPayloadExample = () => {
-    const payload = JSON.stringify({
-      event: "website_changed",
-      website: {
-        name: websiteName,
-        url: "https://example.com",
-        checkInterval: 60
-      },
-      change: {
-        detectedAt: new Date().toISOString(),
-        changeType: "content_modified",
-        summary: "Page content has changed",
-        diff: {
-          added: ["New paragraph added", "Updated heading"],
-          removed: ["Old footer text"]
-        }
-      },
-      scrapeResult: {
-        title: "Example Website",
-        description: "Website description",
-        markdown: "# Page Content\\n\\nThis is the scraped content..."
-      }
-    }, null, 2)
-
-    navigator.clipboard.writeText(payload)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Website Settings</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            className="w-8 h-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Website Settings</h2>
+              <p className="text-sm text-gray-600 mt-1">Configure monitoring for {websiteName}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="w-8 h-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-          <div className="space-y-6">
-          
-          {/* Compliance Priority Section - Only show for compliance websites */}
-          {isComplianceWebsite && (
-            <div className="border-b pb-6">
-              <h3 className="text-lg font-medium mb-4 flex items-center">
-                <Scale className="h-5 w-5 text-blue-600 mr-2" />
-                Compliance Priority
-              </h3>
-              
-              {/* Website Type Indicator */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <div className="flex items-center space-x-2">
-                  <Scale className="h-4 w-4 text-blue-600" />
-                  <div className="text-sm">
-                    <p className="font-medium text-blue-900">Compliance Website</p>
-                    <p className="text-blue-700 flex items-center gap-2">
-                      <MapPin className="h-3 w-3" />
-                      {initialConfig?.complianceMetadata?.jurisdiction}
-                      <FileText className="h-3 w-3 ml-2" />
-                      {initialConfig?.complianceMetadata?.topicKey?.replace(/_/g, ' ')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Priority Selection */}
-              <div className="mb-4">
-                <Label htmlFor="compliance-priority">Compliance Priority Level</Label>
-                <Select
-                  id="compliance-priority"
-                  value={compliancePriority}
-                  onChange={(e) => setCompliancePriority(e.target.value as 'critical' | 'high' | 'medium' | 'low' | 'testing')}
-                  className="w-full mt-1"
-                >
-                  <optgroup label="Production Priorities">
-                    <option value="critical">Critical - Daily monitoring (High-impact rules)</option>
-                    <option value="high">High - Every 2 days (Important requirements)</option>
-                    <option value="medium">Medium - Weekly (Standard compliance)</option>
-                    <option value="low">Low - Monthly (Stable rules)</option>
-                  </optgroup>
-                  <optgroup label="Testing">
-                    <option value="testing">Testing - 15 seconds (Development only)</option>
-                  </optgroup>
-                </Select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Priority determines monitoring frequency and alert urgency
-                </p>
-              </div>
-              
-              {/* Priority Impact Explanation */}
-              <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-4">
-                <h4 className="font-medium text-gray-900 mb-2">Priority Impact:</h4>
-                <div className="text-xs text-gray-700 space-y-1">
-                  <div className="flex items-center gap-1">• <Zap className="h-3 w-3" /> <strong>Critical:</strong> Daily checks, immediate alerts, high business impact</div>
-                  <div className="flex items-center gap-1">• <AlertCircle className="h-3 w-3" /> <strong>High:</strong> Every 2 days, priority alerts, significant impact</div>
-                  <div className="flex items-center gap-1">• <Timer className="h-3 w-3" /> <strong>Medium:</strong> Weekly checks, standard alerts, moderate impact</div>
-                  <div className="flex items-center gap-1">• <Turtle className="h-3 w-3" /> <strong>Low:</strong> Monthly checks, low-priority alerts, minimal impact</div>
-                </div>
-              </div>
-              
-              {/* Manual Override Option */}
-              <div className="mb-4">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={overrideInterval}
-                    onChange={(e) => setOverrideInterval(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Override automatic interval (advanced)</span>
-                </label>
-                {overrideInterval && (
-                  <div className="mt-2">
-                    <p className="text-xs text-orange-600 mb-2 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      Manual override may affect compliance monitoring effectiveness
-                    </p>
-                    <Label htmlFor="priority-reason">Reason for Override</Label>
-                    <Input
-                      id="priority-reason"
-                      placeholder="e.g., Client-specific requirements, business needs..."
-                      value={priorityChangeReason}
-                      onChange={(e) => setPriorityChangeReason(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                )}
-              </div>
-              
-              {/* Original Priority Info */}
-              {initialConfig?.complianceMetadata?.originalPriority && 
-               initialConfig.complianceMetadata.originalPriority !== compliancePriority && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                  <p className="text-xs text-yellow-800">
-                    <strong>Original Priority:</strong> {initialConfig.complianceMetadata.originalPriority}
-                    {initialConfig.complianceMetadata.hasManualOverride && (
-                      <span className="ml-2">(Previously overridden)</span>
-                    )}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Monitoring Configuration */}
-          <div className="border-b pb-6">
-            <h3 className="text-lg font-medium mb-4">Monitoring Configuration</h3>
+        <div className="p-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
             
-            {/* Check Interval */}
-            <div className="mb-4">
-              <Label htmlFor="check-interval">
-                Check Interval 
-                {isComplianceWebsite && !overrideInterval && (
-                  <span className="text-xs text-gray-500 ml-1">(Set by compliance priority)</span>
-                )}
-              </Label>
-              <Select
-                id="check-interval"
-                value={checkInterval}
-                onChange={(e) => setCheckInterval(e.target.value)}
-                disabled={isComplianceWebsite && !overrideInterval}
-                className={`w-full mt-1 ${isComplianceWebsite && !overrideInterval ? 'bg-gray-50' : ''}`}
-              >
-                <option value="0.25">15 seconds (Testing)</option>
-                <option value="1">1 minute (Testing)</option>
-                <option value="5">5 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="180">3 hours</option>
-                <option value="360">6 hours</option>
-                <option value="720">12 hours</option>
-                <option value="1440">24 hours</option>
-                <option value="4320">3 days</option>
-                <option value="10080">7 days</option>
-              </Select>
-              {isComplianceWebsite && !overrideInterval && (
-                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                  <Info className="h-3 w-3" />
-                  Interval automatically set based on compliance priority above
-                </p>
-              )}
-              {isComplianceWebsite && overrideInterval && (
-                <div className="mt-1 space-y-1">
-                  <p className="text-xs text-orange-600 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Using manual interval override - ensure appropriate for compliance monitoring
-                  </p>
-                  {(checkInterval === "0.25" || checkInterval === "1") && (
-                    <p className="text-xs text-blue-600 flex items-center gap-1">
-                      <FlaskConical className="h-3 w-3" />
-                      Testing interval selected - remember to adjust for production use
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Check Now Option - Only show for new websites */}
-            {!initialConfig && (
-              <div className="mb-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+            {/* Section 1: Basic Website Information */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="h-5 w-5 text-blue-600" />
+                <h4 className="text-lg font-medium text-blue-900">Website Information</h4>
+              </div>
+              
+              {/* Email Notifications */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <input
                     type="checkbox"
-                    checked={checkNow}
-                    onChange={(e) => setCheckNow(e.target.checked)}
-                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    checked={notificationType === 'email'}
+                    onChange={(e) => setNotificationType(e.target.checked ? 'email' : 'none')}
+                    className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
                   />
-                  <span className="text-sm font-medium">
-                    Check immediately after adding
-                  </span>
+                  Enable Email Notifications
                 </label>
-                <p className="text-xs text-gray-500 mt-1 ml-6">
-                  Perform an initial check right after adding this website
+                <p className="text-xs text-gray-500 ml-6">
+                  Get notified when changes are detected on this website
                 </p>
               </div>
-            )}
 
-            {/* Monitor Type */}
-            <div className="mb-4">
-              <Label htmlFor="monitor-type">Monitor Type</Label>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => setMonitorType('single_page')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    monitorType === 'single_page'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <FileText className={`h-5 w-5 mx-auto mb-1 ${
-                    monitorType === 'single_page' ? 'text-orange-600' : 'text-gray-500'
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    monitorType === 'single_page' ? 'text-orange-900' : 'text-gray-700'
-                  }`}>Single Page</span>
-                </button>
+              {/* Website URL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Website URL</label>
+                <div className="relative">
+                  <Input 
+                    type="text" 
+                    placeholder="https://example.com" 
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    className={`w-full pr-10 ${
+                      urlValidation.isValid === true ? 'border-green-500 focus:ring-green-500' :
+                      urlValidation.isValid === false ? 'border-red-500 focus:ring-red-500' :
+                      'border-gray-300'
+                    }`}
+                  />
+                  {/* Validation Icon and Button */}
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+                    {urlValidation.isValidating ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    ) : urlValidation.isValid === true ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : urlValidation.isValid === false ? (
+                      <X className="h-4 w-4 text-red-500" />
+                    ) : null}
+                    
+                    {url.trim() && !urlValidation.isValidating && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => validateUrl(url)}
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                        title="Validate URL"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 
-                <button
-                  type="button"
-                  onClick={() => setMonitorType('full_site')}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    monitorType === 'full_site'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Network className={`h-5 w-5 mx-auto mb-1 ${
-                    monitorType === 'full_site' ? 'text-orange-600' : 'text-gray-500'
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    monitorType === 'full_site' ? 'text-orange-900' : 'text-gray-700'
-                  }`}>Full Site</span>
-                </button>
+                {/* Validation Message */}
+                {urlValidation.message && (
+                  <div className={`text-sm ${
+                    urlValidation.isValid === true ? 'text-green-600' :
+                    urlValidation.isValid === false ? 'text-red-600' :
+                    'text-gray-600'
+                  }`}>
+                    {urlValidation.message}
+                  </div>
+                )}
+                
+                {/* Site Preview */}
+                {urlValidation.isValid === true && (urlValidation.siteTitle || urlValidation.siteDescription) && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <Globe className="h-5 w-5 text-green-600 mt-0.5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {urlValidation.siteTitle && (
+                          <h4 className="text-sm font-medium text-green-900 truncate">
+                            {urlValidation.siteTitle}
+                          </h4>
+                        )}
+                        {urlValidation.siteDescription && (
+                          <p className="text-xs text-green-700 mt-1 line-clamp-2">
+                            {urlValidation.siteDescription}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-gray-500 mt-2">
-                {monitorType === 'single_page' 
-                  ? 'Monitor changes on a specific page URL' 
-                  : 'Crawl and monitor multiple pages across the entire website'}
-              </p>
             </div>
 
-            {/* Crawl Configuration */}
-            {monitorType === 'full_site' && (
-              <div className="space-y-4 mt-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <Label htmlFor="crawl-limit">Maximum Pages to Crawl</Label>
-                  <Input
-                    id="crawl-limit"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={crawlLimit}
-                    onChange={(e) => setCrawlLimit(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                    className="mt-1"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Limit the number of pages to crawl (default: 5)
-                  </p>
-                </div>
-                
-                <div>
-                  <Label htmlFor="crawl-depth">Maximum Crawl Depth</Label>
-                  <Input
-                    id="crawl-depth"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={crawlDepth}
-                    onChange={(e) => setCrawlDepth(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                    className="mt-1"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    How many levels deep to crawl from the starting page (default: 3)
-                  </p>
-                </div>
+            {/* Section 2: AI Analysis and Priority */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Bot className="h-5 w-5 text-purple-600" />
+                <h4 className="text-lg font-medium text-purple-900">AI Analysis & Priority</h4>
               </div>
-            )}
-          </div>
-
-          {/* Website URL Section */}
-          <div>
-            <Label htmlFor="website-url">Website URL</Label>
-            <Input
-              id="website-url"
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="mt-1"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              The URL to monitor for changes
-            </p>
-          </div>
-
-          {/* Notification Type Selection */}
-          <div>
-            <Label htmlFor="notification-type">Notification Type</Label>
-            <Select
-              id="notification-type"
-              value={notificationPreference}
-              onChange={(e) => setNotificationPreference(e.target.value as 'none' | 'email' | 'webhook' | 'both')}
-              className="w-full mt-1"
-            >
-              <option value="none">No notifications</option>
-              <option value="email">Email only</option>
               
-            </Select>
-          </div>
+              <div className="grid grid-cols-1 gap-6">
+                {/* AI Analysis Toggle */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">AI Analysis</label>
+                      <p className="text-xs text-gray-500">Enable AI-powered change analysis</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAiSettings(!showAiSettings)}
+                      className="text-xs"
+                    >
+                      {showAiSettings ? 'Hide' : 'Show'} Settings
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enableAiAnalysis}
+                        onChange={(e) => setEnableAiAnalysis(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                    <span className="text-sm text-gray-700">
+                      {enableAiAnalysis ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
 
-          {/* Email Configuration Info */}
-          {(notificationPreference === 'email' || notificationPreference === 'both') && (
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-orange-600 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-orange-900">Email Notifications</p>
-                  <p className="text-sm text-orange-700 mt-1">
-                    Configure your email address in the <a href="/settings" className="underline font-medium">settings page</a> to receive change notifications.
-                  </p>
+                {/* Priority Level */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Priority Level</label>
+                  <select
+                    value={selectedPriorityLevel}
+                    onChange={(e) => setSelectedPriorityLevel(e.target.value as 'critical' | 'high' | 'medium' | 'low')}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="critical">🔴 Critical - Checked Daily (High-impact rules)</option>
+                    <option value="high">🟠 High - Every 2 Days (Important requirements)</option>
+                    <option value="medium">🟡 Medium - Weekly (Standard compliance)</option>
+                    <option value="low">🟢 Low - Monthly (Stable rules)</option>
+                  </select>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Webhook configuration removed */}
-          </div>
+            {/* Section 3: Monitoring Configuration */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Monitor className="h-5 w-5 text-orange-600" />
+                <h4 className="text-lg font-medium text-orange-900">Monitoring Configuration</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Monitor Type */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Monitor Type</label>
+                  <div className="grid grid-cols-2 gap-4 items-stretch w-full">
+                    <div className="relative h-full w-full">
+                      <input
+                        type="radio"
+                        id="single"
+                        name="monitorType"
+                        value="single"
+                        checked={monitorType === 'single'}
+                        onChange={(e) => setMonitorType(e.target.value as 'single' | 'full_site')}
+                        className="sr-only peer"
+                      />
+                      <label
+                        htmlFor="single"
+                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all h-full w-full ${
+                          monitorType === 'single'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <File className="w-5 h-5 text-gray-600" />
+                          <div>
+                            <span className="font-medium">Single Page</span>
+                            <p className="text-sm text-gray-600">Monitor specific page only</p>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    <div className="relative h-full w-full">
+                      <input
+                        type="radio"
+                        id="full_site"
+                        name="monitorType"
+                        value="full_site"
+                        checked={monitorType === 'full_site'}
+                        onChange={(e) => setMonitorType(e.target.value as 'single' | 'full_site')}
+                        className="sr-only peer"
+                      />
+                      <label
+                        htmlFor="full_site"
+                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all h-full w-full ${
+                          monitorType === 'full_site'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Monitor className="w-5 h-5 text-orange-600" />
+                          <div>
+                            <span className="font-medium">Full Site</span>
+                            <p className="text-sm text-gray-600">Monitor entire website</p>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                    
+                    {/* Full Site Options */}
+                    {monitorType === 'full_site' && (
+                      <div className="p-4 bg-orange-100 border border-orange-300 rounded-lg space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Maximum Pages</label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={maxPages}
+                              onChange={(e) => setMaxPages(parseInt(e.target.value) || 10)}
+                              className="mt-1"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Limit pages to crawl (1-100)</p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Maximum Crawl Depth</label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="5"
+                              value={maxCrawlDepth}
+                              onChange={(e) => setMaxCrawlDepth(parseInt(e.target.value) || 2)}
+                              className="mt-1"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">How deep to crawl links (1-5)</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-xs text-gray-500">
-              Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">⌘</kbd>+<kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> to save
-            </p>
-            <div className="flex gap-3">
+            {/* Section 4: Scraping Frequency */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <RefreshCw className="h-5 w-5 text-green-600" />
+                <h4 className="text-lg font-medium text-green-900">Scraping Frequency</h4>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">How often should this website be checked</label>
+                <select
+                  value={checkInterval}
+                  onChange={(e) => setCheckInterval(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value={15}>⚡ 15 seconds - Testing only</option>
+                  <option value={60}>🔴 1 hour - Very frequent</option>
+                  <option value={360}>🟠 6 hours - Frequent</option>
+                  <option value={1440}>🟡 1 day - Daily (Recommended)</option>
+                  <option value={2880}>🔵 2 days - Bi-daily</option>
+                  <option value={10080}>🟢 1 week - Weekly</option>
+                </select>
+                <p className="text-xs text-gray-500">
+                  More frequent checking uses more resources but catches changes faster
+                </p>
+              </div>
+            </div>
+
+            {/* Check Now Option */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="check-now"
+                checked={checkNow}
+                onChange={(e) => setCheckNow(e.target.checked)}
+                className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+              />
+              <label htmlFor="check-now" className="text-sm text-gray-700">
+                Check for changes immediately after saving
+              </label>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" variant="default">
-                Save Settings
+              <Button type="submit" variant="default" className="gap-2">
+                <Globe className="h-4 w-4" />
+                Save Changes
               </Button>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )
