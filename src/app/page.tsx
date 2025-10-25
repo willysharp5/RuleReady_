@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText, Monitor, File, CheckCircle2 } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -22,6 +22,35 @@ import { ComplianceGuide } from '@/components/ComplianceGuide'
 import { DeleteConfirmationPopover } from '@/components/ui/delete-confirmation-popover'
 import { ChangeTrackingPopover } from '@/components/ui/change-tracking-popover'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources?: Array<{
+    id: number
+    similarity: number
+    url?: string
+    jurisdiction?: string
+    topicKey?: string
+    topicLabel?: string
+  }>
+  settings?: {
+    systemPrompt: string
+    model: string
+    complianceContext: boolean
+    maxContextReports: number
+    semanticSearch: boolean
+    sourcesFound: number
+    jurisdiction: string
+    topic: string
+  }
+}
 
 // Helper function to format interval display
 function formatInterval(minutes: number | undefined): string {
@@ -106,6 +135,8 @@ export default function HomePage() {
   const updateWebsite = useMutation(api.websites.updateWebsite)
   const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
   const triggerScrape = useAction(api.firecrawl.triggerScrape)
+  const chatSettings = useQuery(api.chatSettings.getChatSettings)
+  const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
 
   // Track scrape results
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(null)
@@ -228,6 +259,223 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Add website section visibility
   const [showAddWebsiteSection, setShowAddWebsiteSection] = useState(false)
+  
+  // AI Chat section visibility
+  const [showAiChatSection, setShowAiChatSection] = useState(false)
+  const [showChatConfig, setShowChatConfig] = useState(false)
+  
+  // AI Chat state
+  const [chatSelectedJurisdiction, setChatSelectedJurisdiction] = useState('')
+  const [chatSelectedTopic, setChatSelectedTopic] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Hi! I'm your RuleReady compliance assistant. Ask about minimum wage, harassment training, leave, posting, or other requirements.",
+    }
+  ])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  
+  // Chat configuration state
+  const [chatModel, setChatModel] = useState('gemini-2.0-flash-exp')
+  const [maxContextReports, setMaxContextReports] = useState(1)
+  const [chatSystemPrompt, setChatSystemPrompt] = useState('You are an expert legal counsel on Business compliance rules')
+  const [enableComplianceContext, setEnableComplianceContext] = useState(true)
+  const [enableSemanticSearch, setEnableSemanticSearch] = useState(true)
+  const [isUpdatingChat, setIsUpdatingChat] = useState(false)
+  const [chatSuccess, setChatSuccess] = useState(false)
+  
+  // Chat refs
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
+  
+  // Scroll to bottom function - like Vercel Chat SDK
+  const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
+    const el = listRef.current
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior
+        })
+      })
+    }
+  }
+
+  // Check if user is near bottom of chat
+  const checkScrollPosition = () => {
+    const el = listRef.current
+    if (el && messages.length > 1) {
+      const { scrollTop, scrollHeight, clientHeight } = el
+      // More sensitive threshold - show button if user scrolled up more than 50px from bottom
+      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight)
+      const shouldShowButton = distanceFromBottom > 50
+      setShowScrollButton(shouldShowButton)
+    } else {
+      setShowScrollButton(false)
+    }
+  }
+
+  // Add scroll event listener
+  useEffect(() => {
+    const el = listRef.current
+    if (el) {
+      el.addEventListener('scroll', checkScrollPosition, { passive: true })
+      // Initial check
+      checkScrollPosition()
+      return () => el.removeEventListener('scroll', checkScrollPosition)
+    }
+  }, [messages.length]) // Re-attach when messages change
+
+  useEffect(() => {
+    // Auto-scroll to bottom on new messages - like Vercel Chat SDK
+    scrollToBottom()
+    setShowScrollButton(false) // Hide scroll button when auto-scrolling
+    // Check scroll position after a brief delay to ensure content has rendered
+    setTimeout(() => {
+      checkScrollPosition()
+    }, 100)
+  }, [messages])
+
+  // Also scroll when loading state changes (for real-time responses)
+  useEffect(() => {
+    if (!isLoading) {
+      scrollToBottom()
+      setShowScrollButton(false) // Hide scroll button when auto-scrolling
+    }
+  }, [isLoading])
+
+  // Dynamic quick prompts based on selected filters
+  const getQuickPrompts = () => {
+    const basePrompts = [
+      'What are the minimum wage requirements?',
+      'What harassment training is required?',
+      'What are the posting requirements?',
+      'What leave policies apply?',
+    ]
+    
+    if (chatSelectedJurisdiction && chatSelectedTopic) {
+      const topicName = topics?.find(t => t.topicKey === chatSelectedTopic)?.name || chatSelectedTopic
+      return [
+        `What are the ${topicName.toLowerCase()} requirements in ${chatSelectedJurisdiction}?`,
+        `How does ${chatSelectedJurisdiction} handle ${topicName.toLowerCase()}?`,
+        `What are the penalties for ${topicName.toLowerCase()} violations in ${chatSelectedJurisdiction}?`,
+      ]
+    } else if (chatSelectedJurisdiction) {
+      return [
+        `What is the minimum wage in ${chatSelectedJurisdiction}?`,
+        `What are ${chatSelectedJurisdiction}'s posting requirements?`,
+        `What harassment training does ${chatSelectedJurisdiction} require?`,
+      ]
+    } else if (chatSelectedTopic) {
+      const topicName = topics?.find(t => t.topicKey === chatSelectedTopic)?.name || chatSelectedTopic
+      return [
+        `What are the ${topicName.toLowerCase()} requirements?`,
+        `Which states have the strictest ${topicName.toLowerCase()} rules?`,
+        `What are common ${topicName.toLowerCase()} violations?`,
+      ]
+    }
+    
+    return basePrompts
+  }
+
+  const quickPrompts = getQuickPrompts()
+
+  // Send message function
+  const sendMessage = async (content: string) => {
+    if (isLoading || !content.trim()) return
+    
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: content.trim()
+    }
+    
+    // Add user message immediately
+    setMessages(prev => [...prev, userMessage])
+    setInput('')
+    setIsLoading(true)
+    
+    // Scroll to bottom immediately after adding user message
+    setTimeout(() => scrollToBottom(), 10)
+    
+    try {
+      const response = await fetch('/api/compliance-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          jurisdiction: chatSelectedJurisdiction,
+          topic: chatSelectedTopic,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+      
+      // Handle JSON response from Gemini
+      const data = await response.json()
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.content || 'No response received',
+        sources: Array.isArray(data.sources) ? data.sources : [],
+        settings: data.settings || undefined
+      }
+      
+      setMessages(prev => [...prev, assistantMessage])
+      
+      // Scroll to bottom after adding assistant message
+      setTimeout(() => scrollToBottom(), 10)
+    } catch (error) {
+      console.error('Chat error:', error)
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      }
+      setMessages(prev => [...prev, errorMessage])
+      setTimeout(() => scrollToBottom(), 10)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    sendMessage(input)
+  }
+
+  const sendQuickPrompt = (q: string) => {
+    sendMessage(q)
+  }
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      // Reset the copied state after 2 seconds
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy message:', error)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = content
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    }
+  }
   
   // URL validation function
   const validateUrl = async (inputUrl: string) => {
@@ -387,6 +635,16 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setCheckInterval(adjustedInterval)
   }, [selectedPriorityLevel])
   
+  // Load chat settings when available
+  useEffect(() => {
+    if (chatSettings) {
+      setChatSystemPrompt(chatSettings.chatSystemPrompt || 'You are a professional compliance assistant specializing in US employment law.')
+      setChatModel(chatSettings.chatModel || 'gemini-2.0-flash-exp')
+      setEnableComplianceContext(chatSettings.enableComplianceContext ?? true)
+      setMaxContextReports(chatSettings.maxContextReports || 5)
+      setEnableSemanticSearch(chatSettings.enableSemanticSearch ?? true)
+    }
+  }, [chatSettings])
   
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
@@ -846,6 +1104,516 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
         <div className="space-y-6">
           {/* Compliance Guide */}
           <ComplianceGuide />
+          
+          {/* AI Chat Assistant */}
+          <div className="bg-white rounded-lg shadow-sm">
+            {/* Collapsible Header */}
+            <div className="p-6 border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowAiChatSection(!showAiChatSection)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="h-6 w-6 text-purple-600" />
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">AI Compliance Assistant</h3>
+                    <p className="text-sm text-gray-600 mt-1">Ask questions about compliance requirements and regulations</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    {showAiChatSection ? 'Hide' : 'Show'} chat
+                  </span>
+                  <div className={`transform transition-transform ${showAiChatSection ? 'rotate-180' : ''}`}>
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            </div>
+            
+            {/* Collapsible Content */}
+            {showAiChatSection && (
+              <div className="bg-transparent">
+                {/* Chat Configuration - Collapsible */}
+                <div className="border-b border-gray-200">
+                  <div className="p-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowChatConfig(!showChatConfig)}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <h3 className="font-medium text-gray-900">Chat Configuration</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {showChatConfig ? 'Hide' : 'Show'} settings
+                        </span>
+                        <div className={`transform transition-transform ${showChatConfig ? 'rotate-180' : ''}`}>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  {showChatConfig && (
+                    <div className="px-6 pb-6 space-y-6">
+                      {/* Chat Configuration */}
+                      <div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Model Selection */}
+                          <div>
+                            <Label htmlFor="chat-model">AI Model</Label>
+                            <select
+                              id="chat-model"
+                              value={chatModel}
+                              onChange={(e) => setChatModel(e.target.value)}
+                              className="w-full mt-1 p-2 border rounded"
+                            >
+                              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Recommended)</option>
+                              <option value="gemini-pro">Gemini Pro</option>
+                              <option value="gpt-4">GPT-4</option>
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Gemini 2.0 Flash provides fast, accurate compliance analysis
+                            </p>
+                          </div>
+                          
+                          {/* Context Reports */}
+                          <div>
+                            <Label htmlFor="max-reports">Max Reports per Query</Label>
+                            <Input
+                              id="max-reports"
+                              type="number"
+                              min="1"
+                              max="20"
+                              value={maxContextReports}
+                              onChange={(e) => setMaxContextReports(Number(e.target.value))}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              How many relevant reports to include in AI context
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                  
+                  {/* System Prompt */}
+                  <div>
+                    <Label htmlFor="chat-prompt">Chat System Prompt</Label>
+                    <Textarea
+                      id="chat-prompt"
+                      value={chatSystemPrompt}
+                      onChange={(e) => setChatSystemPrompt(e.target.value)}
+                      rows={4}
+                      placeholder="You are a professional compliance assistant..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Customize how the AI assistant behaves and responds to compliance questions
+                    </p>
+                  </div>
+                  
+                  {/* Compliance Data Settings */}
+                  <div>
+                    <h4 className="font-medium mb-3">Compliance Data Integration</h4>
+                    
+                    <div className="space-y-3">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={enableComplianceContext}
+                          onChange={(e) => setEnableComplianceContext(e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Use compliance reports as context</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={enableSemanticSearch}
+                          onChange={(e) => setEnableSemanticSearch(e.target.checked)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Enable semantic search with embeddings</span>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {/* Template Information */}
+                  <div>
+                    <h4 className="font-medium mb-3">Compliance Template Structure</h4>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                      <h5 className="font-medium text-blue-900 mb-2">16 Template Sections Used:</h5>
+                      <div className="grid grid-cols-2 gap-1 text-xs text-blue-800">
+                        <div>• Overview</div>
+                        <div>• Covered Employers</div>
+                        <div>• Covered Employees</div>
+                        <div>• Training Requirements</div>
+                        <div>• Training Deadlines</div>
+                        <div>• Qualified Trainers</div>
+                        <div>• Special Requirements</div>
+                        <div>• Coverage Election</div>
+                        <div>• Reciprocity Coverage</div>
+                        <div>• Employer Deadlines</div>
+                        <div>• Notification Requirements</div>
+                        <div>• Posting Requirements</div>
+                        <div>• Recordkeeping Requirements</div>
+                        <div>• Penalties</div>
+                        <div>• Sources</div>
+                        <div>• + Custom Sections</div>
+                      </div>
+                      </div>
+                      
+                      {/* Save Settings */}
+                      <div className="flex justify-end">
+                        <Button
+                      onClick={async () => {
+                        setIsUpdatingChat(true)
+                        try {
+                          await updateChatSettings({
+                            chatSystemPrompt,
+                            chatModel,
+                            enableComplianceContext,
+                            maxContextReports,
+                            enableSemanticSearch,
+                          })
+                          setChatSuccess(true)
+                          setTimeout(() => setChatSuccess(false), 3000)
+                          addToast({
+                            title: "Chat Settings Saved",
+                            description: "AI chat configuration has been updated successfully"
+                          })
+                        } catch (error) {
+                          console.error('Failed to update chat settings:', error)
+                          addToast({
+                            title: "Save Error",
+                            description: "Failed to save chat settings. Please try again."
+                          })
+                        } finally {
+                          setIsUpdatingChat(false)
+                        }
+                      }}
+                      disabled={isUpdatingChat}
+                      className="gap-2"
+                    >
+                      {isUpdatingChat ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : chatSuccess ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Saved!
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="h-4 w-4" />
+                          Save Chat Settings
+                        </>
+                      )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Header status like demo */}
+                <div className="px-4 py-3 border-b text-xs text-gray-600 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="relative inline-flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+                    </span>
+                    {isLoading ? 'Thinking…' : 'Ready'}
+                  </span>
+                </div>
+
+                {/* Filter Controls */}
+                <div className="px-4 py-3 border-b bg-gray-50">
+                  <div className="max-w-3xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Jurisdiction Filter */}
+                      <div>
+                        <Label htmlFor="jurisdiction-filter" className="text-xs font-medium text-gray-700">
+                          Jurisdiction
+                        </Label>
+                        <select
+                          id="jurisdiction-filter"
+                          value={chatSelectedJurisdiction}
+                          onChange={(e) => setChatSelectedJurisdiction(e.target.value)}
+                          className="w-full mt-1 p-2 text-xs border rounded-md bg-white"
+                        >
+                          <option value="">All Jurisdictions</option>
+                          {jurisdictions?.map((j) => (
+                            <option key={j.code} value={j.name}>
+                              {j.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Topic Filter */}
+                      <div>
+                        <Label htmlFor="topic-filter" className="text-xs font-medium text-gray-700">
+                          Topic
+                        </Label>
+                        <select
+                          id="topic-filter"
+                          value={chatSelectedTopic}
+                          onChange={(e) => setChatSelectedTopic(e.target.value)}
+                          className="w-full mt-1 p-2 text-xs border rounded-md bg-white"
+                        >
+                          <option value="">All Topics</option>
+                          {topics?.slice(0, 15).map((t) => (
+                            <option key={t.topicKey} value={t.topicKey}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Selected Filters Display */}
+                    {(chatSelectedJurisdiction || chatSelectedTopic) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-gray-600">Filtering by:</span>
+                        {chatSelectedJurisdiction && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            📍 {chatSelectedJurisdiction}
+                            <button
+                              onClick={() => setChatSelectedJurisdiction('')}
+                              className="ml-1 text-blue-600 hover:text-blue-800"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        )}
+                        {chatSelectedTopic && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                            <FileText className="h-3 w-3" />
+                            {topics?.find(t => t.topicKey === chatSelectedTopic)?.name || chatSelectedTopic}
+                            <button
+                              onClick={() => setChatSelectedTopic('')}
+                              className="ml-1 text-green-600 hover:text-green-800"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="relative">
+                  <div ref={listRef} className="h-[520px] overflow-y-auto px-6 py-6">
+                    <div className="max-w-3xl mx-auto space-y-6">
+                    {messages.map((m) => (
+                    <div key={m.id}>
+                      <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`flex items-start gap-3 w-full ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                            {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                          </div>
+                          <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
+                            {typeof m.content === 'string' ? (
+                              <div className="compliance-chat-content">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  rehypePlugins={[rehypeHighlight]}
+                                  components={{
+                                    h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                                    h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
+                                    h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                                    p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
+                                    ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
+                                    ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
+                                    li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
+                                    strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                                    em: ({children}) => <em className="italic">{children}</em>,
+                                  }}
+                                >
+                                  {m.content}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              String(m.content)
+                            )}
+                            
+                            {/* Sources display for assistant messages */}
+                            {m.role === 'assistant' && m.sources && m.sources.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-300">
+                                <div className="text-xs font-medium text-gray-600 mb-2">Sources (embedding matches)</div>
+                                <ul className="space-y-1">
+                                  {m.sources.map((s) => (
+                                    <li key={s.id} className="text-xs text-gray-700">
+                                      <span className="font-mono mr-1">[{s.id}]</span>
+                                      {s.jurisdiction && <span className="mr-1">{s.jurisdiction}:</span>}
+                                      {s.topicLabel && <span className="mr-1">{s.topicLabel}</span>}
+                                      <span className="text-gray-500 mr-2">({Math.round((s.similarity || 0) * 100)}%)</span>
+                                      {s.url ? (
+                                        <a href={s.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Link</a>
+                                      ) : (
+                                        <span className="text-gray-400">No URL</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Settings display for assistant messages */}
+                            {m.role === 'assistant' && m.settings && (
+                              <div className="mt-3 pt-3 border-t border-gray-300">
+                                <details className="text-xs">
+                                  <summary className="cursor-pointer font-medium text-gray-600 hover:text-gray-800">
+                                    Response Settings Used
+                                  </summary>
+                                  <div className="mt-2 space-y-1 text-gray-600">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <span className="font-medium">Model:</span> {m.settings.model}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Sources Found:</span> {m.settings.sourcesFound}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Jurisdiction:</span> {m.settings.jurisdiction}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Topic:</span> {m.settings.topic}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Compliance Context:</span> {m.settings.complianceContext ? 'Enabled' : 'Disabled'}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Semantic Search:</span> {m.settings.semanticSearch ? 'Enabled' : 'Disabled'}
+                                      </div>
+                                    </div>
+                                    <div className="mt-2">
+                                      <span className="font-medium">System Prompt:</span>
+                                      <div className="mt-1 p-2 bg-gray-100 rounded text-xs font-mono max-h-20 overflow-y-auto">
+                                        {m.settings.systemPrompt}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </details>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {/* Toolbar under assistant messages like demo */}
+                                    {m.role !== 'user' && (
+                          <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
+                            <button 
+                              className={`inline-flex items-center gap-1 text-xs hover:text-gray-700 transition-colors ${
+                                copiedMessageId === m.id ? 'text-green-600' : ''
+                              }`} 
+                              onClick={() => handleCopyMessage(String(m.content), m.id)} 
+                              type="button"
+                            >
+                              {copiedMessageId === m.id ? (
+                                <>
+                                  <Check className="h-3 w-3" /> Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" /> Copy
+                                </>
+                              )}
+                            </button>
+                            <span className="h-3 w-px bg-gray-200" />
+                            <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                              <ThumbsUp className="h-3 w-3" />
+                            </button>
+                            <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                              <ThumbsDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-2xl text-sm">
+                        <Bot className="h-4 w-4 text-gray-600" />
+                        <Loader2 className="h-4 w-4 animate-spin text-gray-700" />
+                        <span className="text-gray-700">Thinking…</span>
+                      </div>
+                    </div>
+                  )}
+                    </div>
+                  </div>
+                  
+                  {/* Scroll to bottom button - centered like Vercel Chat SDK */}
+                  {showScrollButton && (
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <Button
+                        onClick={() => {
+                          scrollToBottom('smooth')
+                          setShowScrollButton(false)
+                        }}
+                        size="sm"
+                        className="h-10 w-10 rounded-full p-0 shadow-lg bg-blue-600 hover:bg-blue-700 text-white border-0 transition-all duration-200 hover:scale-105 relative"
+                        title="Scroll to bottom"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                        {/* Small pulse indicator */}
+                        <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-400 rounded-full animate-pulse"></div>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom composer like demo */}
+                <form ref={formRef} onSubmit={handleSubmit} className="px-4 pb-4">
+                  <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 mb-2">
+                    {quickPrompts.map((q) => (
+                      <Button
+                        key={q}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        type="button"
+                        onClick={() => sendQuickPrompt(q)}
+                        disabled={isLoading}
+                      >
+                        {q}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
+                    <Textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          if (!isLoading && input.trim()) {
+                            formRef.current?.requestSubmit()
+                          }
+                        }
+                      }}
+                      rows={2}
+                      placeholder="Send a message…"
+                      disabled={isLoading}
+                      className="resize-none border-0 focus-visible:ring-0"
+                    />
+                    <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 w-9 rounded-full p-0">
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
           
           {/* Advanced Add Website Form */}
           <div className="bg-white rounded-lg shadow-sm">
@@ -2232,14 +3000,14 @@ Focus on content that would be relevant for change detection and monitoring.`}
                       All
                     </Button>
                     <Button
-                      variant={checkLogFilter === 'changed' ? 'orange' : 'outline'}
+                      variant={checkLogFilter === 'changed' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCheckLogFilter('changed')}
                     >
                       Changed Only
                     </Button>
                     <Button
-                      variant={checkLogFilter === 'meaningful' ? 'orange' : 'outline'}
+                      variant={checkLogFilter === 'meaningful' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setCheckLogFilter('meaningful')}
                       className="flex items-center gap-1"
@@ -3270,14 +4038,14 @@ Focus on content that would be relevant for change detection and monitoring.`}
                           All
                         </Button>
                         <Button
-                          variant={checkLogFilter === 'changed' ? 'orange' : 'outline'}
+                          variant={checkLogFilter === 'changed' ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setCheckLogFilter('changed')}
                         >
                           Changed Only
                         </Button>
                         <Button
-                          variant={checkLogFilter === 'meaningful' ? 'orange' : 'outline'}
+                          variant={checkLogFilter === 'meaningful' ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setCheckLogFilter('meaningful')}
                           className="flex items-center gap-1"
