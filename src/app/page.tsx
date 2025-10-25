@@ -210,7 +210,6 @@ export default function HomePage() {
   } | null>(null)
   
   // Firecrawl options state
-  const [showFirecrawlOptions, setShowFirecrawlOptions] = useState(false)
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
       // Default config focuses on Scrape payload and nested scrapeOptions for Crawl
@@ -246,8 +245,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [meaningfulChangeThreshold, setMeaningfulChangeThreshold] = useState(70) // Store as percentage (70%)
   const [emailOnlyIfMeaningful, setEmailOnlyIfMeaningful] = useState(false)
   
-  // JSON preview state
-  const [showJsonPreview, setShowJsonPreview] = useState(false)
   
   // Add website section visibility
   const [showAddWebsiteSection, setShowAddWebsiteSection] = useState(false)
@@ -593,25 +590,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setFirecrawlConfig(JSON.stringify(config, null, 2))
   }, [monitorType, maxPages, maxCrawlDepth])
   
-  // Generate complete Firecrawl payload for preview
-  const generateFirecrawlPayload = () => {
-    const payload: Record<string, unknown> = {
-      url: url || "https://example.com",
-      formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }],
-      onlyMainContent: false,
-      waitFor: 2000,
-      parsers: ["pdf"],
-      proxy: "auto",
-      maxAge: 172800000
-    }
-    
-    // Add crawl settings for full site
-    if (monitorType === 'full_site') {
-      payload.limit = maxPages
-      payload.maxDepth = maxCrawlDepth
-    }
-    return payload
-  }
   
   // Auto-adjust frequency based on priority (following documented system logic)
   useEffect(() => {
@@ -2020,11 +1998,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   <h4 className="text-lg font-medium text-orange-900">Monitoring Configuration</h4>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Monitor Type */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700">Monitor Type</label>
-                    <div className="grid grid-cols-2 gap-4 items-stretch w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                  {/* Left: Single Page */}
                   <div className="relative h-full w-full">
                     <input
                       type="radio"
@@ -2050,7 +2025,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       <span className="text-sm text-gray-600">Monitor specific page only</span>
                     </label>
                   </div>
-                  
+
+                  {/* Right: Full Site */}
                   <div className="relative h-full w-full">
                     <input
                       type="radio"
@@ -2074,41 +2050,39 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         <span className="font-medium">Full Site</span>
                       </div>
                       <span className="text-sm text-gray-600">Monitor entire website</span>
+                      {monitorType === 'full_site' && (
+                        <div className="mt-3 p-4 bg-orange-50 rounded-lg space-y-4 border border-orange-200">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-gray-700">Maximum Pages</label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={maxPages}
+                                onChange={(e) => setMaxPages(parseInt(e.target.value) || 10)}
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Limit pages to crawl (1-100)</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-700">Maximum Crawl Depth</label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="5"
+                                value={maxCrawlDepth}
+                                onChange={(e) => setMaxCrawlDepth(parseInt(e.target.value) || 2)}
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">How deep to crawl links (1-5)</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
-                
-                {/* Full Site Options */}
-                {monitorType === 'full_site' && (
-                  <div className="ml-4 p-4 bg-orange-50 rounded-lg space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Maximum Pages</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={maxPages}
-                          onChange={(e) => setMaxPages(parseInt(e.target.value) || 10)}
-                          className="mt-1"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Limit pages to crawl (1-100)</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700">Maximum Crawl Depth</label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="5"
-                          value={maxCrawlDepth}
-                          onChange={(e) => setMaxCrawlDepth(parseInt(e.target.value) || 2)}
-                          className="mt-1"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">How deep to crawl links (1-5)</p>
-                      </div>
-                    </div>
-                  </div>
-                  )}
                   </div>
                 </div>
               </div>
@@ -2120,109 +2094,31 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   <h4 className="text-lg font-medium text-gray-900">Firecrawl Configuration</h4>
                 </div>
                 
-                 {/* Advanced Firecrawl Options - Collapsible */}
+                 {/* Firecrawl Configuration - Always Open */}
                  <div className="bg-gray-50 rounded-lg p-4">
-                   <button
-                     type="button"
-                     onClick={() => setShowFirecrawlOptions(!showFirecrawlOptions)}
-                     className="flex items-center justify-between w-full text-left"
-                   >
-                     <h5 className="text-sm font-medium text-gray-700">Advanced Firecrawl Configuration</h5>
-                     <div className="flex items-center gap-2">
-                       <span className="text-xs text-gray-500">
-                         {showFirecrawlOptions ? 'Hide' : 'Show'} technical options
-                       </span>
-                       <div className={`transform transition-transform ${showFirecrawlOptions ? 'rotate-180' : ''}`}>
-                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                         </svg>
-                       </div>
+                   <h5 className="text-sm font-medium text-gray-700 mb-3">Firecrawl Configuration (JSON)</h5>
+                   <div className="space-y-2">
+                     <textarea
+                       value={firecrawlConfig}
+                       onChange={(e) => setFirecrawlConfig(e.target.value)}
+                       rows={12}
+                       className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                       placeholder="Enter Firecrawl configuration in JSON format..."
+                     />
+                     <div className="flex items-start justify-between">
+                       <p className="text-xs text-gray-500">
+                         This JSON automatically updates when you change form settings above. You can also edit it directly.
+                       </p>
+                       <a
+                         href="https://docs.firecrawl.dev/api-reference/endpoint/scrape"
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="text-xs text-purple-600 hover:text-purple-800 underline flex items-center gap-1 ml-4 flex-shrink-0"
+                       >
+                         <ExternalLink className="h-3 w-3" />
+                         Firecrawl Docs
+                       </a>
                      </div>
-                   </button>
-                   
-                   {showFirecrawlOptions && (
-                     <div className="mt-3 space-y-2">
-                       <label className="text-xs font-medium text-gray-600">
-                         Firecrawl Configuration (JSON)
-                       </label>
-                       <textarea
-                         value={firecrawlConfig}
-                         onChange={(e) => setFirecrawlConfig(e.target.value)}
-                         rows={12}
-                         className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
-                         placeholder="Enter Firecrawl configuration in JSON format..."
-                       />
-                       <div className="flex items-start justify-between">
-                         <p className="text-xs text-gray-500">
-                           Advanced users can customize the Firecrawl API configuration for Scrape/Crawl. Use formats with changeTracking and parsers:["pdf"] when needed.
-                         </p>
-                         <a
-                           href="https://docs.firecrawl.dev/api-reference/endpoint/scrape"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="text-xs text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1 ml-4 flex-shrink-0"
-                         >
-                           <ExternalLink className="h-3 w-3" />
-                           Firecrawl Docs
-                         </a>
-                       </div>
-                     </div>
-                   )}
-                   
-                   {/* Complete Firecrawl Payload Preview */}
-                   <div className="mt-4 border-t border-gray-300 pt-4">
-                     <button
-                       type="button"
-                       onClick={() => setShowJsonPreview(!showJsonPreview)}
-                       className="flex items-center justify-between w-full text-left"
-                     >
-                       <h5 className="text-sm font-medium text-gray-700">Complete Firecrawl API Payload</h5>
-                       <div className="flex items-center gap-2">
-                         <span className="text-xs text-gray-500">
-                           {showJsonPreview ? 'Hide' : 'Show'} full JSON payload
-                         </span>
-                         <div className={`transform transition-transform ${showJsonPreview ? 'rotate-180' : ''}`}>
-                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                           </svg>
-                         </div>
-                       </div>
-                     </button>
-                     
-                     {showJsonPreview && (
-                       <div className="mt-3 space-y-2">
-                         <div className="flex items-center justify-between">
-                           <label className="text-xs font-medium text-gray-600">
-                             Complete API Payload (Live Preview)
-                           </label>
-                           <Button
-                             type="button"
-                             variant="outline"
-                             size="sm"
-                             onClick={() => {
-                               navigator.clipboard.writeText(JSON.stringify(generateFirecrawlPayload(), null, 2))
-                               addToast({
-                                 title: "Copied",
-                                 description: "Firecrawl payload copied to clipboard"
-                               })
-                             }}
-                             className="text-xs"
-                           >
-                             Copy JSON
-                           </Button>
-                         </div>
-                         <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
-                           <pre>{JSON.stringify(generateFirecrawlPayload(), null, 2)}</pre>
-                         </div>
-                         <div className="flex items-start gap-2 text-xs text-gray-600">
-                           <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                           <div>
-                             <p className="font-medium">This is the exact JSON payload that will be sent to the Firecrawl API.</p>
-                             <p className="mt-1">It includes all your form settings, AI configuration, templates, and technical parameters. Use this to verify your configuration is correct before submitting.</p>
-                           </div>
-                         </div>
-                       </div>
-                     )}
                    </div>
                  </div>
               </div>
