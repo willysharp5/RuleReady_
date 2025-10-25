@@ -109,7 +109,7 @@ export const createComplianceWebsite = internalMutation({
       await ctx.db.patch(existingWebsite._id, {
         name: args.name,
         checkInterval: args.checkInterval,
-        notificationPreference: args.notificationPreference,
+        notificationPreference: args.notificationPreference === 'webhook' || args.notificationPreference === 'both' ? 'email' : args.notificationPreference,
         monitorType: args.monitorType,
         updatedAt: Date.now(),
       });
@@ -120,16 +120,13 @@ export const createComplianceWebsite = internalMutation({
       const websiteId = await ctx.db.insert("websites", {
         url: args.url,
         name: args.name,
-        userId: args.userId,
         isActive: true,
         isPaused: false,
         checkInterval: args.checkInterval,
-        notificationPreference: args.notificationPreference,
+        notificationPreference: args.notificationPreference === 'webhook' || args.notificationPreference === 'both' ? 'email' : args.notificationPreference,
         monitorType: args.monitorType,
         crawlLimit: undefined,
         crawlDepth: undefined,
-        lastCrawlAt: undefined,
-        totalPages: undefined,
         complianceMetadata: {
           ruleId: args.ruleId,
           jurisdiction: args.jurisdiction,

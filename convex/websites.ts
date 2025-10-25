@@ -137,10 +137,7 @@ export const getWebsite = internalQuery({
     if (!website) {
       return null;
     }
-    // In single-user mode, skip userId check if no userId provided
-    if (args.userId && website.userId !== args.userId) {
-      return null;
-    }
+    // Single-user mode: no user ownership check needed
     return website;
   },
 });
@@ -170,9 +167,7 @@ export const toggleWebsiteActive = mutation({
     }
     
     // Skip user ownership check in single-user mode
-    if (user && website.userId !== user._id) {
-      throw new Error("Website not found");
-    }
+    // Single-user mode: no user ownership check needed
 
     await ctx.db.patch(args.websiteId, {
       isActive: !website.isActive,
@@ -287,10 +282,6 @@ export const updateWebsite = mutation({
       updates.complianceMetadata = {
         ...website.complianceMetadata,
         priority: args.compliancePriority,
-        hasManualOverride: args.overrideComplianceInterval || false,
-        originalPriority: website.complianceMetadata.originalPriority || website.complianceMetadata.priority,
-        lastPriorityChange: Date.now(),
-        priorityChangeReason: args.priorityChangeReason || "Priority updated via settings",
       };
       
       // Update corresponding compliance rule
@@ -306,7 +297,7 @@ export const updateWebsite = mutation({
 
     // If changing to full site monitoring, trigger initial crawl
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
-      if (website.userId) {
+      if (true) {
         await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
           websiteId: args.websiteId,
         });
@@ -427,7 +418,6 @@ export const storeScrapeResult = mutation({
       previousScrapeAt: args.previousScrapeAt,
       scrapedAt: args.scrapedAt,
       firecrawlMetadata: args.firecrawlMetadata,
-      ogImage: args.ogImage,
       title: args.title,
       description: args.description,
       url: args.url,
@@ -462,7 +452,6 @@ export const createChangeAlert = mutation({
     freezeIfLegacy(website);
     await ctx.db.insert("changeAlerts", {
       websiteId: args.websiteId,
-      userId: args.userId || ("single-user-mode" as Id<"users">), // Dummy value for single-user mode
       scrapeResultId: args.scrapeResultId,
       changeType: args.changeType,
       summary: args.summary,
@@ -492,9 +481,10 @@ export const getWebsiteScrapeHistory = query({
 
     // Verify website ownership
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
+    if (!website) {
       return [];
     }
+    // Single-user mode: no user ownership check needed
 
     const results = await ctx.db
       .query("scrapeResults")
@@ -546,9 +536,7 @@ export const getUnreadAlerts = query({
 
     const alerts = await ctx.db
       .query("changeAlerts")
-      .withIndex("by_read_status", (q) =>
-        q.eq("userId", user._id).eq("isRead", false)
-      )
+      .filter((q) => q.eq(q.field("isRead"), false))
       .order("desc")
       .collect();
 
@@ -614,14 +602,12 @@ export const getAllScrapeHistory = query({
       const recentScrapeData = recentScrapes.map(s => ({
         _id: s._id,
         websiteId: s.websiteId,
-        userId: s.userId,
         markdown: s.markdown,
         changeStatus: s.changeStatus,
         visibility: s.visibility,
         previousScrapeAt: s.previousScrapeAt,
         scrapedAt: s.scrapedAt,
         firecrawlMetadata: s.firecrawlMetadata,
-        ogImage: s.ogImage,
         title: s.title,
         description: s.description,
         url: s.url,
@@ -883,9 +869,10 @@ export const pauseWebsiteFromApi = internalMutation({
     const websiteId = args.websiteId as Id<"websites">;
     const website = await ctx.db.get(websiteId);
     
-    if (!website || website.userId !== args.userId) {
+    if (!website) {
       return false;
     }
+    // Single-user mode: no user ownership check needed
     freezeIfLegacy(website);
 
     // Update the pause status
@@ -909,9 +896,10 @@ export const deleteWebsiteFromApi = internalMutation({
     const websiteId = args.websiteId as Id<"websites">;
     const website = await ctx.db.get(websiteId);
     
-    if (!website || website.userId !== args.userId) {
+    if (!website) {
       return false;
     }
+    // Single-user mode: no user ownership check needed
     freezeIfLegacy(website);
 
     // Schedule async deletion of all related data

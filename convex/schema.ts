@@ -6,20 +6,23 @@ const schema = defineSchema({
   users: defineTable({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    createdAt: v.number(),
+    createdAt: v.optional(v.number()), // Make optional for existing data
   }),
 
   // Website monitoring tables
   websites: defineTable({
     url: v.string(),
     name: v.string(),
+    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     isActive: v.boolean(),
     isPaused: v.optional(v.boolean()),
     checkInterval: v.number(), // in minutes
     lastChecked: v.optional(v.number()),
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email")
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
     )),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
@@ -27,21 +30,29 @@ const schema = defineSchema({
     )),
     crawlLimit: v.optional(v.number()),
     crawlDepth: v.optional(v.number()),
+    lastCrawlAt: v.optional(v.number()), // Keep for existing data
+    totalPages: v.optional(v.number()), // Keep for existing data
     complianceMetadata: v.optional(v.object({
       ruleId: v.string(),
       jurisdiction: v.string(),
       topicKey: v.string(),
       priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
       isComplianceWebsite: v.boolean(),
+      hasManualOverride: v.optional(v.boolean()), // Keep for existing data
+      originalPriority: v.optional(v.string()), // Keep for existing data
+      lastPriorityChange: v.optional(v.number()), // Keep for existing data
+      priorityChangeReason: v.optional(v.string()), // Keep for existing data
     })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_user", ["userId"])
     .index("by_active", ["isActive"]),
 
   // Scrape results for website monitoring
   scrapeResults: defineTable({
     websiteId: v.id("websites"),
+    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -54,6 +65,7 @@ const schema = defineSchema({
     previousScrapeAt: v.optional(v.number()),
     scrapedAt: v.number(),
     firecrawlMetadata: v.optional(v.any()),
+    ogImage: v.optional(v.string()), // Keep for existing data compatibility
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     url: v.optional(v.string()),
@@ -70,21 +82,25 @@ const schema = defineSchema({
     })),
   })
     .index("by_website", ["websiteId"])
-    .index("by_website_time", ["websiteId", "scrapedAt"]),
+    .index("by_website_time", ["websiteId", "scrapedAt"])
+    .index("by_user_time", ["userId", "scrapedAt"]),
 
   // Legacy tables - keeping for now
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
+    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
     isRead: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_website", ["websiteId"]),
+    .index("by_website", ["websiteId"])
+    .index("by_read_status", ["userId", "isRead"]),
 
   crawlSessions: defineTable({
     websiteId: v.id("websites"),
+    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     status: v.union(
@@ -99,9 +115,20 @@ const schema = defineSchema({
   })
     .index("by_website", ["websiteId"]),
 
-  // Simplified user settings
+  // User settings (keeping existing fields for compatibility)
   userSettings: defineTable({
+    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     emailNotificationsEnabled: v.boolean(),
+    emailTemplate: v.optional(v.string()),
+    // AI Analysis settings (keep for existing data)
+    aiAnalysisEnabled: v.optional(v.boolean()),
+    aiModel: v.optional(v.string()),
+    aiBaseUrl: v.optional(v.string()),
+    aiSystemPrompt: v.optional(v.string()),
+    aiMeaningfulChangeThreshold: v.optional(v.number()),
+    aiApiKey: v.optional(v.string()),
+    emailOnlyIfMeaningful: v.optional(v.boolean()),
+    webhookOnlyIfMeaningful: v.optional(v.boolean()),
     // Chat settings
     chatSystemPrompt: v.optional(v.string()),
     chatModel: v.optional(v.string()),
@@ -110,7 +137,8 @@ const schema = defineSchema({
     enableSemanticSearch: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_user", ["userId"]),
 
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({

@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as aiAnalysis from "../aiAnalysis.js";
 import type * as alertEmail from "../alertEmail.js";
 import type * as autoSetup from "../autoSetup.js";
 import type * as chatSettings from "../chatSettings.js";
@@ -39,11 +38,9 @@ import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
 import type * as migrateEmbeddings from "../migrateEmbeddings.js";
 import type * as monitoring from "../monitoring.js";
-import type * as notifications from "../notifications.js";
 import type * as reportImport from "../reportImport.js";
 import type * as ruleDetails from "../ruleDetails.js";
 import type * as singleUserSetup from "../singleUserSetup.js";
-import type * as testActions from "../testActions.js";
 import type * as testChatSources from "../testChatSources.js";
 import type * as testEmbeddings from "../testEmbeddings.js";
 import type * as testingMode from "../testingMode.js";
@@ -66,7 +63,6 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  aiAnalysis: typeof aiAnalysis;
   alertEmail: typeof alertEmail;
   autoSetup: typeof autoSetup;
   chatSettings: typeof chatSettings;
@@ -97,11 +93,9 @@ declare const fullApi: ApiFromModules<{
   "lib/sanitize": typeof lib_sanitize;
   migrateEmbeddings: typeof migrateEmbeddings;
   monitoring: typeof monitoring;
-  notifications: typeof notifications;
   reportImport: typeof reportImport;
   ruleDetails: typeof ruleDetails;
   singleUserSetup: typeof singleUserSetup;
-  testActions: typeof testActions;
   testChatSources: typeof testChatSources;
   testEmbeddings: typeof testEmbeddings;
   testingMode: typeof testingMode;

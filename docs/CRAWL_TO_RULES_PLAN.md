@@ -15,7 +15,7 @@ Use Firecrawl to crawl target sites (including PDFs), store normalized source do
    - Configure crawl depth/limits and PDF discovery.
 
 2) Ingestion (Firecrawl)
-   - Crawl HTML pages and discover/fetch linked PDFs.
+   - Scrape HTML pages (and PDFs when enabled) via Scrape API.
    - Normalize to text/markdown and store with metadata and content hashes.
    - Deduplicate by hash; maintain provenance (URL, title, fetchedAt).
 
@@ -77,10 +77,14 @@ Minor extension (optional now):
 1) Ingestion Actions (convex/firecrawl.ts or new convex/ingestion.ts)
 - action: createSourceCollection({ name, jurisdiction, topicKey, seedUrls, crawlConfig })
 - action: ingestCollection({ collectionId })
-  - For each seed URL:
-    - firecrawl.crawlUrl(url, { limit, scrapeOptions: { formats:["markdown"], waitFor, onlyMainContent:false } })
-    - Discover PDF links (simple href ends-with .pdf and/or Firecrawl metadata) when includePdfLinks = true
-    - For each PDF URL: firecrawl.scrapeUrl(pdfUrl, { formats:["markdown"] })
+  - For each seed URL (MVP = Scrape):
+    - firecrawl.scrapeUrl(url, {
+        formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }],
+        onlyMainContent: false,
+        waitFor: 2000,
+        parsers: includePdfLinks ? ["pdf"] : undefined
+      })
+    - Discover PDF links when includePdfLinks = true and scrape them with parsers:["pdf"].
     - Normalize markdown/text, compute contentHash, insert/update sourceDocuments
   - Return counts: {htmlDocs, pdfDocs, deduped}
 
@@ -124,10 +128,10 @@ Existing pages:
 
 ### Firecrawl Configuration Notes
 - HTML
-  - formats: ["markdown"] plus changeTracking optional for monitoring, not required for ingestion
+  - formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }]
   - onlyMainContent:false, waitFor:2000 (tune if needed)
 - PDF
-  - Use scrapeUrl on PDF links; Firecrawl returns markdown text (or fallback PDF parser later)
+  - Use scrapeUrl on PDF links with parsers:["pdf"]; Firecrawl returns markdown text
 - Discovery
   - includePdfLinks:true → discover and queue `a[href$=".pdf"]`
   - cap per site to avoid abuse (maxPages, maxDepth)
@@ -190,7 +194,7 @@ Minimal scope
 - Keep “Add Website to Track” for per-page monitoring (unchanged), but MVP tests focus on “one-time ingest.”
 - New quick actions (server):
   - ingestOnce({ urls[], includePdf: true }):
-    - Uses Firecrawl Batch Scrape with formats:["markdown"], parsers:["pdf"].
+    - Use Scrape per URL (or Batch Scrape for many) with formats:["markdown", { type: "changeTracking", modes:["git-diff"] }], parsers:["pdf"] when needed.
     - Stores each page/PDF as a document in sourceDocuments with provenance and hash.
   - synthesizeOnce({ jurisdiction, topicKey, templateId, sourceIds[] }):
     - Loads template markdown (complianceTemplates), fetches selected sources, calls Gemini, saves to complianceReports.
@@ -211,7 +215,14 @@ Testing (MVP)
 - Unit: pdf link discovery and hash dedupe; prompt assembly; embeddings generation shape.
 
 Implementation Notes
-- For Batch Scrape, configure parsers:["pdf"], onlyMainContent:false as needed; see Firecrawl docs for batch params.
+- Default: Scrape→Gemini. Extract is optional later if strict per-document JSON is required.
+- Configure parsers:["pdf"], onlyMainContent:false as needed; see Firecrawl docs.
 - Store source-level provenance (URL, title, fetchedAt, contentHash) to enable transparent citations.
+
+### Optional (later): LLM Extract Toggle
+- Add a UI toggle “Use LLM Extract.” When on, after Scrape we call Extract with:
+  - prompt: the “Website Scraping Instructions”
+  - schema: JSON aligned with our template sections
+- Save extracted JSON next to the raw markdown. Synthesis can merge JSON fields when available and fall back to text otherwise.
 
 

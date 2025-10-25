@@ -19,11 +19,9 @@ export const checkActiveWebsites = internalAction({
         
         if (website.monitorType === "full_site") {
           // For full site monitors, perform a crawl
-        if (website.userId) {
           await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
             websiteId: website._id,
           });
-        }
         } else {
           // For single page monitors, just check the URL
           await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {

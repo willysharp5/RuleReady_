@@ -58,7 +58,6 @@ export const createAllComplianceWebsites = mutation({
         await ctx.db.insert("websites", {
           url: rule.sourceUrl,
           name: websiteName,
-          userId: systemUserId,
           isActive: true,
           isPaused: false,
           checkInterval: monitoringSettings.interval,
@@ -70,10 +69,6 @@ export const createAllComplianceWebsites = mutation({
             topicKey: rule.topicKey,
             priority: rule.priority,
             isComplianceWebsite: true,
-            hasManualOverride: false,
-            originalPriority: rule.priority,
-            lastPriorityChange: Date.now(),
-            priorityChangeReason: "Auto-created from compliance rules",
           },
           createdAt: Date.now(),
           updatedAt: Date.now(),

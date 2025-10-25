@@ -25,7 +25,8 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
   // Single-user mode - no authentication required
   const isAuthenticated = true
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const currentUser = useQuery(api.users.getCurrentUser)
+  // Single-user mode: no user query needed
+  const currentUser = null
   const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
   const getTokenUsage = useAction(api.firecrawlKeys.getTokenUsage)
   const [tokenUsage, setTokenUsage] = useState<{ remaining_tokens?: number; error?: string } | null>(null)

@@ -170,7 +170,6 @@ export const createCrawlSession = internalMutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("crawlSessions", {
       websiteId: args.websiteId,
-      userId: "single-user-mode" as Id<"users">, // Dummy value for schema compatibility
       startedAt: Date.now(),
       status: "running",
       pagesFound: 0,
@@ -196,8 +195,6 @@ export const completeCrawlSession = internalMutation({
 
     // Update website with total pages and last crawl time
     await ctx.db.patch(args.websiteId, {
-      totalPages: args.pagesFound,
-      lastCrawlAt: Date.now(),
       lastChecked: Date.now(),
     });
   },

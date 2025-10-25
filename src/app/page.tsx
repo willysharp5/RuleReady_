@@ -213,12 +213,13 @@ export default function HomePage() {
   const [showFirecrawlOptions, setShowFirecrawlOptions] = useState(false)
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
-      formats: ["markdown", "changeTracking"],
-      changeTrackingOptions: {
-        modes: ["git-diff"]
-      },
+      // Default config focuses on Scrape payload and nested scrapeOptions for Crawl
+      formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }],
       onlyMainContent: false,
-      waitFor: 2000
+      waitFor: 2000,
+      parsers: ["pdf"],
+      proxy: "auto",
+      maxAge: 172800000
     }, null, 2)
   })
   
@@ -594,16 +595,14 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Generate complete Firecrawl payload for preview
   const generateFirecrawlPayload = () => {
-    const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate)
-    
     const payload: Record<string, unknown> = {
       url: url || "https://example.com",
-      formats: ["markdown", "changeTracking"],
-      changeTrackingOptions: {
-        modes: ["git-diff"]
-      },
+      formats: ["markdown", { type: "changeTracking", modes: ["git-diff"] }],
       onlyMainContent: false,
-      waitFor: 2000
+      waitFor: 2000,
+      parsers: ["pdf"],
+      proxy: "auto",
+      maxAge: 172800000
     }
     
     // Add crawl settings for full site
@@ -611,37 +610,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       payload.limit = maxPages
       payload.maxDepth = maxCrawlDepth
     }
-    
-    // Add AI analysis configuration
-    if (enableAiAnalysis) {
-      payload.aiAnalysis = {
-        enabled: true,
-        systemPrompt: aiSystemPrompt,
-        meaningfulChangeThreshold: meaningfulChangeThreshold / 100, // Convert percentage to decimal
-        emailOnlyIfMeaningful: emailOnlyIfMeaningful
-      }
-    }
-    
-    // Add compliance template if selected
-    if (isComplianceSite && selectedTemplate) {
-      payload.complianceTemplate = {
-        templateId: selectedTemplate.templateId,
-        title: selectedTemplate.title,
-        markdownContent: selectedTemplate.markdownContent,
-        topicKey: selectedTemplate.topicKey
-      }
-    }
-    
-    // Add website metadata
-    payload.websiteMetadata = {
-      priority: selectedPriorityLevel,
-      checkInterval: checkInterval,
-      monitorType: monitorType,
-      isComplianceSite: isComplianceSite,
-      enableAiAnalysis: enableAiAnalysis,
-      notificationType: notificationType
-    }
-    
     return payload
   }
   
@@ -2145,39 +2113,14 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                 </div>
               </div>
 
-              {/* Section 4: AI Prompt Configuration */}
+              {/* Section 4: Firecrawl Configuration */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Bot className="h-5 w-5 text-gray-600" />
-                  <h4 className="text-lg font-medium text-gray-900">AI Prompt Configuration</h4>
+                  <h4 className="text-lg font-medium text-gray-900">Firecrawl Configuration</h4>
                 </div>
                 
-                {/* Website Scraping Prompt */}
-                 <div className="space-y-2">
-                   <label className="text-sm font-medium text-gray-700">
-                     Website Scraping Instructions
-                   </label>
-                  <textarea
-                    id="website-scraping-instructions"
-                     rows={12}
-                     className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                     defaultValue={`Extract all meaningful content from this webpage including:
-- Main content and text
-- Important links and navigation
-- Forms and interactive elements
-- Contact information and addresses
-- Dates, deadlines, and time-sensitive information
-
-Focus on content that would be relevant for change detection and monitoring.`}
-                     placeholder="Enter custom scraping instructions..."
-                   />
-                   <p className="text-xs text-gray-500">
-                     Instructions for how Firecrawl should extract content from regular websites
-                   </p>
-                 </div>
-                 
-                 
-                 {/* Current Firecrawl Options - Collapsible */}
+                 {/* Advanced Firecrawl Options - Collapsible */}
                  <div className="bg-gray-50 rounded-lg p-4">
                    <button
                      type="button"
@@ -2211,7 +2154,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                        />
                        <div className="flex items-start justify-between">
                          <p className="text-xs text-gray-500">
-                           Advanced users can customize the Firecrawl API configuration. Changes will be applied when the website is created.
+                           Advanced users can customize the Firecrawl API configuration for Scrape/Crawl. Use formats with changeTracking and parsers:["pdf"] when needed.
                          </p>
                          <a
                            href="https://docs.firecrawl.dev/api-reference/endpoint/scrape"

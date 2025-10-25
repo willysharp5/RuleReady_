@@ -17,9 +17,10 @@ export const updateWebsiteCompliancePriority = mutation({
     
     // Get the website
     const website = await ctx.db.get(args.websiteId);
-    if (!website || website.userId !== user._id) {
-      throw new Error("Website not found or access denied");
+    if (!website) {
+      throw new Error("Website not found");
     }
+    // Single-user mode: no user ownership check needed
     
     // Ensure it's a compliance website
     if (!website.complianceMetadata?.isComplianceWebsite) {
@@ -55,10 +56,6 @@ export const updateWebsiteCompliancePriority = mutation({
       complianceMetadata: {
         ...website.complianceMetadata,
         priority: args.priority,
-        hasManualOverride: args.overrideInterval || false,
-        originalPriority: website.complianceMetadata.originalPriority || website.complianceMetadata.priority,
-        lastPriorityChange: Date.now(),
-        priorityChangeReason: args.changeReason || "User updated priority",
       },
       updatedAt: Date.now(),
     });

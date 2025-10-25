@@ -485,7 +485,6 @@ export const createWebsiteForRule = internalMutation({
     const websiteId = await ctx.db.insert("websites", {
       url: args.sourceUrl,
       name: websiteName,
-      userId: args.userId,
       isActive: true,
       isPaused: false,
       checkInterval: args.crawlSettings.checkInterval,

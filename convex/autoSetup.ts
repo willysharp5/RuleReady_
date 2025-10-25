@@ -10,10 +10,7 @@ export const autoSetupComplianceWebsites = mutation({
     console.log("🔄 Auto-setting up compliance websites for user...");
     
     // Check if user already has compliance websites
-    const existingWebsites = await ctx.db
-      .query("websites")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    const existingWebsites = await ctx.db.query("websites").collect();
     
     const complianceWebsites = existingWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite);
     
@@ -58,7 +55,6 @@ export const autoSetupComplianceWebsites = mutation({
         await ctx.db.insert("websites", {
           url: rule.sourceUrl,
           name: websiteName,
-          userId: user._id,
           isActive: true,
           isPaused: false,
           checkInterval: monitoringSettings.interval,
@@ -70,10 +66,6 @@ export const autoSetupComplianceWebsites = mutation({
             topicKey: rule.topicKey,
             priority: rule.priority,
             isComplianceWebsite: true,
-            hasManualOverride: false,
-            originalPriority: rule.priority,
-            lastPriorityChange: Date.now(),
-            priorityChangeReason: "Auto-setup from compliance rules",
           },
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -107,10 +99,7 @@ export const needsComplianceSetup = query({
     const user = await requireCurrentUser(ctx);
     
     // Check if user has any compliance websites
-    const websites = await ctx.db
-      .query("websites")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
+    const websites = await ctx.db.query("websites").collect();
     
     const complianceWebsites = websites.filter(w => w.complianceMetadata?.isComplianceWebsite);
     
