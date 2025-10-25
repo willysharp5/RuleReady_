@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 // Get all compliance templates
 export const getAllTemplates = query({
@@ -393,12 +393,12 @@ Relevant statutes, regulations, agency websites, and official resources
     
     for (const template of defaultTemplates) {
       // Check if template already exists
-      const existing = await ctx.runQuery(internal.complianceTemplates.getTemplateById, {
+      const existing = await ctx.runQuery(api.complianceTemplates.getTemplateById, {
         templateId: template.templateId
       });
 
       if (!existing) {
-        await ctx.runMutation(internal.complianceTemplates.upsertTemplate, {
+        await ctx.runMutation(api.complianceTemplates.upsertTemplate, {
           templateId: template.templateId,
           title: template.title,
           description: template.description,

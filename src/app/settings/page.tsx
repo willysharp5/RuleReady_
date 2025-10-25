@@ -51,6 +51,7 @@ interface ChatMessage {
   }
 }
 
+// EmbeddedChatUI moved to landing page
 function EmbeddedChatUI() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState('')
   const [selectedTopic, setSelectedTopic] = useState('')
@@ -2135,72 +2136,76 @@ Analyze the provided diff and return a JSON response with:
                       </Button>
                     </div>
                   </div>
+                </div>
+              
               {activeSection === 'ai-chat' && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="text-center py-12 text-gray-500">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium mb-2">AI Chat Assistant Moved</p>
+                      <p className="text-sm mb-4">The AI Chat Assistant is now available on the main landing page</p>
+                      <Button
+                        onClick={() => router.push('/')}
+                        className="gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Go to AI Chat
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'monitoring' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                    <MessageCircle className="h-6 w-6" />
-                    AI Chat Assistant
+                    <Bot className="h-6 w-6" />
+                    System Health & Job Monitoring
                   </h2>
                   
                   <div className="space-y-6">
-                    {/* Chat Configuration */}
+                    {/* System Overview */}
                     <div>
-                      <h3 className="font-medium mb-4">Chat Configuration</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Model Selection */}
-                        <div>
-                          <Label htmlFor="chat-model">AI Model</Label>
-                          <select
-                            id="chat-model"
-                            value={chatModel}
-                            onChange={(e) => setChatModel(e.target.value)}
-                            className="w-full mt-1 p-2 border rounded"
-                          >
-                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Recommended)</option>
-                            <option value="gemini-pro">Gemini Pro</option>
-                            <option value="gpt-4">GPT-4</option>
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Gemini 2.0 Flash provides fast, accurate compliance analysis
-                          </p>
-                        </div>
-                        
-                        {/* Context Reports */}
-                        <div>
-                          <Label htmlFor="max-reports">Max Reports per Query</Label>
-                          <Input
-                            id="max-reports"
-                            type="number"
-                            min="1"
-                            max="20"
-                            value={maxContextReports}
-                            onChange={(e) => setMaxContextReports(Number(e.target.value))}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            How many relevant reports to include in AI context
-                          </p>
-                        </div>
+                      <h3 className="text-lg font-medium mb-4">System Overview</h3>
+                      <div className="text-center py-8 text-gray-500">
+                        <Bot className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium mb-2">System Monitoring</p>
+                        <p className="text-sm">System health and monitoring features will be available here</p>
                       </div>
                     </div>
-                    
-                    {/* System Prompt */}
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'jurisdictions' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <MapPin className="h-6 w-6" />
+                    Jurisdictions & Rules
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    <div className="text-center py-8 text-gray-500">
+                      <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium mb-2">Jurisdictions Management</p>
+                      <p className="text-sm">Jurisdiction and compliance rules management will be available here</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'templates' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
-                      <Label htmlFor="chat-prompt">Chat System Prompt</Label>
-                      <Textarea
-                        id="chat-prompt"
-                        value={chatSystemPrompt}
-                        onChange={(e) => setChatSystemPrompt(e.target.value)}
-                        rows={4}
-                        placeholder="You are a professional compliance assistant..."
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Customize how the AI assistant behaves and responds to compliance questions
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <FileText className="h-6 w-6" />
+                        Compliance Templates
+                      </h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Manage legal counsel templates for compliance monitoring
                       </p>
                     </div>
-                    
-                    {/* Compliance Data Settings */}
-                    <div>
                       <h4 className="font-medium mb-3">Compliance Data Integration</h4>
                       
                       <div className="space-y-3">
@@ -2253,8 +2258,6 @@ Analyze the provided diff and return a JSON response with:
                       </div>
                     </div>
                     
-                    {/* Embedded Chat UI */}
-                    <EmbeddedChatUI />
                     
                     {/* Save Settings */}
                     <div className="flex justify-end">

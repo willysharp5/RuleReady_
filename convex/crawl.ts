@@ -28,9 +28,16 @@ export const performCrawl = internalAction({
       // userId removed for single-user mode
     });
 
-    if (!website || website.monitorType !== "full_site") {
-      throw new Error("Website not found or not a full site monitor");
+    if (!website) {
+      throw new Error("Website not found");
     }
+    
+    if (website!.monitorType !== "full_site") {
+      throw new Error("Website is not a full site monitor");
+    }
+    
+    // TypeScript assertion - website is guaranteed to be non-null after the checks above
+    const safeWebsite = website as NonNullable<typeof website>;
     
     // Starting full crawl with configured settings
 
@@ -52,9 +59,9 @@ export const performCrawl = internalAction({
       // Initiating Firecrawl crawl
       
       // Start the crawl - this might return a job ID instead of immediate results
-      const crawlResponse = await firecrawl.crawlUrl(website.url, {
-        limit: website.crawlLimit || 10,
-        maxDepth: website.crawlDepth || 3,
+      const crawlResponse = await firecrawl.crawlUrl(safeWebsite.url, {
+        limit: safeWebsite.crawlLimit || 10,
+        maxDepth: safeWebsite.crawlDepth || 3,
         scrapeOptions: {
           formats: ["markdown", "changeTracking"],
         },
@@ -147,7 +154,7 @@ export const performCrawl = internalAction({
       // Mark session as failed
       await ctx.runMutation(internal.crawl.failCrawlSession, {
         sessionId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: (error as Error).message || String(error),
       });
       throw error;
     }
@@ -377,7 +384,7 @@ export const checkCrawlJobStatus = internalAction({
       // Mark session as failed
       await ctx.runMutation(internal.crawl.failCrawlSession, {
         sessionId: args.sessionId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: (error as Error).message || String(error),
       });
       throw error;
     }

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, Download, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, Scale, Zap, AlertCircle, Timer, Turtle, FlaskConical, MapPin, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -78,16 +78,6 @@ function getFaviconUrl(url: string): string {
   }
 }
 
-// Helper function to get fallback favicon URL
-function getFallbackFaviconUrl(url: string): string {
-  try {
-    const domain = new URL(url).hostname;
-    // Direct favicon.ico fallback
-    return `https://${domain}/favicon.ico`;
-  } catch {
-    return '/ruleready-icon.svg'; // Use local fallback
-  }
-}
 
 // Helper function to clean website name by removing priority prefixes
 function cleanWebsiteName(name: string): string {
@@ -252,7 +242,6 @@ Ignore:
 Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [meaningfulChangeThreshold, setMeaningfulChangeThreshold] = useState(70) // Store as percentage (70%)
   const [emailOnlyIfMeaningful, setEmailOnlyIfMeaningful] = useState(false)
-  const [webhookOnlyIfMeaningful, setWebhookOnlyIfMeaningful] = useState(false)
   
   // JSON preview state
   const [showJsonPreview, setShowJsonPreview] = useState(false)
@@ -292,8 +281,13 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const formRef = useRef<HTMLFormElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   
+  // Refs to track previous settings state and prevent duplicate messages
+  const prevComplianceContextRef = useRef<boolean | null>(null)
+  const prevSemanticSearchRef = useRef<boolean | null>(null)
+  const lastSystemMessageRef = useRef<string | null>(null)
+  
   // Scroll to bottom function - like Vercel Chat SDK
-  const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
     const el = listRef.current
     if (el) {
       requestAnimationFrame(() => {
@@ -303,10 +297,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
         })
       })
     }
-  }
+  }, [])
 
   // Check if user is near bottom of chat
-  const checkScrollPosition = () => {
+  const checkScrollPosition = useCallback(() => {
     const el = listRef.current
     if (el && messages.length > 1) {
       const { scrollTop, scrollHeight, clientHeight } = el
@@ -317,7 +311,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     } else {
       setShowScrollButton(false)
     }
-  }
+  }, [messages.length])
 
   // Add scroll event listener
   useEffect(() => {
@@ -328,7 +322,31 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       checkScrollPosition()
       return () => el.removeEventListener('scroll', checkScrollPosition)
     }
-  }, [messages.length]) // Re-attach when messages change
+  }, [messages.length, checkScrollPosition]) // Re-attach when messages change
+
+  // Helper function to add system messages safely without duplicates
+  const addSystemMessage = useCallback((messageType: string, content: string) => {
+    const messageKey = `${messageType}-${Date.now()}`
+    
+    // Prevent duplicate messages by checking if we just added a similar one
+    if (lastSystemMessageRef.current !== messageType) {
+      const systemMessage: ChatMessage = {
+        id: `${messageKey}-${Math.random().toString(36).substr(2, 9)}`,
+        role: 'assistant',
+        content
+      }
+      setMessages(prev => [...prev, systemMessage])
+      setTimeout(() => scrollToBottom(), 10)
+      lastSystemMessageRef.current = messageType
+      
+      // Clear the last message type after a delay to allow future messages
+      setTimeout(() => {
+        if (lastSystemMessageRef.current === messageType) {
+          lastSystemMessageRef.current = null
+        }
+      }, 2000)
+    }
+  }, [scrollToBottom])
 
   useEffect(() => {
     // Auto-scroll to bottom on new messages - like Vercel Chat SDK
@@ -338,7 +356,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setTimeout(() => {
       checkScrollPosition()
     }, 100)
-  }, [messages])
+  }, [messages, checkScrollPosition, scrollToBottom])
 
   // Also scroll when loading state changes (for real-time responses)
   useEffect(() => {
@@ -346,7 +364,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       scrollToBottom()
       setShowScrollButton(false) // Hide scroll button when auto-scrolling
     }
-  }, [isLoading])
+  }, [isLoading, scrollToBottom])
 
   // Dynamic quick prompts based on selected filters
   const getQuickPrompts = () => {
@@ -387,6 +405,15 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   // Send message function
   const sendMessage = async (content: string) => {
     if (isLoading || !content.trim()) return
+    
+    // Check if both context options are disabled
+    if (!enableComplianceContext && !enableSemanticSearch) {
+      addSystemMessage(
+        'send-warning',
+        `⚠️ **Cannot Answer Compliance Questions**\n\nI cannot provide accurate compliance answers because both data sources are disabled:\n\n❌ Compliance Context: Disabled\n❌ Semantic Search: Disabled\n\nTo get compliance assistance, please enable at least one option in the **Chat Configuration** section above. I can then help you with employment law questions using our comprehensive compliance database.`
+      )
+      return
+    }
     
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -524,7 +551,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           message: result.error || 'URL is not accessible or invalid'
         })
       }
-    } catch (error) {
+    } catch {
       setUrlValidation({
         isValid: false,
         isValidating: false,
@@ -546,7 +573,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Update firecrawl config when settings change
   useEffect(() => {
-    const config: any = {
+    const config: Record<string, unknown> = {
       formats: ["markdown", "changeTracking"],
       changeTrackingOptions: {
         modes: ["git-diff"]
@@ -567,7 +594,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const generateFirecrawlPayload = () => {
     const selectedTemplate = templates?.find(t => t.templateId === complianceTemplate)
     
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       url: url || "https://example.com",
       formats: ["markdown", "changeTracking"],
       changeTrackingOptions: {
@@ -646,6 +673,49 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     }
   }, [chatSettings])
   
+  // Add system messages when compliance settings actually change (not on every render)
+  useEffect(() => {
+    // Only add message if this is an actual change (not initial load)
+    if (prevComplianceContextRef.current !== null && prevComplianceContextRef.current !== enableComplianceContext) {
+      addSystemMessage(
+        'compliance-context',
+        `**Settings Updated**\n\nCompliance context: ${enableComplianceContext ? '✅ Enabled' : '❌ Disabled'}\n\nI ${enableComplianceContext ? 'will now use' : 'will no longer use'} compliance reports to provide more accurate, context-aware responses about employment law requirements.`
+      )
+    }
+    // Update ref to current value
+    prevComplianceContextRef.current = enableComplianceContext
+  }, [enableComplianceContext, addSystemMessage])
+  
+  useEffect(() => {
+    // Only add message if this is an actual change (not initial load)
+    if (prevSemanticSearchRef.current !== null && prevSemanticSearchRef.current !== enableSemanticSearch) {
+      addSystemMessage(
+        'semantic-search',
+        `**Settings Updated**\n\nSemantic search: ${enableSemanticSearch ? '✅ Enabled' : '❌ Disabled'}\n\nI ${enableSemanticSearch ? 'will now use' : 'will no longer use'} advanced embedding-based search to find the most relevant compliance information for your questions.`
+      )
+    }
+    // Update ref to current value
+    prevSemanticSearchRef.current = enableSemanticSearch
+  }, [enableSemanticSearch, addSystemMessage])
+  
+  // Add warning message when both context and embedding are disabled
+  useEffect(() => {
+    if (messages.length > 1 && !enableComplianceContext && !enableSemanticSearch) {
+      // Only add if both were just disabled or if this is a new state
+      const shouldAddWarning = (
+        (prevComplianceContextRef.current === true && !enableComplianceContext) ||
+        (prevSemanticSearchRef.current === true && !enableSemanticSearch)
+      )
+      
+      if (shouldAddWarning) {
+        addSystemMessage(
+          'both-disabled-warning',
+          `⚠️ **Limited Functionality Warning**\n\nBoth compliance context and semantic search are currently disabled. To provide accurate compliance answers, I need at least one of these enabled:\n\n• **Compliance Context** - Uses compliance reports database\n• **Semantic Search** - Uses advanced embedding search\n\nPlease enable at least one option in the Chat Configuration above for better compliance assistance.`
+        )
+      }
+    }
+  }, [enableComplianceContext, enableSemanticSearch, messages.length, addSystemMessage])
+  
   // Get latest scrape for each website
   const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
   
@@ -671,7 +741,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
             description: `${result.created} compliance websites created and ready for monitoring`,
           });
         })
-        .catch((error) => {
+        .catch(() => {
           addToast({
             title: "Setup Error",
             description: "Failed to create compliance websites. Please try refreshing the page.",
@@ -753,9 +823,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       setTimeout(() => {
         router.refresh()
       }, 100)
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: unknown) {
       // Check for InvalidAccountId in various ways
-      const errorMessage = error.message || error.toString() || '';
+        const errorMessage = (error as Error).message || String(error) || '';
       const errorLower = errorMessage.toLowerCase();
       
       // More comprehensive invalid account detection
@@ -883,20 +953,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     return `${Math.floor(seconds / 86400)} days ago`
   }
 
-  const downloadMarkdown = (markdown: string | undefined, websiteName: string, timestamp: number) => {
-    if (!markdown) {
-      return
-    }
-    const blob = new Blob([markdown], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${websiteName.replace(/[^a-z0-9]/gi, '_')}_${new Date(timestamp).toISOString().split('T')[0]}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
 
 
 
@@ -915,7 +971,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           return newSet
         })
       }, 5000) // Increased to 5 seconds
-    } catch (error) {
+    } catch {
       setProcessingWebsites(prev => {
         const newSet = new Set(prev)
         newSet.delete(websiteId)
@@ -1266,57 +1322,58 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         <div>• Sources</div>
                         <div>• + Custom Sections</div>
                       </div>
-                      </div>
+                    </div>
                       
                       {/* Save Settings */}
                       <div className="flex justify-end">
                         <Button
-                      onClick={async () => {
-                        setIsUpdatingChat(true)
-                        try {
-                          await updateChatSettings({
-                            chatSystemPrompt,
-                            chatModel,
-                            enableComplianceContext,
-                            maxContextReports,
-                            enableSemanticSearch,
-                          })
-                          setChatSuccess(true)
-                          setTimeout(() => setChatSuccess(false), 3000)
-                          addToast({
-                            title: "Chat Settings Saved",
-                            description: "AI chat configuration has been updated successfully"
-                          })
-                        } catch (error) {
-                          console.error('Failed to update chat settings:', error)
-                          addToast({
-                            title: "Save Error",
-                            description: "Failed to save chat settings. Please try again."
-                          })
-                        } finally {
-                          setIsUpdatingChat(false)
-                        }
-                      }}
-                      disabled={isUpdatingChat}
-                      className="gap-2"
-                    >
-                      {isUpdatingChat ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : chatSuccess ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Saved!
-                        </>
-                      ) : (
-                        <>
-                          <MessageCircle className="h-4 w-4" />
-                          Save Chat Settings
-                        </>
-                      )}
+                          onClick={async () => {
+                            setIsUpdatingChat(true)
+                            try {
+                              await updateChatSettings({
+                                chatSystemPrompt,
+                                chatModel,
+                                enableComplianceContext,
+                                maxContextReports,
+                                enableSemanticSearch,
+                              })
+                              setChatSuccess(true)
+                              setTimeout(() => setChatSuccess(false), 3000)
+                              addToast({
+                                title: "Chat Settings Saved",
+                                description: "AI chat configuration has been updated successfully"
+                              })
+                            } catch (error) {
+                              console.error('Failed to update chat settings:', error)
+                              addToast({
+                                title: "Save Error",
+                                description: "Failed to save chat settings. Please try again."
+                              })
+                            } finally {
+                              setIsUpdatingChat(false)
+                            }
+                          }}
+                          disabled={isUpdatingChat}
+                          className="gap-2"
+                        >
+                          {isUpdatingChat ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : chatSuccess ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Saved!
+                            </>
+                          ) : (
+                            <>
+                              <MessageCircle className="h-4 w-4" />
+                              Save Chat Settings
+                            </>
+                          )}
                         </Button>
+                      </div>
                       </div>
                     </div>
                   )}
@@ -1876,7 +1933,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                             placeholder="Enter AI analysis instructions..."
                           />
                           <p className="text-xs text-gray-500 mt-1">
-                            Instructions for how AI should analyze website changes to determine if they're meaningful
+                            Instructions for how AI should analyze website changes to determine if they are meaningful
                           </p>
                         </div>
                         
@@ -2855,7 +2912,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                                     setDeletingWebsites(prev => new Set([...prev, website._id]))
                                     try {
                                       await deleteWebsite({ websiteId: website._id })
-                                    } catch (error) {
+                                            } catch {
                                       throw new Error('Failed to delete website. Please try again.')
                                     } finally {
                                       setDeletingWebsites(prev => {
@@ -3718,8 +3775,6 @@ Focus on content that would be relevant for change detection and monitoring.`}
                           }
                           
                           return paginatedModalWebsites.map((website) => {
-                          const latestScrape = latestScrapes ? latestScrapes[website._id] : null;
-                          const hasChanged = latestScrape?.changeStatus === 'changed';
                           const isProcessing = processingWebsites.has(website._id);
                           const isDeleting = deletingWebsites.has(website._id);
                           
@@ -3896,7 +3951,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                                             setDeletingWebsites(prev => new Set([...prev, website._id]))
                                             try {
                                               await deleteWebsite({ websiteId: website._id })
-                                            } catch (error) {
+                                            } catch {
                                               throw new Error('Failed to delete website. Please try again.')
                                             } finally {
                                               setDeletingWebsites(prev => {
@@ -4388,7 +4443,7 @@ Focus on content that would be relevant for change detection and monitoring.`}
                 if (config.checkNow) {
                   try {
                     await triggerScrape({ websiteId })
-                  } catch (error) {
+                  } catch {
                     // Silently handle error
                   }
                 }
@@ -4408,8 +4463,8 @@ Focus on content that would be relevant for change detection and monitoring.`}
                 }, config.monitorType === 'full_site' ? 15000 : 8000) // Longer for full site crawls
                 
                 setPendingWebsite(null)
-              } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                setError(error.message || 'Failed to add website')
+        } catch (error: unknown) {
+          setError((error as Error).message || 'Failed to add website')
               } finally {
                 setIsAdding(false)
               }

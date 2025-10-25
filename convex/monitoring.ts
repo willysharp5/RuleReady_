@@ -22,7 +22,6 @@ export const checkActiveWebsites = internalAction({
         if (website.userId) {
           await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
             websiteId: website._id,
-            userId: website.userId,
           });
         }
         } else {
@@ -30,7 +29,6 @@ export const checkActiveWebsites = internalAction({
           await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
             websiteId: website._id,
             url: website.url,
-            userId: website.userId as any,
           });
         }
       } catch (error) {

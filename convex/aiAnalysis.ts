@@ -10,7 +10,6 @@ const FEATURES = {
 // LEGACY: Analyze website changes using AI - DISABLED in compliance mode
 export const analyzeChange = internalAction({
   args: {
-    userId: v.id("users"),
     scrapeResultId: v.string(), // Changed from v.id("scrapeResults") since table is disabled
     websiteName: v.string(),
     websiteUrl: v.string(),
@@ -25,13 +24,11 @@ export const analyzeChange = internalAction({
       console.log("Legacy AI analysis disabled in compliance mode");
       return;
     }
-    // Get user's AI settings
-    const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
-      userId: args.userId,
-    });
+    // Get user's AI settings (single-user mode)
+    const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {});
 
     if (!userSettings || !userSettings.aiAnalysisEnabled || !userSettings.aiApiKey) {
-      console.log("AI analysis not enabled or API key not set for user:", args.userId);
+      console.log("AI analysis not enabled or API key not set");
       return;
     }
 
@@ -181,9 +178,7 @@ export const handleAIBasedNotifications = internalAction({
     }
     try {
       // Get user settings to check notification filtering preferences
-      const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
-        userId: args.userId,
-      });
+      const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {});
 
       // LEGACY: Get website details - disabled in compliance mode
       // const scrapeResult = await ctx.runQuery(internal.websites.getScrapeResult, {

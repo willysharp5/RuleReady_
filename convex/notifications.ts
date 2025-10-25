@@ -148,7 +148,6 @@ export const sendEmailNotification = internalAction({
     })),
     title: v.optional(v.string()),
     scrapedAt: v.number(),
-    userId: v.id("users"),
     aiAnalysis: v.optional(v.object({
       meaningfulChangeScore: v.number(),
       isMeaningfulChange: v.boolean(),
@@ -158,10 +157,8 @@ export const sendEmailNotification = internalAction({
     })),
   },
   handler: async (ctx, args) => {
-    // Get user's custom email template
-    const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {
-      userId: args.userId,
-    });
+    // Get user's custom email template (single-user mode)
+    const userSettings = await ctx.runQuery(internal.userSettings.getUserSettingsInternal, {});
 
     let htmlContent = '';
     

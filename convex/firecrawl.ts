@@ -77,7 +77,7 @@ export const scrapeUrl = internalAction({
       // Store the scrape result (single-user mode)
       const scrapeResultId = await ctx.runMutation(api.websites.storeScrapeResult, {
         websiteId: args.websiteId,
-        userId: undefined, // Single-user mode
+ // Single-user mode
         markdown: markdown,
         changeStatus: changeTracking?.changeStatus || "new",
         visibility: changeTracking?.visibility || "visible",
@@ -107,27 +107,26 @@ export const scrapeUrl = internalAction({
         try {
           await ctx.runMutation(api.websites.createChangeAlert, {
             websiteId: args.websiteId,
-            userId: undefined, // Single-user mode
+ // Single-user mode
             scrapeResultId,
             changeType: "content_changed",
             summary: diffPreview,
           });
         } catch (e) {
-          console.log("Change alert creation skipped:", e.message);
+          console.log("Change alert creation skipped:", (e as Error).message);
         }
 
         // Trigger AI analysis if there's a diff (single-user mode - always try)
         if (changeTracking?.diff) {
           try {
             await ctx.scheduler.runAfter(0, internal.aiAnalysis.analyzeChange, {
-              userId: undefined, // Single-user mode
               scrapeResultId,
               websiteName: metadata?.title || args.url,
               websiteUrl: args.url,
               diff: changeTracking.diff,
             });
           } catch (e) {
-            console.log("AI analysis scheduling skipped:", e.message);
+            console.log("AI analysis scheduling skipped:", (e as Error).message);
           }
         }
 
@@ -177,9 +176,9 @@ export const scrapeUrl = internalAction({
               let emailConfig = null;
               try {
                 emailConfig = await ctx.runQuery(api.emailConfig.getEmailConfig);
-              } catch (e) {
-                console.log("Email config not available:", e.message);
-              }
+                } catch (e) {
+                  console.log("Email config not available:", (e as Error).message);
+                }
               
               if (emailConfig?.email && emailConfig.isVerified) {
                 await ctx.scheduler.runAfter(0, internal.notifications.sendEmailNotification, {
@@ -191,7 +190,6 @@ export const scrapeUrl = internalAction({
                   diff: changeTracking?.diff,
                   title: metadata?.title,
                   scrapedAt: Date.now(),
-                  userId: undefined, // Single-user mode
                 });
               }
             }
@@ -253,7 +251,6 @@ export const triggerScrape = action({
       await ctx.scheduler.runAfter(0, internal.firecrawl.scrapeUrl, {
         websiteId: args.websiteId,
         url: website.url,
-        userId: undefined,
       });
     }
 

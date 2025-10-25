@@ -304,15 +304,13 @@ export const updateNotificationFiltering = mutation({
   },
 });
 
-// Internal query to get user settings by userId
+// Internal query to get user settings (single-user mode)
 export const getUserSettingsInternal = internalQuery({
-  args: {
-    userId: v.id("users"),
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    // In single-user mode, get the first user's settings
     const settings = await ctx.db
       .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .first();
 
     // Decrypt API key if it exists and is encrypted

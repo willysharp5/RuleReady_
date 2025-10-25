@@ -59,7 +59,6 @@ export const createWebsite = mutation({
     const websiteId = await ctx.db.insert("websites", {
       url: args.url,
       name: args.name,
-      userId: user._id,
       isActive: true,
       checkInterval: args.checkInterval,
       notificationPreference: args.notificationPreference || "none",
@@ -75,7 +74,6 @@ export const createWebsite = mutation({
     if (args.monitorType === "full_site") {
       await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId,
-        userId: user._id,
       });
     }
 
@@ -331,7 +329,6 @@ export const updateWebsite = mutation({
       if (website.userId) {
         await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
           websiteId: args.websiteId,
-          userId: website.userId,
         });
       }
     }
@@ -351,7 +348,6 @@ export const createCheckingStatus = internalMutation({
     // Create a temporary "checking" status entry
     const scrapeResultId = await ctx.db.insert("scrapeResults", {
       websiteId: args.websiteId,
-      userId: args.userId,
       markdown: "Checking for changes...",
       changeStatus: "checking",
       visibility: "visible",
@@ -382,7 +378,6 @@ export const updateLastChecked = internalMutation({
 export const removeCheckingStatus = internalMutation({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
   },
   handler: async (ctx, args) => {
     // Find and remove any checking status entries for this website
@@ -440,14 +435,12 @@ export const storeScrapeResult = mutation({
     if (args.userId) {
       await ctx.runMutation(internal.websites.removeCheckingStatus, {
         websiteId: args.websiteId,
-        userId: args.userId,
       });
     }
 
     // Store the scrape result
     const scrapeResultId = await ctx.db.insert("scrapeResults", {
       websiteId: args.websiteId,
-      userId: args.userId,
       markdown: args.markdown,
       changeStatus: args.changeStatus,
       visibility: args.visibility,
@@ -790,20 +783,17 @@ export const deleteWebsite = mutation({
     // Schedule async deletion of all related data to avoid memory limits
     await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
       websiteId: args.websiteId,
-      userId: user._id,
       dataType: "scrapeResults"
     });
     
     await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
       websiteId: args.websiteId,
-      userId: user._id,
       dataType: "changeAlerts"
     });
     
     if (website.monitorType === "full_site") {
       await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
         websiteId: args.websiteId,
-        userId: user._id,
         dataType: "crawlSessions"
       });
     }
@@ -817,7 +807,6 @@ export const deleteWebsite = mutation({
 export const deleteWebsiteData = internalMutation({
   args: {
     websiteId: v.id("websites"),
-    userId: v.id("users"),
     dataType: v.union(
       v.literal("scrapeResults"),
       v.literal("changeAlerts"),
@@ -886,7 +875,6 @@ export const createWebsiteFromApi = internalMutation({
     const websiteId = await ctx.db.insert("websites", {
       url: args.url,
       name: args.name,
-      userId: args.userId,
       isActive: true,
       checkInterval: args.checkInterval,
       notificationPreference: args.notificationPreference || "none",
@@ -902,7 +890,6 @@ export const createWebsiteFromApi = internalMutation({
     if (args.monitorType === "full_site") {
       await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
         websiteId,
-        userId: args.userId,
       });
     }
 
@@ -956,20 +943,17 @@ export const deleteWebsiteFromApi = internalMutation({
     // Schedule async deletion of all related data
     await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
       websiteId: websiteId,
-      userId: args.userId,
       dataType: "scrapeResults"
     });
     
     await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
       websiteId: websiteId,
-      userId: args.userId,
       dataType: "changeAlerts"
     });
     
     if (website.monitorType === "full_site") {
       await ctx.scheduler.runAfter(0, internal.websites.deleteWebsiteData, {
         websiteId: websiteId,
-        userId: args.userId,
         dataType: "crawlSessions"
       });
     }
@@ -1066,7 +1050,6 @@ export const createWebsitesFromComplianceRules = mutation({
         await ctx.db.insert("websites", {
           url: rule.sourceUrl,
           name: websiteName,
-          userId: user._id,
           isActive: true,
           isPaused: false,
           checkInterval: monitoringSettings.interval,
