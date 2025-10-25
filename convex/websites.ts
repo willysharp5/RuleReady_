@@ -24,11 +24,8 @@ export const createWebsite = mutation({
     checkInterval: v.number(), // in minutes
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email"),
-      v.literal("webhook"),
-      v.literal("both")
+      v.literal("email")
     )),
-    webhookUrl: v.optional(v.string()),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
       v.literal("full_site")
@@ -43,18 +40,7 @@ export const createWebsite = mutation({
     }
     const user = await requireCurrentUser(ctx);
     
-    // Get user settings for default webhook
-    let webhookUrl = args.webhookUrl;
-    if (!webhookUrl && args.notificationPreference && ['webhook', 'both'].includes(args.notificationPreference)) {
-      const userSettings = await ctx.db
-        .query("userSettings")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
-        .first();
-      
-      if (userSettings?.defaultWebhookUrl) {
-        webhookUrl = userSettings.defaultWebhookUrl;
-      }
-    }
+    // Webhook support removed
 
     const websiteId = await ctx.db.insert("websites", {
       url: args.url,
@@ -62,7 +48,6 @@ export const createWebsite = mutation({
       isActive: true,
       checkInterval: args.checkInterval,
       notificationPreference: args.notificationPreference || "none",
-      webhookUrl,
       monitorType: args.monitorType || "single_page",
       crawlLimit: args.crawlLimit,
       crawlDepth: args.crawlDepth,
@@ -228,11 +213,8 @@ export const updateWebsite = mutation({
     url: v.optional(v.string()), // NEW: Allow URL updates
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email"),
-      v.literal("webhook"),
-      v.literal("both")
+      v.literal("email")
     )),
-    webhookUrl: v.optional(v.string()),
     checkInterval: v.optional(v.number()),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
@@ -265,9 +247,7 @@ export const updateWebsite = mutation({
       updates.notificationPreference = args.notificationPreference;
     }
 
-    if (args.webhookUrl !== undefined) {
-      updates.webhookUrl = args.webhookUrl;
-    }
+    // Webhook removed
 
     if (args.checkInterval !== undefined) {
       updates.checkInterval = args.checkInterval;
@@ -859,11 +839,8 @@ export const createWebsiteFromApi = internalMutation({
     checkInterval: v.number(),
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email"),
-      v.literal("webhook"),
-      v.literal("both")
+      v.literal("email")
     )),
-    webhookUrl: v.optional(v.string()),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
       v.literal("full_site")

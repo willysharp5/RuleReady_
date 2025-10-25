@@ -5,6 +5,7 @@ import { resend } from "./alertEmail";
 import { sanitizeHtml } from "./lib/sanitize";
 // No Next.js aliases inside Convex code
 
+/* Webhook notifications removed
 export const sendWebhookNotification = internalAction({
   args: {
     webhookUrl: v.string(),
@@ -133,7 +134,7 @@ export const sendWebhookNotification = internalAction({
       throw error;
     }
   },
-});
+});*/
 
 export const sendEmailNotification = internalAction({
   args: {
@@ -211,6 +212,7 @@ export const sendEmailNotification = internalAction({
   },
 });
 
+/* Crawl webhook removed
 export const sendCrawlWebhook = internalAction({
   args: {
     webhookUrl: v.string(),
@@ -309,9 +311,10 @@ export const sendCrawlWebhook = internalAction({
       throw error;
     }
   },
-});
+});*/
 
 // Compliance-mode: Send webhook for compliance rule/report change (does not require scrapeResults)
+/* Compliance change webhook removed
 export const sendComplianceChangeWebhook = internalAction({
   args: {
     webhookUrl: v.string(),
@@ -360,7 +363,7 @@ export const sendComplianceChangeWebhook = internalAction({
 
     return { success: true, status: response.status };
   },
-});
+});*/
 
 // Compliance-mode: Send email for compliance change
 export const sendComplianceChangeEmail = internalAction({

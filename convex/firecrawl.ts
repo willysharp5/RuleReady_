@@ -152,26 +152,8 @@ export const scrapeUrl = internalAction({
         if ((!userSettings || !userSettings.aiAnalysisEnabled) || !changeTracking?.diff) {
 
           if (website && website.notificationPreference !== "none") {
-            // Send webhook notification
-            if ((website.notificationPreference === "webhook" || website.notificationPreference === "both") && website.webhookUrl) {
-              await ctx.scheduler.runAfter(0, internal.notifications.sendWebhookNotification, {
-                webhookUrl: website.webhookUrl,
-                websiteId: args.websiteId,
-                websiteName: website.name,
-                websiteUrl: args.url, // Use the actual page URL, not the root website URL
-                scrapeResultId,
-                changeType: "content_changed",
-                changeStatus: changeTracking.changeStatus,
-                diff: changeTracking?.diff,
-                title: metadata?.title,
-                description: metadata?.description,
-                markdown: markdown,
-                scrapedAt: Date.now(),
-              });
-            }
-
             // Send email notification
-            if (website.notificationPreference === "email" || website.notificationPreference === "both") {
+            if (website.notificationPreference === "email") {
               // Get email configuration (single-user mode)
               let emailConfig = null;
               try {

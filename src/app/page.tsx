@@ -104,6 +104,7 @@ export default function HomePage() {
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const [isAdding, setIsAdding] = useState(false)
+  const [isMonitoringOnce, setIsMonitoringOnce] = useState(false)
   
   // Convex queries - now working with proper environment variable
   const websitesQuery = useQuery(api.websites.getUserWebsites)
@@ -125,6 +126,7 @@ export default function HomePage() {
   const updateWebsite = useMutation(api.websites.updateWebsite)
   const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
   const triggerScrape = useAction(api.firecrawl.triggerScrape)
+  const crawlWebsite = useAction(api.firecrawl.crawlWebsite)
   const chatSettings = useQuery(api.chatSettings.getChatSettings)
   const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
 
@@ -940,6 +942,57 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     })
     setShowWebhookModal(true)
     setUrl('')
+  }
+
+  const handleMonitorOnce = async () => {
+    if (!url) {
+      setError('Please enter a URL')
+      return
+    }
+
+    // Add https:// if no protocol is specified
+    let processedUrl = url.trim()
+    if (!processedUrl.match(/^https?:\/\//)) {
+      processedUrl = 'https://' + processedUrl
+    }
+
+    // Basic URL validation
+    try {
+      new URL(processedUrl)
+    } catch {
+      setError('Please enter a valid URL')
+      return
+    }
+
+    setError('')
+    setIsMonitoringOnce(true)
+    
+    try {
+      const result = await crawlWebsite({ 
+        url: processedUrl,
+        limit: monitorType === 'full_site' ? maxPages : 1
+      })
+      
+      addToast({
+        variant: 'success',
+        title: 'One-time monitoring completed',
+        description: `Successfully scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}`,
+        duration: 5000
+      })
+      
+      setUrl('')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to monitor website'
+      setError(errorMessage)
+      addToast({
+        variant: 'error',
+        title: 'Monitoring failed',
+        description: errorMessage,
+        duration: 5000
+      })
+    } finally {
+      setIsMonitoringOnce(false)
+    }
   }
 
   const formatTimeAgo = (timestamp: number | undefined) => {
@@ -2285,28 +2338,48 @@ Focus on content that would be relevant for change detection and monitoring.`}
                  </div>
               </div>
 
-              {/* Submit Button */}
-               <div className="flex justify-end">
-                        <Button 
-                          type="submit"
-                          variant="default"
+               {/* Submit Buttons */}
+               <div className="flex justify-end gap-3">
+                 <Button 
+                   type="button"
+                   variant="outline"
+                   size="default"
+                   onClick={handleMonitorOnce}
+                   disabled={isMonitoringOnce || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
+                   className="gap-2"
+                 >
+                   {isMonitoringOnce ? (
+                     <>
+                       <Loader2 className="h-4 w-4 animate-spin" />
+                       Monitoring...
+                     </>
+                   ) : (
+                     <>
+                       <Eye className="h-4 w-4" />
+                       Monitor Once
+                     </>
+                   )}
+                 </Button>
+                 <Button 
+                   type="submit"
+                   variant="default"
                    size="default"
                    disabled={isAdding || !url.trim() || urlValidation.isValidating || urlValidation.isValid !== true}
                    className="gap-2"
-                        >
-                          {isAdding ? (
-                            <>
+                 >
+                   {isAdding ? (
+                     <>
                        <Loader2 className="h-4 w-4 animate-spin" />
                        Adding Website...
-                            </>
-                          ) : (
+                     </>
+                   ) : (
                      <>
                        <Globe className="h-4 w-4" />
                        Start Monitoring
                      </>
-                          )}
-                        </Button>
-                      </div>
+                   )}
+                 </Button>
+               </div>
                     </form>
             
                     {error && (
@@ -3012,22 +3085,82 @@ Focus on content that would be relevant for change detection and monitoring.`}
                               <div className="sticky bottom-0 bg-white border-t p-3">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
                                   <span className="text-gray-600 text-center sm:text-left">
-                                    Page {websitesPage} of {totalPages}
+                                    Showing {startIndex + 1}-{Math.min(endIndex, sortedWebsites.length)} of {sortedWebsites.length} websites
                                   </span>
-                                  <div className="flex items-center gap-2 justify-center sm:justify-end">
+                                  <div className="flex items-center gap-1 justify-center sm:justify-end">
                                     <Button
-                                      variant="default"
+                                      variant="outline"
                                       size="sm"
                                       onClick={() => setWebsitesPage(websitesPage - 1)}
                                       disabled={websitesPage === 1}
+                                      className="px-2"
                                     >
                                       <ChevronLeft className="h-4 w-4" />
                                     </Button>
+                                    
+                                    {/* Page Numbers */}
+                                    {(() => {
+                                      const maxVisiblePages = 5;
+                                      const startPage = Math.max(1, websitesPage - Math.floor(maxVisiblePages / 2));
+                                      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                                      const adjustedStartPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                      
+                                      const pageNumbers = [];
+                                      for (let i = adjustedStartPage; i <= endPage; i++) {
+                                        pageNumbers.push(i);
+                                      }
+                                      
+                                      return (
+                                        <>
+                                          {adjustedStartPage > 1 && (
+                                            <>
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setWebsitesPage(1)}
+                                                className="px-2"
+                                              >
+                                                1
+                                              </Button>
+                                              {adjustedStartPage > 2 && <span className="px-1">...</span>}
+                                            </>
+                                          )}
+                                          
+                                          {pageNumbers.map(pageNum => (
+                                            <Button
+                                              key={pageNum}
+                                              variant={pageNum === websitesPage ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => setWebsitesPage(pageNum)}
+                                              className="px-2"
+                                            >
+                                              {pageNum}
+                                            </Button>
+                                          ))}
+                                          
+                                          {endPage < totalPages && (
+                                            <>
+                                              {endPage < totalPages - 1 && <span className="px-1">...</span>}
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setWebsitesPage(totalPages)}
+                                                className="px-2"
+                                              >
+                                                {totalPages}
+                                              </Button>
+                                            </>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
+                                    
                                     <Button
-                                      variant="default"
+                                      variant="outline"
                                       size="sm"
                                       onClick={() => setWebsitesPage(websitesPage + 1)}
                                       disabled={websitesPage === totalPages}
+                                      className="px-2"
                                     >
                                       <ChevronRight className="h-4 w-4" />
                                     </Button>
@@ -3306,22 +3439,82 @@ Focus on content that would be relevant for change detection and monitoring.`}
                         <div className="sticky bottom-0 bg-white border-t p-3">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
                             <span className="text-gray-600 text-center sm:text-left">
-                              Page {changesPage} of {totalChangesPages}
+                              Showing {changesStartIndex + 1}-{Math.min(changesEndIndex, filteredHistory.length)} of {filteredHistory.length} changes
                             </span>
-                            <div className="flex items-center gap-2 justify-center sm:justify-end">
+                            <div className="flex items-center gap-1 justify-center sm:justify-end">
                               <Button
-                                variant="default"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setChangesPage(changesPage - 1)}
                                 disabled={changesPage === 1}
+                                className="px-2"
                               >
                                 <ChevronLeft className="h-4 w-4" />
                               </Button>
+                              
+                              {/* Page Numbers */}
+                              {(() => {
+                                const maxVisiblePages = 5;
+                                const startPage = Math.max(1, changesPage - Math.floor(maxVisiblePages / 2));
+                                const endPage = Math.min(totalChangesPages, startPage + maxVisiblePages - 1);
+                                const adjustedStartPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                
+                                const pageNumbers = [];
+                                for (let i = adjustedStartPage; i <= endPage; i++) {
+                                  pageNumbers.push(i);
+                                }
+                                
+                                return (
+                                  <>
+                                    {adjustedStartPage > 1 && (
+                                      <>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => setChangesPage(1)}
+                                          className="px-2"
+                                        >
+                                          1
+                                        </Button>
+                                        {adjustedStartPage > 2 && <span className="px-1">...</span>}
+                                      </>
+                                    )}
+                                    
+                                    {pageNumbers.map(pageNum => (
+                                      <Button
+                                        key={pageNum}
+                                        variant={pageNum === changesPage ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setChangesPage(pageNum)}
+                                        className="px-2"
+                                      >
+                                        {pageNum}
+                                      </Button>
+                                    ))}
+                                    
+                                    {endPage < totalChangesPages && (
+                                      <>
+                                        {endPage < totalChangesPages - 1 && <span className="px-1">...</span>}
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => setChangesPage(totalChangesPages)}
+                                          className="px-2"
+                                        >
+                                          {totalChangesPages}
+                                        </Button>
+                                      </>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                              
                               <Button
-                                variant="default"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => setChangesPage(changesPage + 1)}
                                 disabled={changesPage === totalChangesPages}
+                                className="px-2"
                               >
                                 <ChevronRight className="h-4 w-4" />
                               </Button>
@@ -4429,7 +4622,6 @@ Focus on content that would be relevant for change detection and monitoring.`}
                   name: pendingWebsite.name,
                   checkInterval: config.checkInterval || 60,
                   notificationPreference: config.notificationPreference,
-                  webhookUrl: config.webhookUrl,
                   monitorType: config.monitorType,
                   crawlLimit: config.crawlLimit,
                   crawlDepth: config.crawlDepth
@@ -4474,7 +4666,6 @@ Focus on content that would be relevant for change detection and monitoring.`}
                 websiteId: editingWebsiteId as any, // eslint-disable-line @typescript-eslint/no-explicit-any
                 url: config.url, // NEW: Include URL updates
                 notificationPreference: config.notificationPreference,
-                webhookUrl: config.webhookUrl,
                 checkInterval: config.checkInterval,
                 monitorType: config.monitorType,
                 crawlLimit: config.crawlLimit,
@@ -4494,7 +4685,6 @@ Focus on content that would be relevant for change detection and monitoring.`}
               const website = websites?.find(w => w._id === editingWebsiteId);
               return {
                 notificationPreference: website?.notificationPreference || 'none',
-                webhookUrl: website?.webhookUrl,
                 url: website?.url, // NEW: Pass current URL to modal
                 checkInterval: website?.checkInterval || 60,
                 monitorType: website?.monitorType || 'single_page',

@@ -20,13 +20,13 @@ export const APP_CONFIG = {
   urls: {
     github: 'https://github.com/your-org/ruleready-compliance',
     documentation: '/docs',
-    api: '/api-docs',
+    // api removed
   },
   
   // Feature flags
   features: {
     aiAnalysis: true,
-    webhooks: true,
+    webhooks: false,
     emailNotifications: true,
     // Compliance pivot flags
     complianceMode: true,

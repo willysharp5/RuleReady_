@@ -5,16 +5,7 @@ import { v } from "convex/values";
 const schema = defineSchema({
   ...authTables,
   
-  // API Keys
-  apiKeys: defineTable({
-    userId: v.id("users"),
-    key: v.string(),
-    name: v.string(),
-    lastUsed: v.optional(v.number()),
-    createdAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_key", ["key"]),
+  // (Removed) API Keys - no external API access required
 
   // Firecrawl Auth
   firecrawlApiKeys: defineTable({
@@ -37,11 +28,8 @@ const schema = defineSchema({
     lastChecked: v.optional(v.number()),
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email"),
-      v.literal("webhook"),
-      v.literal("both")
+      v.literal("email")
     )),
-    webhookUrl: v.optional(v.string()),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
       v.literal("full_site")
@@ -136,7 +124,6 @@ const schema = defineSchema({
   // User settings for defaults
   userSettings: defineTable({
     userId: v.id("users"),
-    defaultWebhookUrl: v.optional(v.string()),
     emailNotificationsEnabled: v.boolean(),
     emailTemplate: v.optional(v.string()),
     // AI Analysis settings
@@ -148,7 +135,6 @@ const schema = defineSchema({
     aiApiKey: v.optional(v.string()), // encrypted API key
     // AI-based notification filtering
     emailOnlyIfMeaningful: v.optional(v.boolean()), // only send email if AI deems meaningful
-    webhookOnlyIfMeaningful: v.optional(v.boolean()), // only send webhook if AI deems meaningful
     
     // Chat settings
     chatSystemPrompt: v.optional(v.string()),
@@ -162,16 +148,7 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"]),
 
-  webhookPlayground: defineTable({
-    payload: v.any(),
-    headers: v.any(),
-    method: v.string(),
-    url: v.string(),
-    receivedAt: v.number(),
-    status: v.string(),
-    response: v.optional(v.any()),
-  })
-    .index("by_time", ["receivedAt"]),
+  // (Removed) Webhook playground table
 
   crawlSessions: defineTable({
     websiteId: v.id("websites"),

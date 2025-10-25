@@ -76,12 +76,7 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <Link href="/api-docs">
-                <Button variant="default" size="sm" className="gap-2">
-                  <Code className="h-4 w-4" />
-                  <span className="hidden sm:inline">API</span>
-                </Button>
-              </Link>
+              {/* API link removed */}
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="code" size="sm" className="gap-2">

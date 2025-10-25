@@ -11,8 +11,7 @@ interface WebhookConfigModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (config: {
-    notificationPreference: 'none' | 'email' | 'webhook' | 'both'
-    webhookUrl?: string
+    notificationPreference: 'none' | 'email'
     url?: string // NEW: Allow URL editing
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
@@ -25,8 +24,7 @@ interface WebhookConfigModalProps {
     priorityChangeReason?: string
   }) => void
   initialConfig?: {
-    notificationPreference: 'none' | 'email' | 'webhook' | 'both'
-    webhookUrl?: string
+    notificationPreference: 'none' | 'email'
     url?: string // NEW: Current URL
     checkInterval?: number
     monitorType?: 'single_page' | 'full_site'
@@ -48,7 +46,7 @@ interface WebhookConfigModalProps {
 
 export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, websiteName }: WebhookConfigModalProps) {
   const [notificationPreference, setNotificationPreference] = useState(initialConfig?.notificationPreference || 'none')
-  const [webhookUrl, setWebhookUrl] = useState(initialConfig?.webhookUrl || '')
+  // Webhook removed
   const [url, setUrl] = useState(initialConfig?.url || '') // NEW: URL state
   const [checkInterval, setCheckInterval] = useState(String(initialConfig?.checkInterval || 60))
   const [monitorType, setMonitorType] = useState(initialConfig?.monitorType || 'single_page')
@@ -67,8 +65,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
 
   const handleSave = useCallback(() => {
     onSave({
-      notificationPreference: notificationPreference as 'none' | 'email' | 'webhook' | 'both',
-      webhookUrl: (notificationPreference === 'webhook' || notificationPreference === 'both') ? webhookUrl : undefined,
+      notificationPreference: notificationPreference as 'none' | 'email',
       url: url.trim() || undefined, // NEW: Include URL in save
       checkInterval: parseInt(checkInterval),
       monitorType: monitorType as 'single_page' | 'full_site',
@@ -437,8 +434,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
             >
               <option value="none">No notifications</option>
               <option value="email">Email only</option>
-              <option value="webhook">Webhook only</option>
-              <option value="both">Email and Webhook</option>
+              
             </Select>
           </div>
 
@@ -457,77 +453,7 @@ export function WebhookConfigModal({ isOpen, onClose, onSave, initialConfig, web
             </div>
           )}
 
-          {/* Webhook Configuration */}
-          {(notificationPreference === 'webhook' || notificationPreference === 'both') && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="webhook-url">Webhook URL</Label>
-                <Input
-                  id="webhook-url"
-                  type="url"
-                  placeholder="https://your-server.com/webhook"
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                  className="mt-1"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  We&apos;ll send a POST request to this URL when changes are detected
-                </p>
-              </div>
-
-              {/* Webhook Payload Example */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Webhook Payload Example</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyPayloadExample}
-                    className="text-xs"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-3 w-3 mr-1" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3 mr-1" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">
-                  <pre className="text-xs">
-                    <code>{`{
-  "event": "website_changed",
-  "website": {
-    "name": "${websiteName}",
-    "url": "https://example.com",
-    "checkInterval": 60
-  },
-  "change": {
-    "detectedAt": "${new Date().toISOString()}",
-    "changeType": "content_modified",
-    "summary": "Page content has changed",
-    "diff": {
-      "added": ["New paragraph added", "Updated heading"],
-      "removed": ["Old footer text"]
-    }
-  },
-  "scrapeResult": {
-    "title": "Example Website",
-    "description": "Website description",
-    "markdown": "# Page Content\\n\\nThis is the scraped content..."
-  }
-}`}</code>
-                  </pre>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Webhook configuration removed */}
           </div>
 
           <div className="flex items-center justify-between mt-6">

@@ -309,35 +309,7 @@ export default function DocsPage() {
 
           <Separator />
 
-          {/* API Documentation */}
-          <section>
-            <h2 className="text-2xl font-bold mb-6">API Documentation</h2>
-            
-            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Code className="h-6 w-6 text-orange-600" />
-                <h3 className="text-xl font-semibold">REST API</h3>
-              </div>
-              <p className="text-gray-600 mb-4">
-                Access the full REST API to programmatically manage your website monitoring. 
-                Create API keys, add websites, and retrieve monitoring data.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="default" asChild>
-                  <Link href="/api-docs">
-                    <FileText className="h-4 w-4 mr-2" />
-                    View API Docs
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link href="/settings?section=api">
-                    <Key className="h-4 w-4 mr-2" />
-                    Manage API Keys
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </section>
+          {/* API Documentation removed */}
 
           <Separator />
 

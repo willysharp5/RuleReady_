@@ -10,7 +10,6 @@
 
 import type * as aiAnalysis from "../aiAnalysis.js";
 import type * as alertEmail from "../alertEmail.js";
-import type * as apiKeys from "../apiKeys.js";
 import type * as auth from "../auth.js";
 import type * as autoSetup from "../autoSetup.js";
 import type * as chatSettings from "../chatSettings.js";
@@ -75,7 +74,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   aiAnalysis: typeof aiAnalysis;
   alertEmail: typeof alertEmail;
-  apiKeys: typeof apiKeys;
   auth: typeof auth;
   autoSetup: typeof autoSetup;
   chatSettings: typeof chatSettings;
