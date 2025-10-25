@@ -126,6 +126,9 @@ function SettingsContent() {
   
   // Jurisdictions page state
   const [jurisdictionFilter, setJurisdictionFilter] = useState('')
+  const [jurisdictionSearch, setJurisdictionSearch] = useState('')
+  const [jurisdictionPage, setJurisdictionPage] = useState(1)
+  const [jurisdictionPageSize, setJurisdictionPageSize] = useState(10)
   
   // API Key queries and mutations
   const apiKeys = useQuery(api.apiKeys.getUserApiKeys)
@@ -2015,12 +2018,36 @@ Analyze the provided diff and return a JSON response with:
                         <select
                           id="jurisdiction-filter"
                           value={jurisdictionFilter}
-                          onChange={(e) => setJurisdictionFilter(e.target.value)}
+                          onChange={(e) => { setJurisdictionFilter(e.target.value); setJurisdictionPage(1); }}
                           className="w-full mt-1 p-2 border rounded-md text-sm"
                         >
                           <option value="">All Jurisdictions</option>
                           {jurisdictions?.map((j) => (
                             <option key={j.code} value={j.name}>{j.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="jurisdiction-search">Search</Label>
+                        <input
+                          id="jurisdiction-search"
+                          type="text"
+                          value={jurisdictionSearch}
+                          onChange={(e) => { setJurisdictionSearch(e.target.value); setJurisdictionPage(1); }}
+                          placeholder="Search by name, type..."
+                          className="w-full mt-1 p-2 border rounded-md text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="jurisdiction-page-size">Page Size</Label>
+                        <select
+                          id="jurisdiction-page-size"
+                          value={jurisdictionPageSize}
+                          onChange={(e) => { setJurisdictionPageSize(parseInt(e.target.value)); setJurisdictionPage(1); }}
+                          className="w-full mt-1 p-2 border rounded-md text-sm"
+                        >
+                          {[10, 20, 50].map(s => (
+                            <option key={s} value={s}>{s} per page</option>
                           ))}
                         </select>
                       </div>
@@ -2053,6 +2080,11 @@ Analyze the provided diff and return a JSON response with:
                           <tbody>
                             {jurisdictions
                               ?.filter(j => !jurisdictionFilter || j.name === jurisdictionFilter)
+                              ?.filter(j => !jurisdictionSearch ||
+                                j.name.toLowerCase().includes(jurisdictionSearch.toLowerCase()) ||
+                                j.type.toLowerCase().includes(jurisdictionSearch.toLowerCase())
+                              )
+                              ?.slice((jurisdictionPage - 1) * jurisdictionPageSize, jurisdictionPage * jurisdictionPageSize)
                               .map((jurisdiction) => (
                               <tr key={jurisdiction.code} className="border-b hover:bg-gray-50">
                                 <td className="p-3">
@@ -2101,14 +2133,46 @@ Analyze the provided diff and return a JSON response with:
                         </table>
                       </div>
                       
-                      {/* Summary */}
+                      {/* Summary + Pagination */}
                       <div className="bg-gray-50 px-4 py-3 border-t text-sm text-gray-600">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                           <span>
-                            Showing {jurisdictions?.filter(j => !jurisdictionFilter || j.name === jurisdictionFilter).length || 0} jurisdictions
+                            {(() => {
+                              const filtered = (jurisdictions || [])
+                                .filter(j => !jurisdictionFilter || j.name === jurisdictionFilter)
+                                .filter(j => !jurisdictionSearch || j.name.toLowerCase().includes(jurisdictionSearch.toLowerCase()) || j.type.toLowerCase().includes(jurisdictionSearch.toLowerCase()))
+                              const total = filtered.length
+                              const start = total === 0 ? 0 : (jurisdictionPage - 1) * jurisdictionPageSize + 1
+                              const end = Math.min(jurisdictionPage * jurisdictionPageSize, total)
+                              return `Showing ${start}-${end} of ${total} jurisdictions`
+                            })()}
                           </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="px-2 py-1 border rounded disabled:opacity-50"
+                              onClick={() => setJurisdictionPage(p => Math.max(1, p - 1))}
+                              disabled={jurisdictionPage === 1}
+                            >
+                              Prev
+                            </button>
+                            <span className="px-2">
+                              Page {jurisdictionPage}
+                            </span>
+                            <button
+                              className="px-2 py-1 border rounded disabled:opacity-50"
+                              onClick={() => {
+                                const filtered = (jurisdictions || [])
+                                  .filter(j => !jurisdictionFilter || j.name === jurisdictionFilter)
+                                  .filter(j => !jurisdictionSearch || j.name.toLowerCase().includes(jurisdictionSearch.toLowerCase()) || j.type.toLowerCase().includes(jurisdictionSearch.toLowerCase()))
+                                const totalPages = Math.max(1, Math.ceil(filtered.length / jurisdictionPageSize))
+                                setJurisdictionPage(p => Math.min(totalPages, p + 1))
+                              }}
+                            >
+                              Next
+                            </button>
+                          </div>
                           <span>
-                            Total: {jurisdictions?.reduce((sum, j) => sum + j.ruleCount, 0) || 0} compliance rules
+                            Total rules: {jurisdictions?.reduce((sum, j) => sum + j.ruleCount, 0) || 0}
                           </span>
                         </div>
                       </div>
