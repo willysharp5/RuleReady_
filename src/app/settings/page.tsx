@@ -2155,36 +2155,9 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                         </div>
                         
-                        {/* Show message about adding more models */}
-                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                          <div className="text-center py-4">
-                            <Bot className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <h4 className="font-medium text-gray-900 mb-1">Add More AI Models</h4>
-                            <p className="text-sm text-gray-600 mb-3">
-                              Add OpenAI, Anthropic, or other AI providers to expand your capabilities
-                            </p>
-                            <Button variant="outline" onClick={handleAddModel}>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Model
-                            </Button>
-                          </div>
-                        </div>
                       </div>
                     </div>
                     
-                    {/* Quick Setup */}
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                      <h3 className="font-medium text-orange-900 mb-3">Quick Setup</h3>
-                      <p className="text-sm text-orange-800 mb-4">
-                        Add your API keys to `.env.local` to enable additional AI providers:
-                      </p>
-                      <div className="bg-white border border-orange-200 rounded p-3 font-mono text-xs text-gray-700">
-                        <div># Add to your .env.local file:</div>
-                        <div>OPENAI_API_KEY=sk-your-key-here</div>
-                        <div>ANTHROPIC_API_KEY=sk-ant-your-key-here</div>
-                        <div>AZURE_OPENAI_KEY=your-azure-key</div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
