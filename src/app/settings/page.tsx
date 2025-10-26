@@ -1462,11 +1462,21 @@ Analyze the provided diff and return a JSON response with:
                           </p>
                           <div className="flex items-center gap-4 text-xs text-blue-700">
                             <div className="flex items-center gap-1">
-                              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">report</span>
+                              <span 
+                                className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded cursor-help"
+                                title="AI-processed compliance report with structured legal data from government sources"
+                              >
+                                report
+                              </span>
                               <span>= AI-processed compliance reports</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">website</span>
+                              <span 
+                                className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded cursor-help"
+                                title="Tracked compliance website being monitored for regulatory changes"
+                              >
+                                website
+                              </span>
                               <span>= Tracked compliance websites</span>
                             </div>
                           </div>
@@ -1557,10 +1567,19 @@ Analyze the provided diff and return a JSON response with:
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 mb-1">
                                         <span className="text-sm font-medium text-gray-900">{source.title}</span>
-                                        <span className={`text-xs px-2 py-0.5 rounded ${priorityColors[source.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
+                                        <span 
+                                          className={`text-xs px-2 py-0.5 rounded cursor-help ${priorityColors[source.priority as keyof typeof priorityColors] || priorityColors.medium}`}
+                                          title={`Priority level: ${source.priority} - indicates importance for compliance monitoring`}
+                                        >
                                           {source.priority}
                                         </span>
-                                        <span className={`text-xs px-2 py-0.5 rounded ${source.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        <span 
+                                          className={`text-xs px-2 py-0.5 rounded cursor-help ${source.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
+                                          title={source.type === 'report' 
+                                            ? 'AI-processed compliance report with structured legal data from government sources' 
+                                            : 'Tracked compliance website being monitored for regulatory changes'
+                                          }
+                                        >
                                           {source.type}
                                         </span>
                                       </div>
