@@ -224,15 +224,20 @@ Instructions:
     // Add compliance reports
     if (allComplianceReports) {
       allComplianceReports.forEach((report: any) => {
+        // Parse jurisdiction and topic from ruleId (e.g., "alabama_minimum_wage")
+        const ruleIdParts = report.ruleId?.split('_') || []
+        const jurisdiction = ruleIdParts[0] ? ruleIdParts[0].charAt(0).toUpperCase() + ruleIdParts[0].slice(1) : 'Unknown'
+        const topic = ruleIdParts.slice(1).join(' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'
+        
         sources.push({
           id: report._id,
-          title: report.title || `${report.jurisdiction} - ${report.topicKey}`,
-          jurisdiction: report.jurisdiction,
-          topic: report.topicKey,
+          title: `${jurisdiction} - ${topic}`,
+          jurisdiction: jurisdiction,
+          topic: topic,
           url: report.sourceUrl || 'Internal Report',
-          scrapedAt: report.createdAt || Date.now(),
-          wordCount: report.content?.length || 0,
-          priority: report.priority || 'medium',
+          scrapedAt: report.processedAt || report._creationTime || Date.now(),
+          wordCount: report.rawContent?.length || 0,
+          priority: 'high', // AI reports are typically high priority
           type: 'report'
         })
       })
@@ -240,17 +245,21 @@ Instructions:
 
     // Add website scrape results
     if (websites) {
-      websites.forEach(website => {
+      websites.forEach((website: any) => {
         if (website.complianceMetadata) {
+          const jurisdiction = website.complianceMetadata.jurisdiction || 'Unknown'
+          const topic = website.complianceMetadata.topicKey || 'Unknown'
+          const priority = website.complianceMetadata.priority || 'medium'
+          
           sources.push({
             id: website._id,
-            title: `${website.complianceMetadata.jurisdiction} - ${website.complianceMetadata.topicKey}`,
-            jurisdiction: website.complianceMetadata.jurisdiction,
-            topic: website.complianceMetadata.topicKey,
-            url: website.url,
-            scrapedAt: website.lastChecked || website.createdAt,
+            title: `${jurisdiction} - ${topic}`,
+            jurisdiction: jurisdiction,
+            topic: topic,
+            url: website.url || 'Unknown URL',
+            scrapedAt: website.lastChecked || website.createdAt || Date.now(),
             wordCount: 0, // Would need to get from scrape results
-            priority: website.complianceMetadata.priority,
+            priority: priority,
             type: 'website'
           })
         }
@@ -302,7 +311,7 @@ Instructions:
     
     if (source.type === 'report' && allComplianceReports) {
       sourceWithContent = allComplianceReports.find((report: any) => report._id === source.id)
-      content = sourceWithContent?.content || 'Content not available'
+      content = sourceWithContent?.rawContent || 'Content not available'
     } else if (source.type === 'website' && websites) {
       sourceWithContent = websites.find((website: any) => website._id === source.id)
       // For websites, we might need to get the content from scrape results
@@ -1412,9 +1421,21 @@ Analyze the provided diff and return a JSON response with:
                       </div>
                       
                       <div className="space-y-4">
-                        <p className="text-sm text-blue-800">
-                          Search and select from existing scraped compliance data to combine into a new rule.
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-sm text-blue-800">
+                            Search and select from existing scraped compliance data to combine into a new rule.
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-blue-700">
+                            <div className="flex items-center gap-1">
+                              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">report</span>
+                              <span>= AI-processed compliance reports</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">website</span>
+                              <span>= Tracked compliance websites</span>
+                            </div>
+                          </div>
+                        </div>
                         
                         {/* Search and Filter */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
