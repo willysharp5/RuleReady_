@@ -141,7 +141,7 @@ function SettingsContent() {
   const topics = useQuery(api.complianceQueries.getTopics)
   
   // Compliance generation queries
-  const allComplianceReports = useQuery(api.importComplianceReports.getAIReports) // Using existing function
+  const allComplianceReports = useQuery(api.importComplianceReports.getAIReports, {}) // Using existing function
   const websites = useQuery(api.websites.getUserWebsites)
   
   
@@ -1233,9 +1233,9 @@ Analyze the provided diff and return a JSON response with:
                     </div>
                   </div>
                   
-                  <div className="space-y-8">
+                  <div className="max-w-6xl mx-auto space-y-8">
                     {/* Step 1: Select Sources */}
-                    <div className="border border-blue-200 rounded-lg p-6 bg-blue-50">
+                    <div className="border border-blue-200 rounded-lg p-4 lg:p-6 bg-blue-50">
                       <div className="flex items-center gap-2 mb-4">
                         <Search className="h-5 w-5 text-blue-600" />
                         <h3 className="text-lg font-medium text-blue-900">Step 1: Select Sources</h3>
@@ -1247,7 +1247,7 @@ Analyze the provided diff and return a JSON response with:
                         </p>
                         
                         {/* Search and Filter */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Search Sources</label>
                             <div className="relative">
@@ -1366,14 +1366,14 @@ Analyze the provided diff and return a JSON response with:
                     </div>
                     
                     {/* Step 2: Choose Template & Generate */}
-                    <div className="border border-purple-200 rounded-lg p-6 bg-purple-50">
+                    <div className="border border-purple-200 rounded-lg p-4 lg:p-6 bg-purple-50">
                       <div className="flex items-center gap-2 mb-4">
                         <Bot className="h-5 w-5 text-purple-600" />
                         <h3 className="text-lg font-medium text-purple-900">Step 2: Choose Template & Generate</h3>
                       </div>
                       
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Compliance Template</label>
                             <select 
@@ -1419,7 +1419,7 @@ Analyze the provided diff and return a JSON response with:
                     </div>
                     
                     {/* Step 3: Review & Publish */}
-                    <div className="border border-green-200 rounded-lg p-6 bg-green-50">
+                    <div className="border border-green-200 rounded-lg p-4 lg:p-6 bg-green-50">
                       <div className="flex items-center gap-2 mb-4">
                         <CheckCircle2 className="h-5 w-5 text-green-600" />
                         <h3 className="text-lg font-medium text-green-900">Step 3: Review & Publish</h3>
@@ -1456,7 +1456,7 @@ Analyze the provided diff and return a JSON response with:
                     </div>
                     
                     {/* Step 4: Generate Embeddings */}
-                    <div className="border border-orange-200 rounded-lg p-6 bg-orange-50">
+                    <div className="border border-orange-200 rounded-lg p-4 lg:p-6 bg-orange-50">
                       <div className="flex items-center gap-2 mb-4">
                         <Zap className="h-5 w-5 text-orange-600" />
                         <h3 className="text-lg font-medium text-orange-900">Step 4: Generate Embeddings</h3>
