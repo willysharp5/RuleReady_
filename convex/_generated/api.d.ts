@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as aiModelManager from "../aiModelManager.js";
+import type * as aiService from "../aiService.js";
 import type * as alertEmail from "../alertEmail.js";
 import type * as autoSetup from "../autoSetup.js";
 import type * as chatSettings from "../chatSettings.js";
@@ -44,6 +46,7 @@ import type * as ruleDetails from "../ruleDetails.js";
 import type * as singleUserSetup from "../singleUserSetup.js";
 import type * as testChatSources from "../testChatSources.js";
 import type * as testEmbeddings from "../testEmbeddings.js";
+import type * as testEnvironment from "../testEnvironment.js";
 import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
 import type * as websites from "../websites.js";
@@ -64,6 +67,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  aiModelManager: typeof aiModelManager;
+  aiService: typeof aiService;
   alertEmail: typeof alertEmail;
   autoSetup: typeof autoSetup;
   chatSettings: typeof chatSettings;
@@ -100,6 +105,7 @@ declare const fullApi: ApiFromModules<{
   singleUserSetup: typeof singleUserSetup;
   testChatSources: typeof testChatSources;
   testEmbeddings: typeof testEmbeddings;
+  testEnvironment: typeof testEnvironment;
   testingMode: typeof testingMode;
   userSettings: typeof userSettings;
   websites: typeof websites;

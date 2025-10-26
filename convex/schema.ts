@@ -140,6 +140,36 @@ const schema = defineSchema({
   })
     .index("by_user", ["userId"]),
 
+  // AI MODEL MANAGEMENT TABLES
+  aiModels: defineTable({
+    name: v.string(), // "OpenAI GPT-4", "Google Gemini Pro"
+    provider: v.string(), // "openai", "google", "anthropic", "azure"
+    modelId: v.string(), // "gpt-4o", "gemini-2.0-flash-exp"
+    apiKeyEnvVar: v.string(), // "OPENAI_API_KEY", "GEMINI_API_KEY"
+    baseUrl: v.optional(v.string()), // For custom endpoints
+    isActive: v.boolean(),
+    capabilities: v.array(v.string()), // ["chat", "embeddings", "analysis", "generation"]
+    maxTokens: v.optional(v.number()),
+    costPerToken: v.optional(v.number()),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_provider", ["provider"])
+    .index("by_active", ["isActive"]),
+
+  aiModelConfigs: defineTable({
+    purpose: v.string(), // "chat", "rule_generation", "embeddings", "change_analysis"
+    selectedModelId: v.id("aiModels"),
+    systemPrompt: v.optional(v.string()),
+    temperature: v.optional(v.number()),
+    maxTokens: v.optional(v.number()),
+    isActive: v.boolean(),
+    updatedAt: v.number(),
+  })
+    .index("by_purpose", ["purpose"])
+    .index("by_active", ["isActive"]),
+
   // COMPLIANCE GENERATION TABLES
   sourceCollections: defineTable({
     collectionId: v.string(),

@@ -5,7 +5,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini 2.5 Flash Lite
 export const initGeminiFlashLite = async (apiKey?: string) => {
-  const key = apiKey || process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U";
+  const key = apiKey || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("GEMINI_API_KEY environment variable not set");
+  }
   const genAI = new GoogleGenerativeAI(key);
   
   return genAI.getGenerativeModel({ 

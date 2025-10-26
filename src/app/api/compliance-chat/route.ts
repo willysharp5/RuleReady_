@@ -214,7 +214,10 @@ FORMAT THE ANSWER CLEARLY:
 - Start directly with the first section (## Overview)
 - End each section with a blank line before the next section header`;
 
-    const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAhrzBihKERZknz5Y3O6hpvlge1o2EZU4U";
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY environment variable not set");
+    }
     
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
