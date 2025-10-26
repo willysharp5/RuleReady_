@@ -199,9 +199,13 @@ Instructions:
   const [showEmbeddingsPreview, setShowEmbeddingsPreview] = useState(false)
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false)
   
-  // Success popovers state
-  const [showPublishSuccess, setShowPublishSuccess] = useState(false)
-  const [showEmbeddingsSuccess, setShowEmbeddingsSuccess] = useState(false)
+  // Loading and success modals state
+  const [showGenerationModal, setShowGenerationModal] = useState(false)
+  const [showPublishModal, setShowPublishModal] = useState(false)
+  const [showEmbeddingsModal, setShowEmbeddingsModal] = useState(false)
+  const [generationComplete, setGenerationComplete] = useState(false)
+  const [publishComplete, setPublishComplete] = useState(false)
+  const [embeddingsComplete, setEmbeddingsComplete] = useState(false)
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -324,9 +328,14 @@ Instructions:
       return
     }
 
+    setShowGenerationModal(true)
+    setGenerationComplete(false)
     setIsGenerating(true)
+    
     try {
-      // Simulate AI generation - replace with actual API call
+      // Simulate AI generation delay - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      
       const mockGeneratedRule = `# Generated Compliance Rule: ${outputRuleName || 'Untitled Rule'}
 
 ## Overview
@@ -361,6 +370,8 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       })
       setSourceCitations(citations)
       
+      setGenerationComplete(true)
+      
     } catch (error) {
       console.error('Error generating rule:', error)
     } finally {
@@ -368,14 +379,25 @@ ${Array.from(selectedSources).map((sourceId, index) => {
     }
   }
 
-  const handleApproveAndPublish = () => {
+  const handleApproveAndPublish = async () => {
     if (!editableRule.trim()) {
       return
     }
     
-    // Here you would save the rule to the database
-    console.log('Publishing rule:', editableRule)
-    setShowPublishSuccess(true)
+    setShowPublishModal(true)
+    setPublishComplete(false)
+    
+    try {
+      // Simulate publishing delay - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Here you would save the rule to the database
+      console.log('Publishing rule:', editableRule)
+      setPublishComplete(true)
+      
+    } catch (error) {
+      console.error('Error publishing rule:', error)
+    }
   }
 
   const handleGenerateEmbeddings = async () => {
@@ -383,9 +405,14 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       return
     }
 
+    setShowEmbeddingsModal(true)
+    setEmbeddingsComplete(false)
     setIsGeneratingEmbeddings(true)
+    
     try {
-      // Simulate embedding generation - replace with actual API call
+      // Simulate embedding generation delay - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 4000))
+      
       const mockEmbeddings = [
         {
           chunk: editableRule.substring(0, 500) + '...',
@@ -405,7 +432,7 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       ]
       
       setGeneratedEmbeddings(mockEmbeddings)
-      setShowEmbeddingsSuccess(true)
+      setEmbeddingsComplete(true)
       
     } catch (error) {
       console.error('Error generating embeddings:', error)
@@ -1636,32 +1663,6 @@ Analyze the provided diff and return a JSON response with:
                             Approve & Publish
                           </Button>
                           
-                          {/* Success Popover */}
-                          {showPublishSuccess && (
-                            <div className="absolute top-full right-0 mt-2 bg-white border border-green-200 rounded-lg shadow-xl z-50 min-w-[350px] max-w-[400px]">
-                              <div className="p-4">
-                                <div className="flex items-start justify-between mb-3">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900">Success!</h3>
-                                  </div>
-                                  <button
-                                    onClick={() => setShowPublishSuccess(false)}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </button>
-                                </div>
-                                <div className="ml-10">
-                                  <p className="text-sm text-gray-900 font-medium mb-1">Rule Published Successfully!</p>
-                                  <p className="text-sm text-gray-600">Your compliance rule has been approved and is ready for embedding generation in Step 4.</p>
-                                </div>
-                              </div>
-                              <div className="absolute -top-2 right-6 w-4 h-4 bg-white border-l border-t border-green-200 rotate-45"></div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1718,44 +1719,6 @@ Analyze the provided diff and return a JSON response with:
                                 )}
                               </Button>
                               
-                              {/* Success Popover */}
-                              {showEmbeddingsSuccess && (
-                                <div className="absolute top-full right-0 mt-2 bg-white border border-blue-200 rounded-lg shadow-xl z-50 min-w-[350px] max-w-[400px]">
-                                  <div className="p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                          <Zap className="h-5 w-5 text-blue-600" />
-                                        </div>
-                                        <h3 className="font-semibold text-gray-900">Success!</h3>
-                                      </div>
-                                      <button
-                                        onClick={() => setShowEmbeddingsSuccess(false)}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                                      >
-                                        <XCircle className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                    <div className="ml-10">
-                                      <p className="text-sm text-gray-900 font-medium mb-1">Embeddings Generated Successfully!</p>
-                                      <p className="text-sm text-gray-600">Your compliance rule is now searchable in the chat system and ready for use.</p>
-                                      <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <button
-                                          onClick={() => {
-                                            setShowEmbeddingsSuccess(false)
-                                            setShowEmbeddingsPreview(true)
-                                          }}
-                                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-                                        >
-                                          <Eye className="h-3 w-3" />
-                                          View Embeddings
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="absolute -top-2 right-6 w-4 h-4 bg-white border-l border-t border-blue-200 rotate-45"></div>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -1993,6 +1956,179 @@ Analyze the provided diff and return a JSON response with:
               <Button onClick={() => setShowEmbeddingsPreview(false)}>
                 Close
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Rule Generation Loading Modal */}
+      {showGenerationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-6">
+                {generationComplete ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bot className="h-8 w-8 text-purple-600 animate-pulse" />
+                  </div>
+                )}
+                
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  {generationComplete ? 'Rule Generated Successfully!' : 'Generating Compliance Rule'}
+                </h2>
+                
+                <p className="text-gray-600">
+                  {generationComplete 
+                    ? `Your compliance rule has been generated from ${selectedSources.size} sources using AI synthesis.`
+                    : 'AI is analyzing your selected sources and synthesizing them with the chosen template...'
+                  }
+                </p>
+              </div>
+              
+              {!generationComplete && (
+                <div className="mb-6">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">Processing sources and template...</p>
+                </div>
+              )}
+              
+              {generationComplete && (
+                <Button 
+                  onClick={() => {
+                    setShowGenerationModal(false)
+                    setGenerationComplete(false)
+                  }}
+                  className="w-full"
+                >
+                  Accept
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Publish Loading Modal */}
+      {showPublishModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-6">
+                {publishComplete ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-green-600 animate-pulse" />
+                  </div>
+                )}
+                
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  {publishComplete ? 'Rule Published Successfully!' : 'Publishing Compliance Rule'}
+                </h2>
+                
+                <p className="text-gray-600">
+                  {publishComplete 
+                    ? 'Your compliance rule has been approved and published. Ready for embedding generation.'
+                    : 'Saving your compliance rule to the database...'
+                  }
+                </p>
+              </div>
+              
+              {!publishComplete && (
+                <div className="mb-6">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full animate-pulse" style={{width: '80%'}}></div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">Saving to database...</p>
+                </div>
+              )}
+              
+              {publishComplete && (
+                <Button 
+                  onClick={() => {
+                    setShowPublishModal(false)
+                    setPublishComplete(false)
+                  }}
+                  className="w-full"
+                >
+                  Accept
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Embeddings Generation Loading Modal */}
+      {showEmbeddingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-6">
+                {embeddingsComplete ? (
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Zap className="h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Zap className="h-8 w-8 text-blue-600 animate-pulse" />
+                  </div>
+                )}
+                
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  {embeddingsComplete ? 'Embeddings Generated Successfully!' : 'Generating Embeddings'}
+                </h2>
+                
+                <p className="text-gray-600">
+                  {embeddingsComplete 
+                    ? 'Your compliance rule is now searchable in the chat system and ready for use.'
+                    : 'Creating vector embeddings to make your rule searchable in the chat system...'
+                  }
+                </p>
+              </div>
+              
+              {!embeddingsComplete && (
+                <div className="mb-6">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '45%'}}></div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">Processing text chunks and generating vectors...</p>
+                </div>
+              )}
+              
+              {embeddingsComplete && (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => {
+                      setShowEmbeddingsModal(false)
+                      setEmbeddingsComplete(false)
+                    }}
+                    className="w-full"
+                  >
+                    Accept
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setShowEmbeddingsModal(false)
+                      setEmbeddingsComplete(false)
+                      setShowEmbeddingsPreview(true)
+                    }}
+                    className="w-full"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Embeddings
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
