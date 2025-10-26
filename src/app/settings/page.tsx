@@ -223,6 +223,10 @@ Instructions:
   const [configTemperature, setConfigTemperature] = useState(0.7)
   const [configMaxTokens, setConfigMaxTokens] = useState(4096)
   
+  // Sources pagination state
+  const [sourcesCurrentPage, setSourcesCurrentPage] = useState(1)
+  const sourcesPerPage = 10
+  
   // Add model state
   const [showAddModel, setShowAddModel] = useState(false)
   const [newModelName, setNewModelName] = useState('')
@@ -314,6 +318,18 @@ Instructions:
     })
   }, [availableSources, sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter])
 
+  // Paginated sources
+  const paginatedSources = useMemo(() => {
+    const startIndex = (sourcesCurrentPage - 1) * sourcesPerPage
+    const endIndex = startIndex + sourcesPerPage
+    return filteredSources.slice(startIndex, endIndex)
+  }, [filteredSources, sourcesCurrentPage, sourcesPerPage])
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(filteredSources.length / sourcesPerPage)
+  const startItem = (sourcesCurrentPage - 1) * sourcesPerPage + 1
+  const endItem = Math.min(sourcesCurrentPage * sourcesPerPage, filteredSources.length)
+
   // Source selection handlers
   const toggleSourceSelection = (sourceId: string) => {
     const newSelection = new Set(selectedSources)
@@ -328,6 +344,11 @@ Instructions:
   const clearAllSources = () => {
     setSelectedSources(new Set())
   }
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setSourcesCurrentPage(1)
+  }, [sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter])
 
   // Source preview handlers
   const handleSourcePreview = (source: any) => {
@@ -1722,10 +1743,14 @@ Analyze the provided diff and return a JSON response with:
                             <h4 className="font-medium text-gray-900">
                               Available Sources ({availableSources.length} total, {filteredSources.length} filtered)
                             </h4>
-                            <span className="text-xs text-gray-500">Select sources to combine</span>
+                            <div className="text-xs text-gray-500">
+                              {filteredSources.length > 0 && (
+                                <span>Showing {startItem}-{endItem} of {filteredSources.length}</span>
+                              )}
+                            </div>
                           </div>
                           
-                          <div className="max-h-64 overflow-y-auto space-y-2">
+                          <div className="space-y-2 min-h-[400px]">
                             {filteredSources.length === 0 ? (
                               <div className="text-center py-8 text-gray-500">
                                 <Search className="h-8 w-8 mx-auto mb-3 text-gray-300" />
@@ -1733,7 +1758,7 @@ Analyze the provided diff and return a JSON response with:
                                 <p className="text-xs mt-1">Try adjusting your search or filters</p>
                               </div>
                             ) : (
-                              filteredSources.map((source: any) => {
+                              paginatedSources.map((source: any) => {
                                 const isSelected = selectedSources.has(source.id)
                                 const priorityColors = {
                                   critical: 'bg-red-100 text-red-800',
@@ -1785,7 +1810,7 @@ Analyze the provided diff and return a JSON response with:
                             )}
                           </div>
                           
-                          <div className="mt-3 pt-3 border-t border-blue-200">
+                          <div className="mt-3 pt-3 border-t border-blue-200 space-y-3">
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600">{selectedSources.size} sources selected</span>
                               <button 
@@ -1796,6 +1821,62 @@ Analyze the provided diff and return a JSON response with:
                                 Clear all
                               </button>
                             </div>
+                            
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-500">
+                                  Page {sourcesCurrentPage} of {totalPages}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => setSourcesCurrentPage(Math.max(1, sourcesCurrentPage - 1))}
+                                    disabled={sourcesCurrentPage === 1}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    Previous
+                                  </button>
+                                  
+                                  {/* Page numbers */}
+                                  <div className="flex items-center gap-1">
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                      let pageNum;
+                                      if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                      } else if (sourcesCurrentPage <= 3) {
+                                        pageNum = i + 1;
+                                      } else if (sourcesCurrentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i;
+                                      } else {
+                                        pageNum = sourcesCurrentPage - 2 + i;
+                                      }
+                                      
+                                      return (
+                                        <button
+                                          key={pageNum}
+                                          onClick={() => setSourcesCurrentPage(pageNum)}
+                                          className={`px-2 py-1 text-xs border rounded ${
+                                            sourcesCurrentPage === pageNum
+                                              ? 'bg-blue-600 text-white border-blue-600'
+                                              : 'border-gray-300 hover:bg-gray-50'
+                                          }`}
+                                        >
+                                          {pageNum}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => setSourcesCurrentPage(Math.min(totalPages, sourcesCurrentPage + 1))}
+                                    disabled={sourcesCurrentPage === totalPages}
+                                    className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    Next
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
