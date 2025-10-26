@@ -1588,21 +1588,33 @@ Analyze the provided diff and return a JSON response with:
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 mb-1">
                                         <span className="text-sm font-medium text-gray-900">{source.title}</span>
-                                        <span 
-                                          className={`text-xs px-2 py-0.5 rounded cursor-help ${priorityColors[source.priority as keyof typeof priorityColors] || priorityColors.medium}`}
-                                          title={`Priority level: ${source.priority} - indicates importance for compliance monitoring`}
-                                        >
-                                          {source.priority}
-                                        </span>
-                                        <span 
-                                          className={`text-xs px-2 py-0.5 rounded cursor-help ${source.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}
-                                          title={source.type === 'report' 
-                                            ? 'AI-processed compliance report with structured legal data from government sources' 
-                                            : 'Tracked compliance website being monitored for regulatory changes'
-                                          }
-                                        >
-                                          {source.type}
-                                        </span>
+                                        <div className="relative group">
+                                          <span className={`text-xs px-2 py-0.5 rounded cursor-help ${priorityColors[source.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
+                                            {source.priority}
+                                          </span>
+                                          {/* Priority Tooltip */}
+                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-20">
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg whitespace-nowrap">
+                                              Priority level: {source.priority} - indicates importance for compliance monitoring
+                                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="relative group">
+                                          <span className={`text-xs px-2 py-0.5 rounded cursor-help ${source.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                                            {source.type}
+                                          </span>
+                                          {/* Source Type Tooltip */}
+                                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-20">
+                                            <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg">
+                                              {source.type === 'report' 
+                                                ? 'AI-processed compliance report with structured legal data from government sources' 
+                                                : 'Tracked compliance website being monitored for regulatory changes'
+                                              }
+                                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+                                            </div>
+                                          </div>
+                                        </div>
                                       </div>
                                       <div className="text-xs text-gray-600 truncate" title={source.url}>
                                         {source.url}
