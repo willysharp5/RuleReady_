@@ -1126,28 +1126,44 @@ Analyze the provided diff and return a JSON response with:
                   </div>
                   
                   <div className="space-y-8">
-                    {/* Step 1: Source Collection */}
+                    {/* Step 1: Select Sources */}
                     <div className="border border-blue-200 rounded-lg p-6 bg-blue-50">
                       <div className="flex items-center gap-2 mb-4">
-                        <Globe className="h-5 w-5 text-blue-600" />
-                        <h3 className="text-lg font-medium text-blue-900">Step 1: Source Collection</h3>
+                        <Search className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-lg font-medium text-blue-900">Step 1: Select Sources</h3>
                       </div>
                       
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p className="text-sm text-blue-800">
+                          Search and select from existing scraped compliance data to combine into a new rule.
+                        </p>
+                        
+                        {/* Search and Filter */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Jurisdiction</label>
+                            <label className="text-sm font-medium text-gray-700">Search Sources</label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search by jurisdiction, topic, or content..."
+                                className="pl-10 mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Filter by Jurisdiction</label>
                             <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                              <option value="">Select jurisdiction...</option>
+                              <option value="">All jurisdictions</option>
                               {jurisdictions?.map(j => (
                                 <option key={j.code} value={j.name}>{j.name}</option>
                               ))}
                             </select>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Topic</label>
+                            <label className="text-sm font-medium text-gray-700">Filter by Topic</label>
                             <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                              <option value="">Select topic...</option>
+                              <option value="">All topics</option>
                               {topics?.map(t => (
                                 <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
                               ))}
@@ -1155,113 +1171,89 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                         </div>
                         
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Collection Name</label>
-                          <input
-                            type="text"
-                            placeholder="e.g., California Sexual Harassment Sources"
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Seed URLs</label>
-                          <textarea
-                            rows={4}
-                            placeholder="Enter URLs, one per line:&#10;https://example.gov/harassment-policy&#10;https://agency.gov/training-requirements&#10;https://dept.gov/compliance.pdf"
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Add government websites, PDFs, and authoritative sources (2-5 URLs recommended)
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Max Depth</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="5"
-                              defaultValue="2"
-                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                        {/* Available Sources List */}
+                        <div className="bg-white border border-blue-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-medium text-gray-900">Available Sources (1,298 total)</h4>
+                            <span className="text-xs text-gray-500">Select sources to combine</span>
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Max Pages</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="100"
-                              defaultValue="20"
-                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="flex items-center">
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                defaultChecked
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              Include PDFs
+                          
+                          <div className="max-h-64 overflow-y-auto space-y-2">
+                            {/* Example source items */}
+                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900">California - Sexual Harassment Training</span>
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Critical</span>
+                                </div>
+                                <div className="text-xs text-gray-600 truncate">https://www.dir.ca.gov/dlse/sexual-harassment.htm</div>
+                                <div className="text-xs text-gray-500">Scraped 2 days ago • 2,450 words</div>
+                              </div>
+                            </label>
+                            
+                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900">Federal - EEOC Harassment Guidelines</span>
+                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">High</span>
+                                </div>
+                                <div className="text-xs text-gray-600 truncate">https://www.eeoc.gov/sexual-harassment</div>
+                                <div className="text-xs text-gray-500">Scraped 1 day ago • 3,120 words</div>
+                              </div>
+                            </label>
+                            
+                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
+                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900">New York - Workplace Harassment Prevention</span>
+                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Medium</span>
+                                </div>
+                                <div className="text-xs text-gray-600 truncate">https://dol.ny.gov/harassment-prevention</div>
+                                <div className="text-xs text-gray-500">Scraped 3 hours ago • 1,890 words</div>
+                              </div>
                             </label>
                           </div>
-                          <div className="flex items-center">
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                defaultChecked
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              Respect robots.txt
-                            </label>
+                          
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">3 sources selected</span>
+                              <button className="text-blue-600 hover:text-blue-800 underline">Clear all</button>
+                            </div>
                           </div>
                         </div>
-                        
-                        <Button className="w-full">
-                          <Globe className="h-4 w-4 mr-2" />
-                          Create & Ingest Collection
-                        </Button>
                       </div>
                     </div>
                     
-                    {/* Step 2: LLM Synthesis */}
+                    {/* Step 2: Choose Template & Generate */}
                     <div className="border border-purple-200 rounded-lg p-6 bg-purple-50">
                       <div className="flex items-center gap-2 mb-4">
                         <Bot className="h-5 w-5 text-purple-600" />
-                        <h3 className="text-lg font-medium text-purple-900">Step 2: LLM Synthesis</h3>
+                        <h3 className="text-lg font-medium text-purple-900">Step 2: Choose Template & Generate</h3>
                       </div>
                       
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Source Collection</label>
-                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                              <option value="">Select collection...</option>
-                              <option value="ca-harassment">CA Sexual Harassment (15 sources)</option>
-                              <option value="tx-minimum-wage">TX Minimum Wage (8 sources)</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Template</label>
+                            <label className="text-sm font-medium text-gray-700">Compliance Template</label>
                             <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
                               <option value="">Select template...</option>
                               {allTemplates?.filter(t => t.isActive).map(t => (
                                 <option key={t.templateId} value={t.templateId}>{t.title}</option>
                               ))}
                             </select>
+                            <p className="text-xs text-gray-500 mt-1">Template structure for the generated rule</p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Source Limit</label>
+                            <label className="text-sm font-medium text-gray-700">Output Rule Name</label>
                             <input
-                              type="number"
-                              min="1"
-                              max="20"
-                              defaultValue="5"
+                              type="text"
+                              placeholder="e.g., Multi-State Sexual Harassment Requirements"
                               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Top N sources to use</p>
+                            <p className="text-xs text-gray-500 mt-1">Name for the generated compliance rule</p>
                           </div>
                         </div>
                         
