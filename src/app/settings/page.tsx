@@ -541,9 +541,19 @@ To see the actual scraped content, you would need to check the scrape results fr
       // OpenAI and Anthropic models would be added here when their API keys are detected
     ]
     
-    // Filter models that support the requested purpose
+    // Map purpose to capability name
+    const capabilityMap: { [key: string]: string } = {
+      'chat': 'chat',
+      'rule_generation': 'generation',
+      'embeddings': 'embeddings',
+      'change_analysis': 'analysis'
+    }
+    
+    const capability = capabilityMap[purpose] || purpose
+    
+    // Filter models that support the requested capability
     return models.filter(model => 
-      model.available && model.capabilities.includes(purpose === 'rule_generation' ? 'generation' : purpose)
+      model.available && model.capabilities.includes(capability)
     )
   }
 
