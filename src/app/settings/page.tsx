@@ -502,7 +502,7 @@ Analyze the provided diff and return a JSON response with:
             </div>
             
             {/* Content */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0 overflow-hidden">
               {/* Firecrawl Auth section removed */}
               
               {activeSection === 'monitoring' && (
@@ -1220,7 +1220,7 @@ Analyze the provided diff and return a JSON response with:
               )}
               
               {activeSection === 'generation' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-white rounded-lg shadow-sm p-4 lg:p-6 w-full">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -1233,7 +1233,7 @@ Analyze the provided diff and return a JSON response with:
                     </div>
                   </div>
                   
-                  <div className="max-w-6xl mx-auto space-y-8">
+                  <div className="max-w-4xl mx-auto space-y-8">
                     {/* Step 1: Select Sources */}
                     <div className="border border-blue-200 rounded-lg p-4 lg:p-6 bg-blue-50">
                       <div className="flex items-center gap-2 mb-4">
@@ -1247,7 +1247,7 @@ Analyze the provided diff and return a JSON response with:
                         </p>
                         
                         {/* Search and Filter */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Search Sources</label>
                             <div className="relative">
