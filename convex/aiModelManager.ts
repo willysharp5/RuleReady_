@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Get all AI models
@@ -67,7 +68,7 @@ export const updateAIModel = mutation({
     modelId: v.id("aiModels"),
     name: v.optional(v.string()),
     provider: v.optional(v.string()),
-    modelId: v.optional(v.string()),
+    modelIdentifier: v.optional(v.string()),
     apiKeyEnvVar: v.optional(v.string()),
     baseUrl: v.optional(v.string()),
     capabilities: v.optional(v.array(v.string())),
@@ -77,11 +78,13 @@ export const updateAIModel = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { modelId, ...updates } = args;
-    return await ctx.db.patch(modelId, {
+    const { modelId, modelIdentifier, ...updates } = args;
+    const updateData = {
       ...updates,
+      ...(modelIdentifier && { modelId: modelIdentifier }),
       updatedAt: Date.now(),
-    });
+    };
+    return await ctx.db.patch(modelId, updateData);
   },
 });
 
@@ -132,7 +135,8 @@ export const testAIModel = action({
   },
   handler: async (ctx, args) => {
     try {
-      const model = await ctx.db.get(args.modelId);
+      const model = await ctx.runQuery(api.aiModelManager.getAllAIModels)
+        .then((models: any) => models.find((m: any) => m._id === args.modelId));
       if (!model) {
         throw new Error("Model not found");
       }

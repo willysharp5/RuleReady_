@@ -132,27 +132,27 @@ export const saveGeneratedRule = internalMutation({
   handler: async (ctx, args) => {
     // Save to complianceReports table
     const reportId = await ctx.db.insert("complianceReports", {
-      title: args.title,
-      content: args.content,
-      jurisdiction: "Multi-Jurisdiction", // Since it's synthesized from multiple sources
-      topicKey: "synthesized_rule",
-      priority: "high",
-      sourceUrl: "Generated Rule",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      isActive: true,
-      composedFromCount: args.sourceIds.length,
-      lastSynthesizedAt: Date.now(),
+      ruleId: `synthesized_${Date.now()}`,
+      contentHash: `hash_${Date.now()}`,
+      reportId: `report_${Date.now()}`,
+      reportContent: args.content,
+      contentLength: args.content.length,
+      extractedSections: {
+        overview: "Generated rule overview",
+        employerResponsibilities: "Generated requirements",
+        penalties: "Generated implementation notes"
+      },
+      processingMethod: "llm_synthesis",
+      generatedAt: Date.now(),
     });
     
     // Save source mappings
     for (let i = 0; i < args.sourceIds.length; i++) {
       await ctx.db.insert("reportSources", {
-        reportId,
+        reportId: `report_${Date.now()}`,
         sourceId: args.sourceIds[i],
-        citationIndex: i + 1,
-        citationText: args.sourceCitations[i],
-        createdAt: Date.now(),
+        section: `citation_${i + 1}`,
+        citation: args.sourceCitations[i],
       });
     }
     
@@ -192,12 +192,10 @@ export const generateRuleEmbeddings = action({
         const embeddingId = await ctx.runMutation(internal.complianceGeneration.saveEmbedding, {
           content: chunk,
           vector: mockVector,
-          metadata: {
-            ruleTitle: args.ruleTitle,
-            chunkIndex: i,
-            totalChunks: chunks.length,
-            section: i === 0 ? 'Overview' : i === chunks.length - 1 ? 'Implementation' : 'Requirements',
-          },
+          ruleTitle: args.ruleTitle,
+          chunkIndex: i,
+          totalChunks: chunks.length,
+          section: i === 0 ? 'Overview' : i === chunks.length - 1 ? 'Implementation' : 'Requirements',
         });
         
         embeddings.push({
@@ -232,19 +230,30 @@ export const saveEmbedding = internalMutation({
   args: {
     content: v.string(),
     vector: v.array(v.number()),
-    metadata: v.object({
-      ruleTitle: v.string(),
-      chunkIndex: v.number(),
-      totalChunks: v.number(),
-      section: v.string(),
-    }),
+    ruleTitle: v.string(),
+    chunkIndex: v.number(),
+    totalChunks: v.number(),
+    section: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("complianceEmbeddings", {
+      entityId: `rule_${Date.now()}`,
+      entityType: "rule" as const,
+      contentHash: `hash_${Date.now()}`,
       content: args.content,
-      vector: args.vector,
-      metadata: args.metadata,
+      chunkIndex: args.chunkIndex,
+      totalChunks: args.totalChunks,
+      embedding: args.vector,
+      embeddingModel: "gemini-embedding-004",
+      embeddingDimensions: args.vector.length,
+      metadata: {
+        jurisdiction: "Multi-Jurisdiction",
+        topicKey: "synthesized_rule",
+        contentLength: args.content.length,
+        processingMethod: "llm_synthesis",
+      },
       createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   },
 });
@@ -255,7 +264,7 @@ export const getGeneratedRules = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("complianceReports")
-      .filter(q => q.eq(q.field("topicKey"), "synthesized_rule"))
+      .filter(q => q.eq(q.field("processingMethod"), "llm_synthesis"))
       .order("desc")
       .take(50);
   },

@@ -73,7 +73,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'monitoring' | 'jurisdictions' | 'templates' | 'generation'>('monitoring')
+  const [activeSection, setActiveSection] = useState<'monitoring' | 'jurisdictions' | 'templates' | 'generation' | 'ai-models'>('monitoring')
   
   // API keys removed
   // Webhook playground state
@@ -695,6 +695,17 @@ Analyze the provided diff and return a JSON response with:
                 >
                   <Bot className="h-4 w-4" />
                   Compliance Generation
+                </button>
+                <button
+                  onClick={() => setActiveSection('ai-models')}
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeSection === 'ai-models'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Zap className="h-4 w-4" />
+                  AI Models
                 </button>
               </nav>
             </div>
@@ -1784,6 +1795,190 @@ Analyze the provided diff and return a JSON response with:
                             <li>Rule becomes searchable in chat system</li>
                           </ul>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {activeSection === 'ai-models' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Zap className="h-6 w-6" />
+                        AI Models
+                      </h2>
+                      <p className="text-gray-600 mt-1">
+                        Manage AI providers and assign models to different tasks
+                      </p>
+                    </div>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Model
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-8">
+                    {/* Environment Status */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="font-medium text-blue-900 mb-3">Environment Variables Status</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-700">GEMINI_API_KEY</span>
+                          <span className="text-green-600 font-medium">✓ Set</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-700">FIRECRAWL_API_KEY</span>
+                          <span className="text-green-600 font-medium">✓ Set</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                          <span className="text-gray-700">OPENAI_API_KEY</span>
+                          <span className="text-gray-500">Not set</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Current Model Assignments */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Current Model Assignments</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">Chat System</h4>
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Active</span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Model:</strong> Google Gemini 2.0 Flash</p>
+                            <p><strong>Provider:</strong> Google</p>
+                            <p><strong>Purpose:</strong> Compliance chat assistance</p>
+                          </div>
+                          <Button variant="outline" size="sm" className="mt-3">
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Configure
+                          </Button>
+                        </div>
+                        
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">Rule Generation</h4>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Model:</strong> Google Gemini 2.0 Flash</p>
+                            <p><strong>Provider:</strong> Google</p>
+                            <p><strong>Purpose:</strong> Compliance rule synthesis</p>
+                          </div>
+                          <Button variant="outline" size="sm" className="mt-3">
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Configure
+                          </Button>
+                        </div>
+                        
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">Embeddings</h4>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Model:</strong> Google Text Embedding 004</p>
+                            <p><strong>Provider:</strong> Google</p>
+                            <p><strong>Purpose:</strong> Vector embeddings for search</p>
+                          </div>
+                          <Button variant="outline" size="sm" className="mt-3">
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Configure
+                          </Button>
+                        </div>
+                        
+                        <div className="border border-gray-200 rounded-lg p-4 opacity-60">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-gray-900">Change Analysis</h4>
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Disabled</span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p><strong>Model:</strong> Not configured</p>
+                            <p><strong>Provider:</strong> -</p>
+                            <p><strong>Purpose:</strong> Website change detection</p>
+                          </div>
+                          <Button variant="outline" size="sm" className="mt-3" disabled>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Setup
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Available Models */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Available AI Models</h3>
+                      <div className="space-y-3">
+                        <div className="border border-green-200 bg-green-50 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <Bot className="h-5 w-5 text-green-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">Google Gemini 2.0 Flash</h4>
+                                <p className="text-sm text-gray-600">Fast, efficient model for chat and analysis</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Chat</span>
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Analysis</span>
+                                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Generation</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-green-600 font-medium">✓ Active</span>
+                              <Button variant="outline" size="sm">
+                                Test
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <Bot className="h-5 w-5 text-gray-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">OpenAI GPT-4o Mini</h4>
+                                <p className="text-sm text-gray-600">Efficient model for general tasks</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Chat</span>
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Analysis</span>
+                                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Generation</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">API Key Required</span>
+                              <Button variant="outline" size="sm" disabled>
+                                Test
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Quick Setup */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <h3 className="font-medium text-orange-900 mb-3">Quick Setup</h3>
+                      <p className="text-sm text-orange-800 mb-4">
+                        Add your API keys to `.env.local` to enable additional AI providers:
+                      </p>
+                      <div className="bg-white border border-orange-200 rounded p-3 font-mono text-xs text-gray-700">
+                        <div># Add to your .env.local file:</div>
+                        <div>OPENAI_API_KEY=sk-your-key-here</div>
+                        <div>ANTHROPIC_API_KEY=sk-ant-your-key-here</div>
+                        <div>AZURE_OPENAI_KEY=your-azure-key</div>
                       </div>
                     </div>
                   </div>
