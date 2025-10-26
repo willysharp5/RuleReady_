@@ -187,6 +187,18 @@ Instructions:
   // Source preview state
   const [previewSource, setPreviewSource] = useState<any>(null)
   const [showSourcePreview, setShowSourcePreview] = useState(false)
+  
+  // Generated rule state
+  const [generatedRule, setGeneratedRule] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [showFullReportEditor, setShowFullReportEditor] = useState(false)
+  const [editableRule, setEditableRule] = useState('')
+  const [sourceCitations, setSourceCitations] = useState<string[]>([])
+  
+  // Embeddings state
+  const [generatedEmbeddings, setGeneratedEmbeddings] = useState<any[]>([])
+  const [showEmbeddingsPreview, setShowEmbeddingsPreview] = useState(false)
+  const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false)
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -301,6 +313,107 @@ Instructions:
   const closeSourcePreview = () => {
     setShowSourcePreview(false)
     setPreviewSource(null)
+  }
+
+  // Rule generation handlers
+  const handleGenerateRule = async () => {
+    if (selectedSources.size === 0 || !selectedTemplate) {
+      alert('Please select sources and a template first')
+      return
+    }
+
+    setIsGenerating(true)
+    try {
+      // Simulate AI generation - replace with actual API call
+      const mockGeneratedRule = `# Generated Compliance Rule: ${outputRuleName || 'Untitled Rule'}
+
+## Overview
+This compliance rule has been synthesized from ${selectedSources.size} selected sources using the specified template structure.
+
+## Requirements
+Based on the analysis of the selected sources, the following requirements have been identified:
+
+1. **Primary Compliance Obligation**: [Generated from source analysis]
+2. **Implementation Timeline**: [Derived from regulatory sources]
+3. **Reporting Requirements**: [Compiled from multiple jurisdictions]
+
+## Source References
+${Array.from(selectedSources).map((sourceId, index) => {
+  const source = availableSources.find(s => s.id === sourceId)
+  return `[${index + 1}] ${source?.title} - ${source?.jurisdiction}`
+}).join('\n')}
+
+## Implementation Notes
+[AI-generated implementation guidance based on source analysis]
+
+---
+*This rule was generated using LLM synthesis on ${new Date().toLocaleDateString()}*`
+
+      setGeneratedRule(mockGeneratedRule)
+      setEditableRule(mockGeneratedRule)
+      
+      // Generate mock citations
+      const citations = Array.from(selectedSources).map((sourceId, index) => {
+        const source = availableSources.find(s => s.id === sourceId)
+        return `[${index + 1}] ${source?.title} - ${source?.url}`
+      })
+      setSourceCitations(citations)
+      
+    } catch (error) {
+      console.error('Error generating rule:', error)
+      alert('Error generating rule. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleApproveAndPublish = () => {
+    if (!editableRule.trim()) {
+      alert('No rule content to publish')
+      return
+    }
+    
+    // Here you would save the rule to the database
+    console.log('Publishing rule:', editableRule)
+    alert('Rule approved and published! Ready for embedding generation.')
+  }
+
+  const handleGenerateEmbeddings = async () => {
+    if (!editableRule.trim()) {
+      alert('Please generate and approve a rule first')
+      return
+    }
+
+    setIsGeneratingEmbeddings(true)
+    try {
+      // Simulate embedding generation - replace with actual API call
+      const mockEmbeddings = [
+        {
+          chunk: editableRule.substring(0, 500) + '...',
+          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
+          metadata: { section: 'Overview', chunkIndex: 0 }
+        },
+        {
+          chunk: editableRule.substring(500, 1000) + '...',
+          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
+          metadata: { section: 'Requirements', chunkIndex: 1 }
+        },
+        {
+          chunk: editableRule.substring(1000, 1500) + '...',
+          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
+          metadata: { section: 'Implementation', chunkIndex: 2 }
+        }
+      ]
+      
+      setGeneratedEmbeddings(mockEmbeddings)
+      alert('Embeddings generated successfully! Rule is now searchable in chat.')
+      
+    } catch (error) {
+      console.error('Error generating embeddings:', error)
+      alert('Error generating embeddings. Please try again.')
+    } finally {
+      setIsGeneratingEmbeddings(false)
+    }
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -1450,9 +1563,23 @@ Analyze the provided diff and return a JSON response with:
                           />
                         </div>
                         
-                        <Button className="w-full" variant="default">
-                          <Bot className="h-4 w-4 mr-2" />
-                          Generate Compliance Rule
+                        <Button 
+                          className="w-full" 
+                          variant="default"
+                          onClick={handleGenerateRule}
+                          disabled={selectedSources.size === 0 || !selectedTemplate || isGenerating}
+                        >
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Generating Rule...
+                            </>
+                          ) : (
+                            <>
+                              <Bot className="h-4 w-4 mr-2" />
+                              Generate Compliance Rule
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1467,26 +1594,55 @@ Analyze the provided diff and return a JSON response with:
                       <div className="space-y-4">
                         <div className="bg-white border border-green-200 rounded-lg p-4">
                           <h4 className="font-medium text-gray-900 mb-2">Generated Rule Preview</h4>
-                          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border">
-                            <em>Generated compliance rule will appear here after synthesis...</em>
-                          </div>
+                          {generatedRule ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editableRule}
+                                onChange={(e) => setEditableRule(e.target.value)}
+                                rows={8}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                placeholder="Edit the generated compliance rule..."
+                              />
+                              <p className="text-xs text-gray-500">
+                                ✏️ You can edit the generated rule above before publishing
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded border">
+                              <em>Generated compliance rule will appear here after synthesis...</em>
+                            </div>
+                          )}
                         </div>
                         
-                        <div className="bg-white border border-green-200 rounded-lg p-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Source Citations</h4>
-                          <div className="text-xs text-gray-600 space-y-1">
-                            <div>[1] example.gov/policy - Overview section</div>
-                            <div>[2] agency.gov/requirements.pdf - Training requirements</div>
-                            <div>[3] dept.gov/penalties - Penalties section</div>
+                        {sourceCitations.length > 0 && (
+                          <div className="bg-white border border-green-200 rounded-lg p-4">
+                            <h4 className="font-medium text-gray-900 mb-2">Source Citations</h4>
+                            <div className="text-xs text-gray-600 space-y-1">
+                              {sourceCitations.map((citation, index) => (
+                                <div key={index}>{citation}</div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              💡 These citations are automatically generated from your selected sources
+                            </p>
                           </div>
-                        </div>
+                        )}
                         
                         <div className="flex gap-3">
-                          <Button variant="outline" className="flex-1">
+                          <Button 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={() => setShowFullReportEditor(true)}
+                            disabled={!generatedRule}
+                          >
                             <Eye className="h-4 w-4 mr-2" />
                             Preview Full Report
                           </Button>
-                          <Button className="flex-1">
+                          <Button 
+                            className="flex-1"
+                            onClick={handleApproveAndPublish}
+                            disabled={!editableRule.trim()}
+                          >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             Approve & Publish
                           </Button>
@@ -1510,12 +1666,42 @@ Analyze the provided diff and return a JSON response with:
                           <div className="flex items-center justify-between">
                             <div>
                               <h4 className="font-medium text-gray-900">Embedding Status</h4>
-                              <p className="text-sm text-gray-600">Ready to generate embeddings for new rule</p>
+                              <p className="text-sm text-gray-600">
+                                {generatedEmbeddings.length > 0 
+                                  ? `Generated ${generatedEmbeddings.length} embedding chunks`
+                                  : editableRule 
+                                    ? 'Ready to generate embeddings for approved rule'
+                                    : 'Waiting for rule approval'
+                                }
+                              </p>
                             </div>
-                            <Button>
-                              <Zap className="h-4 w-4 mr-2" />
-                              Generate Embeddings
-                            </Button>
+                            <div className="flex gap-2">
+                              {generatedEmbeddings.length > 0 && (
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => setShowEmbeddingsPreview(true)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Preview
+                                </Button>
+                              )}
+                              <Button
+                                onClick={handleGenerateEmbeddings}
+                                disabled={!editableRule.trim() || isGeneratingEmbeddings}
+                              >
+                                {isGeneratingEmbeddings ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Generating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="h-4 w-4 mr-2" />
+                                    Generate Embeddings
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         </div>
                         
@@ -1668,6 +1854,124 @@ Analyze the provided diff and return a JSON response with:
                 className={selectedSources.has(previewSource.id) ? 'bg-red-600 hover:bg-red-700' : ''}
               >
                 {selectedSources.has(previewSource.id) ? 'Remove from Selection' : 'Add to Selection'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Full Report Editor Modal */}
+      {showFullReportEditor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-gray-900">Full Report Editor</h2>
+              <button
+                onClick={() => setShowFullReportEditor(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 flex-1 min-h-0">
+              <textarea
+                value={editableRule}
+                onChange={(e) => setEditableRule(e.target.value)}
+                className="w-full h-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-mono resize-none"
+                placeholder="Edit your compliance rule here..."
+              />
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <Button variant="outline" onClick={() => setShowFullReportEditor(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setShowFullReportEditor(false)}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Embeddings Preview Modal */}
+      {showEmbeddingsPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-gray-900">Embeddings Preview</h2>
+              <button
+                onClick={() => setShowEmbeddingsPreview(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-medium text-blue-900 mb-2">Embedding Summary</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-700 font-medium">Total Chunks:</span>
+                      <span className="ml-2 text-blue-900">{generatedEmbeddings.length}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Vector Dimensions:</span>
+                      <span className="ml-2 text-blue-900">{generatedEmbeddings[0]?.vector.length || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700 font-medium">Status:</span>
+                      <span className="ml-2 text-green-600 font-medium">Ready for Search</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {generatedEmbeddings.map((embedding, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900">Chunk {index + 1}</h4>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                        {embedding.metadata.section}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Content</label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded text-sm text-gray-700 font-mono">
+                          {embedding.chunk}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vector (first 10 dimensions)</label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded text-xs text-gray-600 font-mono">
+                          [{embedding.vector.join(', ')}...]
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <span className="text-gray-500">Section:</span>
+                          <span className="ml-2 text-gray-700">{embedding.metadata.section}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Chunk Index:</span>
+                          <span className="ml-2 text-gray-700">{embedding.metadata.chunkIndex}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <Button onClick={() => setShowEmbeddingsPreview(false)}>
+                Close
               </Button>
             </div>
           </div>
