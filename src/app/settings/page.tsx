@@ -187,6 +187,7 @@ Instructions:
   // Source preview state
   const [previewSource, setPreviewSource] = useState<any>(null)
   const [showSourcePreview, setShowSourcePreview] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState(false)
   
   // Generated rule state
   const [generatedRule, setGeneratedRule] = useState('')
@@ -364,6 +365,18 @@ To see the actual scraped content, you would need to check the scrape results fr
   const closeSourcePreview = () => {
     setShowSourcePreview(false)
     setPreviewSource(null)
+    setCopiedUrl(false)
+  }
+
+  // Copy URL function
+  const copyUrlToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedUrl(true)
+      setTimeout(() => setCopiedUrl(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy URL:', err)
+    }
   }
 
   // Rule generation handlers
@@ -1885,11 +1898,35 @@ Analyze the provided diff and return a JSON response with:
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Source URL</label>
-                  <p className="text-sm text-blue-600 mt-1 truncate" title={previewSource.url}>
-                    <a href={previewSource.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                      {previewSource.url}
-                    </a>
-                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="group relative">
+                        <p className="text-sm text-blue-600 truncate cursor-pointer">
+                          <a href={previewSource.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {previewSource.url}
+                          </a>
+                        </p>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10">
+                          <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-md break-all shadow-lg">
+                            {previewSource.url}
+                            <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => copyUrlToClipboard(previewSource.url)}
+                      className="flex-shrink-0 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Copy URL"
+                    >
+                      {copiedUrl ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scraped Date</label>
@@ -1903,25 +1940,13 @@ Analyze the provided diff and return a JSON response with:
               
               {/* Content Preview */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-gray-700">Content Preview</label>
-                  {previewSource.contentExplanation && (
-                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded" title={previewSource.contentExplanation}>
-                      ℹ️ Info
-                    </span>
-                  )}
-                </div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">Content Preview</label>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
                     {previewSource.content?.substring(0, 5000)}
                     {previewSource.content?.length > 5000 && '\n\n... (content truncated for preview)'}
                   </pre>
                 </div>
-                {previewSource.contentExplanation && (
-                  <p className="text-xs text-gray-500 mt-2 italic">
-                    {previewSource.contentExplanation}
-                  </p>
-                )}
               </div>
               
               {/* Additional Data */}
