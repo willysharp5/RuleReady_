@@ -376,11 +376,6 @@ ${Array.from(selectedSources).map((sourceId, index) => {
     // Here you would save the rule to the database
     console.log('Publishing rule:', editableRule)
     setShowPublishSuccess(true)
-    
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      setShowPublishSuccess(false)
-    }, 3000)
   }
 
   const handleGenerateEmbeddings = async () => {
@@ -411,11 +406,6 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       
       setGeneratedEmbeddings(mockEmbeddings)
       setShowEmbeddingsSuccess(true)
-      
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        setShowEmbeddingsSuccess(false)
-      }, 3000)
       
     } catch (error) {
       console.error('Error generating embeddings:', error)
@@ -1648,15 +1638,28 @@ Analyze the provided diff and return a JSON response with:
                           
                           {/* Success Popover */}
                           {showPublishSuccess && (
-                            <div className="absolute top-full right-0 mt-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 min-w-[300px]">
-                              <div className="flex items-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-green-200" />
-                                <div>
-                                  <p className="font-medium">Rule Published Successfully!</p>
-                                  <p className="text-sm text-green-200">Ready for embedding generation in Step 4</p>
+                            <div className="absolute top-full right-0 mt-2 bg-white border border-green-200 rounded-lg shadow-xl z-50 min-w-[350px] max-w-[400px]">
+                              <div className="p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900">Success!</h3>
+                                  </div>
+                                  <button
+                                    onClick={() => setShowPublishSuccess(false)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div className="ml-10">
+                                  <p className="text-sm text-gray-900 font-medium mb-1">Rule Published Successfully!</p>
+                                  <p className="text-sm text-gray-600">Your compliance rule has been approved and is ready for embedding generation in Step 4.</p>
                                 </div>
                               </div>
-                              <div className="absolute -top-1 right-4 w-2 h-2 bg-green-600 rotate-45"></div>
+                              <div className="absolute -top-2 right-6 w-4 h-4 bg-white border-l border-t border-green-200 rotate-45"></div>
                             </div>
                           )}
                         </div>
@@ -1717,15 +1720,40 @@ Analyze the provided diff and return a JSON response with:
                               
                               {/* Success Popover */}
                               {showEmbeddingsSuccess && (
-                                <div className="absolute top-full right-0 mt-2 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 min-w-[320px]">
-                                  <div className="flex items-center gap-2">
-                                    <Zap className="h-5 w-5 text-blue-200" />
-                                    <div>
-                                      <p className="font-medium">Embeddings Generated Successfully!</p>
-                                      <p className="text-sm text-blue-200">Rule is now searchable in the chat system</p>
+                                <div className="absolute top-full right-0 mt-2 bg-white border border-blue-200 rounded-lg shadow-xl z-50 min-w-[350px] max-w-[400px]">
+                                  <div className="p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                          <Zap className="h-5 w-5 text-blue-600" />
+                                        </div>
+                                        <h3 className="font-semibold text-gray-900">Success!</h3>
+                                      </div>
+                                      <button
+                                        onClick={() => setShowEmbeddingsSuccess(false)}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                      >
+                                        <XCircle className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                    <div className="ml-10">
+                                      <p className="text-sm text-gray-900 font-medium mb-1">Embeddings Generated Successfully!</p>
+                                      <p className="text-sm text-gray-600">Your compliance rule is now searchable in the chat system and ready for use.</p>
+                                      <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <button
+                                          onClick={() => {
+                                            setShowEmbeddingsSuccess(false)
+                                            setShowEmbeddingsPreview(true)
+                                          }}
+                                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                                        >
+                                          <Eye className="h-3 w-3" />
+                                          View Embeddings
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="absolute -top-1 right-4 w-2 h-2 bg-blue-600 rotate-45"></div>
+                                  <div className="absolute -top-2 right-6 w-4 h-4 bg-white border-l border-t border-blue-200 rotate-45"></div>
                                 </div>
                               )}
                             </div>
