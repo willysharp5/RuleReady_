@@ -183,6 +183,10 @@ Instructions:
 - Avoid speculation - only include information found in sources
 - Ensure all template sections are filled with relevant information
 - Maintain legal accuracy and clarity`)
+  
+  // Source preview state
+  const [previewSource, setPreviewSource] = useState<any>(null)
+  const [showSourcePreview, setShowSourcePreview] = useState(false)
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -269,6 +273,34 @@ Instructions:
 
   const clearAllSources = () => {
     setSelectedSources(new Set())
+  }
+
+  // Source preview handlers
+  const handleSourcePreview = (source: any) => {
+    // Find the actual source data with content
+    let sourceWithContent = null
+    let content = 'Content not available'
+    
+    if (source.type === 'report' && allComplianceReports) {
+      sourceWithContent = allComplianceReports.find((report: any) => report._id === source.id)
+      content = sourceWithContent?.content || 'Content not available'
+    } else if (source.type === 'website' && websites) {
+      sourceWithContent = websites.find((website: any) => website._id === source.id)
+      // For websites, we might need to get the content from scrape results
+      content = 'Website content would be available from scrape results. This is a tracked website for compliance monitoring.'
+    }
+    
+    setPreviewSource({
+      ...source,
+      content,
+      fullData: sourceWithContent
+    })
+    setShowSourcePreview(true)
+  }
+
+  const closeSourcePreview = () => {
+    setShowSourcePreview(false)
+    setPreviewSource(null)
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -1316,9 +1348,9 @@ Analyze the provided diff and return a JSON response with:
                                 }
                                 
                                 return (
-                                  <label 
+                                  <div 
                                     key={source.id}
-                                    className={`flex items-start gap-3 p-3 border rounded hover:bg-gray-50 cursor-pointer ${
+                                    className={`flex items-start gap-3 p-3 border rounded hover:bg-gray-50 ${
                                       isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                                     }`}
                                   >
@@ -1343,7 +1375,14 @@ Analyze the provided diff and return a JSON response with:
                                         Scraped {new Date(source.scrapedAt).toLocaleDateString()} • {source.wordCount.toLocaleString()} chars
                                       </div>
                                     </div>
-                                  </label>
+                                    <button
+                                      onClick={() => handleSourcePreview(source)}
+                                      className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                      title="Preview source content"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 )
                               })
                             )}
@@ -1521,6 +1560,118 @@ Analyze the provided diff and return a JSON response with:
             // Removed addToast as it's not defined
           }}
         />
+      )}
+      
+      {/* Source Preview Modal */}
+      {showSourcePreview && previewSource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-gray-900">{previewSource.title}</span>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    previewSource.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {previewSource.type}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={closeSourcePreview}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Jurisdiction</label>
+                  <p className="text-sm text-gray-900 mt-1">{previewSource.jurisdiction}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Topic</label>
+                  <p className="text-sm text-gray-900 mt-1">{previewSource.topic}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Priority</label>
+                  <p className="text-sm text-gray-900 mt-1 capitalize">{previewSource.priority}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Source URL</label>
+                  <p className="text-sm text-blue-600 mt-1 truncate">
+                    <a href={previewSource.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {previewSource.url}
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scraped Date</label>
+                  <p className="text-sm text-gray-900 mt-1">{new Date(previewSource.scrapedAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Content Length</label>
+                  <p className="text-sm text-gray-900 mt-1">{previewSource.wordCount.toLocaleString()} characters</p>
+                </div>
+              </div>
+              
+              {/* Content Preview */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-3 block">Content Preview</label>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
+                    {previewSource.content?.substring(0, 5000)}
+                    {previewSource.content?.length > 5000 && '\n\n... (content truncated for preview)'}
+                  </pre>
+                </div>
+              </div>
+              
+              {/* Additional Data */}
+              {previewSource.fullData && (
+                <div className="mt-6">
+                  <label className="text-sm font-medium text-gray-700 mb-3 block">Additional Metadata</label>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono">
+                      {JSON.stringify(
+                        {
+                          id: previewSource.fullData._id,
+                          createdAt: previewSource.fullData.createdAt,
+                          updatedAt: previewSource.fullData._creationTime,
+                          ...(previewSource.fullData.complianceMetadata && {
+                            complianceMetadata: previewSource.fullData.complianceMetadata
+                          })
+                        },
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <Button variant="outline" onClick={closeSourcePreview}>
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  toggleSourceSelection(previewSource.id)
+                  closeSourcePreview()
+                }}
+                className={selectedSources.has(previewSource.id) ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                {selectedSources.has(previewSource.id) ? 'Remove from Selection' : 'Add to Selection'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
       
       <Footer />
