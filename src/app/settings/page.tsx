@@ -308,19 +308,54 @@ Instructions:
     // Find the actual source data with content
     let sourceWithContent = null
     let content = 'Content not available'
+    let contentExplanation = ''
     
     if (source.type === 'report' && allComplianceReports) {
       sourceWithContent = allComplianceReports.find((report: any) => report._id === source.id)
-      content = sourceWithContent?.rawContent || 'Content not available'
+      if (sourceWithContent?.rawContent) {
+        content = sourceWithContent.rawContent
+        contentExplanation = 'This is the raw scraped content from the compliance report.'
+      } else if (sourceWithContent?.structuredData) {
+        // Show structured data if raw content isn't available
+        const structured = sourceWithContent.structuredData
+        content = `STRUCTURED COMPLIANCE DATA:
+
+Overview: ${structured.overview || 'Not available'}
+
+Covered Employers: ${structured.coveredEmployers || 'Not specified'}
+
+Covered Employees: ${structured.coveredEmployees || 'Not specified'}
+
+Employer Responsibilities: ${structured.employerResponsibilities || structured.whatShouldEmployersDo || 'Not specified'}
+
+Training Requirements: ${structured.trainingRequirements || 'Not specified'}
+
+Training Deadlines: ${structured.trainingDeadlines || 'Not specified'}
+
+Penalties: ${structured.penalties || 'Not specified'}
+
+Sources: ${structured.sources || 'Not specified'}`
+        contentExplanation = 'This report has been AI-processed into structured data. Raw content was not preserved.'
+      } else {
+        content = 'No content available for this report.'
+        contentExplanation = 'This report exists in the database but has no content or structured data.'
+      }
     } else if (source.type === 'website' && websites) {
       sourceWithContent = websites.find((website: any) => website._id === source.id)
-      // For websites, we might need to get the content from scrape results
-      content = 'Website content would be available from scrape results. This is a tracked website for compliance monitoring.'
+      content = `This is a tracked compliance website for ${source.jurisdiction} - ${source.topic}.
+
+Website URL: ${source.url}
+Priority: ${source.priority}
+Last Checked: ${new Date(source.scrapedAt).toLocaleDateString()}
+
+To see the actual scraped content, you would need to check the scrape results from the main dashboard. This website is being monitored for compliance changes.`
+      contentExplanation = 'Website content comes from periodic scrapes. The actual content would be in scrapeResults table.'
     }
     
     setPreviewSource({
       ...source,
       content,
+      contentExplanation,
       fullData: sourceWithContent
     })
     setShowSourcePreview(true)
@@ -1529,7 +1564,9 @@ Analyze the provided diff and return a JSON response with:
                                           {source.type}
                                         </span>
                                       </div>
-                                      <div className="text-xs text-gray-600 truncate">{source.url}</div>
+                                      <div className="text-xs text-gray-600 truncate" title={source.url}>
+                                        {source.url}
+                                      </div>
                                       <div className="text-xs text-gray-500">
                                         Scraped {new Date(source.scrapedAt).toLocaleDateString()} • {source.wordCount.toLocaleString()} chars
                                       </div>
@@ -1829,7 +1866,7 @@ Analyze the provided diff and return a JSON response with:
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Source URL</label>
-                  <p className="text-sm text-blue-600 mt-1 truncate">
+                  <p className="text-sm text-blue-600 mt-1 truncate" title={previewSource.url}>
                     <a href={previewSource.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                       {previewSource.url}
                     </a>
@@ -1847,13 +1884,25 @@ Analyze the provided diff and return a JSON response with:
               
               {/* Content Preview */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-3 block">Content Preview</label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700">Content Preview</label>
+                  {previewSource.contentExplanation && (
+                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded" title={previewSource.contentExplanation}>
+                      ℹ️ Info
+                    </span>
+                  )}
+                </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed">
                     {previewSource.content?.substring(0, 5000)}
                     {previewSource.content?.length > 5000 && '\n\n... (content truncated for preview)'}
                   </pre>
                 </div>
+                {previewSource.contentExplanation && (
+                  <p className="text-xs text-gray-500 mt-2 italic">
+                    {previewSource.contentExplanation}
+                  </p>
+                )}
               </div>
               
               {/* Additional Data */}
