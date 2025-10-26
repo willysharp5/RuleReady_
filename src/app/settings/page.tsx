@@ -494,15 +494,17 @@ To see the actual scraped content, you would need to check the scrape results fr
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
     
-    // Set default prompts based on purpose
+    // Load prompts from existing settings
     switch (purpose) {
       case 'chat':
-        setConfigSystemPrompt('You are a professional compliance assistant specializing in US employment law.')
+        // Chat prompt is managed in chat settings, not here
+        setConfigSystemPrompt('')
         setConfigTemperature(0.7)
         setConfigMaxTokens(4096)
         break
       case 'rule_generation':
-        setConfigSystemPrompt('You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule.')
+        // Load from userSettings.ruleGenerationSystemPrompt
+        setConfigSystemPrompt(userSettings?.ruleGenerationSystemPrompt || 'You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule.')
         setConfigTemperature(0.3)
         setConfigMaxTokens(8192)
         break
@@ -512,7 +514,8 @@ To see the actual scraped content, you would need to check the scrape results fr
         setConfigMaxTokens(0)
         break
       case 'change_analysis':
-        setConfigSystemPrompt('You are an AI assistant specialized in analyzing website changes for compliance monitoring.')
+        // Load from userSettings.aiSystemPrompt (existing field)
+        setConfigSystemPrompt(userSettings?.aiSystemPrompt || 'You are an AI assistant specialized in analyzing website changes for compliance monitoring.')
         setConfigTemperature(0.5)
         setConfigMaxTokens(2048)
         break
@@ -653,6 +656,30 @@ Next steps:
 3. Previous models for these purposes will be replaced`)
     
     setShowAddModel(false)
+  }
+
+  // Save model configuration
+  const handleSaveModelConfig = async () => {
+    try {
+      if (configPurpose === 'rule_generation') {
+        // Save rule generation prompt to userSettings
+        await updateChatSettings({
+          ruleGenerationSystemPrompt: configSystemPrompt,
+        })
+      } else if (configPurpose === 'change_analysis') {
+        // Save change analysis prompt to userSettings
+        await updateChatSettings({
+          aiSystemPrompt: configSystemPrompt,
+        })
+      }
+      // Chat prompt is managed elsewhere, embeddings don't need prompts
+      
+      alert('Configuration saved successfully!')
+      setShowModelConfig(false)
+    } catch (error) {
+      console.error('Error saving configuration:', error)
+      alert('Error saving configuration. Please try again.')
+    }
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -2630,19 +2657,47 @@ Analyze the provided diff and return a JSON response with:
                   )}
                 </div>
                 
-                {/* System Prompt */}
-                {configPurpose !== 'embeddings' && (
+                {/* System Prompt - Different handling for each purpose */}
+                {configPurpose === 'chat' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Chat System Prompt</h4>
+                    <p className="text-sm text-blue-800">
+                      The chat system prompt is managed in the main chat settings. Go to the chat section in the main app to configure it.
+                    </p>
+                    <p className="text-xs text-blue-700 mt-2">
+                      Current: "You are a professional compliance assistant specializing in US employment law."
+                    </p>
+                  </div>
+                )}
+                
+                {configPurpose === 'rule_generation' && (
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">System Prompt</label>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Rule Generation System Prompt</label>
                     <textarea
                       value={configSystemPrompt}
                       onChange={(e) => setConfigSystemPrompt(e.target.value)}
                       rows={6}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                      placeholder="Enter system prompt for this AI model..."
+                      placeholder="Enter system prompt for rule generation..."
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      This prompt defines the AI's role and behavior for {configPurpose.replace('_', ' ')} tasks.
+                      This prompt will be used every time a compliance rule is generated from sources.
+                    </p>
+                  </div>
+                )}
+                
+                {configPurpose === 'change_analysis' && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Change Analysis System Prompt</label>
+                    <textarea
+                      value={configSystemPrompt}
+                      onChange={(e) => setConfigSystemPrompt(e.target.value)}
+                      rows={6}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      placeholder="Enter system prompt for change analysis..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This prompt will be used every time a website change is analyzed for compliance relevance.
                     </p>
                   </div>
                 )}
@@ -2709,7 +2764,7 @@ Analyze the provided diff and return a JSON response with:
               <Button variant="outline" onClick={() => setShowModelConfig(false)}>
                 Cancel
               </Button>
-              <Button>
+              <Button onClick={handleSaveModelConfig}>
                 Save Configuration
               </Button>
             </div>
