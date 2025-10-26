@@ -1599,8 +1599,8 @@ Analyze the provided diff and return a JSON response with:
                               <textarea
                                 value={editableRule}
                                 onChange={(e) => setEditableRule(e.target.value)}
-                                rows={8}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                                rows={20}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono resize-y min-h-[400px] max-h-[600px] overflow-y-auto"
                                 placeholder="Edit the generated compliance rule..."
                               />
                               <p className="text-xs text-gray-500">
