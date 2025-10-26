@@ -1474,23 +1474,31 @@ Analyze the provided diff and return a JSON response with:
                             Search and select from existing scraped compliance data to combine into a new rule.
                           </p>
                           <div className="flex items-center gap-4 text-xs text-blue-700">
-                            <div className="flex items-center gap-1">
-                              <span 
-                                className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded cursor-help"
-                                title="AI-processed compliance report with structured legal data from government sources"
-                              >
+                            <div className="flex items-center gap-1 relative group">
+                              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded cursor-help">
                                 report
                               </span>
                               <span>= AI-processed compliance reports</span>
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-20">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg">
+                                  AI-processed compliance report with structured legal data from government sources
+                                  <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span 
-                                className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded cursor-help"
-                                title="Tracked compliance website being monitored for regulatory changes"
-                              >
+                            <div className="flex items-center gap-1 relative group">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded cursor-help">
                                 website
                               </span>
                               <span>= Tracked compliance websites</span>
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-20">
+                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg">
+                                  Tracked compliance website being monitored for regulatory changes
+                                  <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
