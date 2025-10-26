@@ -148,6 +148,10 @@ function SettingsContent() {
   const generateRule = useAction(api.complianceGeneration.generateComplianceRule)
   const generateEmbeddings = useAction(api.complianceGeneration.generateRuleEmbeddings)
   
+  // AI Models queries (commented out until backend is deployed)
+  // const allAIModels = useQuery(api.aiModelManager.getAllAIModels)
+  // const chatModelConfig = useQuery(api.aiModelManager.getModelConfigForPurpose, { purpose: 'chat' })
+  
   
   // User settings queries and mutations
   const userSettings = useQuery(api.userSettings.getUserSettings)
@@ -515,6 +519,42 @@ To see the actual scraped content, you would need to check the scrape results fr
     }
     
     setShowModelConfig(true)
+  }
+
+  // Get available models based on current setup
+  const getAvailableModels = (purpose: string) => {
+    const models = [
+      {
+        id: 'gemini-2.0-flash-exp',
+        name: 'Google Gemini 2.0 Flash',
+        provider: 'google',
+        available: true, // We know this works from testing
+        capabilities: ['chat', 'analysis', 'generation']
+      },
+      {
+        id: 'text-embedding-004',
+        name: 'Google Text Embedding 004',
+        provider: 'google',
+        available: true,
+        capabilities: ['embeddings']
+      }
+      // OpenAI and Anthropic models would be added here when their API keys are detected
+    ]
+    
+    // Filter models that support the requested purpose
+    return models.filter(model => 
+      model.available && model.capabilities.includes(purpose === 'rule_generation' ? 'generation' : purpose)
+    )
+  }
+
+  // Environment status (based on what we know works)
+  const getEnvironmentStatus = () => {
+    return [
+      { name: 'GEMINI_API_KEY', status: 'set', provider: 'Google' },
+      { name: 'FIRECRAWL_API_KEY', status: 'set', provider: 'Firecrawl' },
+      { name: 'OPENAI_API_KEY', status: 'not_set', provider: 'OpenAI' },
+      { name: 'ANTHROPIC_API_KEY', status: 'not_set', provider: 'Anthropic' },
+    ]
   }
 
   // Add model handlers
@@ -1914,21 +1954,15 @@ Analyze the provided diff and return a JSON response with:
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <h3 className="font-medium text-blue-900 mb-3">Environment Variables Status</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-gray-700">GEMINI_API_KEY</span>
-                          <span className="text-green-600 font-medium">✓ Set</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-gray-700">FIRECRAWL_API_KEY</span>
-                          <span className="text-green-600 font-medium">✓ Set</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                          <span className="text-gray-700">OPENAI_API_KEY</span>
-                          <span className="text-gray-500">Not set</span>
-                        </div>
+                        {getEnvironmentStatus().map(env => (
+                          <div key={env.name} className="flex items-center gap-2 text-sm">
+                            <div className={`w-3 h-3 rounded-full ${env.status === 'set' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <span className="text-gray-700">{env.name}</span>
+                            <span className={env.status === 'set' ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                              {env.status === 'set' ? '✓ Set' : 'Not set'}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                     
@@ -2026,6 +2060,7 @@ Analyze the provided diff and return a JSON response with:
                     <div>
                       <h3 className="text-lg font-medium mb-4">Available AI Models</h3>
                       <div className="space-y-3">
+                        {/* Only show Google models since they're the only ones with API keys set */}
                         <div className="border border-green-200 bg-green-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -2051,28 +2086,41 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                         </div>
                         
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className="border border-green-200 bg-green-50 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                <Bot className="h-5 w-5 text-gray-400" />
+                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <Zap className="h-5 w-5 text-green-600" />
                               </div>
                               <div>
-                                <h4 className="font-medium text-gray-900">OpenAI GPT-4o Mini</h4>
-                                <p className="text-sm text-gray-600">Efficient model for general tasks</p>
+                                <h4 className="font-medium text-gray-900">Google Text Embedding 004</h4>
+                                <p className="text-sm text-gray-600">High-quality embeddings for semantic search</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Chat</span>
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Analysis</span>
-                                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Generation</span>
+                                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-0.5 rounded">Embeddings</span>
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-500">API Key Required</span>
-                              <Button variant="outline" size="sm" disabled>
+                              <span className="text-sm text-green-600 font-medium">✓ Active</span>
+                              <Button variant="outline" size="sm">
                                 Test
                               </Button>
                             </div>
+                          </div>
+                        </div>
+                        
+                        {/* Show message about adding more models */}
+                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="text-center py-4">
+                            <Bot className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <h4 className="font-medium text-gray-900 mb-1">Add More AI Models</h4>
+                            <p className="text-sm text-gray-600 mb-3">
+                              Add OpenAI, Anthropic, or other AI providers to expand your capabilities
+                            </p>
+                            <Button variant="outline" onClick={handleAddModel}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Model
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -2537,10 +2585,20 @@ Analyze the provided diff and return a JSON response with:
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-2 block">AI Model</label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="gemini-2.0-flash-exp">Google Gemini 2.0 Flash (Current)</option>
-                    <option value="gpt-4o-mini" disabled>OpenAI GPT-4o Mini (API Key Required)</option>
-                    <option value="claude-3-haiku" disabled>Anthropic Claude 3 Haiku (API Key Required)</option>
+                    {getAvailableModels(configPurpose).map(model => (
+                      <option key={model.id} value={model.id}>
+                        {model.name} ({model.provider})
+                      </option>
+                    ))}
+                    {getAvailableModels(configPurpose).length === 0 && (
+                      <option value="" disabled>No models available for {configPurpose}</option>
+                    )}
                   </select>
+                  {getAvailableModels(configPurpose).length === 0 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      No models configured for {configPurpose.replace('_', ' ')}. Add a model with this capability first.
+                    </p>
+                  )}
                 </div>
                 
                 {/* System Prompt */}
