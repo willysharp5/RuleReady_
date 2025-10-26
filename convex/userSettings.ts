@@ -29,7 +29,6 @@ export const updateChatSettings = mutation({
     enableComplianceContext: v.optional(v.boolean()),
     maxContextReports: v.optional(v.number()),
     enableSemanticSearch: v.optional(v.boolean()),
-    ruleGenerationSystemPrompt: v.optional(v.string()),
     aiSystemPrompt: v.optional(v.string()), // For change analysis
   },
   handler: async (ctx, args) => {
@@ -41,7 +40,6 @@ export const updateChatSettings = mutation({
       enableComplianceContext: args.enableComplianceContext,
       maxContextReports: args.maxContextReports,
       enableSemanticSearch: args.enableSemanticSearch,
-      ruleGenerationSystemPrompt: args.ruleGenerationSystemPrompt,
       aiSystemPrompt: args.aiSystemPrompt,
       updatedAt: Date.now(),
     };

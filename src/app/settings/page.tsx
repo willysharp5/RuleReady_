@@ -503,8 +503,8 @@ To see the actual scraped content, you would need to check the scrape results fr
         setConfigMaxTokens(4096)
         break
       case 'rule_generation':
-        // Load from userSettings.ruleGenerationSystemPrompt
-        setConfigSystemPrompt(userSettings?.ruleGenerationSystemPrompt || 'You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule.')
+        // Rule generation prompt is managed per-rule, not globally
+        setConfigSystemPrompt('')
         setConfigTemperature(0.3)
         setConfigMaxTokens(8192)
         break
@@ -660,23 +660,9 @@ Next steps:
 
   // Save model configuration
   const handleSaveModelConfig = async () => {
-    try {
-      if (configPurpose === 'rule_generation') {
-        // Save rule generation prompt to userSettings
-        await updateChatSettings({
-          ruleGenerationSystemPrompt: configSystemPrompt,
-        })
-        alert('Rule generation configuration saved successfully!')
-      } else {
-        // For chat and change analysis, just close modal (managed elsewhere)
-        alert('Configuration noted. System prompts are managed in their respective sections.')
-      }
-      
-      setShowModelConfig(false)
-    } catch (error) {
-      console.error('Error saving configuration:', error)
-      alert('Error saving configuration. Please try again.')
-    }
+    // All system prompts are managed in their respective sections
+    alert('Configuration noted. System prompts are managed in their respective sections for per-use customization.')
+    setShowModelConfig(false)
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -2668,17 +2654,13 @@ Analyze the provided diff and return a JSON response with:
                 )}
                 
                 {configPurpose === 'rule_generation' && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Rule Generation System Prompt</label>
-                    <textarea
-                      value={configSystemPrompt}
-                      onChange={(e) => setConfigSystemPrompt(e.target.value)}
-                      rows={6}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                      placeholder="Enter system prompt for rule generation..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      This prompt will be used every time a compliance rule is generated from sources.
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Rule Generation System Prompt</h4>
+                    <p className="text-sm text-blue-800">
+                      The rule generation system prompt is managed in the Compliance Generation section where each rule is created. This allows per-rule customization of synthesis prompts.
+                    </p>
+                    <p className="text-xs text-blue-700 mt-2">
+                      Go to Settings → Compliance Generation → Step 2 to configure the LLM synthesis prompt for each rule generation.
                     </p>
                   </div>
                 )}

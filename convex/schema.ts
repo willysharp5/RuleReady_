@@ -135,8 +135,6 @@ const schema = defineSchema({
     enableComplianceContext: v.optional(v.boolean()),
     maxContextReports: v.optional(v.number()),
     enableSemanticSearch: v.optional(v.boolean()),
-    // Rule generation settings
-    ruleGenerationSystemPrompt: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
