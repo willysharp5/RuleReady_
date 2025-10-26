@@ -225,7 +225,7 @@ Instructions:
   
   // Sources pagination state
   const [sourcesCurrentPage, setSourcesCurrentPage] = useState(1)
-  const sourcesPerPage = 10
+  const sourcesPerPage = 5
   
   // Add model state
   const [showAddModel, setShowAddModel] = useState(false)
@@ -1829,6 +1829,22 @@ Analyze the provided diff and return a JSON response with:
                                   Page {sourcesCurrentPage} of {totalPages}
                                 </div>
                                 <div className="flex items-center gap-1">
+                                  {/* First page button */}
+                                  {sourcesCurrentPage > 1 && (
+                                    <button
+                                      onClick={() => setSourcesCurrentPage(1)}
+                                      className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                                      title="Go to first page"
+                                    >
+                                      1
+                                    </button>
+                                  )}
+                                  
+                                  {/* Ellipsis if needed */}
+                                  {sourcesCurrentPage > 3 && totalPages > 5 && (
+                                    <span className="px-1 text-xs text-gray-400">...</span>
+                                  )}
+                                  
                                   <button
                                     onClick={() => setSourcesCurrentPage(Math.max(1, sourcesCurrentPage - 1))}
                                     disabled={sourcesCurrentPage === 1}
@@ -1837,18 +1853,20 @@ Analyze the provided diff and return a JSON response with:
                                     Previous
                                   </button>
                                   
-                                  {/* Page numbers */}
+                                  {/* Current page and nearby pages */}
                                   <div className="flex items-center gap-1">
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                                       let pageNum;
-                                      if (totalPages <= 5) {
+                                      if (totalPages <= 3) {
                                         pageNum = i + 1;
-                                      } else if (sourcesCurrentPage <= 3) {
-                                        pageNum = i + 1;
-                                      } else if (sourcesCurrentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
                                       } else {
-                                        pageNum = sourcesCurrentPage - 2 + i;
+                                        const start = Math.max(2, Math.min(sourcesCurrentPage - 1, totalPages - 2));
+                                        pageNum = start + i;
+                                      }
+                                      
+                                      // Skip if this would be page 1 or last page (shown separately)
+                                      if (pageNum === 1 || pageNum === totalPages) {
+                                        return null;
                                       }
                                       
                                       return (
@@ -1874,6 +1892,22 @@ Analyze the provided diff and return a JSON response with:
                                   >
                                     Next
                                   </button>
+                                  
+                                  {/* Ellipsis if needed */}
+                                  {sourcesCurrentPage < totalPages - 2 && totalPages > 5 && (
+                                    <span className="px-1 text-xs text-gray-400">...</span>
+                                  )}
+                                  
+                                  {/* Last page button */}
+                                  {sourcesCurrentPage < totalPages && totalPages > 1 && (
+                                    <button
+                                      onClick={() => setSourcesCurrentPage(totalPages)}
+                                      className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                                      title="Go to last page"
+                                    >
+                                      {totalPages}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             )}
