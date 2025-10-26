@@ -547,6 +547,22 @@ To see the actual scraped content, you would need to check the scrape results fr
     )
   }
 
+  // Get current model assigned to a capability
+  const getCurrentModelForCapability = (capability: string) => {
+    switch (capability) {
+      case 'chat':
+        return 'Google Gemini 2.0 Flash'
+      case 'generation':
+        return 'Google Gemini 2.0 Flash'
+      case 'embeddings':
+        return 'Google Text Embedding 004'
+      case 'analysis':
+        return null // Not currently assigned
+      default:
+        return null
+    }
+  }
+
   // Environment status (based on what we know works)
   const getEnvironmentStatus = () => {
     return [
@@ -584,6 +600,29 @@ To see the actual scraped content, you would need to check the scrape results fr
       return
     }
 
+    // Check for capability conflicts
+    const conflictWarnings = []
+    if (newModelCapabilities.includes('chat')) {
+      conflictWarnings.push('This will replace Google Gemini 2.0 Flash as the chat model')
+    }
+    if (newModelCapabilities.includes('generation')) {
+      conflictWarnings.push('This will replace Google Gemini 2.0 Flash as the rule generation model')
+    }
+    if (newModelCapabilities.includes('embeddings')) {
+      conflictWarnings.push('This will replace Google Text Embedding 004 as the embeddings model')
+    }
+    if (newModelCapabilities.includes('analysis')) {
+      conflictWarnings.push('This will become the new change analysis model')
+    }
+
+    // Show confirmation if there are conflicts
+    if (conflictWarnings.length > 0) {
+      const confirmMessage = `Adding this model will make the following changes:\n\n${conflictWarnings.map(w => `• ${w}`).join('\n')}\n\nDo you want to continue?`
+      if (!confirm(confirmMessage)) {
+        return
+      }
+    }
+
     // Here you would call the API to save the model
     console.log('Saving new model:', {
       name: newModelName,
@@ -592,10 +631,17 @@ To see the actual scraped content, you would need to check the scrape results fr
       apiKeyEnvVar: newModelApiKey,
       baseUrl: newModelBaseUrl,
       capabilities: newModelCapabilities,
-      description: newModelDescription
+      description: newModelDescription,
+      willReplace: conflictWarnings
     })
 
-    alert('Model added successfully! Remember to add the API key to your .env.local file.')
+    alert(`Model added successfully! 
+
+Next steps:
+1. Add ${newModelApiKey} to your .env.local file
+2. The new model will be assigned to: ${newModelCapabilities.join(', ')}
+3. Previous models for these purposes will be replaced`)
+    
     setShowAddModel(false)
   }
   
@@ -2772,19 +2818,49 @@ Analyze the provided diff and return a JSON response with:
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-3 block">Capabilities *</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {['chat', 'analysis', 'generation', 'embeddings'].map(capability => (
-                      <label key={capability} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newModelCapabilities.includes(capability)}
-                          onChange={() => handleCapabilityToggle(capability)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700 capitalize">{capability}</span>
-                      </label>
-                    ))}
+                    {['chat', 'analysis', 'generation', 'embeddings'].map(capability => {
+                      const currentModel = getCurrentModelForCapability(capability)
+                      return (
+                        <label key={capability} className="flex flex-col gap-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={newModelCapabilities.includes(capability)}
+                              onChange={() => handleCapabilityToggle(capability)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700 capitalize">{capability}</span>
+                          </div>
+                          {newModelCapabilities.includes(capability) && currentModel && (
+                            <span className="text-xs text-orange-600 ml-5">
+                              Will replace: {currentModel}
+                            </span>
+                          )}
+                        </label>
+                      )
+                    })}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Select what this model can be used for</p>
+                  <p className="text-xs text-gray-500 mt-2">Select what this model can be used for. Only one model per capability is allowed.</p>
+                  
+                  {/* Show replacement warnings */}
+                  {newModelCapabilities.length > 0 && (
+                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <h5 className="font-medium text-orange-900 mb-2">Model Assignment Changes</h5>
+                      <div className="space-y-1 text-sm">
+                        {newModelCapabilities.map(capability => {
+                          const currentModel = getCurrentModelForCapability(capability)
+                          return (
+                            <div key={capability} className="flex items-center justify-between">
+                              <span className="text-orange-800 capitalize">{capability}:</span>
+                              <span className="text-orange-700">
+                                {currentModel ? `Replace ${currentModel}` : 'New assignment'}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div>
