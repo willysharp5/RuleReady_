@@ -191,7 +191,6 @@ Instructions:
   // Generated rule state
   const [generatedRule, setGeneratedRule] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [showFullReportEditor, setShowFullReportEditor] = useState(false)
   const [editableRule, setEditableRule] = useState('')
   const [sourceCitations, setSourceCitations] = useState<string[]>([])
   
@@ -1628,20 +1627,11 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                         )}
                         
-                        <div className="flex gap-3">
+                        <div className="flex justify-end">
                           <Button 
-                            variant="outline" 
-                            className="flex-1"
-                            onClick={() => setShowFullReportEditor(true)}
-                            disabled={!generatedRule}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Preview Full Report
-                          </Button>
-                          <Button 
-                            className="flex-1"
                             onClick={handleApproveAndPublish}
                             disabled={!editableRule.trim()}
+                            className="px-8"
                           >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             Approve & Publish
@@ -1854,41 +1844,6 @@ Analyze the provided diff and return a JSON response with:
                 className={selectedSources.has(previewSource.id) ? 'bg-red-600 hover:bg-red-700' : ''}
               >
                 {selectedSources.has(previewSource.id) ? 'Remove from Selection' : 'Add to Selection'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Full Report Editor Modal */}
-      {showFullReportEditor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-gray-900">Full Report Editor</h2>
-              <button
-                onClick={() => setShowFullReportEditor(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <XCircle className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-            
-            <div className="p-6 flex-1 min-h-0">
-              <textarea
-                value={editableRule}
-                onChange={(e) => setEditableRule(e.target.value)}
-                className="w-full h-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-mono resize-none"
-                placeholder="Edit your compliance rule here..."
-              />
-            </div>
-            
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-              <Button variant="outline" onClick={() => setShowFullReportEditor(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => setShowFullReportEditor(false)}>
-                Save Changes
               </Button>
             </div>
           </div>
