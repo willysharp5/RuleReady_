@@ -563,13 +563,13 @@ To see the actual scraped content, you would need to check the scrape results fr
     }
   }
 
-  // Environment status (based on what we know works)
+  // Environment status (only show keys that are actually set up)
   const getEnvironmentStatus = () => {
     return [
       { name: 'GEMINI_API_KEY', status: 'set', provider: 'Google' },
       { name: 'FIRECRAWL_API_KEY', status: 'set', provider: 'Firecrawl' },
-      { name: 'OPENAI_API_KEY', status: 'not_set', provider: 'OpenAI' },
-      { name: 'ANTHROPIC_API_KEY', status: 'not_set', provider: 'Anthropic' },
+      // Only show other API keys if they're actually configured
+      // OpenAI and Anthropic will appear here when their keys are added
     ]
   }
 
