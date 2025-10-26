@@ -186,7 +186,6 @@ export default function HomePage() {
   const [monitorType, setMonitorType] = useState<'single' | 'full_site'>('single')
   const [maxPages, setMaxPages] = useState(10)
   const [maxCrawlDepth, setMaxCrawlDepth] = useState(2)
-  const [notificationType, setNotificationType] = useState('email')
   const [complianceTemplate, setComplianceTemplate] = useState('')
   
   // URL validation state
@@ -1733,21 +1732,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   <h4 className="text-lg font-medium text-blue-900">Website Information</h4>
                 </div>
                 
-                {/* Email Notifications */}
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={notificationType === 'email'}
-                      onChange={(e) => setNotificationType(e.target.checked ? 'email' : 'none')}
-                      className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
-                    />
-                    Enable Email Notifications
-                  </label>
-                  <p className="text-xs text-gray-500 ml-6">
-                    Get notified when changes are detected on this website
-                  </p>
-                </div>
 
                 {/* Website URL */}
                 <div className="space-y-2">

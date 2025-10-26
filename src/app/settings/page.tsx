@@ -666,15 +666,12 @@ Next steps:
         await updateChatSettings({
           ruleGenerationSystemPrompt: configSystemPrompt,
         })
-      } else if (configPurpose === 'change_analysis') {
-        // Save change analysis prompt to userSettings
-        await updateChatSettings({
-          aiSystemPrompt: configSystemPrompt,
-        })
+        alert('Rule generation configuration saved successfully!')
+      } else {
+        // For chat and change analysis, just close modal (managed elsewhere)
+        alert('Configuration noted. System prompts are managed in their respective sections.')
       }
-      // Chat prompt is managed elsewhere, embeddings don't need prompts
       
-      alert('Configuration saved successfully!')
       setShowModelConfig(false)
     } catch (error) {
       console.error('Error saving configuration:', error)
@@ -2687,17 +2684,13 @@ Analyze the provided diff and return a JSON response with:
                 )}
                 
                 {configPurpose === 'change_analysis' && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Change Analysis System Prompt</label>
-                    <textarea
-                      value={configSystemPrompt}
-                      onChange={(e) => setConfigSystemPrompt(e.target.value)}
-                      rows={6}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                      placeholder="Enter system prompt for change analysis..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      This prompt will be used every time a website change is analyzed for compliance relevance.
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Change Analysis System Prompt</h4>
+                    <p className="text-sm text-blue-800">
+                      The change analysis system prompt is managed in the website monitoring forms where individual scrapes are configured. This allows per-website customization of analysis prompts.
+                    </p>
+                    <p className="text-xs text-blue-700 mt-2">
+                      Go to the main page → Add Website form → AI Analysis section to configure change analysis prompts.
                     </p>
                   </div>
                 )}
