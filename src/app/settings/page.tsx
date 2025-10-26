@@ -218,6 +218,16 @@ Instructions:
   const [configSystemPrompt, setConfigSystemPrompt] = useState('')
   const [configTemperature, setConfigTemperature] = useState(0.7)
   const [configMaxTokens, setConfigMaxTokens] = useState(4096)
+  
+  // Add model state
+  const [showAddModel, setShowAddModel] = useState(false)
+  const [newModelName, setNewModelName] = useState('')
+  const [newModelProvider, setNewModelProvider] = useState('')
+  const [newModelId, setNewModelId] = useState('')
+  const [newModelApiKey, setNewModelApiKey] = useState('')
+  const [newModelBaseUrl, setNewModelBaseUrl] = useState('')
+  const [newModelCapabilities, setNewModelCapabilities] = useState<string[]>([])
+  const [newModelDescription, setNewModelDescription] = useState('')
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -505,6 +515,48 @@ To see the actual scraped content, you would need to check the scrape results fr
     }
     
     setShowModelConfig(true)
+  }
+
+  // Add model handlers
+  const handleAddModel = () => {
+    // Reset form
+    setNewModelName('')
+    setNewModelProvider('')
+    setNewModelId('')
+    setNewModelApiKey('')
+    setNewModelBaseUrl('')
+    setNewModelCapabilities([])
+    setNewModelDescription('')
+    setShowAddModel(true)
+  }
+
+  const handleCapabilityToggle = (capability: string) => {
+    setNewModelCapabilities(prev => 
+      prev.includes(capability) 
+        ? prev.filter(c => c !== capability)
+        : [...prev, capability]
+    )
+  }
+
+  const handleSaveNewModel = () => {
+    if (!newModelName || !newModelProvider || !newModelId || !newModelApiKey) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    // Here you would call the API to save the model
+    console.log('Saving new model:', {
+      name: newModelName,
+      provider: newModelProvider,
+      modelId: newModelId,
+      apiKeyEnvVar: newModelApiKey,
+      baseUrl: newModelBaseUrl,
+      capabilities: newModelCapabilities,
+      description: newModelDescription
+    })
+
+    alert('Model added successfully! Remember to add the API key to your .env.local file.')
+    setShowAddModel(false)
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -1851,7 +1903,7 @@ Analyze the provided diff and return a JSON response with:
                         Manage AI providers and assign models to different tasks
                       </p>
                     </div>
-                    <Button>
+                    <Button onClick={handleAddModel}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Model
                     </Button>
@@ -2572,6 +2624,146 @@ Analyze the provided diff and return a JSON response with:
               </Button>
               <Button>
                 Save Configuration
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Add Model Modal */}
+      {showAddModel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-gray-900">Add New AI Model</h2>
+              <button
+                onClick={() => setShowAddModel(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Model Name *</label>
+                    <input
+                      type="text"
+                      value={newModelName}
+                      onChange={(e) => setNewModelName(e.target.value)}
+                      placeholder="e.g., OpenAI GPT-4o"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Provider *</label>
+                    <select
+                      value={newModelProvider}
+                      onChange={(e) => setNewModelProvider(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select provider...</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="google">Google</option>
+                      <option value="anthropic">Anthropic</option>
+                      <option value="azure">Azure OpenAI</option>
+                      <option value="custom">Custom Provider</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Model ID *</label>
+                    <input
+                      type="text"
+                      value={newModelId}
+                      onChange={(e) => setNewModelId(e.target.value)}
+                      placeholder="e.g., gpt-4o-mini"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">The exact model identifier used by the API</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">API Key Environment Variable *</label>
+                    <input
+                      type="text"
+                      value={newModelApiKey}
+                      onChange={(e) => setNewModelApiKey(e.target.value)}
+                      placeholder="e.g., OPENAI_API_KEY"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Environment variable name for the API key</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Base URL (Optional)</label>
+                  <input
+                    type="text"
+                    value={newModelBaseUrl}
+                    onChange={(e) => setNewModelBaseUrl(e.target.value)}
+                    placeholder="e.g., https://api.openai.com/v1 (leave empty for default)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-3 block">Capabilities *</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {['chat', 'analysis', 'generation', 'embeddings'].map(capability => (
+                      <label key={capability} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newModelCapabilities.includes(capability)}
+                          onChange={() => handleCapabilityToggle(capability)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700 capitalize">{capability}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Select what this model can be used for</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Description</label>
+                  <textarea
+                    value={newModelDescription}
+                    onChange={(e) => setNewModelDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Brief description of this model's strengths and use cases..."
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                {/* Environment Variable Reminder */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-yellow-900">Remember to Add API Key</h4>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        After adding this model, make sure to add <code className="bg-yellow-100 px-1 rounded">{newModelApiKey}</code> to your <code className="bg-yellow-100 px-1 rounded">.env.local</code> file with your actual API key.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <Button variant="outline" onClick={() => setShowAddModel(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveNewModel}
+                disabled={!newModelName || !newModelProvider || !newModelId || !newModelApiKey || newModelCapabilities.length === 0}
+              >
+                Add Model
               </Button>
             </div>
           </div>
