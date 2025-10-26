@@ -15,6 +15,7 @@ import type * as complianceAI from "../complianceAI.js";
 import type * as complianceChanges from "../complianceChanges.js";
 import type * as complianceCrawler from "../complianceCrawler.js";
 import type * as complianceDeadlines from "../complianceDeadlines.js";
+import type * as complianceGeneration from "../complianceGeneration.js";
 import type * as complianceImport from "../complianceImport.js";
 import type * as complianceParser from "../complianceParser.js";
 import type * as compliancePriority from "../compliancePriority.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   complianceChanges: typeof complianceChanges;
   complianceCrawler: typeof complianceCrawler;
   complianceDeadlines: typeof complianceDeadlines;
+  complianceGeneration: typeof complianceGeneration;
   complianceImport: typeof complianceImport;
   complianceParser: typeof complianceParser;
   compliancePriority: typeof compliancePriority;

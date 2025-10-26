@@ -144,6 +144,10 @@ function SettingsContent() {
   const allComplianceReports = useQuery(api.importComplianceReports.getAIReports, {}) // Using existing function
   const websites = useQuery(api.websites.getUserWebsites)
   
+  // Compliance generation actions
+  const generateRule = useAction(api.complianceGeneration.generateComplianceRule)
+  const generateEmbeddings = useAction(api.complianceGeneration.generateRuleEmbeddings)
+  
   
   // User settings queries and mutations
   const userSettings = useQuery(api.userSettings.getUserSettings)
@@ -381,7 +385,7 @@ To see the actual scraped content, you would need to check the scrape results fr
 
   // Rule generation handlers
   const handleGenerateRule = async () => {
-    if (selectedSources.size === 0 || !selectedTemplate) {
+    if (selectedSources.size === 0 || !selectedTemplate || !outputRuleName.trim()) {
       return
     }
 
@@ -390,47 +394,25 @@ To see the actual scraped content, you would need to check the scrape results fr
     setIsGenerating(true)
     
     try {
-      // Simulate AI generation delay - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      const result = await generateRule({
+        selectedSourceIds: Array.from(selectedSources),
+        templateId: selectedTemplate,
+        outputRuleName: outputRuleName,
+        synthesisPrompt: synthesisPrompt,
+      });
       
-      const mockGeneratedRule = `# Generated Compliance Rule: ${outputRuleName || 'Untitled Rule'}
-
-## Overview
-This compliance rule has been synthesized from ${selectedSources.size} selected sources using the specified template structure.
-
-## Requirements
-Based on the analysis of the selected sources, the following requirements have been identified:
-
-1. **Primary Compliance Obligation**: [Generated from source analysis]
-2. **Implementation Timeline**: [Derived from regulatory sources]
-3. **Reporting Requirements**: [Compiled from multiple jurisdictions]
-
-## Source References
-${Array.from(selectedSources).map((sourceId, index) => {
-  const source = availableSources.find(s => s.id === sourceId)
-  return `[${index + 1}] ${source?.title} - ${source?.jurisdiction}`
-}).join('\n')}
-
-## Implementation Notes
-[AI-generated implementation guidance based on source analysis]
-
----
-*This rule was generated using LLM synthesis on ${new Date().toLocaleDateString()}*`
-
-      setGeneratedRule(mockGeneratedRule)
-      setEditableRule(mockGeneratedRule)
-      
-      // Generate mock citations
-      const citations = Array.from(selectedSources).map((sourceId, index) => {
-        const source = availableSources.find(s => s.id === sourceId)
-        return `[${index + 1}] ${source?.title} - ${source?.url}`
-      })
-      setSourceCitations(citations)
-      
-      setGenerationComplete(true)
+      if (result.success) {
+        setGeneratedRule(result.generatedRule)
+        setEditableRule(result.generatedRule)
+        setSourceCitations(result.sourceCitations)
+        setGenerationComplete(true)
+      } else {
+        throw new Error("Rule generation failed")
+      }
       
     } catch (error) {
       console.error('Error generating rule:', error)
+      alert('Error generating rule. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -458,7 +440,7 @@ ${Array.from(selectedSources).map((sourceId, index) => {
   }
 
   const handleGenerateEmbeddings = async () => {
-    if (!editableRule.trim()) {
+    if (!editableRule.trim() || !outputRuleName.trim()) {
       return
     }
 
@@ -467,32 +449,21 @@ ${Array.from(selectedSources).map((sourceId, index) => {
     setIsGeneratingEmbeddings(true)
     
     try {
-      // Simulate embedding generation delay - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 4000))
+      const result = await generateEmbeddings({
+        ruleContent: editableRule,
+        ruleTitle: outputRuleName,
+      });
       
-      const mockEmbeddings = [
-        {
-          chunk: editableRule.substring(0, 500) + '...',
-          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
-          metadata: { section: 'Overview', chunkIndex: 0 }
-        },
-        {
-          chunk: editableRule.substring(500, 1000) + '...',
-          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
-          metadata: { section: 'Requirements', chunkIndex: 1 }
-        },
-        {
-          chunk: editableRule.substring(1000, 1500) + '...',
-          vector: Array.from({length: 10}, () => Math.random().toFixed(4)),
-          metadata: { section: 'Implementation', chunkIndex: 2 }
-        }
-      ]
-      
-      setGeneratedEmbeddings(mockEmbeddings)
-      setEmbeddingsComplete(true)
+      if (result.success) {
+        setGeneratedEmbeddings(result.embeddings)
+        setEmbeddingsComplete(true)
+      } else {
+        throw new Error("Embedding generation failed")
+      }
       
     } catch (error) {
       console.error('Error generating embeddings:', error)
+      alert('Error generating embeddings. Please try again.')
     } finally {
       setIsGeneratingEmbeddings(false)
     }
@@ -1673,7 +1644,7 @@ Analyze the provided diff and return a JSON response with:
                           className="w-full" 
                           variant="default"
                           onClick={handleGenerateRule}
-                          disabled={selectedSources.size === 0 || !selectedTemplate || isGenerating}
+                          disabled={selectedSources.size === 0 || !selectedTemplate || !outputRuleName.trim() || isGenerating}
                         >
                           {isGenerating ? (
                             <>
