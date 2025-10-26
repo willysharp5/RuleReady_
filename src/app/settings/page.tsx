@@ -211,6 +211,13 @@ Instructions:
   const [generationComplete, setGenerationComplete] = useState(false)
   const [publishComplete, setPublishComplete] = useState(false)
   const [embeddingsComplete, setEmbeddingsComplete] = useState(false)
+  
+  // AI Models configuration state
+  const [showModelConfig, setShowModelConfig] = useState(false)
+  const [configPurpose, setConfigPurpose] = useState('')
+  const [configSystemPrompt, setConfigSystemPrompt] = useState('')
+  const [configTemperature, setConfigTemperature] = useState(0.7)
+  const [configMaxTokens, setConfigMaxTokens] = useState(4096)
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -467,6 +474,37 @@ To see the actual scraped content, you would need to check the scrape results fr
     } finally {
       setIsGeneratingEmbeddings(false)
     }
+  }
+
+  // AI Model configuration handlers
+  const handleConfigureModel = (purpose: string) => {
+    setConfigPurpose(purpose)
+    
+    // Set default prompts based on purpose
+    switch (purpose) {
+      case 'chat':
+        setConfigSystemPrompt('You are a professional compliance assistant specializing in US employment law.')
+        setConfigTemperature(0.7)
+        setConfigMaxTokens(4096)
+        break
+      case 'rule_generation':
+        setConfigSystemPrompt('You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule.')
+        setConfigTemperature(0.3)
+        setConfigMaxTokens(8192)
+        break
+      case 'embeddings':
+        setConfigSystemPrompt('')
+        setConfigTemperature(0)
+        setConfigMaxTokens(0)
+        break
+      case 'change_analysis':
+        setConfigSystemPrompt('You are an AI assistant specialized in analyzing website changes for compliance monitoring.')
+        setConfigTemperature(0.5)
+        setConfigMaxTokens(2048)
+        break
+    }
+    
+    setShowModelConfig(true)
   }
   
   // Query currentUser - it will return null if not authenticated
@@ -1856,7 +1894,12 @@ Analyze the provided diff and return a JSON response with:
                             <p><strong>Provider:</strong> Google</p>
                             <p><strong>Purpose:</strong> Compliance chat assistance</p>
                           </div>
-                          <Button variant="outline" size="sm" className="mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3"
+                            onClick={() => handleConfigureModel('chat')}
+                          >
                             <Edit3 className="h-3 w-3 mr-1" />
                             Configure
                           </Button>
@@ -1872,7 +1915,12 @@ Analyze the provided diff and return a JSON response with:
                             <p><strong>Provider:</strong> Google</p>
                             <p><strong>Purpose:</strong> Compliance rule synthesis</p>
                           </div>
-                          <Button variant="outline" size="sm" className="mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3"
+                            onClick={() => handleConfigureModel('rule_generation')}
+                          >
                             <Edit3 className="h-3 w-3 mr-1" />
                             Configure
                           </Button>
@@ -1888,7 +1936,12 @@ Analyze the provided diff and return a JSON response with:
                             <p><strong>Provider:</strong> Google</p>
                             <p><strong>Purpose:</strong> Vector embeddings for search</p>
                           </div>
-                          <Button variant="outline" size="sm" className="mt-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3"
+                            onClick={() => handleConfigureModel('embeddings')}
+                          >
                             <Edit3 className="h-3 w-3 mr-1" />
                             Configure
                           </Button>
@@ -1904,7 +1957,12 @@ Analyze the provided diff and return a JSON response with:
                             <p><strong>Provider:</strong> -</p>
                             <p><strong>Purpose:</strong> Website change detection</p>
                           </div>
-                          <Button variant="outline" size="sm" className="mt-3" disabled>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="mt-3" 
+                            onClick={() => handleConfigureModel('change_analysis')}
+                          >
                             <Plus className="h-3 w-3 mr-1" />
                             Setup
                           </Button>
@@ -2400,6 +2458,121 @@ Analyze the provided diff and return a JSON response with:
                   </Button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* AI Model Configuration Modal */}
+      {showModelConfig && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Configure {configPurpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} Model
+              </h2>
+              <button
+                onClick={() => setShowModelConfig(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XCircle className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
+              <div className="space-y-6">
+                {/* Model Selection */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">AI Model</label>
+                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="gemini-2.0-flash-exp">Google Gemini 2.0 Flash (Current)</option>
+                    <option value="gpt-4o-mini" disabled>OpenAI GPT-4o Mini (API Key Required)</option>
+                    <option value="claude-3-haiku" disabled>Anthropic Claude 3 Haiku (API Key Required)</option>
+                  </select>
+                </div>
+                
+                {/* System Prompt */}
+                {configPurpose !== 'embeddings' && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">System Prompt</label>
+                    <textarea
+                      value={configSystemPrompt}
+                      onChange={(e) => setConfigSystemPrompt(e.target.value)}
+                      rows={6}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      placeholder="Enter system prompt for this AI model..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This prompt defines the AI's role and behavior for {configPurpose.replace('_', ' ')} tasks.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Temperature */}
+                {configPurpose !== 'embeddings' && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Temperature: {configTemperature}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={configTemperature}
+                      onChange={(e) => setConfigTemperature(parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0 (Focused)</span>
+                      <span>0.5 (Balanced)</span>
+                      <span>1 (Creative)</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Max Tokens */}
+                {configPurpose !== 'embeddings' && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Max Tokens</label>
+                    <input
+                      type="number"
+                      min="100"
+                      max="32000"
+                      value={configMaxTokens}
+                      onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maximum number of tokens the model can generate in response.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Embeddings Info */}
+                {configPurpose === 'embeddings' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Embedding Model Configuration</h4>
+                    <p className="text-sm text-blue-800">
+                      Embedding models don't use system prompts or temperature settings. They convert text into numerical vectors for semantic search.
+                    </p>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div><strong>Current Model:</strong> Google Text Embedding 004</div>
+                      <div><strong>Dimensions:</strong> 768</div>
+                      <div><strong>Purpose:</strong> Semantic search in compliance chat</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <Button variant="outline" onClick={() => setShowModelConfig(false)}>
+                Cancel
+              </Button>
+              <Button>
+                Save Configuration
+              </Button>
             </div>
           </div>
         </div>
