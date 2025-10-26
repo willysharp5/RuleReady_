@@ -1469,35 +1469,27 @@ Analyze the provided diff and return a JSON response with:
                       </div>
                       
                       <div className="space-y-4">
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <p className="text-sm text-blue-800">
                             Search and select from existing scraped compliance data to combine into a new rule.
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-blue-700">
-                            <div className="flex items-center gap-1 relative group">
-                              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded cursor-help">
-                                report
-                              </span>
-                              <span>= AI-processed compliance reports</span>
-                              {/* Tooltip */}
-                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-20">
-                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg">
-                                  AI-processed compliance report with structured legal data from government sources
-                                  <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
-                                </div>
+                          
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-900">
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-medium">report</span>
+                                <span className="flex-1">AI-processed compliance report with structured legal data from government sources</span>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 relative group">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded cursor-help">
-                                website
-                              </span>
-                              <span>= Tracked compliance websites</span>
-                              {/* Tooltip */}
-                              <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-20">
-                                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 max-w-xs shadow-lg">
-                                  Tracked compliance website being monitored for regulatory changes
-                                  <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1"></div>
-                                </div>
+                              <div className="flex items-start gap-2">
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">website</span>
+                                <span className="flex-1">Tracked compliance website being monitored for regulatory changes</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-medium">critical</span>
+                                <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded font-medium">high</span>
+                                <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-medium">medium</span>
+                                <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded font-medium">low</span>
+                                <span className="flex-1">Priority levels indicating importance for compliance monitoring</span>
                               </div>
                             </div>
                           </div>
