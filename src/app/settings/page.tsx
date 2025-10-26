@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react'
 import { Layout, MainContent, Footer } from '@/components/layout/layout'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
@@ -140,13 +140,17 @@ function SettingsContent() {
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
   const topics = useQuery(api.complianceQueries.getTopics)
   
+  // Compliance generation queries
+  const allComplianceReports = useQuery(api.importComplianceReports.getAIReports) // Using existing function
+  const websites = useQuery(api.websites.getUserWebsites)
+  
   
   // User settings queries and mutations
   const userSettings = useQuery(api.userSettings.getUserSettings)
-  const updateAISettings = useMutation(api.userSettings.updateAISettings)
-  const updateNotificationFiltering = useMutation(api.userSettings.updateNotificationFiltering)
+  // const updateAISettings = useMutation(api.userSettings.updateAISettings)
+  // const updateNotificationFiltering = useMutation(api.userSettings.updateNotificationFiltering)
   // Removed test email action
-  const testAIModel = useAction(api.testActions.testAIModel)
+  // const testAIModel = useAction(api.testActions.testAIModel)
   // Removed test email action
   
   // Template management queries and mutations
@@ -162,6 +166,110 @@ function SettingsContent() {
     template?: any
   } | null>(null)
   const [templateSearchQuery, setTemplateSearchQuery] = useState('')
+  
+  // Compliance generation state
+  const [sourceSearchQuery, setSourceSearchQuery] = useState('')
+  const [selectedJurisdictionFilter, setSelectedJurisdictionFilter] = useState('')
+  const [selectedTopicFilter, setSelectedTopicFilter] = useState('')
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set())
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [outputRuleName, setOutputRuleName] = useState('')
+  const [synthesisPrompt, setSynthesisPrompt] = useState(`You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule following the provided template structure.
+
+Instructions:
+- Combine information from all provided sources
+- Follow the template structure exactly
+- Include citations using [n] markers for each source
+- Avoid speculation - only include information found in sources
+- Ensure all template sections are filled with relevant information
+- Maintain legal accuracy and clarity`)
+
+  // Filter and combine compliance reports and websites for source selection
+  const availableSources = useMemo(() => {
+    const sources: Array<{
+      id: string
+      title: string
+      jurisdiction: string
+      topic: string
+      url: string
+      scrapedAt: number
+      wordCount: number
+      priority: string
+      type: 'report' | 'website'
+    }> = []
+
+    // Add compliance reports
+    if (allComplianceReports) {
+      allComplianceReports.forEach((report: any) => {
+        sources.push({
+          id: report._id,
+          title: report.title || `${report.jurisdiction} - ${report.topicKey}`,
+          jurisdiction: report.jurisdiction,
+          topic: report.topicKey,
+          url: report.sourceUrl || 'Internal Report',
+          scrapedAt: report.createdAt || Date.now(),
+          wordCount: report.content?.length || 0,
+          priority: report.priority || 'medium',
+          type: 'report'
+        })
+      })
+    }
+
+    // Add website scrape results
+    if (websites) {
+      websites.forEach(website => {
+        if (website.complianceMetadata) {
+          sources.push({
+            id: website._id,
+            title: `${website.complianceMetadata.jurisdiction} - ${website.complianceMetadata.topicKey}`,
+            jurisdiction: website.complianceMetadata.jurisdiction,
+            topic: website.complianceMetadata.topicKey,
+            url: website.url,
+            scrapedAt: website.lastChecked || website.createdAt,
+            wordCount: 0, // Would need to get from scrape results
+            priority: website.complianceMetadata.priority,
+            type: 'website'
+          })
+        }
+      })
+    }
+
+    return sources
+  }, [allComplianceReports, websites])
+
+  // Filter sources based on search and filters
+  const filteredSources = useMemo(() => {
+    return availableSources.filter((source: any) => {
+      const matchesSearch = !sourceSearchQuery || 
+        source.title.toLowerCase().includes(sourceSearchQuery.toLowerCase()) ||
+        source.jurisdiction.toLowerCase().includes(sourceSearchQuery.toLowerCase()) ||
+        source.topic.toLowerCase().includes(sourceSearchQuery.toLowerCase()) ||
+        source.url.toLowerCase().includes(sourceSearchQuery.toLowerCase())
+      
+      const matchesJurisdiction = !selectedJurisdictionFilter || 
+        source.jurisdiction === selectedJurisdictionFilter
+      
+      const matchesTopic = !selectedTopicFilter || 
+        source.topic === selectedTopicFilter
+
+      return matchesSearch && matchesJurisdiction && matchesTopic
+    })
+  }, [availableSources, sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter])
+
+  // Source selection handlers
+  const toggleSourceSelection = (sourceId: string) => {
+    const newSelection = new Set(selectedSources)
+    if (newSelection.has(sourceId)) {
+      newSelection.delete(sourceId)
+    } else {
+      newSelection.add(sourceId)
+    }
+    setSelectedSources(newSelection)
+  }
+
+  const clearAllSources = () => {
+    setSelectedSources(new Set())
+  }
   
   // Query currentUser - it will return null if not authenticated
   // const currentUser = useQuery(api.users.getCurrentUser)
@@ -1147,13 +1255,19 @@ Analyze the provided diff and return a JSON response with:
                               <input
                                 type="text"
                                 placeholder="Search by jurisdiction, topic, or content..."
+                                value={sourceSearchQuery}
+                                onChange={(e) => setSourceSearchQuery(e.target.value)}
                                 className="pl-10 mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Filter by Jurisdiction</label>
-                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select 
+                              value={selectedJurisdictionFilter}
+                              onChange={(e) => setSelectedJurisdictionFilter(e.target.value)}
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
                               <option value="">All jurisdictions</option>
                               {jurisdictions?.map(j => (
                                 <option key={j.code} value={j.name}>{j.name}</option>
@@ -1162,7 +1276,11 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Filter by Topic</label>
-                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select 
+                              value={selectedTopicFilter}
+                              onChange={(e) => setSelectedTopicFilter(e.target.value)}
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
                               <option value="">All topics</option>
                               {topics?.map(t => (
                                 <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
@@ -1174,53 +1292,73 @@ Analyze the provided diff and return a JSON response with:
                         {/* Available Sources List */}
                         <div className="bg-white border border-blue-200 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium text-gray-900">Available Sources (1,298 total)</h4>
+                            <h4 className="font-medium text-gray-900">
+                              Available Sources ({availableSources.length} total, {filteredSources.length} filtered)
+                            </h4>
                             <span className="text-xs text-gray-500">Select sources to combine</span>
                           </div>
                           
                           <div className="max-h-64 overflow-y-auto space-y-2">
-                            {/* Example source items */}
-                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
-                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium text-gray-900">California - Sexual Harassment Training</span>
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Critical</span>
-                                </div>
-                                <div className="text-xs text-gray-600 truncate">https://www.dir.ca.gov/dlse/sexual-harassment.htm</div>
-                                <div className="text-xs text-gray-500">Scraped 2 days ago • 2,450 words</div>
+                            {filteredSources.length === 0 ? (
+                              <div className="text-center py-8 text-gray-500">
+                                <Search className="h-8 w-8 mx-auto mb-3 text-gray-300" />
+                                <p className="text-sm">No sources match your filters</p>
+                                <p className="text-xs mt-1">Try adjusting your search or filters</p>
                               </div>
-                            </label>
-                            
-                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
-                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium text-gray-900">Federal - EEOC Harassment Guidelines</span>
-                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">High</span>
-                                </div>
-                                <div className="text-xs text-gray-600 truncate">https://www.eeoc.gov/sexual-harassment</div>
-                                <div className="text-xs text-gray-500">Scraped 1 day ago • 3,120 words</div>
-                              </div>
-                            </label>
-                            
-                            <label className="flex items-start gap-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer">
-                              <input type="checkbox" className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-medium text-gray-900">New York - Workplace Harassment Prevention</span>
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Medium</span>
-                                </div>
-                                <div className="text-xs text-gray-600 truncate">https://dol.ny.gov/harassment-prevention</div>
-                                <div className="text-xs text-gray-500">Scraped 3 hours ago • 1,890 words</div>
-                              </div>
-                            </label>
+                            ) : (
+                              filteredSources.map((source: any) => {
+                                const isSelected = selectedSources.has(source.id)
+                                const priorityColors = {
+                                  critical: 'bg-red-100 text-red-800',
+                                  high: 'bg-orange-100 text-orange-800',
+                                  medium: 'bg-yellow-100 text-yellow-800',
+                                  low: 'bg-green-100 text-green-800'
+                                }
+                                
+                                return (
+                                  <label 
+                                    key={source.id}
+                                    className={`flex items-start gap-3 p-3 border rounded hover:bg-gray-50 cursor-pointer ${
+                                      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                    }`}
+                                  >
+                                    <input 
+                                      type="checkbox" 
+                                      checked={isSelected}
+                                      onChange={() => toggleSourceSelection(source.id)}
+                                      className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-medium text-gray-900">{source.title}</span>
+                                        <span className={`text-xs px-2 py-0.5 rounded ${priorityColors[source.priority as keyof typeof priorityColors] || priorityColors.medium}`}>
+                                          {source.priority}
+                                        </span>
+                                        <span className={`text-xs px-2 py-0.5 rounded ${source.type === 'report' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                                          {source.type}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-gray-600 truncate">{source.url}</div>
+                                      <div className="text-xs text-gray-500">
+                                        Scraped {new Date(source.scrapedAt).toLocaleDateString()} • {source.wordCount.toLocaleString()} chars
+                                      </div>
+                                    </div>
+                                  </label>
+                                )
+                              })
+                            )}
                           </div>
                           
                           <div className="mt-3 pt-3 border-t border-blue-200">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">3 sources selected</span>
-                              <button className="text-blue-600 hover:text-blue-800 underline">Clear all</button>
+                              <span className="text-gray-600">{selectedSources.size} sources selected</span>
+                              <button 
+                                onClick={clearAllSources}
+                                className="text-blue-600 hover:text-blue-800 underline"
+                                disabled={selectedSources.size === 0}
+                              >
+                                Clear all
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1238,7 +1376,11 @@ Analyze the provided diff and return a JSON response with:
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Compliance Template</label>
-                            <select className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <select 
+                              value={selectedTemplate}
+                              onChange={(e) => setSelectedTemplate(e.target.value)}
+                              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
                               <option value="">Select template...</option>
                               {allTemplates?.filter(t => t.isActive).map(t => (
                                 <option key={t.templateId} value={t.templateId}>{t.title}</option>
@@ -1251,6 +1393,8 @@ Analyze the provided diff and return a JSON response with:
                             <input
                               type="text"
                               placeholder="e.g., Multi-State Sexual Harassment Requirements"
+                              value={outputRuleName}
+                              onChange={(e) => setOutputRuleName(e.target.value)}
                               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
                             <p className="text-xs text-gray-500 mt-1">Name for the generated compliance rule</p>
@@ -1261,15 +1405,8 @@ Analyze the provided diff and return a JSON response with:
                           <label className="text-sm font-medium text-gray-700">LLM Synthesis Prompt</label>
                           <textarea
                             rows={6}
-                            defaultValue={`You are a professional compliance analyst for employment law. Your task is to synthesize multiple source documents into a unified compliance rule following the provided template structure.
-
-Instructions:
-- Combine information from all provided sources
-- Follow the template structure exactly
-- Include citations using [n] markers for each source
-- Avoid speculation - only include information found in sources
-- Ensure all template sections are filled with relevant information
-- Maintain legal accuracy and clarity`}
+                            value={synthesisPrompt}
+                            onChange={(e) => setSynthesisPrompt(e.target.value)}
                             className="mt-1 w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                           />
                         </div>
