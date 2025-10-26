@@ -198,6 +198,10 @@ Instructions:
   const [generatedEmbeddings, setGeneratedEmbeddings] = useState<any[]>([])
   const [showEmbeddingsPreview, setShowEmbeddingsPreview] = useState(false)
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false)
+  
+  // Success popovers state
+  const [showPublishSuccess, setShowPublishSuccess] = useState(false)
+  const [showEmbeddingsSuccess, setShowEmbeddingsSuccess] = useState(false)
 
   // Filter and combine compliance reports and websites for source selection
   const availableSources = useMemo(() => {
@@ -317,7 +321,6 @@ Instructions:
   // Rule generation handlers
   const handleGenerateRule = async () => {
     if (selectedSources.size === 0 || !selectedTemplate) {
-      alert('Please select sources and a template first')
       return
     }
 
@@ -360,7 +363,6 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       
     } catch (error) {
       console.error('Error generating rule:', error)
-      alert('Error generating rule. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -368,18 +370,21 @@ ${Array.from(selectedSources).map((sourceId, index) => {
 
   const handleApproveAndPublish = () => {
     if (!editableRule.trim()) {
-      alert('No rule content to publish')
       return
     }
     
     // Here you would save the rule to the database
     console.log('Publishing rule:', editableRule)
-    alert('Rule approved and published! Ready for embedding generation.')
+    setShowPublishSuccess(true)
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      setShowPublishSuccess(false)
+    }, 3000)
   }
 
   const handleGenerateEmbeddings = async () => {
     if (!editableRule.trim()) {
-      alert('Please generate and approve a rule first')
       return
     }
 
@@ -405,11 +410,15 @@ ${Array.from(selectedSources).map((sourceId, index) => {
       ]
       
       setGeneratedEmbeddings(mockEmbeddings)
-      alert('Embeddings generated successfully! Rule is now searchable in chat.')
+      setShowEmbeddingsSuccess(true)
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        setShowEmbeddingsSuccess(false)
+      }, 3000)
       
     } catch (error) {
       console.error('Error generating embeddings:', error)
-      alert('Error generating embeddings. Please try again.')
     } finally {
       setIsGeneratingEmbeddings(false)
     }
@@ -1627,7 +1636,7 @@ Analyze the provided diff and return a JSON response with:
                           </div>
                         )}
                         
-                        <div className="flex justify-end">
+                        <div className="flex justify-end relative">
                           <Button 
                             onClick={handleApproveAndPublish}
                             disabled={!editableRule.trim()}
@@ -1636,6 +1645,20 @@ Analyze the provided diff and return a JSON response with:
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             Approve & Publish
                           </Button>
+                          
+                          {/* Success Popover */}
+                          {showPublishSuccess && (
+                            <div className="absolute top-full right-0 mt-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 min-w-[300px]">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-5 w-5 text-green-200" />
+                                <div>
+                                  <p className="font-medium">Rule Published Successfully!</p>
+                                  <p className="text-sm text-green-200">Ready for embedding generation in Step 4</p>
+                                </div>
+                              </div>
+                              <div className="absolute -top-1 right-4 w-2 h-2 bg-green-600 rotate-45"></div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1665,7 +1688,7 @@ Analyze the provided diff and return a JSON response with:
                                 }
                               </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 relative">
                               {generatedEmbeddings.length > 0 && (
                                 <Button 
                                   variant="outline"
@@ -1691,6 +1714,20 @@ Analyze the provided diff and return a JSON response with:
                                   </>
                                 )}
                               </Button>
+                              
+                              {/* Success Popover */}
+                              {showEmbeddingsSuccess && (
+                                <div className="absolute top-full right-0 mt-2 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 min-w-[320px]">
+                                  <div className="flex items-center gap-2">
+                                    <Zap className="h-5 w-5 text-blue-200" />
+                                    <div>
+                                      <p className="font-medium">Embeddings Generated Successfully!</p>
+                                      <p className="text-sm text-blue-200">Rule is now searchable in the chat system</p>
+                                    </div>
+                                  </div>
+                                  <div className="absolute -top-1 right-4 w-2 h-2 bg-blue-600 rotate-45"></div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
