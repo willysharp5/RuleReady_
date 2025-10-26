@@ -557,7 +557,7 @@ To see the actual scraped content, you would need to check the scrape results fr
       case 'embeddings':
         return 'Google Text Embedding 004'
       case 'analysis':
-        return null // Not currently assigned
+        return 'Google Gemini 2.0 Flash' // Now enabled for change analysis
       default:
         return null
     }
@@ -2079,14 +2079,14 @@ Analyze the provided diff and return a JSON response with:
                           </Button>
                         </div>
                         
-                        <div className="border border-gray-200 rounded-lg p-4 opacity-60">
+                        <div className="border border-gray-200 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="font-medium text-gray-900">Change Analysis</h4>
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Disabled</span>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
                           </div>
                           <div className="text-sm text-gray-600 space-y-1">
-                            <p><strong>Model:</strong> Not configured</p>
-                            <p><strong>Provider:</strong> -</p>
+                            <p><strong>Model:</strong> Google Gemini 2.0 Flash</p>
+                            <p><strong>Provider:</strong> Google</p>
                             <p><strong>Purpose:</strong> Website change detection</p>
                           </div>
                           <Button 
@@ -2095,8 +2095,8 @@ Analyze the provided diff and return a JSON response with:
                             className="mt-3" 
                             onClick={() => handleConfigureModel('change_analysis')}
                           >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Setup
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Configure
                           </Button>
                         </div>
                       </div>

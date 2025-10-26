@@ -12,6 +12,7 @@ import type * as aiModelManager from "../aiModelManager.js";
 import type * as aiService from "../aiService.js";
 import type * as alertEmail from "../alertEmail.js";
 import type * as autoSetup from "../autoSetup.js";
+import type * as changeAnalysis from "../changeAnalysis.js";
 import type * as chatSettings from "../chatSettings.js";
 import type * as complianceAI from "../complianceAI.js";
 import type * as complianceChanges from "../complianceChanges.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   aiService: typeof aiService;
   alertEmail: typeof alertEmail;
   autoSetup: typeof autoSetup;
+  changeAnalysis: typeof changeAnalysis;
   chatSettings: typeof chatSettings;
   complianceAI: typeof complianceAI;
   complianceChanges: typeof complianceChanges;

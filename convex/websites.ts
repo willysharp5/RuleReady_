@@ -1049,3 +1049,24 @@ export const createWebsitesFromComplianceRules = mutation({
     };
   },
 });
+
+// Update scrape result with AI analysis
+export const updateScrapeResultAIAnalysis = mutation({
+  args: {
+    scrapeResultId: v.id("scrapeResults"),
+    analysis: v.object({
+      meaningfulChangeScore: v.number(),
+      isMeaningfulChange: v.boolean(),
+      reasoning: v.string(),
+      analyzedAt: v.number(),
+      model: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.scrapeResultId, {
+      aiAnalysis: args.analysis,
+    });
+    
+    return { success: true };
+  },
+});

@@ -73,6 +73,24 @@ export const scrapeUrl = internalAction({
         } : undefined,
       });
 
+      // Run AI analysis if content changed
+      if (changeTracking?.changeStatus === "changed" && changeTracking?.diff) {
+        try {
+          await ctx.scheduler.runAfter(0, internal.changeAnalysis.analyzeComplianceChange, {
+            scrapeResultId,
+            websiteName: args.websiteId, // Will need to get actual website name
+            websiteUrl: args.url,
+            diff: {
+              text: changeTracking.diff.text || "",
+              json: changeTracking.diff.json || null,
+            },
+          });
+          console.log(`🤖 Scheduled AI analysis for change in ${args.url}`);
+        } catch (error) {
+          console.error("Failed to schedule AI analysis:", error);
+        }
+      }
+
       // Create change alert if content changed
       if (changeTracking?.changeStatus === "changed" || changeTracking?.diff) {
         const diffPreview = changeTracking?.diff?.text ? 
