@@ -3,21 +3,26 @@
 ## 📍 Test Case: California Sexual Harassment Training
 
 ### 🌐 URLs to Scrape:
-1. **Primary**: `https://www.dir.ca.gov/dlse/sexual-harassment.htm`
-   - California Department of Industrial Relations
-   - Official state guidance on sexual harassment training requirements
+1. **Primary**: `https://www.dfeh.ca.gov/shpt/`
+   - California Department of Fair Employment and Housing
+   - Sexual Harassment Prevention Training official page
 
 2. **Secondary**: `https://www.eeoc.gov/sexual-harassment`
    - Federal EEOC Guidelines
    - Federal baseline requirements and best practices
+
+### 🔄 Alternative URLs (if above don't work):
+- `https://calcivilrights.ca.gov/shpt/` (CA Civil Rights Department)
+- `https://www.dir.ca.gov/dlse/` (CA Department of Industrial Relations main page)
+- `https://www.dol.gov/agencies/whd/` (Federal Department of Labor)
 
 ### 📋 Test Steps:
 
 #### **Step 1: Add Websites to Track**
 1. Go to main page → "Add Website to Track" form
 2. Add first URL:
-   - **URL**: `https://www.dir.ca.gov/dlse/sexual-harassment.htm`
-   - **Name**: `California Sexual Harassment Training Requirements`
+   - **URL**: `https://www.dfeh.ca.gov/shpt/`
+   - **Name**: `California Sexual Harassment Prevention Training`
    - **Jurisdiction**: `California`
    - **Topic**: `sexual_harassment`
    - **Priority**: `Critical`
