@@ -207,9 +207,9 @@ export const crawlWebsite = action({
         throw new Error(`Firecrawl crawl failed - no data or job ID returned`);
       }
 
-      // Optionally persist results when immediate data is available and websiteId provided
+      // Optionally persist results when immediate data is available (websiteId is optional for one-time scrapes)
       let saved: string[] | undefined = undefined;
-      if (args.saveToDb && args.websiteId && Array.isArray(crawlResult.data)) {
+      if (args.saveToDb && Array.isArray(crawlResult.data)) {
         saved = [];
         for (const page of crawlResult.data) {
           const markdown: string | undefined = (page as any)?.markdown;
@@ -218,7 +218,7 @@ export const crawlWebsite = action({
           const pageUrl: string | undefined = (page as any)?.url || (page as any)?.metadata?.url || args.url;
           if (!markdown) continue;
           const scrapeResultId = await ctx.runMutation(api.websites.storeScrapeResult, {
-            websiteId: args.websiteId,
+            websiteId: args.websiteId || undefined, // Optional for one-time scrapes
             markdown,
             changeStatus: "new",
             visibility: "visible",
@@ -228,19 +228,8 @@ export const crawlWebsite = action({
             title,
             description,
             url: pageUrl,
+            isManualCheck: true, // Mark as manual/one-time check
           });
-          // Log to change tracking as a new tracked snapshot
-          try {
-            const preview = markdown.substring(0, 200);
-            await ctx.runMutation(api.websites.createChangeAlert, {
-              websiteId: args.websiteId,
-              scrapeResultId,
-              changeType: "monitor_once_saved",
-              summary: preview.length > 0 ? preview : `Saved initial snapshot from Monitor Once for ${pageUrl}`,
-            });
-          } catch (e) {
-            console.log("Change alert creation skipped:", (e as Error).message);
-          }
           saved.push(String(scrapeResultId));
         }
       }

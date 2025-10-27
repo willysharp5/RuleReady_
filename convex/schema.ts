@@ -2,18 +2,10 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // Single user table for simplified auth
-  users: defineTable({
-    name: v.optional(v.string()),
-    email: v.optional(v.string()),
-    createdAt: v.optional(v.number()), // Make optional for existing data
-  }),
-
-  // Website monitoring tables
+  // Website monitoring tables (single-user mode - no user table needed)
   websites: defineTable({
     url: v.string(),
     name: v.string(),
-    userId: v.optional(v.id("users")), // Keep for existing data compatibility
     isActive: v.boolean(),
     isPaused: v.optional(v.boolean()),
     checkInterval: v.number(), // in minutes
@@ -46,13 +38,11 @@ const schema = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
     .index("by_active", ["isActive"]),
 
-  // Scrape results for website monitoring
+  // Scrape results for website monitoring (websiteId optional for one-time scrapes)
   scrapeResults: defineTable({
-    websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Keep for existing data compatibility
+    websiteId: v.optional(v.id("websites")), // Optional - one-time scrapes don't need a website
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -82,25 +72,21 @@ const schema = defineSchema({
     })),
   })
     .index("by_website", ["websiteId"])
-    .index("by_website_time", ["websiteId", "scrapedAt"])
-    .index("by_user_time", ["userId", "scrapedAt"]),
+    .index("by_website_time", ["websiteId", "scrapedAt"]),
 
   // Legacy tables - keeping for compatibility with existing features
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")),
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
     isRead: v.boolean(),
     createdAt: v.number(),
   })
-    .index("by_website", ["websiteId"])
-    .index("by_read_status", ["userId", "isRead"]),
+    .index("by_website", ["websiteId"]),
 
   crawlSessions: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     status: v.union(
@@ -115,9 +101,8 @@ const schema = defineSchema({
   })
     .index("by_website", ["websiteId"]),
 
-  // User settings (keeping existing fields for compatibility)
-  userSettings: defineTable({
-    userId: v.optional(v.id("users")), // Keep for existing data compatibility
+  // App settings (single-user mode - global app configuration)
+  appSettings: defineTable({
     emailNotificationsEnabled: v.boolean(),
     emailTemplate: v.optional(v.string()),
     // AI Analysis settings (keep for existing data)
@@ -137,8 +122,7 @@ const schema = defineSchema({
     enableSemanticSearch: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
+  }),
 
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({

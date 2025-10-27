@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get user settings (single-user mode)
+// Get app settings (single-user mode)
 export const getUserSettings = query({
   handler: async (ctx) => {
     // Single-user mode: get the first (and only) settings record
-    const settings = await ctx.db.query("userSettings").first();
+    const settings = await ctx.db.query("appSettings").first();
 
     if (!settings) {
       // Return default settings if none exist
@@ -33,7 +33,7 @@ export const updateChatSettings = mutation({
   },
   handler: async (ctx, args) => {
     // Single-user mode: update or create the single settings record
-    const existingSettings = await ctx.db.query("userSettings").first();
+    const existingSettings = await ctx.db.query("appSettings").first();
     
     const updateData = {
       chatSystemPrompt: args.chatSystemPrompt,
@@ -47,7 +47,7 @@ export const updateChatSettings = mutation({
     if (existingSettings) {
       await ctx.db.patch(existingSettings._id, updateData);
     } else {
-      await ctx.db.insert("userSettings", {
+      await ctx.db.insert("appSettings", {
         emailNotificationsEnabled: true,
         ...updateData,
         createdAt: Date.now(),
@@ -63,7 +63,7 @@ export const updateEmailSettings = mutation({
   },
   handler: async (ctx, args) => {
     // Single-user mode: update or create the single settings record
-    const existingSettings = await ctx.db.query("userSettings").first();
+    const existingSettings = await ctx.db.query("appSettings").first();
     
     const updateData = {
       emailNotificationsEnabled: args.emailNotificationsEnabled,
@@ -73,7 +73,7 @@ export const updateEmailSettings = mutation({
     if (existingSettings) {
       await ctx.db.patch(existingSettings._id, updateData);
     } else {
-      await ctx.db.insert("userSettings", {
+      await ctx.db.insert("appSettings", {
         chatSystemPrompt: undefined,
         enableComplianceContext: true,
         maxContextReports: 5,

@@ -171,7 +171,6 @@ Please review the official source directly for the most current compliance infor
       try {
         const scrapeResultId = await ctx.runMutation(api.websites.storeScrapeResult, {
           websiteId: website._id,
-          userId: undefined, // Single-user mode
           markdown: displayContent.substring(0, 10000), // Increased limit
           changeStatus: changeAnalysis.hasSignificantChanges ? "changed" : "same",
           visibility: "visible",

@@ -366,8 +366,7 @@ export const removeCheckingStatus = internalMutation({
 // Store scrape result (public for manual checks, internal for automated)
 export const storeScrapeResult = mutation({
   args: {
-    websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Optional for single-user mode
+    websiteId: v.optional(v.id("websites")), // Optional - one-time scrapes don't need a website
     markdown: v.string(),
     changeStatus: v.union(
       v.literal("new"),
@@ -392,17 +391,19 @@ export const storeScrapeResult = mutation({
   },
   handler: async (ctx, args) => {
     // Allow storing scrape results in compliance mode for change tracking log visibility
-    // (but only for manual "Check Now" operations)
-    if (FEATURES.complianceMode && !args.isManualCheck) {
+    // (but only for manual "Check Now" operations or one-time scrapes)
+    if (FEATURES.complianceMode && !args.isManualCheck && args.websiteId) {
       console.log("Legacy storeScrapeResult disabled in compliance mode (except manual checks)");
       return "legacy-disabled" as any;
     }
     
-    const website = await ctx.db.get(args.websiteId);
-    if (!website) throw new Error("Website not found");
-    freezeIfLegacy(website);
-    // Remove any checking status entries first (skip if no userId in single-user mode)
-    if (args.userId) {
+    // Validate website if websiteId provided
+    if (args.websiteId) {
+      const website = await ctx.db.get(args.websiteId);
+      if (!website) throw new Error("Website not found");
+      freezeIfLegacy(website);
+      
+      // Remove any checking status entries
       await ctx.runMutation(internal.websites.removeCheckingStatus, {
         websiteId: args.websiteId,
       });
@@ -423,11 +424,13 @@ export const storeScrapeResult = mutation({
       diff: args.diff,
     });
 
-    // Update website last checked time
-    await ctx.db.patch(args.websiteId, {
-      lastChecked: args.scrapedAt,
-      updatedAt: Date.now(),
-    });
+    // Update website last checked time (only if websiteId provided)
+    if (args.websiteId) {
+      await ctx.db.patch(args.websiteId, {
+        lastChecked: args.scrapedAt,
+        updatedAt: Date.now(),
+      });
+    }
 
     return scrapeResultId;
   },
@@ -664,20 +667,22 @@ export const getAllScrapeHistory = query({
 
     const scrapesByWebsite = new Map<string, typeof allScrapes>();
     for (const scrape of allScrapes) {
-      if (!scrapesByWebsite.has(scrape.websiteId)) {
-        scrapesByWebsite.set(scrape.websiteId, []);
+      const key = scrape.websiteId || 'one-time';
+      if (!scrapesByWebsite.has(key)) {
+        scrapesByWebsite.set(key, []);
       }
-      scrapesByWebsite.get(scrape.websiteId)!.push(scrape);
+      scrapesByWebsite.get(key)!.push(scrape);
     }
 
     return allScrapes.map((scrape) => {
-      const websiteScrapes = scrapesByWebsite.get(scrape.websiteId) || [];
+      const key = scrape.websiteId || 'one-time';
+      const websiteScrapes = scrapesByWebsite.get(key) || [];
       const scrapeIndex = websiteScrapes.findIndex(s => s._id === scrape._id);
       const isFirstScrape = scrapeIndex === websiteScrapes.length - 1;
       return {
         ...scrape,
-        websiteName: websiteMap.get(scrape.websiteId)?.name || "Unknown",
-        websiteUrl: scrape.url || websiteMap.get(scrape.websiteId)?.url || "",
+        websiteName: scrape.websiteId ? (websiteMap.get(scrape.websiteId)?.name || "Unknown") : (scrape.title || "One-time Scrape"),
+        websiteUrl: scrape.url || (scrape.websiteId ? websiteMap.get(scrape.websiteId)?.url : "") || "",
         isFirstScrape,
         scrapeNumber: websiteScrapes.length - scrapeIndex,
         totalScrapes: websiteScrapes.length,

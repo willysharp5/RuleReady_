@@ -12,7 +12,7 @@ export const updateChatSettings = mutation({
   },
   handler: async (ctx, args) => {
     // Single-user mode: get the first (and only) settings record
-    const existingSettings = await ctx.db.query("userSettings").first();
+    const existingSettings = await ctx.db.query("appSettings").first();
 
     const now = Date.now();
 
@@ -28,7 +28,7 @@ export const updateChatSettings = mutation({
       });
     } else {
       // Create new settings
-      await ctx.db.insert("userSettings", {
+      await ctx.db.insert("appSettings", {
         emailNotificationsEnabled: true,
         chatSystemPrompt: args.chatSystemPrompt,
         chatModel: args.chatModel,
@@ -48,19 +48,26 @@ export const updateChatSettings = mutation({
 export const getChatSettings = query({
   handler: async (ctx) => {
     // Single-user mode: get the first settings record
-    const settings = await ctx.db.query("userSettings").first();
+    const settings = await ctx.db.query("appSettings").first();
 
     if (!settings) {
-      throw new Error("Chat settings not initialized. Please configure in Settings page.");
+      // Return sensible defaults if no settings exist (e.g., after database cleanup)
+      return {
+        chatSystemPrompt: "You are RuleReady AI, an expert assistant for US employment law compliance. Help users understand employment law requirements across different jurisdictions.",
+        chatModel: "gemini-1.5-flash",
+        enableComplianceContext: true,
+        maxContextReports: 5,
+        enableSemanticSearch: true,
+      };
     }
 
-    // Return database values ONLY - no fallback defaults
+    // Return database values with defaults for any missing fields
     return {
-      chatSystemPrompt: settings.chatSystemPrompt,
-      chatModel: settings.chatModel,
-      enableComplianceContext: settings.enableComplianceContext,
-      maxContextReports: settings.maxContextReports,
-      enableSemanticSearch: settings.enableSemanticSearch,
+      chatSystemPrompt: settings.chatSystemPrompt ?? "You are RuleReady AI, an expert assistant for US employment law compliance.",
+      chatModel: settings.chatModel ?? "gemini-1.5-flash",
+      enableComplianceContext: settings.enableComplianceContext ?? true,
+      maxContextReports: settings.maxContextReports ?? 5,
+      enableSemanticSearch: settings.enableSemanticSearch ?? true,
     };
   },
 });

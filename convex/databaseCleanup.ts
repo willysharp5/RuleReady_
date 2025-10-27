@@ -1,5 +1,4 @@
-import { mutation, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { mutation } from "./_generated/server";
 
 // Clear all scraping and monitoring data
 export const clearAllScrapingData = mutation({
@@ -74,35 +73,27 @@ export const clearAllScrapingData = mutation({
   },
 });
 
-// Clear user tables (not needed in single-user mode)
-export const clearUserTables = mutation({
+// Clear app settings (for clean reset)
+export const clearAppSettings = mutation({
   handler: async (ctx) => {
-    console.log("👤 Clearing user tables...");
+    console.log("⚙️  Clearing app settings...");
     
     let totalDeleted = 0;
     
-    // Clear users
-    const users = await ctx.db.query("users").collect();
-    console.log(`  - Deleting ${users.length} users...`);
-    for (const user of users) {
-      await ctx.db.delete(user._id);
-      totalDeleted++;
-    }
-    
-    // Clear userSettings
-    const userSettings = await ctx.db.query("userSettings").collect();
-    console.log(`  - Deleting ${userSettings.length} userSettings...`);
-    for (const setting of userSettings) {
+    // Clear appSettings
+    const appSettings = await ctx.db.query("appSettings").collect();
+    console.log(`  - Deleting ${appSettings.length} appSettings...`);
+    for (const setting of appSettings) {
       await ctx.db.delete(setting._id);
       totalDeleted++;
     }
     
-    console.log(`✅ Deleted ${totalDeleted} user records`);
+    console.log(`✅ Deleted ${totalDeleted} app settings`);
     
     return {
       success: true,
       deletedCount: totalDeleted,
-      message: `Cleared ${totalDeleted} user records`
+      message: `Cleared ${totalDeleted} app settings (will use defaults)`
     };
   },
 });
@@ -129,10 +120,10 @@ export const clearAllWebsites = mutation({
   },
 });
 
-// Clear AI reports (keeping schema for fresh generation)
-export const clearAIReports = mutation({
+// Clear AI reports (WITHOUT embeddings - too large)
+export const clearReportsOnly = mutation({
   handler: async (ctx) => {
-    console.log("🤖 Clearing AI reports...");
+    console.log("📄 Clearing AI reports (NOT embeddings - clear those manually)...");
     
     let totalDeleted = 0;
     
@@ -152,77 +143,13 @@ export const clearAIReports = mutation({
       totalDeleted++;
     }
     
-    // Clear complianceEmbeddings
-    const embeddings = await ctx.db.query("complianceEmbeddings").collect();
-    console.log(`  - Deleting ${embeddings.length} complianceEmbeddings...`);
-    for (const embedding of embeddings) {
-      await ctx.db.delete(embedding._id);
-      totalDeleted++;
-    }
-    
-    console.log(`✅ Deleted ${totalDeleted} AI reports and embeddings`);
+    console.log(`✅ Deleted ${totalDeleted} AI reports`);
+    console.log(`⚠️  You must manually clear complianceEmbeddings in the dashboard (too large for mutation)`);
     
     return {
       success: true,
       deletedCount: totalDeleted,
-      message: `Cleared ${totalDeleted} AI reports and embeddings`
+      message: `Cleared ${totalDeleted} AI reports (embeddings must be cleared manually)`
     };
   },
 });
-
-// Master cleanup - clears everything except core schema
-export const masterCleanup = mutation({
-  handler: async (ctx) => {
-    console.log("🔥 MASTER CLEANUP - Clearing all data except core schema...\n");
-    
-    const results = {
-      scraping: 0,
-      users: 0,
-      websites: 0,
-      aiReports: 0,
-      total: 0
-    };
-    
-    // 1. Clear scraping data
-    const scrapingResult = await ctx.runMutation(api.databaseCleanup.clearAllScrapingData, {});
-    results.scraping = scrapingResult.deletedCount;
-    
-    // 2. Clear user data
-    const userResult = await ctx.runMutation(api.databaseCleanup.clearUserTables, {});
-    results.users = userResult.deletedCount;
-    
-    // 3. Clear websites
-    const websiteResult = await ctx.runMutation(api.databaseCleanup.clearAllWebsites, {});
-    results.websites = websiteResult.deletedCount;
-    
-    // 4. Clear AI reports
-    const aiResult = await ctx.runMutation(api.databaseCleanup.clearAIReports, {});
-    results.aiReports = aiResult.deletedCount;
-    
-    results.total = results.scraping + results.users + results.websites + results.aiReports;
-    
-    console.log("\n✅ MASTER CLEANUP COMPLETE!");
-    console.log(`   - Scraping/Monitoring: ${results.scraping} deleted`);
-    console.log(`   - Users: ${results.users} deleted`);
-    console.log(`   - Websites: ${results.websites} deleted`);
-    console.log(`   - AI Reports: ${results.aiReports} deleted`);
-    console.log(`   - TOTAL: ${results.total} deleted\n`);
-    
-    console.log("📋 Tables kept with schema intact:");
-    console.log("   ✓ complianceRules (core rules)");
-    console.log("   ✓ complianceTemplates (templates)");
-    console.log("   ✓ complianceTopics (topics)");
-    console.log("   ✓ jurisdictions (jurisdictions)");
-    console.log("   ✓ complianceDeadlines (deadlines)\n");
-    
-    return {
-      success: true,
-      results,
-      message: `Database cleanup complete! Deleted ${results.total} total documents.`
-    };
-  },
-});
-
-// Import this properly
-import { api } from "./_generated/api";
-
