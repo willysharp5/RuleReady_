@@ -211,15 +211,9 @@ export default function HomePage() {
   // Firecrawl options state
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
-      formats: ["markdown", "changeTracking"],
-      changeTrackingOptions: {
-        modes: ["git-diff"]
-      },
+      formats: ["markdown"],
       onlyMainContent: false,
       waitFor: 2000,
-      parsers: ["pdf"], // Include PDF parsing capability
-      proxy: "auto",
-      maxAge: 172800000 // 48 hours cache
     }, null, 2)
   })
   
@@ -928,16 +922,13 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       const result = await crawlWebsite({ 
         url: processedUrl,
         limit: monitorType === 'full_site' ? maxPages : 1,
-        saveToDb: true,
-        instructions: (document.getElementById('website-scraping-instructions') as HTMLTextAreaElement | null)?.value || undefined,
-        templateMarkdown: isComplianceSite && complianceTemplate ? templatesQuery?.find(t => t.templateId === complianceTemplate)?.markdownContent : undefined,
         config: parsedConfig
       })
       
       addToast({
         variant: 'success',
         title: 'One-time monitoring completed',
-        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} (stored ${result.storedPages || 0}) from ${processedUrl}`,
+        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}`,
         duration: 5000
       })
       
