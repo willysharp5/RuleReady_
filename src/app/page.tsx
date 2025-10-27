@@ -281,6 +281,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Compliance Research state (chat-style)
   const [showResearchSection, setShowResearchSection] = useState(false)
+  const [showResearchSettings, setShowResearchSettings] = useState(false)
   const [researchQuery, setResearchQuery] = useState('')
   const [researchMessages, setResearchMessages] = useState<Array<{
     id: string
@@ -296,6 +297,26 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
   const [researchTopic, setResearchTopic] = useState('')
   const researchListRef = useRef<HTMLDivElement | null>(null)
+  
+  // Research configuration state
+  const [researchSystemPrompt, setResearchSystemPrompt] = useState(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Provide accurate, authoritative information about employment law.
+Cite sources using inline [1], [2], [3] format.
+Distinguish between federal and state requirements.
+Mention effective dates when relevant.
+Note penalties or deadlines when applicable.`)
+  const [researchFirecrawlConfig, setResearchFirecrawlConfig] = useState(() => {
+    return JSON.stringify({
+      sources: ['web', 'news', 'images'],
+      limit: 8,
+      scrapeOptions: {
+        formats: ['markdown'],
+        onlyMainContent: true,
+        maxAge: 86400000
+      }
+    }, null, 2)
+  })
   
   // Refs to track previous settings state and prevent duplicate messages
   const prevComplianceContextRef = useRef<boolean | null>(null)
@@ -1029,6 +1050,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           includeInternalSources: true,
           jurisdiction: researchJurisdiction || undefined,
           topic: researchTopic || undefined,
+          systemPrompt: researchSystemPrompt,
+          firecrawlConfig: researchFirecrawlConfig,
         }),
       })
 
@@ -1059,6 +1082,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
               
               if (parsed.type === 'sources') {
                 sources = parsed
+                console.log('📊 Sources received:', {
+                  internal: parsed.internalSources?.length || 0,
+                  web: parsed.sources?.length || 0,
+                  news: parsed.newsResults?.length || 0,
+                  images: parsed.imageResults?.length || 0
+                })
                 // Update assistant message with sources
                 setResearchMessages(prev => prev.map(msg => 
                   msg.id === assistantMessageId ? {
@@ -1092,6 +1121,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           behavior: 'smooth'
         })
       }, 100)
+      
+      // Log final message state
+      console.log('✅ Research complete. Final message state:', 
+        researchMessages.find(m => m.id === assistantMessageId))
       
       addToast({
         variant: 'success',
@@ -2370,33 +2403,118 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
             {/* Collapsible Research Content - Chat Style */}
             {showResearchSection && (
               <div className="bg-transparent">
-                {/* Optional Filters - Top Bar */}
-                <div className="px-6 pt-6 pb-3 border-b border-gray-200">
-                  <div className="flex flex-wrap gap-2">
-                    <select
-                      value={researchJurisdiction}
-                      onChange={(e) => setResearchJurisdiction(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                      disabled={isResearching}
+                {/* Research Configuration - Collapsible */}
+                <div className="border-b border-gray-200">
+                  <div className="p-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowResearchSettings(!showResearchSettings)}
+                      className="flex items-center justify-between w-full text-left"
                     >
-                      <option value="">All Jurisdictions</option>
-                      {jurisdictions?.map(j => (
-                        <option key={j.code} value={j.name}>{j.name}</option>
-                      ))}
-                    </select>
-                    
-                    <select
-                      value={researchTopic}
-                      onChange={(e) => setResearchTopic(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                      disabled={isResearching}
-                    >
-                      <option value="">All Topics</option>
-                      {topics?.slice(0, 15).map(t => (
-                        <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                      ))}
-                    </select>
+                      <h3 className="font-medium text-gray-900">Research Settings</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {showResearchSettings ? 'Hide' : 'Show'} settings
+                        </span>
+                        <div className={`transform transition-transform ${showResearchSettings ? 'rotate-180' : ''}`}>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
                   </div>
+                  
+                  {showResearchSettings && (
+                    <div className="px-6 pb-6 space-y-6">
+                      {/* Filters */}
+                      <div>
+                        <h4 className="font-medium mb-3">Search Filters</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <select
+                            value={researchJurisdiction}
+                            onChange={(e) => setResearchJurisdiction(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded text-sm"
+                            disabled={isResearching}
+                          >
+                            <option value="">All Jurisdictions</option>
+                            {jurisdictions?.map(j => (
+                              <option key={j.code} value={j.name}>{j.name}</option>
+                            ))}
+                          </select>
+                          
+                          <select
+                            value={researchTopic}
+                            onChange={(e) => setResearchTopic(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded text-sm"
+                            disabled={isResearching}
+                          >
+                            <option value="">All Topics</option>
+                            {topics?.slice(0, 15).map(t => (
+                              <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Filters enhance search query and focus AI response
+                        </p>
+                      </div>
+                      
+                      {/* Gemini System Prompt */}
+                      <div>
+                        <Label htmlFor="research-prompt">AI System Prompt (Gemini)</Label>
+                        <Textarea
+                          id="research-prompt"
+                          value={researchSystemPrompt}
+                          onChange={(e) => setResearchSystemPrompt(e.target.value)}
+                          rows={6}
+                          placeholder="You are RuleReady Research AI..."
+                          className="font-mono text-xs"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Customize how the AI responds to research queries
+                        </p>
+                      </div>
+                      
+                      {/* Firecrawl Configuration */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <Label htmlFor="research-firecrawl">Firecrawl Search Configuration (JSON)</Label>
+                          <a
+                            href="https://docs.firecrawl.dev/api-reference/endpoint/search"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-purple-600 hover:text-purple-800 underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Firecrawl Search API Docs
+                          </a>
+                        </div>
+                        <Textarea
+                          id="research-firecrawl"
+                          value={researchFirecrawlConfig}
+                          onChange={(e) => setResearchFirecrawlConfig(e.target.value)}
+                          rows={10}
+                          placeholder='{"sources": ["web", "news", "images"], "limit": 8}'
+                          className="font-mono text-xs"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Configure Firecrawl search sources, limits, and scraping options
+                        </p>
+                      </div>
+                      
+                      {/* Info Box */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h5 className="font-medium text-blue-900 mb-2">How Research Works:</h5>
+                        <div className="text-xs text-blue-800 space-y-1">
+                          <div>1. <strong>Search Phase:</strong> Firecrawl searches web, news, and images</div>
+                          <div>2. <strong>Filter Phase:</strong> Jurisdiction/topic enhance search relevance</div>
+                          <div>3. <strong>AI Phase:</strong> Gemini 2.0 Flash analyzes sources and generates answer</div>
+                          <div>4. <strong>Citation Phase:</strong> Sources numbered [1], [2], [3] for reference</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Chat Messages Area */}
@@ -2423,6 +2541,11 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                   <p>{m.content}</p>
                                 ) : (
                                   <>
+                                    {/* Debug info - always show for now */}
+                                    <div className="mb-2 text-xs text-gray-400 font-mono">
+                                      Debug: {m.internalSources?.length || 0} internal, {m.webSources?.length || 0} web, {m.newsResults?.length || 0} news
+                                    </div>
+                                    
                                     <div className="compliance-research-content">
                                       <ReactMarkdown 
                                         remarkPlugins={[remarkGfm]} 

@@ -6,7 +6,14 @@ export async function POST(request: Request) {
   
   try {
     const body = await request.json();
-    const { query, includeInternalSources = true, jurisdiction, topic } = body;
+    const { 
+      query, 
+      includeInternalSources = true, 
+      jurisdiction, 
+      topic,
+      systemPrompt,
+      firecrawlConfig 
+    } = body;
     
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
@@ -45,22 +52,38 @@ export async function POST(request: Request) {
     
     console.log(`[${requestId}] Enhanced query: "${enhancedQuery}"`);
     
+    // Parse custom Firecrawl config or use defaults
+    let searchConfig: any = {
+      query: enhancedQuery,
+      sources: ['web', 'news', 'images'],
+      limit: 8,
+      scrapeOptions: {
+        formats: ['markdown'],
+        onlyMainContent: true,
+        maxAge: 86400000
+      }
+    };
+    
+    if (firecrawlConfig) {
+      try {
+        const customConfig = JSON.parse(firecrawlConfig);
+        searchConfig = {
+          query: enhancedQuery,
+          ...customConfig
+        };
+        console.log(`[${requestId}] Using custom Firecrawl config`);
+      } catch (e) {
+        console.warn(`[${requestId}] Invalid Firecrawl config JSON, using defaults`);
+      }
+    }
+    
     const searchResponse = await fetch('https://api.firecrawl.dev/v2/search', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${firecrawlApiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        query: enhancedQuery,
-        sources: ['web', 'news', 'images'],
-        limit: 8,
-        scrapeOptions: {
-          formats: ['markdown'],
-          onlyMainContent: true,
-          maxAge: 86400000  // 24 hours cache
-        }
-      })
+      body: JSON.stringify(searchConfig)
     });
 
     if (!searchResponse.ok) {
@@ -136,7 +159,8 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-    const systemPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+    // Use custom system prompt if provided, otherwise use default
+    const defaultSystemPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
 
 CRITICAL FORMATTING RULES:
 - NEVER use LaTeX/math syntax ($...$) for regular numbers
@@ -158,6 +182,8 @@ FORMAT:
 - Structure longer responses with headers and bullet points
 - Always mention jurisdiction (federal vs state) when relevant`;
 
+    const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
+
     const userPrompt = `Answer this compliance research query: "${query}"
 
 ${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}
@@ -169,7 +195,7 @@ ${context}`;
       history: [],
     });
 
-    const result = await chat.sendMessageStream(userPrompt + '\n\nSystem instructions: ' + systemPrompt);
+    const result = await chat.sendMessageStream(userPrompt + '\n\nSystem instructions: ' + finalSystemPrompt);
 
     // Create a readable stream for the response
     const encoder = new TextEncoder();
