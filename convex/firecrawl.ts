@@ -170,19 +170,27 @@ export const crawlWebsite = action({
   args: {
     url: v.string(),
     limit: v.optional(v.number()),
+    config: v.optional(v.any()),
+    saveToDb: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const firecrawl = await getFirecrawlClient(ctx, null);
 
     try {
-      const crawlResult = await firecrawl.crawlUrl(args.url, {
+      // Use provided config or default crawl options
+      const crawlOptions = args.config ? {
+        limit: args.limit || 10,
+        scrapeOptions: args.config,
+      } : {
         limit: args.limit || 10,
         scrapeOptions: {
           formats: ["markdown", "changeTracking"],
           onlyMainContent: false,
           waitFor: 2000,
         },
-      }) as any;
+      };
+
+      const crawlResult = await firecrawl.crawlUrl(args.url, crawlOptions) as any;
 
       if (!crawlResult.success) {
         throw new Error(`Firecrawl crawl failed: ${crawlResult.error}`);
