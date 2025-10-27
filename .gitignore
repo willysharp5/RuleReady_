@@ -45,3 +45,4 @@ jwt-key*.txt
 
 # Claude files
 CLAUDE.md
+reference/
