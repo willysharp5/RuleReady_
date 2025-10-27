@@ -270,10 +270,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   
-  // Chat configuration state
-  const [chatModel, setChatModel] = useState('gemini-2.0-flash-exp')
-  const [maxContextReports, setMaxContextReports] = useState(1)
-  const [chatSystemPrompt, setChatSystemPrompt] = useState('You are an expert legal counsel on Business compliance rules')
+  // Chat configuration state - NO DEFAULTS, loaded from database only
+  const [chatModel, setChatModel] = useState('')
+  const [maxContextReports, setMaxContextReports] = useState(5)
+  const [chatSystemPrompt, setChatSystemPrompt] = useState('')
   const [enableComplianceContext, setEnableComplianceContext] = useState(true)
   const [enableSemanticSearch, setEnableSemanticSearch] = useState(true)
   const [isUpdatingChat, setIsUpdatingChat] = useState(false)
@@ -615,14 +615,14 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     setCheckInterval(adjustedInterval)
   }, [selectedPriorityLevel])
   
-  // Load chat settings when available
+  // Load chat settings from database - NO FALLBACK DEFAULTS
   useEffect(() => {
     if (chatSettings) {
-      setChatSystemPrompt(chatSettings.chatSystemPrompt || 'You are a professional compliance assistant specializing in US employment law.')
-      setChatModel(chatSettings.chatModel || 'gemini-2.0-flash-exp')
-      setEnableComplianceContext(chatSettings.enableComplianceContext ?? true)
-      setMaxContextReports(chatSettings.maxContextReports || 5)
-      setEnableSemanticSearch(chatSettings.enableSemanticSearch ?? true)
+      setChatSystemPrompt(chatSettings.chatSystemPrompt)
+      setChatModel(chatSettings.chatModel)
+      setEnableComplianceContext(chatSettings.enableComplianceContext)
+      setMaxContextReports(chatSettings.maxContextReports)
+      setEnableSemanticSearch(chatSettings.enableSemanticSearch)
     }
   }, [chatSettings])
   
@@ -1311,6 +1311,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </div>
                   </div>
                   
+                  {/* Spacer */}
+                  <div className="h-1"></div>
+                  
                   {/* Template Information */}
                   <div>
                     <h4 className="font-medium mb-3">Compliance Template Structure</h4>
@@ -1338,7 +1341,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </div>
                       
                       {/* Save Settings */}
-                      <div className="flex justify-end">
+                      <div className="flex justify-end mt-4">
                         <Button
                           onClick={async () => {
                             setIsUpdatingChat(true)

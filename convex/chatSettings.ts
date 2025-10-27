@@ -51,21 +51,16 @@ export const getChatSettings = query({
     const settings = await ctx.db.query("userSettings").first();
 
     if (!settings) {
-      return {
-        chatSystemPrompt: "You are a professional compliance assistant specializing in US employment law.",
-        chatModel: "gemini-2.0-flash-exp",
-        enableComplianceContext: true,
-        maxContextReports: 5,
-        enableSemanticSearch: true,
-      };
+      throw new Error("Chat settings not initialized. Please configure in Settings page.");
     }
 
+    // Return database values ONLY - no fallback defaults
     return {
-      chatSystemPrompt: settings.chatSystemPrompt || "You are a professional compliance assistant specializing in US employment law.",
-      chatModel: settings.chatModel || "gemini-2.0-flash-exp",
-      enableComplianceContext: settings.enableComplianceContext ?? true,
-      maxContextReports: settings.maxContextReports || 5,
-      enableSemanticSearch: settings.enableSemanticSearch ?? true,
+      chatSystemPrompt: settings.chatSystemPrompt,
+      chatModel: settings.chatModel,
+      enableComplianceContext: settings.enableComplianceContext,
+      maxContextReports: settings.maxContextReports,
+      enableSemanticSearch: settings.enableSemanticSearch,
     };
   },
 });

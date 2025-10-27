@@ -62,42 +62,12 @@ export async function POST(req: NextRequest) {
       console.log('🚫 Both semantic search AND compliance context disabled - skipping embedding search');
     }
     
-    // If no sources found, return insufficient context response
+    // If no sources found with threshold 0.3, try lower threshold before giving up
+    // This prevents false negatives when user has selected specific jurisdiction/topic
     if (!sources.length) {
-      console.log('❌ No sources found, returning insufficient context response');
-      return new Response(
-        JSON.stringify({ 
-          role: 'assistant', 
-          content: `# Insufficient Context
-
-I don't have sufficient compliance data to answer your question about ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : ''}requirements.
-
-## What You Can Do
-
-- Try a different jurisdiction or topic combination
-- Check if compliance data has been imported for this area
-- Use broader search terms in your question
-- Contact your compliance team for specific guidance
-
-The system currently has limited coverage for this specific compliance area.`,
-          title: "Insufficient Context",
-          sources: [],
-          settings: {
-            systemPrompt: userChatSettings.chatSystemPrompt || "Default compliance assistant prompt",
-            model: userChatSettings.chatModel || "gemini-2.0-flash-exp",
-            complianceContext: userChatSettings.enableComplianceContext ?? true,
-            maxContextReports: userChatSettings.maxContextReports || 5,
-            semanticSearch: userChatSettings.enableSemanticSearch ?? true,
-            sourcesFound: 0,
-            jurisdiction: jurisdiction || "All Jurisdictions",
-            topic: topic || "All Topics",
-          },
-        }),
-        { 
-          status: 200, 
-          headers: { 'Content-Type': 'application/json' } 
-        }
-      );
+      console.log('⚠️ No sources at threshold 0.3, but continue anyway - let Gemini use general knowledge or explain limitations');
+      // DO NOT return insufficient context here - let the LLM handle it
+      // The LLM will be told in the system prompt that no specific sources were found
     }
 
     // Type guard for source objects
@@ -130,17 +100,22 @@ The system currently has limited coverage for this specific compliance area.`,
       console.log('🚫 Compliance context disabled - using general knowledge only');
     }
     
-    // Use custom system prompt or default
-    const baseSystemPrompt = (userChatSettings.chatSystemPrompt as string) || `You are a professional compliance assistant specializing in US employment law.`;
-    const isCustomPrompt = !!userChatSettings.chatSystemPrompt;
-    console.log(`📝 Using ${isCustomPrompt ? 'CUSTOM' : 'DEFAULT'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
+    // Use system prompt from database - NO DEFAULT FALLBACK
+    const baseSystemPrompt = (userChatSettings.chatSystemPrompt as string);
+    if (!baseSystemPrompt) {
+      throw new Error("Chat system prompt not configured in database. Please set it in Settings.");
+    }
+    console.log(`📝 Using system prompt from database: ${baseSystemPrompt.substring(0, 100)}...`);
     
     // Create system prompt based on settings
     let systemPrompt = baseSystemPrompt;
     
-    // Add compliance context and sources if either setting is enabled and we have data
-    if ((userChatSettings.enableComplianceContext !== false || userChatSettings.enableSemanticSearch !== false) && (complianceContext || sources.length > 0)) {
-      systemPrompt += `
+    // ALWAYS add context about available data, even if no sources found
+    if (userChatSettings.enableComplianceContext !== false || userChatSettings.enableSemanticSearch !== false) {
+      
+      if (sources.length > 0) {
+        // We have sources - provide them
+        systemPrompt += `
 
 You have access to comprehensive compliance data from 1,175 reports across all US jurisdictions, structured according to this template:
 
@@ -186,17 +161,20 @@ ${(typedSources || []).map((s: SourceObject, i: number) => {
 }).join('\n\n')}
 
 Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
-    } else {
-      systemPrompt += `
+      } else {
+        // No sources found - explain clearly without blocking
+        systemPrompt += `
 
-You are responding based on your general knowledge of employment law. You do not have access to specific compliance data or current regulations for this request.
+I searched the compliance database for ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : ''}information but did not find specific sources matching this query.
 
-Please provide general guidance but recommend that users:
-- Consult current official sources
-- Verify information with legal counsel
-- Check the latest regulations from relevant agencies
+You should:
+1. Provide general guidance based on your knowledge if applicable
+2. Clearly state "I don't have specific data for ${jurisdiction || 'this jurisdiction'} ${topic ? `about ${topic.replace(/_/g, ' ')}` : ''} in my database"
+3. Suggest alternative jurisdictions or topics that ARE available in the database
+4. Recommend consulting official sources or legal counsel for this specific area
 
-Be clear about the limitations of your response.`;
+Be helpful and honest about the limitations.`;
+      }
     }
     
     // Add formatting instructions
