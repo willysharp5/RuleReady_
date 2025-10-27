@@ -33,6 +33,18 @@ export async function POST(request: Request) {
     // Step 1: Search with Firecrawl v2 API
     console.log(`[${requestId}] Searching with Firecrawl...`);
     
+    // Enhance query with jurisdiction and topic filters
+    let enhancedQuery = query;
+    if (jurisdiction && topic) {
+      enhancedQuery = `${query} ${jurisdiction} ${topic}`;
+    } else if (jurisdiction) {
+      enhancedQuery = `${query} ${jurisdiction}`;
+    } else if (topic) {
+      enhancedQuery = `${query} ${topic}`;
+    }
+    
+    console.log(`[${requestId}] Enhanced query: "${enhancedQuery}"`);
+    
     const searchResponse = await fetch('https://api.firecrawl.dev/v2/search', {
       method: 'POST',
       headers: {
@@ -40,7 +52,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        query: query,
+        query: enhancedQuery,
         sources: ['web', 'news', 'images'],
         limit: 8,
         scrapeOptions: {
