@@ -2495,9 +2495,45 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         <div className="text-xs text-blue-800 space-y-1">
                           <div>1. <strong>Search Phase:</strong> Firecrawl searches web, news, and images</div>
                           <div>2. <strong>Filter Phase:</strong> Jurisdiction/topic enhance search relevance</div>
-                          <div>3. <strong>AI Phase:</strong> Gemini 2.0 Flash analyzes sources and generates answer</div>
+                          <div>3. <strong>AI Phase:</strong> AI model analyzes sources and generates answer</div>
                           <div>4. <strong>Citation Phase:</strong> Sources numbered [1], [2], [3] for reference</div>
                         </div>
+                      </div>
+                      
+                      {/* Debug Section - What's Sent to AI */}
+                      <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                        <details>
+                          <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900 text-sm">
+                            🔍 Debug: View AI Prompt Preview
+                          </summary>
+                          <div className="mt-3 space-y-3">
+                            <div>
+                              <div className="text-xs font-medium text-gray-600 mb-1">System Prompt (sent to AI):</div>
+                              <div className="p-2 bg-white border border-gray-200 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                                {researchSystemPrompt}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div className="text-xs font-medium text-gray-600 mb-1">Firecrawl Config (sent to search API):</div>
+                              <div className="p-2 bg-white border border-gray-200 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                                {researchFirecrawlConfig}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <div className="text-xs font-medium text-gray-600 mb-1">Current Filters:</div>
+                              <div className="p-2 bg-white border border-gray-200 rounded text-xs">
+                                <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (all)'}</div>
+                                <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (all)'}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs text-gray-500 italic">
+                              Note: The full context with sources is assembled on the backend after search completes
+                            </div>
+                          </div>
+                        </details>
                       </div>
                     </div>
                   )}
