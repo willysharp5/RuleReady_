@@ -297,6 +297,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
   const [researchTopic, setResearchTopic] = useState('')
   const researchListRef = useRef<HTMLDivElement | null>(null)
+  const [copiedResearchMessageId, setCopiedResearchMessageId] = useState<string | null>(null)
   
   // Research configuration state
   const [researchSystemPrompt, setResearchSystemPrompt] = useState(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -538,6 +539,24 @@ Note penalties or deadlines when applicable.`)
       document.body.removeChild(textArea)
       setCopiedMessageId(messageId)
       setTimeout(() => setCopiedMessageId(null), 2000)
+    }
+  }
+  
+  const handleCopyResearchMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedResearchMessageId(messageId)
+      setTimeout(() => setCopiedResearchMessageId(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy research message:', error)
+      const textArea = document.createElement('textarea')
+      textArea.value = content
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopiedResearchMessageId(messageId)
+      setTimeout(() => setCopiedResearchMessageId(null), 2000)
     }
   }
   
@@ -2427,39 +2446,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   
                   {showResearchSettings && (
                     <div className="px-6 pb-6 space-y-6">
-                      {/* Filters */}
-                      <div>
-                        <h4 className="font-medium mb-3">Search Filters</h4>
-                        <div className="flex flex-wrap gap-2">
-                          <select
-                            value={researchJurisdiction}
-                            onChange={(e) => setResearchJurisdiction(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded text-sm"
-                            disabled={isResearching}
-                          >
-                            <option value="">All Jurisdictions</option>
-                            {jurisdictions?.map(j => (
-                              <option key={j.code} value={j.name}>{j.name}</option>
-                            ))}
-                          </select>
-                          
-                          <select
-                            value={researchTopic}
-                            onChange={(e) => setResearchTopic(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded text-sm"
-                            disabled={isResearching}
-                          >
-                            <option value="">All Topics</option>
-                            {topics?.slice(0, 15).map(t => (
-                              <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Filters enhance search query and focus AI response
-                        </p>
-                      </div>
-                      
                       {/* Gemini System Prompt */}
                       <div>
                         <Label htmlFor="research-prompt">AI System Prompt (Gemini)</Label>
@@ -2626,6 +2612,36 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Toolbar under assistant messages */}
+                          {m.role === 'assistant' && (
+                            <div className="mt-2 pl-11 flex items-center gap-3 text-gray-500">
+                              <button 
+                                className={`inline-flex items-center gap-1 text-xs hover:text-gray-700 transition-colors ${
+                                  copiedResearchMessageId === m.id ? 'text-green-600' : ''
+                                }`} 
+                                onClick={() => handleCopyResearchMessage(m.content, m.id)} 
+                                type="button"
+                              >
+                                {copiedResearchMessageId === m.id ? (
+                                  <>
+                                    <Check className="h-3 w-3" /> Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3 w-3" /> Copy
+                                  </>
+                                )}
+                              </button>
+                              <span className="h-3 w-px bg-gray-200" />
+                              <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                                <ThumbsUp className="h-3 w-3" />
+                              </button>
+                              <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
+                                <ThumbsDown className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                       
@@ -2667,6 +2683,33 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       ))}
                     </div>
                   )}
+                  
+                  {/* Filters - Below chat, above composer */}
+                  <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
+                    <select
+                      value={researchJurisdiction}
+                      onChange={(e) => setResearchJurisdiction(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      disabled={isResearching}
+                    >
+                      <option value="">All Jurisdictions</option>
+                      {jurisdictions?.map(j => (
+                        <option key={j.code} value={j.name}>{j.name}</option>
+                      ))}
+                    </select>
+                    
+                    <select
+                      value={researchTopic}
+                      onChange={(e) => setResearchTopic(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      disabled={isResearching}
+                    >
+                      <option value="">All Topics</option>
+                      {topics?.slice(0, 15).map(t => (
+                        <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   
                   <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
                     <Textarea
