@@ -399,21 +399,6 @@ async function callGeminiForAnalysis(prompt: string) {
   };
 }
 
-// Get what data is actually available in the database
-async function getAvailableJurisdictionsAndTopics(ctx: any): Promise<string> {
-  try {
-    const jurisdictions = await ctx.runQuery(api.complianceQueries.getJurisdictions);
-    const topics = await ctx.runQuery(api.complianceQueries.getTopics);
-    
-    const jurisdictionList = jurisdictions?.slice(0, 5).map((j: any) => j.name || j.code).join(', ') || "Loading...";
-    const topicList = topics?.slice(0, 5).map((t: any) => t.name || t.topicKey).join(', ') || "Loading...";
-    
-    return `Jurisdictions: ${jurisdictionList}, Topics: ${topicList}`;
-  } catch (e) {
-    return "Check database for available data";
-  }
-}
-
 // Apply additional filters to search results
 function applyFilters(results: any[], filters: any) {
   let filtered = results;

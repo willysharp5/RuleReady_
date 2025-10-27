@@ -166,14 +166,15 @@ export default function HomePage() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string>('')
   const [selectedPriority, setSelectedPriority] = useState<string>('')
   const [selectedTopic, setSelectedTopic] = useState<string>('')
-  const [showComplianceOnly, setShowComplianceOnly] = useState(false)
+  const [selectedStatus, setSelectedStatus] = useState<string>('')
+  
   
   // Modal filter states
   const [modalSelectedJurisdiction, setModalSelectedJurisdiction] = useState<string>('')
   const [modalSelectedPriority, setModalSelectedPriority] = useState<string>('')
   const [modalSelectedTopic, setModalSelectedTopic] = useState<string>('')
   const [modalSelectedStatus, setModalSelectedStatus] = useState<string>('')
-  const [modalShowComplianceOnly, setModalShowComplianceOnly] = useState(false)
+  
   
   // Bulk selection state
   const [selectedWebsiteIds, setSelectedWebsiteIds] = useState<Set<string>>(new Set())
@@ -208,19 +209,13 @@ export default function HomePage() {
     topicName: string
   } | null>(null)
   
-  // Firecrawl options state
+  // Firecrawl options state - v1 compatible (parsers removed for API compatibility)
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
-      formats: ["markdown", "links", "changeTracking"],
-      changeTrackingOptions: {
-        modes: ["git-diff"]
-      },
+      formats: ["markdown", "links"],
       onlyMainContent: false,
       waitFor: 2000,
-      parsePDF: true, // v1 API: Enable PDF parsing - extracts PDF content to markdown
-      proxy: "auto",
-      maxAge: 172800000, // 2 days cache for performance
-      blockAds: true,
+      maxAge: 172800000,
       removeBase64Images: true,
     }, null, 2)
   })
@@ -573,18 +568,14 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     return () => clearTimeout(timeoutId)
   }, [url])
   
-  // Update firecrawl config when settings change
+  // Update firecrawl config when settings change (v1 API compatible)
   useEffect(() => {
     const config: Record<string, unknown> = {
-      formats: ["markdown", "changeTracking"],
-      changeTrackingOptions: {
-        modes: ["git-diff"]
-      },
+      formats: ["markdown", "links"],
       onlyMainContent: false,
       waitFor: 2000,
-      parsers: ["pdf"], // Include PDF parsing capability
-      proxy: "auto",
-      maxAge: 172800000 // 48 hours cache
+      maxAge: 172800000, // 48 hours cache
+      removeBase64Images: true
     }
     
     if (monitorType === 'full_site') {
@@ -618,11 +609,11 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   // Load chat settings from database - NO FALLBACK DEFAULTS
   useEffect(() => {
     if (chatSettings) {
-      setChatSystemPrompt(chatSettings.chatSystemPrompt)
-      setChatModel(chatSettings.chatModel)
-      setEnableComplianceContext(chatSettings.enableComplianceContext)
-      setMaxContextReports(chatSettings.maxContextReports)
-      setEnableSemanticSearch(chatSettings.enableSemanticSearch)
+      setChatSystemPrompt(chatSettings.chatSystemPrompt ?? '')
+      setChatModel(chatSettings.chatModel ?? '')
+      setEnableComplianceContext(!!chatSettings.enableComplianceContext)
+      setMaxContextReports(chatSettings.maxContextReports ?? 5)
+      setEnableSemanticSearch(!!chatSettings.enableSemanticSearch)
     }
   }, [chatSettings])
   
@@ -930,13 +921,15 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       const result = await crawlWebsite({ 
         url: processedUrl,
         limit: monitorType === 'full_site' ? maxPages : 1,
-        config: parsedConfig
+        config: parsedConfig,
+        saveToDb: true,
+        websiteId: selectedWebsiteId || undefined,
       })
       
       addToast({
         variant: 'success',
         title: 'One-time monitoring completed',
-        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}`,
+        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}${result.savedScrapeResultIds?.length ? ' • Saved to history' : ''}`,
         duration: 5000
       })
       
@@ -2140,7 +2133,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
             {/* Left Column - Websites */}
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow-sm flex flex-col">
+              <div className="bg-white rounded-lg shadow-sm flex flex-col relative">
+                <LoadingOverlay visible={isMonitoringOnce} message="Crawling…" />
                 {/* Search Header */}
                 <div className="p-6 border-b flex-shrink-0">
                   <div className="flex items-center justify-between">
@@ -2176,13 +2170,18 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                                      website.url.toLowerCase().includes(query)
                                 if (!matchesSearch) return false
                                 
-                                if (showComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                
                                 if (selectedJurisdiction) {
                                   const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
                                   if (websiteJurisdiction !== selectedJurisdiction) return false
                                 }
                                 if (selectedTopic && website.complianceMetadata?.topicKey !== selectedTopic) return false
                                 if (selectedPriority && website.complianceMetadata?.priority !== selectedPriority) return false
+                                if (selectedStatus) {
+                                  if (selectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                                  if (selectedStatus === 'paused' && !website.isPaused) return false
+                                  if (selectedStatus === 'inactive' && website.isActive) return false
+                                }
                                 return true
                               });
                               
@@ -2204,13 +2203,18 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
                                                      website.url.toLowerCase().includes(query)
                                 if (!matchesSearch) return false
-                                if (showComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                
                                 if (selectedJurisdiction) {
                                   const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
                                   if (websiteJurisdiction !== selectedJurisdiction) return false
                                 }
                                 if (selectedTopic && website.complianceMetadata?.topicKey !== selectedTopic) return false
                                 if (selectedPriority && website.complianceMetadata?.priority !== selectedPriority) return false
+                                if (selectedStatus) {
+                                  if (selectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                                  if (selectedStatus === 'paused' && !website.isPaused) return false
+                                  if (selectedStatus === 'inactive' && website.isActive) return false
+                                }
                                 return true
                               });
                               const allSelected = filteredWebsites.every(w => selectedWebsiteIds.has(w._id));
@@ -2280,7 +2284,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               <div>• <strong>Jurisdiction:</strong> Filter by Federal or specific states</div>
                               <div>• <strong>Priority:</strong> Filter by monitoring frequency and importance</div>
                               <div>• <strong>Topic:</strong> Focus on specific compliance areas (harassment, wages, etc.)</div>
-                              <div>• <strong>Compliance Only:</strong> Hide regular websites, show only compliance rules</div>
                             </div>
                           </div>
                         </div>
@@ -2332,21 +2335,24 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           <option value="family_medical_leave">Family Leave</option>
                           <option value="biometric_privacy">Biometric Privacy</option>
                         </select>
+                      
+                      {/* Status Filter */}
+                      <select 
+                        className="px-2 py-1 border border-gray-300 rounded text-xs min-w-0 flex-shrink-0"
+                        value={selectedStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                      >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
                         
-                        {/* Compliance Only Toggle */}
-                        <label className="flex items-center px-2 py-1 border border-gray-300 rounded text-xs cursor-pointer min-w-0 flex-shrink-0">
-                          <input
-                            type="checkbox"
-                            checked={showComplianceOnly}
-                            onChange={(e) => setShowComplianceOnly(e.target.checked)}
-                            className="mr-1 w-3 h-3"
-                          />
-                          Compliance Only
-                        </label>
+                        
                       </div>
                       
                       {/* Filter Summary */}
-                      {(selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly) && (
+                      {(selectedJurisdiction || selectedPriority || selectedTopic || selectedStatus) && (
                         <div className="flex flex-wrap gap-1 pt-2">
                           <span className="text-xs text-gray-500">Filters:</span>
                           {selectedJurisdiction && (
@@ -2376,12 +2382,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               >×</button>
                             </span>
                           )}
-                          {showComplianceOnly && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
-                              Compliance Only
+                          {selectedStatus && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-800">
+                              Status: {selectedStatus}
                               <button 
-                                onClick={() => setShowComplianceOnly(false)}
-                                className="ml-1 text-purple-600 hover:text-purple-800"
+                                onClick={() => setSelectedStatus('')}
+                                className="ml-1 text-gray-600 hover:text-gray-800"
                               >×</button>
                             </span>
                           )}
@@ -2390,7 +2396,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               setSelectedJurisdiction('')
                               setSelectedPriority('')
                               setSelectedTopic('')
-                              setShowComplianceOnly(false)
+                              setSelectedStatus('')
                             }}
                             className="text-xs text-gray-500 hover:text-gray-700 underline"
                           >
@@ -2426,10 +2432,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                             if (!matchesSearch) return false
                           }
 
-                          // Compliance-only filter
-                          if (showComplianceOnly) {
-                            if (!website.complianceMetadata?.isComplianceWebsite) return false
-                          }
+                          
 
                           // Jurisdiction filter
                           if (selectedJurisdiction) {
@@ -2444,6 +2447,13 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           // Topic filter
                           if (selectedTopic) {
                             if (website.complianceMetadata?.topicKey !== selectedTopic) return false
+                          }
+
+                          // Status filter
+                          if (selectedStatus) {
+                            if (selectedStatus === 'active' && (!website.isActive || website.isPaused)) return false
+                            if (selectedStatus === 'paused' && !website.isPaused) return false
+                            if (selectedStatus === 'inactive' && website.isActive) return false
                           }
 
                           return true
@@ -2482,7 +2492,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         const paginatedWebsites = sortedWebsites.slice(startIndex, endIndex)
                         
                         // Filter results summary
-                        const hasFilters = searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly
+                        const hasFilters = searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || selectedStatus
                         const filterResultsText = hasFilters ? 
                           `Showing ${sortedWebsites.length} of ${websites.length} websites` :
                           `Showing all ${websites.length} websites`
@@ -2505,7 +2515,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           </div>
                         )
                         
-                        if (sortedWebsites.length === 0 && (searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || showComplianceOnly)) {
+                        if (sortedWebsites.length === 0 && (searchQuery || selectedJurisdiction || selectedPriority || selectedTopic || selectedStatus)) {
                           return (
                             <div className="text-center py-8 text-gray-500">
                               <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -2515,7 +2525,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 {selectedJurisdiction && <p>Jurisdiction: {selectedJurisdiction}</p>}
                                 {selectedPriority && <p>Priority: {selectedPriority}</p>}
                                 {selectedTopic && <p>Topic: {topics?.find(t => t.topicKey === selectedTopic)?.name}</p>}
-                                {showComplianceOnly && <p>Showing: Compliance websites only</p>}
+                                {selectedStatus && <p>Status: {selectedStatus}</p>}
+                                
                               </div>
                               <button 
                                 onClick={() => {
@@ -2523,7 +2534,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                   setSelectedJurisdiction('')
                                   setSelectedPriority('')
                                   setSelectedTopic('')
-                                  setShowComplianceOnly(false)
+                                  setSelectedStatus('')
+                                  
                                 }}
                                 className="mt-3 text-blue-600 hover:text-blue-800 text-sm underline"
                               >
@@ -3308,10 +3320,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                                      website.url.toLowerCase().includes(query)
                                 if (!matchesSearch) return false
                                 
-                                // Compliance only filter
-                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) {
-                                  return false
-                                }
+                                
                                 
                                 // Jurisdiction filter
                                 if (modalSelectedJurisdiction) {
@@ -3339,7 +3348,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 return true
                               });
                               
-                              const hasFilters = modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly || searchQuery
+                              const hasFilters = modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || searchQuery
                               const totalCount = websites.length
                               const filteredCount = filteredWebsites.length
                               const complianceCount = filteredWebsites.filter(w => w.complianceMetadata?.isComplianceWebsite).length
@@ -3369,7 +3378,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                                      website.url.toLowerCase().includes(query)
                                 if (!matchesSearch) return false
                                 
-                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                
                                 if (modalSelectedJurisdiction) {
                                   const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
                                   if (websiteJurisdiction !== modalSelectedJurisdiction) return false
@@ -3402,7 +3411,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 const matchesSearch = cleanWebsiteName(website.name).toLowerCase().includes(query) || 
                                                      website.url.toLowerCase().includes(query)
                                 if (!matchesSearch) return false
-                                if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) return false
+                                
                                 if (modalSelectedJurisdiction) {
                                   const websiteJurisdiction = cleanWebsiteName(website.name).split(' - ')[0]
                                   if (websiteJurisdiction !== modalSelectedJurisdiction) return false
@@ -3538,21 +3547,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       
                       {/* Filter Toggles */}
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={modalShowComplianceOnly}
-                            onChange={(e) => {
-                              setModalShowComplianceOnly(e.target.checked);
-                              setModalWebsitesPage(1);
-                            }}
-                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                          />
-                          <span>Compliance websites only</span>
-                        </label>
-                        
                         {/* Clear All Filters Button */}
-                        {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly) && (
+                        {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -3561,7 +3557,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               setModalSelectedTopic('');
                               setModalSelectedPriority('');
                               setModalSelectedStatus('');
-                              setModalShowComplianceOnly(false);
                               setModalWebsitesPage(1);
                             }}
                             className="text-xs"
@@ -3572,7 +3567,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       </div>
                       
                       {/* Active Filters Display */}
-                      {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus || modalShowComplianceOnly) && (
+                      {(modalSelectedJurisdiction || modalSelectedTopic || modalSelectedPriority || modalSelectedStatus) && (
                         <div className="flex flex-wrap gap-2">
                           {modalSelectedJurisdiction && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
@@ -3618,17 +3613,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                               </button>
                             </span>
                           )}
-                          {modalShowComplianceOnly && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                              Compliance Only
-                              <button
-                                onClick={() => setModalShowComplianceOnly(false)}
-                                className="hover:text-purple-900"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          )}
+                          
                         </div>
                       )}
                     </div>
@@ -3656,10 +3641,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                    website.url.toLowerCase().includes(query)
                             if (!matchesSearch) return false
                             
-                            // Compliance only filter
-                            if (modalShowComplianceOnly && !website.complianceMetadata?.isComplianceWebsite) {
-                              return false
-                            }
+                            
                             
                             // Jurisdiction filter
                             if (modalSelectedJurisdiction) {
@@ -4410,12 +4392,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
             editingWebsiteId ? (() => {
               const website = websites?.find(w => w._id === editingWebsiteId);
               return {
-                notificationPreference: website?.notificationPreference || 'none',
-                url: website?.url,
-                checkInterval: website?.checkInterval || 60,
-                monitorType: website?.monitorType || 'single_page',
-                crawlLimit: website?.crawlLimit || 5,
-                crawlDepth: website?.crawlDepth || 3,
+                notificationPreference: (website?.notificationPreference === 'email' ? 'email' : 'none'),
+                url: website?.url ?? '',
+                checkInterval: website?.checkInterval ?? 60,
+                monitorType: website?.monitorType ?? 'single_page',
+                crawlLimit: website?.crawlLimit ?? 5,
+                crawlDepth: website?.crawlDepth ?? 3,
                 complianceMetadata: website?.complianceMetadata || undefined,
               };
             })() : {

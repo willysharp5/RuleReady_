@@ -100,8 +100,16 @@ export const getEmbeddingsLimited = query({
       return batch;
     }
 
+    // Normalize jurisdiction for matching (handles case and common aliases)
+    const normalizeJurisdiction = (j?: string) => (j || '').trim().toLowerCase()
+      .replace(/^us federal$|^u\.s\. federal$|^federal government$|^federal$/, 'federal')
+      .replace(/^dc$|^d\.c\.$|^district of columbia$/, 'district of columbia');
+
+    const wantJurisdiction = normalizeJurisdiction(args.jurisdiction);
+
     const filtered = batch.filter((emb: any) => {
-      const matchesJurisdiction = !args.jurisdiction || emb.metadata?.jurisdiction === args.jurisdiction;
+      const embJurisdiction = normalizeJurisdiction(emb.metadata?.jurisdiction);
+      const matchesJurisdiction = !wantJurisdiction || embJurisdiction === wantJurisdiction;
       const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
       return matchesJurisdiction && matchesTopic;
     });
@@ -207,11 +215,15 @@ export const searchSimilarEmbeddings = internalAction({
     // Filter by metadata if specified
     let filteredEmbeddings: any[] = allEmbeddings;
     if (args.jurisdiction || args.topicKey) {
+      const normalizeJurisdiction = (j?: string) => (j || '').trim().toLowerCase()
+        .replace(/^us federal$|^u\.s\. federal$|^federal government$|^federal$/, 'federal')
+        .replace(/^dc$|^d\.c\.$|^district of columbia$/, 'district of columbia');
+      const wantJurisdiction = normalizeJurisdiction(args.jurisdiction);
+
       filteredEmbeddings = allEmbeddings.filter((emb: any) => {
-        const matchesJurisdiction = !args.jurisdiction || 
-          emb.metadata?.jurisdiction === args.jurisdiction;
-        const matchesTopic = !args.topicKey || 
-          emb.metadata?.topicKey === args.topicKey;
+        const embJurisdiction = normalizeJurisdiction(emb.metadata?.jurisdiction);
+        const matchesJurisdiction = !wantJurisdiction || embJurisdiction === wantJurisdiction;
+        const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
         return matchesJurisdiction && matchesTopic;
       });
       console.log(`🎯 After metadata filtering: ${filteredEmbeddings.length}/${allEmbeddings.length} embeddings remain`);

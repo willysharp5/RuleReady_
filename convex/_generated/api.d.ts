@@ -22,12 +22,15 @@ import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
 import type * as complianceWebsiteIntegration from "../complianceWebsiteIntegration.js";
 import type * as crawl from "../crawl.js";
+import type * as crawlActions from "../crawlActions.js";
 import type * as crons from "../crons.js";
 import type * as csvImport from "../csvImport.js";
+import type * as databaseCleanup from "../databaseCleanup.js";
 import type * as embeddingJobs from "../embeddingJobs.js";
 import type * as embeddingManager from "../embeddingManager.js";
 import type * as firecrawl from "../firecrawl.js";
 import type * as firecrawlKeys from "../firecrawlKeys.js";
+import type * as firecrawlKeysActions from "../firecrawlKeysActions.js";
 import type * as geminiFlashLite from "../geminiFlashLite.js";
 import type * as generateEmbeddings from "../generateEmbeddings.js";
 import type * as helpers from "../helpers.js";
@@ -72,12 +75,15 @@ declare const fullApi: ApiFromModules<{
   complianceTemplates: typeof complianceTemplates;
   complianceWebsiteIntegration: typeof complianceWebsiteIntegration;
   crawl: typeof crawl;
+  crawlActions: typeof crawlActions;
   crons: typeof crons;
   csvImport: typeof csvImport;
+  databaseCleanup: typeof databaseCleanup;
   embeddingJobs: typeof embeddingJobs;
   embeddingManager: typeof embeddingManager;
   firecrawl: typeof firecrawl;
   firecrawlKeys: typeof firecrawlKeys;
+  firecrawlKeysActions: typeof firecrawlKeysActions;
   geminiFlashLite: typeof geminiFlashLite;
   generateEmbeddings: typeof generateEmbeddings;
   helpers: typeof helpers;
@@ -104,134 +110,4 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {
-  resend: {
-    lib: {
-      cancelEmail: FunctionReference<
-        "mutation",
-        "internal",
-        { emailId: string },
-        null
-      >;
-      cleanupAbandonedEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      cleanupOldEmails: FunctionReference<
-        "mutation",
-        "internal",
-        { olderThan?: number },
-        null
-      >;
-      createManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          replyTo?: Array<string>;
-          subject: string;
-          to: string;
-        },
-        string
-      >;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          complained: boolean;
-          createdAt: number;
-          errorMessage?: string;
-          finalizedAt: number;
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          opened: boolean;
-          replyTo: Array<string>;
-          resendId?: string;
-          segment: number;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-          subject: string;
-          text?: string;
-          to: string;
-        } | null
-      >;
-      getStatus: FunctionReference<
-        "query",
-        "internal",
-        { emailId: string },
-        {
-          complained: boolean;
-          errorMessage: string | null;
-          opened: boolean;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        } | null
-      >;
-      handleEmailEvent: FunctionReference<
-        "mutation",
-        "internal",
-        { event: any },
-        null
-      >;
-      sendEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          from: string;
-          headers?: Array<{ name: string; value: string }>;
-          html?: string;
-          options: {
-            apiKey: string;
-            initialBackoffMs: number;
-            onEmailEvent?: { fnHandle: string };
-            retryAttempts: number;
-            testMode: boolean;
-          };
-          replyTo?: Array<string>;
-          subject: string;
-          text?: string;
-          to: string;
-        },
-        string
-      >;
-      updateManualEmail: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          emailId: string;
-          errorMessage?: string;
-          resendId?: string;
-          status:
-            | "waiting"
-            | "queued"
-            | "cancelled"
-            | "sent"
-            | "delivered"
-            | "delivery_delayed"
-            | "bounced"
-            | "failed";
-        },
-        null
-      >;
-    };
-  };
-};
+export declare const components: {};

@@ -1,7 +1,7 @@
 import { defineApp } from "convex/server";
-import resend from "@convex-dev/resend/convex.config";
 
 const app = defineApp();
-app.use(resend);
+
+// Node runtime actions are discovered automatically; no explicit mount needed
 
 export default app;

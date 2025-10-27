@@ -56,7 +56,7 @@ export const createWebsite = mutation({
 
     // If it's a full site monitor, trigger initial crawl
     if (args.monitorType === "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawlActions.performCrawl, {
         websiteId,
       });
     }
@@ -298,7 +298,7 @@ export const updateWebsite = mutation({
 
     // If changing to full site monitoring, trigger initial crawl
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawlActions.performCrawl, {
         websiteId: args.websiteId,
       });
     }
@@ -847,7 +847,7 @@ export const createWebsiteFromApi = internalMutation({
 
     // If it's a full site monitor, trigger initial crawl
     if (args.monitorType === "full_site") {
-      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+      await ctx.scheduler.runAfter(0, internal.crawlActions.performCrawl, {
         websiteId,
       });
     }

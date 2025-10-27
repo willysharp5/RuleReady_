@@ -19,7 +19,7 @@ export const checkActiveWebsites = internalAction({
         
         if (website.monitorType === "full_site") {
           // For full site monitors, perform a crawl
-          await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+          await ctx.scheduler.runAfter(0, internal.crawlActions.performCrawl, {
             websiteId: website._id,
           });
         } else {

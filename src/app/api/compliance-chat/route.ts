@@ -21,6 +21,35 @@ export async function POST(req: NextRequest) {
     console.log(`🔍 Chat API: Processing question "${lastUser}"`);
     console.log(`⚙️ Settings: compliance=${userChatSettings.enableComplianceContext}, semantic=${userChatSettings.enableSemanticSearch}`);
     
+    // If no jurisdiction provided, return a clarification message immediately.
+    // Do NOT infer a state from embedding matches or sources.
+    if (!jurisdiction) {
+      const clarificationTitle = 'Clarification Needed – Jurisdiction';
+      const clarificationText = `To provide accurate information${topic ? ` about ${String(topic).replace(/_/g, ' ')}` : ''}, I need to know which jurisdiction you're asking about.\n\nPlease specify the state or territory (for example, California, Minnesota, District of Columbia) or say "Federal".`;
+      return new Response(
+        JSON.stringify({
+          role: 'assistant',
+          content: `# ${clarificationTitle}\n\n${clarificationText}`,
+          title: clarificationTitle,
+          sources: [],
+          settings: {
+            systemPrompt: userChatSettings.chatSystemPrompt || 'Compliance assistant prompt not set',
+            model: userChatSettings.chatModel || 'gemini-2.0-flash-exp',
+            complianceContext: userChatSettings.enableComplianceContext ?? true,
+            maxContextReports: userChatSettings.maxContextReports || 5,
+            semanticSearch: userChatSettings.enableSemanticSearch ?? true,
+            sourcesFound: 0,
+            jurisdiction: 'Unspecified',
+            topic: 'Insufficient',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
     let sources: unknown[] = [];
     
     // Do embedding search if semantic search is enabled OR if compliance context is enabled
@@ -217,8 +246,7 @@ FORMAT THE ANSWER CLEARLY:
     const text = response.text();
     
     // Compose a display title from filters or top source
-    const displayTitle = (typedSources[0]?.jurisdiction || jurisdiction || 'Compliance') +
-      ' – ' + (typedSources[0]?.topicLabel || topic || 'Guidance');
+    const displayTitle = (jurisdiction || 'Compliance') + ' – ' + (topic || 'Guidance');
 
     // Clean text to remove title duplication and improve formatting
     let cleanText = text

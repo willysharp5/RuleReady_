@@ -28,16 +28,15 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
   // Single-user mode: no user query needed
   const currentUser = null
   const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
-  const getTokenUsage = useAction(api.firecrawlKeys.getTokenUsage)
-  const [tokenUsage, setTokenUsage] = useState<{ remaining_tokens?: number; error?: string } | null>(null)
+  const getTokenUsage = useAction(api.firecrawlKeysActions.getTokenUsage)
+  const [tokenUsage, setTokenUsage] = useState<{ remaining?: number; error?: string } | null>(null)
   
   const fetchTokenUsage = useCallback(async () => {
     try {
       const result = await getTokenUsage()
-      if (result.success) {
-        setTokenUsage({ remaining_tokens: result.remaining_tokens })
-      } else {
-        setTokenUsage({ error: result.error })
+      if (result?.usage) {
+        const remaining = Math.max(result.usage.limit - result.usage.current, 0)
+        setTokenUsage({ remaining })
       }
     } catch {
       setTokenUsage({ error: 'Failed to fetch token usage' })
@@ -45,7 +44,7 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
   }, [getTokenUsage])
   
   useEffect(() => {
-    if (firecrawlKey?.hasKey && isAuthenticated) {
+    if (firecrawlKey && isAuthenticated) {
       fetchTokenUsage()
       // Refresh credits every 30 seconds
       const interval = setInterval(fetchTokenUsage, 30000)
