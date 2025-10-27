@@ -171,7 +171,7 @@ export function JurisdictionDetailsPopover({
                         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                         <h4 className="font-medium text-gray-900 mb-2">No Report Content Available</h4>
                         <p className="text-sm text-gray-600">
-                          This compliance report hasn't been processed yet.
+                          This compliance report hasn&apos;t been processed yet.
                         </p>
                       </div>
                     )}

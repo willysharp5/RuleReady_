@@ -56,7 +56,8 @@ export const importAndProcessReports = action({
             // Standard import without AI processing
             const reportId = `${jurisdiction.toLowerCase().replace(/\s+/g, '_')}_${topicKey}_${Date.now()}`;
             
-            await ctx.runMutation(internal.reportImport.createReport, {
+            // reportImport removed - using direct database insert instead
+            await ctx.runMutation(internal.complianceWebsiteIntegration.storeComplianceReport, {
               reportId,
               ruleId: `${jurisdiction.toLowerCase().replace(/\s+/g, '_')}_${topicKey}`,
               reportContent: reportFile.content,

@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Settings2, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -2685,20 +2685,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                     )}
                                   </Button>
                                 </Tooltip>
-                                <Tooltip content="Settings">
-                                  <Button 
-                                    variant="default" 
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingWebsiteId(website._id)
-                                      setShowWebhookModal(true)
-                                    }}
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    <Settings2 className="h-4 w-4" />
-                                  </Button>
-                                </Tooltip>
 
                                 <DeleteConfirmationPopover
                                   trigger={
@@ -3847,21 +3833,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                         </Button>
                                         </Tooltip>
                                         
-                                        <Tooltip content="Website settings and configuration">
-                                          <Button 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditingWebsiteId(website._id)
-                                              setShowWebhookModal(true)
-                                            }}
-                                            className="w-7 h-7 p-0"
-                                          >
-                                            <Settings2 className="h-4 w-4" />
-                                          </Button>
-                                        </Tooltip>
-                                        
                                         <Tooltip content="Remove website from monitoring">
                                         <DeleteConfirmationPopover
                                           trigger={
@@ -4405,25 +4376,24 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     newSet.delete(websiteId)
                     return newSet
                   })
-                }, config.monitorType === 'full_site' ? 15000 : 8000) // Longer for full site crawls
+                }, config.monitorType === 'full_site' ? 15000 : 8000)
                 
                 setPendingWebsite(null)
-        } catch (error: unknown) {
-          setError((error as Error).message || 'Failed to add website')
+              } catch (error: unknown) {
+                setError((error as Error).message || 'Failed to add website')
               } finally {
                 setIsAdding(false)
               }
             } else if (editingWebsiteId) {
               // Update existing website
               await updateWebsite({
-                websiteId: editingWebsiteId as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-                url: config.url, // NEW: Include URL updates
+                websiteId: editingWebsiteId as any,
+                url: config.url,
                 notificationPreference: config.notificationPreference,
                 checkInterval: config.checkInterval,
                 monitorType: config.monitorType,
                 crawlLimit: config.crawlLimit,
                 crawlDepth: config.crawlDepth,
-                // NEW: Include compliance priority updates
                 compliancePriority: config.compliancePriority,
                 overrideComplianceInterval: config.overrideComplianceInterval,
                 priorityChangeReason: config.priorityChangeReason,
@@ -4438,12 +4408,11 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
               const website = websites?.find(w => w._id === editingWebsiteId);
               return {
                 notificationPreference: website?.notificationPreference || 'none',
-                url: website?.url, // NEW: Pass current URL to modal
+                url: website?.url,
                 checkInterval: website?.checkInterval || 60,
                 monitorType: website?.monitorType || 'single_page',
                 crawlLimit: website?.crawlLimit || 5,
                 crawlDepth: website?.crawlDepth || 3,
-                // NEW: Include compliance metadata
                 complianceMetadata: website?.complianceMetadata || undefined,
               };
             })() : {

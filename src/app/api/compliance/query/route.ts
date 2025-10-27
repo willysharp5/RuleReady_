@@ -32,14 +32,14 @@ export async function POST(req: NextRequest) {
       query,
       answer: ragResult.answer,
       confidence: ragResult.confidence,
-      sources: ragResult.sources.map((source: Record<string, unknown>) => ({
+      sources: (ragResult.sources as Record<string, unknown>[]).map((source) => ({
         ruleId: source.ruleId,
         jurisdiction: source.jurisdiction,
         topicKey: source.topicKey,
         topicLabel: source.topicLabel,
         sourceUrl: source.sourceUrl,
         similarity: source.similarity,
-        relevanceScore: Math.round((source.similarity || 0) * 100),
+        relevanceScore: Math.round(((source.similarity as number) || 0) * 100),
       })),
       relatedTopics: ragResult.relatedTopics,
       recentChanges: ragResult.recentChanges,

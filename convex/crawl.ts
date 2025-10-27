@@ -17,9 +17,8 @@ export const performCrawl = internalAction({
     // Removed userId - not needed in single-user mode
   },
   handler: async (ctx, args) => {
-    // Legacy crawling completely disabled in single-user mode
-    console.log("Legacy crawling disabled in single-user mode - use complianceCrawler instead");
-    return { success: true, message: "Legacy crawling disabled" };
+    // Full-site crawling enabled for both general and compliance sites
+    console.log("Starting full-site crawl for website");
     // Starting crawl for website
     
     // Get website details

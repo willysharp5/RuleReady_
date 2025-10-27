@@ -89,7 +89,8 @@ export const crawlComplianceRule = action({
     if (changeAnalysis.changeType === "new_content" || changeAnalysis.hasSignificantChanges) {
       try {
         const reportId = `${rule.ruleId}_${Date.now()}`;
-        await ctx.runMutation(internal.reportImport.createReport, {
+        // reportImport removed - using direct database insert instead
+        await ctx.runMutation(internal.complianceWebsiteIntegration.storeComplianceReport, {
           reportId,
           ruleId: rule.ruleId,
           reportContent: parsedContent.rawContent,

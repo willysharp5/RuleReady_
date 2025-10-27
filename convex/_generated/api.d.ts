@@ -8,11 +8,6 @@
  * @module
  */
 
-import type * as aiModelManager from "../aiModelManager.js";
-import type * as aiService from "../aiService.js";
-import type * as alertEmail from "../alertEmail.js";
-import type * as autoSetup from "../autoSetup.js";
-import type * as changeAnalysis from "../changeAnalysis.js";
 import type * as chatSettings from "../chatSettings.js";
 import type * as complianceAI from "../complianceAI.js";
 import type * as complianceChanges from "../complianceChanges.js";
@@ -40,16 +35,9 @@ import type * as importComplianceReports from "../importComplianceReports.js";
 import type * as jurisdictionDetails from "../jurisdictionDetails.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
-import type * as migrateEmbeddings from "../migrateEmbeddings.js";
 import type * as monitoring from "../monitoring.js";
-import type * as reportImport from "../reportImport.js";
 import type * as ruleDetails from "../ruleDetails.js";
 import type * as singleUserSetup from "../singleUserSetup.js";
-import type * as testChatSources from "../testChatSources.js";
-import type * as testEmbeddings from "../testEmbeddings.js";
-import type * as testEnvironment from "../testEnvironment.js";
-import type * as testFirecrawl from "../testFirecrawl.js";
-import type * as testWorkflowLogger from "../testWorkflowLogger.js";
 import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
 import type * as websites from "../websites.js";
@@ -70,11 +58,6 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  aiModelManager: typeof aiModelManager;
-  aiService: typeof aiService;
-  alertEmail: typeof alertEmail;
-  autoSetup: typeof autoSetup;
-  changeAnalysis: typeof changeAnalysis;
   chatSettings: typeof chatSettings;
   complianceAI: typeof complianceAI;
   complianceChanges: typeof complianceChanges;
@@ -102,16 +85,9 @@ declare const fullApi: ApiFromModules<{
   jurisdictionDetails: typeof jurisdictionDetails;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
-  migrateEmbeddings: typeof migrateEmbeddings;
   monitoring: typeof monitoring;
-  reportImport: typeof reportImport;
   ruleDetails: typeof ruleDetails;
   singleUserSetup: typeof singleUserSetup;
-  testChatSources: typeof testChatSources;
-  testEmbeddings: typeof testEmbeddings;
-  testEnvironment: typeof testEnvironment;
-  testFirecrawl: typeof testFirecrawl;
-  testWorkflowLogger: typeof testWorkflowLogger;
   testingMode: typeof testingMode;
   userSettings: typeof userSettings;
   websites: typeof websites;

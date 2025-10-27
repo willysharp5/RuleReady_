@@ -3,7 +3,7 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 
 // Generate compliance rule from selected sources using LLM
-export const generateComplianceRule: any = action({
+export const generateComplianceRule = action({
   args: {
     selectedSourceIds: v.array(v.string()),
     templateId: v.string(),

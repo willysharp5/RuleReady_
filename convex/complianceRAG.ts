@@ -3,7 +3,7 @@ import { action, internalAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 
 // PHASE 3.1: Enhanced RAG System for compliance knowledge queries
-export const queryComplianceKnowledge: any = action({
+export const queryComplianceKnowledge = action({
   args: {
     query: v.string(),
     jurisdiction: v.optional(v.string()),
@@ -12,7 +12,19 @@ export const queryComplianceKnowledge: any = action({
     maxSources: v.optional(v.number()),
     threshold: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    answer: string;
+    sources: unknown[];
+    confidence: number;
+    relatedTopics: string[];
+    recentChanges: unknown[];
+    metadata: {
+      sourcesFound: number;
+      changesIncluded: number;
+      queryTime: number;
+      threshold: number;
+    };
+  }> => {
     console.log(`🔍 RAG Query: "${args.query}" (${args.jurisdiction || 'all jurisdictions'}, ${args.topicKey || 'all topics'})`);
     
     // 1. Use existing embedding search to find relevant content
@@ -66,7 +78,7 @@ export const queryComplianceKnowledge: any = action({
 });
 
 // Enhanced compliance query with semantic filtering
-export const semanticComplianceSearch: any = action({
+export const semanticComplianceSearch = action({
   args: {
     query: v.string(),
     filters: v.optional(v.object({
@@ -84,7 +96,13 @@ export const semanticComplianceSearch: any = action({
       v.literal("both")
     )),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{
+    query: string;
+    results: { rules: unknown[]; reports: unknown[]; embeddings: unknown[] };
+    totalFound: number;
+    searchType: string;
+    filters: unknown;
+  }> => {
     console.log(`🔎 Semantic search: "${args.query}"`);
     
     const searchType = args.searchType || "both";

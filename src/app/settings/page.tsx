@@ -171,7 +171,7 @@ function SettingsContent() {
   const [editingTemplate, setEditingTemplate] = useState<{
     topicKey: string
     topicName: string
-    template?: any
+    template?: Record<string, unknown>
   } | null>(null)
   const [templateSearchQuery, setTemplateSearchQuery] = useState('')
   
@@ -193,7 +193,7 @@ Instructions:
 - Maintain legal accuracy and clarity`)
   
   // Source preview state
-  const [previewSource, setPreviewSource] = useState<any>(null)
+  const [previewSource, setPreviewSource] = useState<Record<string, unknown> | null>(null)
   const [showSourcePreview, setShowSourcePreview] = useState(false)
   const [copiedUrl, setCopiedUrl] = useState(false)
   
@@ -204,7 +204,7 @@ Instructions:
   const [sourceCitations, setSourceCitations] = useState<string[]>([])
   
   // Embeddings state
-  const [generatedEmbeddings, setGeneratedEmbeddings] = useState<any[]>([])
+  const [generatedEmbeddings, setGeneratedEmbeddings] = useState<Record<string, unknown>[]>([])
   const [showEmbeddingsPreview, setShowEmbeddingsPreview] = useState(false)
   const [isGeneratingEmbeddings, setIsGeneratingEmbeddings] = useState(false)
   
@@ -254,7 +254,7 @@ Instructions:
 
     // Add compliance reports
     if (allComplianceReports) {
-      allComplianceReports.forEach((report: any) => {
+      allComplianceReports.forEach((report: Record<string, unknown>) => {
         // Parse jurisdiction and topic from ruleId (e.g., "alabama_minimum_wage")
         const ruleIdParts = report.ruleId?.split('_') || []
         const jurisdiction = ruleIdParts[0] ? ruleIdParts[0].charAt(0).toUpperCase() + ruleIdParts[0].slice(1) : 'Unknown'
@@ -276,7 +276,7 @@ Instructions:
 
     // Add website scrape results
     if (websites) {
-      websites.forEach((website: any) => {
+      websites.forEach((website: Record<string, unknown>) => {
         if (website.complianceMetadata) {
           const jurisdiction = website.complianceMetadata.jurisdiction || 'Unknown'
           const topic = website.complianceMetadata.topicKey || 'Unknown'
@@ -302,7 +302,7 @@ Instructions:
 
   // Filter sources based on search and filters
   const filteredSources = useMemo(() => {
-    return availableSources.filter((source: any) => {
+    return availableSources.filter((source: Record<string, unknown>) => {
       const matchesSearch = !sourceSearchQuery || 
         source.title.toLowerCase().includes(sourceSearchQuery.toLowerCase()) ||
         source.jurisdiction.toLowerCase().includes(sourceSearchQuery.toLowerCase()) ||
@@ -362,14 +362,14 @@ Instructions:
   }, [sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter, showSelectedOnly])
 
   // Source preview handlers
-  const handleSourcePreview = (source: any) => {
+  const handleSourcePreview = (source: Record<string, unknown>) => {
     // Find the actual source data with content
     let sourceWithContent = null
     let content = 'Content not available'
     let contentExplanation = ''
     
     if (source.type === 'report' && allComplianceReports) {
-      sourceWithContent = allComplianceReports.find((report: any) => report._id === source.id)
+      sourceWithContent = allComplianceReports.find((report: Record<string, unknown>) => report._id === source.id)
       if (sourceWithContent?.rawContent) {
         content = sourceWithContent.rawContent
         contentExplanation = 'This is the raw scraped content from the compliance report.'
@@ -399,7 +399,7 @@ Sources: ${structured.sources || 'Not specified'}`
         contentExplanation = 'This report exists in the database but has no content or structured data.'
       }
     } else if (source.type === 'website' && websites) {
-      sourceWithContent = websites.find((website: any) => website._id === source.id)
+      sourceWithContent = websites.find((website: Record<string, unknown>) => website._id === source.id)
       content = `This is a tracked compliance website for ${source.jurisdiction} - ${source.topic}.
 
 Website URL: ${source.url}
@@ -1313,7 +1313,7 @@ Analyze the provided diff and return a JSON response with:
                         <strong className="flex items-center gap-1">
                           <Lightbulb className="h-3 w-3" />
                           Tip:
-                        </strong> Use "View Details" to filter rules by topic and priority within each jurisdiction.
+                        </strong> Use &quot;View Details&quot; to filter rules by topic and priority within each jurisdiction.
                       </p>
                     </div>
                     
@@ -1769,7 +1769,7 @@ Analyze the provided diff and return a JSON response with:
                                 <p className="text-xs mt-1">Try adjusting your search or filters</p>
                               </div>
                             ) : (
-                              paginatedSources.map((source: any) => {
+                              paginatedSources.map((source: Record<string, unknown>) => {
                                 const isSelected = selectedSources.has(source.id)
                                 const priorityColors = {
                                   critical: 'bg-red-100 text-red-800',
@@ -2787,7 +2787,7 @@ Analyze the provided diff and return a JSON response with:
                       The chat system prompt is managed in the main chat settings. Go to the chat section in the main app to configure it.
                     </p>
                     <p className="text-xs text-blue-700 mt-2">
-                      Current: "You are a professional compliance assistant specializing in US employment law."
+                      Current: &quot;You are a professional compliance assistant specializing in US employment law.&quot;
                     </p>
                   </div>
                 )}
@@ -2862,7 +2862,7 @@ Analyze the provided diff and return a JSON response with:
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-medium text-blue-900 mb-2">Embedding Model Configuration</h4>
                     <p className="text-sm text-blue-800">
-                      Embedding models don't use system prompts or temperature settings. They convert text into numerical vectors for semantic search.
+                      Embedding models don&apos;t use system prompts or temperature settings. They convert text into numerical vectors for semantic search.
                     </p>
                     <div className="mt-3 space-y-2 text-sm">
                       <div><strong>Current Model:</strong> Google Text Embedding 004</div>

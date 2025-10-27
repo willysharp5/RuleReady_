@@ -275,3 +275,31 @@ export const updateComplianceWebsiteMetadata = internalMutation({
     return { updated, total: complianceWebsites.length };
   },
 });
+
+// Store compliance report - replaces reportImport.createReport
+export const storeComplianceReport = internalMutation({
+  args: {
+    reportId: v.string(),
+    ruleId: v.string(),
+    reportContent: v.string(),
+    contentHash: v.string(),
+    contentLength: v.number(),
+    extractedSections: v.any(),
+    processingMethod: v.string(),
+    aiAnalysis: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    // Insert into complianceReports table
+    await ctx.db.insert("complianceReports", {
+      reportId: args.reportId,
+      ruleId: args.ruleId,
+      reportContent: args.reportContent,
+      contentHash: args.contentHash,
+      contentLength: args.contentLength,
+      extractedSections: args.extractedSections || {},
+      processingMethod: args.processingMethod,
+      aiAnalysis: args.aiAnalysis,
+      generatedAt: Date.now(),
+    });
+  },
+});

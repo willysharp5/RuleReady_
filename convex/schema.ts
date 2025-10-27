@@ -85,10 +85,10 @@ const schema = defineSchema({
     .index("by_website_time", ["websiteId", "scrapedAt"])
     .index("by_user_time", ["userId", "scrapedAt"]),
 
-  // Legacy tables - keeping for now
+  // Legacy tables - keeping for compatibility with existing features
   changeAlerts: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Keep for existing data compatibility
+    userId: v.optional(v.id("users")),
     scrapeResultId: v.id("scrapeResults"),
     changeType: v.string(),
     summary: v.string(),
@@ -100,7 +100,7 @@ const schema = defineSchema({
 
   crawlSessions: defineTable({
     websiteId: v.id("websites"),
-    userId: v.optional(v.id("users")), // Keep for existing data compatibility
+    userId: v.optional(v.id("users")),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     status: v.union(
@@ -139,83 +139,6 @@ const schema = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"]),
-
-  // AI MODEL MANAGEMENT TABLES
-  aiModels: defineTable({
-    name: v.string(), // "OpenAI GPT-4", "Google Gemini Pro"
-    provider: v.string(), // "openai", "google", "anthropic", "azure"
-    modelId: v.string(), // "gpt-4o", "gemini-2.0-flash-exp"
-    apiKeyEnvVar: v.string(), // "OPENAI_API_KEY", "GEMINI_API_KEY"
-    baseUrl: v.optional(v.string()), // For custom endpoints
-    isActive: v.boolean(),
-    capabilities: v.array(v.string()), // ["chat", "embeddings", "analysis", "generation"]
-    maxTokens: v.optional(v.number()),
-    costPerToken: v.optional(v.number()),
-    description: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_provider", ["provider"])
-    .index("by_active", ["isActive"]),
-
-  aiModelConfigs: defineTable({
-    purpose: v.string(), // "chat", "rule_generation", "embeddings", "change_analysis"
-    selectedModelId: v.id("aiModels"),
-    systemPrompt: v.optional(v.string()),
-    temperature: v.optional(v.number()),
-    maxTokens: v.optional(v.number()),
-    isActive: v.boolean(),
-    updatedAt: v.number(),
-  })
-    .index("by_purpose", ["purpose"])
-    .index("by_active", ["isActive"]),
-
-  // COMPLIANCE GENERATION TABLES
-  sourceCollections: defineTable({
-    collectionId: v.string(),
-    name: v.string(),
-    jurisdiction: v.string(),
-    topicKey: v.string(),
-    seedUrls: v.array(v.string()),
-    crawlConfig: v.object({
-      maxDepth: v.number(),
-      maxPages: v.number(),
-      includePdfLinks: v.boolean(),
-      respectRobots: v.boolean(),
-    }),
-    status: v.union(v.literal("created"), v.literal("ingesting"), v.literal("completed"), v.literal("failed")),
-    ingestedCount: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_jurisdiction_topic", ["jurisdiction", "topicKey"])
-    .index("by_status", ["status"])
-    .index("by_collection_id", ["collectionId"]),
-
-  sourceDocuments: defineTable({
-    sourceId: v.string(),
-    collectionId: v.string(),
-    url: v.string(),
-    contentType: v.union(v.literal("html"), v.literal("pdf")),
-    title: v.optional(v.string()),
-    textContent: v.string(), // normalized markdown/text
-    metadata: v.optional(v.any()), // {publisher, publishedDate, og, headers}
-    contentHash: v.string(),
-    fetchedAt: v.number(),
-    status: v.union(v.literal("ok"), v.literal("failed")),
-  })
-    .index("by_collection", ["collectionId"])
-    .index("by_hash", ["contentHash"])
-    .index("by_source_id", ["sourceId"]),
-
-  reportSources: defineTable({
-    reportId: v.string(),
-    sourceId: v.string(),
-    section: v.optional(v.string()), // template section name
-    citation: v.optional(v.string()), // excerpt/anchor for traceability
-  })
-    .index("by_report", ["reportId"])
-    .index("by_source", ["sourceId"]),
 
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({
@@ -447,69 +370,6 @@ const schema = defineSchema({
     .index("by_mode", ["mode"])
     .index("by_success", ["success"]),
 
-  // Generated compliance reports
-  generatedReports: defineTable({
-    reportId: v.string(),
-    jurisdiction: v.optional(v.string()),
-    topicKey: v.optional(v.string()),
-    reportType: v.union(
-      v.literal("jurisdiction_summary"),
-      v.literal("topic_analysis"),
-      v.literal("change_digest"),
-      v.literal("compliance_scorecard"),
-      v.literal("deadline_calendar")
-    ),
-    content: v.string(), // Full report content (HTML/Markdown)
-    summary: v.optional(v.string()), // Executive summary
-    metadata: v.object({
-      rulesCount: v.optional(v.number()),
-      changesCount: v.optional(v.number()),
-      generatedAt: v.number(),
-      includesChanges: v.optional(v.boolean()),
-      format: v.optional(v.string()),
-    }),
-    status: v.union(v.literal("generating"), v.literal("completed"), v.literal("failed")),
-    scheduledFor: v.optional(v.number()),
-    generatedAt: v.number(),
-    distributedAt: v.optional(v.number()),
-  })
-    .index("by_jurisdiction", ["jurisdiction"])
-    .index("by_topic", ["topicKey"])
-    .index("by_type", ["reportType"])
-    .index("by_status", ["status"])
-    .index("by_scheduled", ["scheduledFor"]),
-
-  reportJobs: defineTable({
-    reportId: v.string(),
-    reportType: v.union(
-      v.literal("jurisdiction_summary"),
-      v.literal("topic_analysis"),
-      v.literal("change_digest"),
-      v.literal("compliance_scorecard"),
-      v.literal("deadline_calendar")
-    ),
-    frequency: v.union(
-      v.literal("daily"),
-      v.literal("weekly"),
-      v.literal("monthly"),
-      v.literal("quarterly")
-    ),
-    jurisdictions: v.array(v.string()),
-    topics: v.array(v.string()),
-    status: v.union(v.literal("scheduled"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
-    scheduledFor: v.number(),
-    lastGenerated: v.optional(v.number()),
-    nextScheduled: v.optional(v.number()),
-    config: v.object({
-      includeChanges: v.boolean(),
-      format: v.union(v.literal("html"), v.literal("markdown"), v.literal("pdf")),
-      distributionChannels: v.array(v.string()),
-    }),
-  })
-    .index("by_status", ["status"])
-    .index("by_scheduled", ["scheduledFor"])
-    .index("by_frequency", ["frequency"]),
-
   // AI-processed compliance reports
   complianceAIReports: defineTable({
     reportId: v.string(),
@@ -520,7 +380,7 @@ const schema = defineSchema({
       coveredEmployers: v.optional(v.string()),
       coveredEmployees: v.optional(v.string()),
       employerResponsibilities: v.optional(v.string()),
-      whatShouldEmployersDo: v.optional(v.string()), // Alias for employerResponsibilities
+      whatShouldEmployersDo: v.optional(v.string()),
       trainingRequirements: v.optional(v.string()),
       trainingDeadlines: v.optional(v.string()),
       qualifiedTrainers: v.optional(v.string()),
@@ -535,7 +395,7 @@ const schema = defineSchema({
       sources: v.optional(v.string()),
     }),
     sourceUrl: v.string(),
-    processedBy: v.string(), // "gemini-2.5-flash-lite"
+    processedBy: v.string(),
     processedAt: v.number(),
     aiMetadata: v.optional(v.object({
       tokensUsed: v.number(),
@@ -548,24 +408,14 @@ const schema = defineSchema({
     .index("by_processed_at", ["processedAt"])
     .index("by_processed_by", ["processedBy"]),
 
-  // Compliance chat sessions
-  complianceChatSessions: defineTable({
-    sessionId: v.string(),
-    messages: v.array(v.object({
-      role: v.union(v.literal("user"), v.literal("assistant")),
-      content: v.string(),
-      timestamp: v.number(),
-    })),
-    context: v.optional(v.object({
-      jurisdiction: v.optional(v.string()),
-      topic: v.optional(v.string()),
-      reportsUsed: v.array(v.string()),
-    })),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+  reportSources: defineTable({
+    reportId: v.string(),
+    sourceId: v.string(),
+    section: v.optional(v.string()),
+    citation: v.optional(v.string()),
   })
-    .index("by_created_at", ["createdAt"])
-    .index("by_session_id", ["sessionId"]),
+    .index("by_report", ["reportId"])
+    .index("by_source", ["sourceId"]),
 
   // Compliance templates
   complianceTemplates: defineTable({

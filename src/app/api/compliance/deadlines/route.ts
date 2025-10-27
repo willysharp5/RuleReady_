@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
     try {
       const deadlines = await convex.query(api.complianceDeadlines.getUpcomingDeadlines, {
         daysAhead,
-        jurisdiction,
-        topicKey: topic,
+        jurisdiction: jurisdiction || undefined,
+        topicKey: topic || undefined,
       });
       
       // Apply additional filters
@@ -56,13 +56,13 @@ export async function GET(req: NextRequest) {
                 sourceUrl: rule.sourceUrl,
                 priority: rule.priority,
               } : null,
-              daysUntilDeadline: Math.ceil((deadline.deadlineDate - Date.now()) / (24 * 60 * 60 * 1000)),
+              daysUntilDeadline: Math.ceil(((deadline.deadlineDate as number) - Date.now()) / (24 * 60 * 60 * 1000)),
             };
           } catch (e) {
             return {
               ...deadline,
               rule: null,
-              daysUntilDeadline: Math.ceil((deadline.deadlineDate - Date.now()) / (24 * 60 * 60 * 1000)),
+              daysUntilDeadline: Math.ceil(((deadline.deadlineDate as number) - Date.now()) / (24 * 60 * 60 * 1000)),
             };
           }
         })

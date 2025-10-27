@@ -24,7 +24,9 @@ export const createWebsite = mutation({
     checkInterval: v.number(), // in minutes
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email")
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
     )),
     monitorType: v.optional(v.union(
       v.literal("single_page"),
@@ -34,11 +36,8 @@ export const createWebsite = mutation({
     crawlDepth: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Freeze generic legacy creation (no compliance metadata path uses direct inserts elsewhere)
-    if (FEATURES.complianceMode && FEATURES.freezeLegacyWrites) {
-      throw new Error("Legacy website creation is disabled in compliance mode");
-    }
     // Single-user mode: no auth required
+    // General website monitoring is supported alongside compliance monitoring
     
     // Webhook support removed
 
@@ -208,7 +207,9 @@ export const updateWebsite = mutation({
     url: v.optional(v.string()), // NEW: Allow URL updates
     notificationPreference: v.optional(v.union(
       v.literal("none"),
-      v.literal("email")
+      v.literal("email"),
+      v.literal("webhook"),
+      v.literal("both")
     )),
     checkInterval: v.optional(v.number()),
     monitorType: v.optional(v.union(
@@ -297,11 +298,9 @@ export const updateWebsite = mutation({
 
     // If changing to full site monitoring, trigger initial crawl
     if (args.monitorType === "full_site" && website.monitorType !== "full_site") {
-      if (true) {
-        await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
-          websiteId: args.websiteId,
-        });
-      }
+      await ctx.scheduler.runAfter(0, internal.crawl.performCrawl, {
+        websiteId: args.websiteId,
+      });
     }
   },
 });

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
     let userChatSettings: Record<string, unknown> = {};
     try {
-      userChatSettings = await convex.query("chatSettings:getChatSettings") || {};
+      userChatSettings = await convex.query(api.chatSettings.getChatSettings) || {};
     } catch (e) {
       console.log("Could not load chat settings, using defaults");
     }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         console.log('📝 Calling embeddingTopKSources...');
         const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
           question: lastUser,
-          k: userChatSettings.maxContextReports || 5,
+          k: (userChatSettings.maxContextReports as number) || 5,
           threshold: 0.3,
           jurisdiction: jurisdiction || undefined,
           topicKey: topic || undefined,
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         try {
           const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
             question: lastUser,
-            k: userChatSettings.maxContextReports || 5,
+            k: (userChatSettings.maxContextReports as number) || 5,
             threshold: 0.1,
             jurisdiction: jurisdiction || undefined,
             topicKey: topic || undefined,
@@ -131,7 +131,7 @@ The system currently has limited coverage for this specific compliance area.`,
     }
     
     // Use custom system prompt or default
-    const baseSystemPrompt = userChatSettings.chatSystemPrompt || `You are a professional compliance assistant specializing in US employment law.`;
+    const baseSystemPrompt = (userChatSettings.chatSystemPrompt as string) || `You are a professional compliance assistant specializing in US employment law.`;
     const isCustomPrompt = !!userChatSettings.chatSystemPrompt;
     console.log(`📝 Using ${isCustomPrompt ? 'CUSTOM' : 'DEFAULT'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
     

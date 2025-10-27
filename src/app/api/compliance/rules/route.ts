@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     
     if (jurisdiction) {
       filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
-        rule.jurisdiction.toLowerCase() === jurisdiction.toLowerCase()
+        (rule.jurisdiction as string).toLowerCase() === jurisdiction.toLowerCase()
       );
     }
     
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     if (changedSince) {
       const sinceDate = new Date(changedSince).getTime();
       filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
-        (rule.lastSignificantChange || rule.updatedAt || rule.createdAt) >= sinceDate
+        ((rule.lastSignificantChange || rule.updatedAt || rule.createdAt) as number) >= sinceDate
       );
     }
     

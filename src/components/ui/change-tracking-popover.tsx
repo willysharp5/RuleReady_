@@ -33,10 +33,11 @@ interface ChangeTrackingPopoverProps {
     changeStatus: string
     scrapedAt: number
     aiAnalysis?: {
-      changeType: string
-      severity: string
-      impactAreas: string[]
-      confidence: number
+      meaningfulChangeScore: number
+      isMeaningfulChange: boolean
+      reasoning: string
+      analyzedAt: number
+      model: string
     }
   }
 }
