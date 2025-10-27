@@ -48,6 +48,7 @@ import type * as singleUserSetup from "../singleUserSetup.js";
 import type * as testChatSources from "../testChatSources.js";
 import type * as testEmbeddings from "../testEmbeddings.js";
 import type * as testEnvironment from "../testEnvironment.js";
+import type * as testWorkflowLogger from "../testWorkflowLogger.js";
 import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
 import type * as websites from "../websites.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   testChatSources: typeof testChatSources;
   testEmbeddings: typeof testEmbeddings;
   testEnvironment: typeof testEnvironment;
+  testWorkflowLogger: typeof testWorkflowLogger;
   testingMode: typeof testingMode;
   userSettings: typeof userSettings;
   websites: typeof websites;
