@@ -226,6 +226,7 @@ Instructions:
   // Sources pagination state
   const [sourcesCurrentPage, setSourcesCurrentPage] = useState(1)
   const sourcesPerPage = 5
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   
   // Add model state
   const [showAddModel, setShowAddModel] = useState(false)
@@ -314,9 +315,11 @@ Instructions:
       const matchesTopic = !selectedTopicFilter || 
         source.topic === selectedTopicFilter
 
-      return matchesSearch && matchesJurisdiction && matchesTopic
+      const matchesSelection = !showSelectedOnly || selectedSources.has(source.id)
+
+      return matchesSearch && matchesJurisdiction && matchesTopic && matchesSelection
     })
-  }, [availableSources, sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter])
+  }, [availableSources, sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter, showSelectedOnly, selectedSources])
 
   // Paginated sources
   const paginatedSources = useMemo(() => {
@@ -348,7 +351,7 @@ Instructions:
   // Reset pagination when filters change
   useEffect(() => {
     setSourcesCurrentPage(1)
-  }, [sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter])
+  }, [sourceSearchQuery, selectedJurisdictionFilter, selectedTopicFilter, showSelectedOnly])
 
   // Source preview handlers
   const handleSourcePreview = (source: any) => {
@@ -1813,13 +1816,26 @@ Analyze the provided diff and return a JSON response with:
                           <div className="mt-3 pt-3 border-t border-blue-200 space-y-3">
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-600">{selectedSources.size} sources selected</span>
-                              <button 
-                                onClick={clearAllSources}
-                                className="text-blue-600 hover:text-blue-800 underline"
-                                disabled={selectedSources.size === 0}
-                              >
-                                Clear all
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => setShowSelectedOnly(!showSelectedOnly)}
+                                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                    showSelectedOnly 
+                                      ? 'bg-blue-600 text-white border-blue-600' 
+                                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                  }`}
+                                  disabled={selectedSources.size === 0}
+                                >
+                                  {showSelectedOnly ? 'Show All' : 'Show Selected Only'}
+                                </button>
+                                <button 
+                                  onClick={clearAllSources}
+                                  className="text-blue-600 hover:text-blue-800 underline"
+                                  disabled={selectedSources.size === 0}
+                                >
+                                  Clear all
+                                </button>
+                              </div>
                             </div>
                             
                             {/* Pagination Controls */}
