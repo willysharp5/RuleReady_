@@ -2446,6 +2446,53 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   
                   {showResearchSettings && (
                     <div className="px-6 pb-6 space-y-6">
+                      {/* Template Management */}
+                      <div>
+                        <Label htmlFor="template-selector">Compliance Templates</Label>
+                        <div className="flex gap-2">
+                          <select
+                            id="template-selector"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                            onChange={(e) => {
+                              const selectedTopic = e.target.value;
+                              if (selectedTopic === 'new') {
+                                // Create new template
+                                setEditingTemplate({
+                                  topicKey: '',
+                                  topicName: 'New Template'
+                                });
+                                setShowTemplateEditor(true);
+                              } else if (selectedTopic) {
+                                // Edit existing template
+                                const topic = topics?.find(t => t.topicKey === selectedTopic);
+                                if (topic) {
+                                  setEditingTemplate({
+                                    topicKey: topic.topicKey,
+                                    topicName: topic.name
+                                  });
+                                  setShowTemplateEditor(true);
+                                }
+                              }
+                              // Reset dropdown
+                              e.target.value = '';
+                            }}
+                            value=""
+                          >
+                            <option value="">Select template to edit...</option>
+                            <option value="new" className="font-semibold">➕ Create New Template</option>
+                            <option disabled>──────────</option>
+                            {templates?.map((template: any) => (
+                              <option key={template.templateId} value={template.topicKey || template.templateId}>
+                                {template.title} {template.isDefault ? '(Default)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Manage compliance report templates (used for AI analysis structure)
+                        </p>
+                      </div>
+                      
                       {/* Gemini System Prompt */}
                       <div>
                         <Label htmlFor="research-prompt">AI System Prompt (Gemini)</Label>
