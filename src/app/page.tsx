@@ -307,7 +307,11 @@ Provide accurate, authoritative information about employment law.
 Cite sources using inline [1], [2], [3] format.
 Distinguish between federal and state requirements.
 Mention effective dates when relevant.
-Note penalties or deadlines when applicable.`)
+Note penalties or deadlines when applicable.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.`)
   const [researchFirecrawlConfig, setResearchFirecrawlConfig] = useState(() => {
     return JSON.stringify({
       sources: ['web', 'news', 'images'],
@@ -2501,41 +2505,17 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         </div>
                       </div>
                       
-                      {/* Debug Section - What's Sent to AI */}
-                      <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
-                        <details>
-                          <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900 text-sm">
-                            🔍 Debug: View AI Prompt Preview
-                          </summary>
-                          <div className="mt-3 space-y-3">
-                            <div>
-                              <div className="text-xs font-medium text-gray-600 mb-1">System Prompt (sent to AI):</div>
-                              <div className="p-2 bg-white border border-gray-200 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                                {researchSystemPrompt}
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-xs font-medium text-gray-600 mb-1">Firecrawl Config (sent to search API):</div>
-                              <div className="p-2 bg-white border border-gray-200 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                                {researchFirecrawlConfig}
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-xs font-medium text-gray-600 mb-1">Current Configuration:</div>
-                              <div className="p-2 bg-white border border-gray-200 rounded text-xs space-y-1">
-                                <div><strong>Template:</strong> {selectedResearchTemplate ? (templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Selected') : 'None (default prompt)'}</div>
-                                <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (all)'}</div>
-                                <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (all)'}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="text-xs text-gray-500 italic">
-                              Note: The full context with sources is assembled on the backend after search completes
-                            </div>
-                          </div>
-                        </details>
+                      {/* Current Configuration */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h5 className="font-medium text-blue-900 mb-2">Current Configuration:</h5>
+                        <div className="text-xs text-blue-800 space-y-1">
+                          <div><strong>Template:</strong> {selectedResearchTemplate ? (templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Selected') : 'None (uses default prompt)'}</div>
+                          <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (searches all)'}</div>
+                          <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (searches all)'}</div>
+                        </div>
+                        <div className="mt-2 text-xs text-blue-700 italic">
+                          Jurisdiction/topic are appended to your query when searching, then mentioned in the AI prompt for focused answers.
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2752,11 +2732,32 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </select>
                     
                     <select
-                      className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium flex items-center gap-1"
+                      className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium"
                       onChange={(e) => {
                         const selectedValue = e.target.value;
                         
-                        if (selectedValue === 'new') {
+                        if (selectedValue === 'none') {
+                          // Clear template - reset to default prompt
+                          setSelectedResearchTemplate('');
+                          setResearchSystemPrompt(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Provide accurate, authoritative information about employment law.
+Cite sources using inline [1], [2], [3] format.
+Distinguish between federal and state requirements.
+Mention effective dates when relevant.
+Note penalties or deadlines when applicable.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.`);
+                          
+                          addToast({
+                            variant: 'success',
+                            title: 'Template cleared',
+                            description: 'Using default prompt (no template structure)',
+                            duration: 2000
+                          });
+                        } else if (selectedValue === 'new') {
                           // Create new template
                           setEditingTemplate({
                             topicKey: '',
@@ -2791,6 +2792,10 @@ Distinguish between federal and state requirements.
 Mention effective dates when relevant.
 Note penalties or deadlines when applicable.
 
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.
+
 IMPORTANT: Structure your response using this template format:
 ${template.markdownContent}
 
@@ -2817,6 +2822,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
                           ? `Using: ${templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Template'}`
                           : 'Templates...'}
                       </option>
+                      <option value="none">None (Default Prompt)</option>
                       <option value="new" className="font-semibold">Create New Template</option>
                       {selectedResearchTemplate && (
                         <option value="edit" className="font-semibold">Edit Current Template</option>
