@@ -31,14 +31,19 @@ export const scrapeUrl = internalAction({
     const firecrawl = await getFirecrawlClient(ctx, null);
 
     try {
-      // Scrape with change tracking
+      // Scrape with change tracking and PDF parsing
       const result = await firecrawl.scrapeUrl(args.url, {
-        formats: ["markdown", "changeTracking"],
+        formats: ["markdown", "links", "changeTracking"],
         changeTrackingOptions: {
           modes: ["git-diff"],
         },
         onlyMainContent: false,
         waitFor: 2000,
+        parsePDF: true, // v1 API: Enable PDF parsing
+        proxy: "auto",
+        maxAge: 172800000, // 2 days cache
+        blockAds: true,
+        removeBase64Images: true,
       }) as any;
 
       if (!result.success) {
@@ -184,9 +189,17 @@ export const crawlWebsite = action({
       } : {
         limit: args.limit || 10,
         scrapeOptions: {
-          formats: ["markdown", "changeTracking"],
+          formats: ["markdown", "links", "changeTracking"],
+          changeTrackingOptions: {
+            modes: ["git-diff"],
+          },
           onlyMainContent: false,
           waitFor: 2000,
+          parsePDF: true, // v1 API: Enable PDF parsing
+          proxy: "auto",
+          maxAge: 172800000, // 2 days cache
+          blockAds: true,
+          removeBase64Images: true,
         },
       };
 

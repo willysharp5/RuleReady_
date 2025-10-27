@@ -212,15 +212,16 @@ export default function HomePage() {
   const [firecrawlConfig, setFirecrawlConfig] = useState(() => {
     return JSON.stringify({
       formats: ["markdown", "links", "changeTracking"],
-      onlyMainContent: false,
-      waitFor: 2000,
-      parsePDF: true, // v1 API: Enable PDF parsing - extracts PDF content to markdown
-      maxAge: 172800000, // 2 days cache for performance
-      blockAds: true,
-      removeBase64Images: true,
       changeTrackingOptions: {
         modes: ["git-diff"]
       },
+      onlyMainContent: false,
+      waitFor: 2000,
+      parsePDF: true, // v1 API: Enable PDF parsing - extracts PDF content to markdown
+      proxy: "auto",
+      maxAge: 172800000, // 2 days cache for performance
+      blockAds: true,
+      removeBase64Images: true,
     }, null, 2)
   })
   
