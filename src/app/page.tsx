@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -296,6 +296,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [isResearching, setIsResearching] = useState(false)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
   const [researchTopic, setResearchTopic] = useState('')
+  const [selectedResearchTemplate, setSelectedResearchTemplate] = useState<string>('')
   const researchListRef = useRef<HTMLDivElement | null>(null)
   const [copiedResearchMessageId, setCopiedResearchMessageId] = useState<string | null>(null)
   
@@ -2446,9 +2447,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   
                   {showResearchSettings && (
                     <div className="px-6 pb-6 space-y-6">
-                      {/* Gemini System Prompt */}
+                      {/* AI System Prompt */}
                       <div>
-                        <Label htmlFor="research-prompt">AI System Prompt (Gemini)</Label>
+                        <Label htmlFor="research-prompt">AI System Prompt</Label>
                         <Textarea
                           id="research-prompt"
                           value={researchSystemPrompt}
@@ -2458,7 +2459,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           className="font-mono text-xs"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          Customize how the AI responds to research queries
+                          Customize how the AI responds to research queries. Template selection auto-updates this prompt.
                         </p>
                       </div>
                       
@@ -2522,8 +2523,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                             </div>
                             
                             <div>
-                              <div className="text-xs font-medium text-gray-600 mb-1">Current Filters:</div>
-                              <div className="p-2 bg-white border border-gray-200 rounded text-xs">
+                              <div className="text-xs font-medium text-gray-600 mb-1">Current Configuration:</div>
+                              <div className="p-2 bg-white border border-gray-200 rounded text-xs space-y-1">
+                                <div><strong>Template:</strong> {selectedResearchTemplate ? (templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Selected') : 'None (default prompt)'}</div>
                                 <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (all)'}</div>
                                 <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (all)'}</div>
                               </div>
@@ -2630,7 +2632,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                     {/* News Results */}
                                     {m.newsResults && m.newsResults.length > 0 && (
                                       <div className="mt-3 pt-3 border-t border-gray-300">
-                                        <div className="text-xs font-medium text-orange-700 mb-2">📰 News ({m.newsResults.length})</div>
+                                        <div className="text-xs font-medium text-orange-700 mb-2 flex items-center gap-1">
+                                          <Newspaper className="h-3 w-3" />
+                                          News ({m.newsResults.length})
+                                        </div>
                                         <ul className="space-y-1">
                                           {m.newsResults.slice(0, 3).map((n: any, idx: number) => (
                                             <li key={idx} className="text-xs text-orange-800">
@@ -2747,25 +2752,58 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </select>
                     
                     <select
-                      className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium"
+                      className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium flex items-center gap-1"
                       onChange={(e) => {
-                        const selectedTopic = e.target.value;
-                        if (selectedTopic === 'new') {
+                        const selectedValue = e.target.value;
+                        
+                        if (selectedValue === 'new') {
                           // Create new template
                           setEditingTemplate({
                             topicKey: '',
                             topicName: 'New Template'
                           });
                           setShowTemplateEditor(true);
-                        } else if (selectedTopic) {
-                          // Edit existing template
-                          const topic = topics?.find(t => t.topicKey === selectedTopic);
-                          if (topic) {
-                            setEditingTemplate({
-                              topicKey: topic.topicKey,
-                              topicName: topic.name
+                        } else if (selectedValue === 'edit') {
+                          // Edit current template
+                          if (selectedResearchTemplate) {
+                            const template = templates?.find((t: any) => t.templateId === selectedResearchTemplate);
+                            const topic = topics?.find(t => t.topicKey === template?.topicKey);
+                            if (topic) {
+                              setEditingTemplate({
+                                topicKey: topic.topicKey,
+                                topicName: topic.name
+                              });
+                              setShowTemplateEditor(true);
+                            }
+                          }
+                        } else if (selectedValue) {
+                          // Select template for research
+                          setSelectedResearchTemplate(selectedValue);
+                          
+                          // Find template and update system prompt with its structure
+                          const template = templates?.find((t: any) => t.templateId === selectedValue);
+                          if (template && template.markdownContent) {
+                            const enhancedPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Provide accurate, authoritative information about employment law.
+Cite sources using inline [1], [2], [3] format.
+Distinguish between federal and state requirements.
+Mention effective dates when relevant.
+Note penalties or deadlines when applicable.
+
+IMPORTANT: Structure your response using this template format:
+${template.markdownContent}
+
+Follow the template sections but adapt based on the query. Not all sections may be relevant for every query.`;
+                            
+                            setResearchSystemPrompt(enhancedPrompt);
+                            
+                            addToast({
+                              variant: 'success',
+                              title: 'Template selected',
+                              description: `Using ${template.title} template for structured responses`,
+                              duration: 3000
                             });
-                            setShowTemplateEditor(true);
                           }
                         }
                         // Reset dropdown
@@ -2774,12 +2812,19 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       value=""
                       disabled={isResearching}
                     >
-                      <option value="">📝 Templates...</option>
-                      <option value="new" className="font-semibold">➕ Create New</option>
+                      <option value="">
+                        {selectedResearchTemplate 
+                          ? `Using: ${templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Template'}`
+                          : 'Templates...'}
+                      </option>
+                      <option value="new" className="font-semibold">Create New Template</option>
+                      {selectedResearchTemplate && (
+                        <option value="edit" className="font-semibold">Edit Current Template</option>
+                      )}
                       <option disabled>──────────</option>
                       {templates?.map((template: any) => (
-                        <option key={template.templateId} value={template.topicKey || template.templateId}>
-                          {template.title} {template.isDefault ? '★' : ''}
+                        <option key={template.templateId} value={template.templateId}>
+                          {template.title} {template.isDefault ? '(Default)' : ''}
                         </option>
                       ))}
                     </select>
