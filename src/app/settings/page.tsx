@@ -338,6 +338,10 @@ Instructions:
     const newSelection = new Set(selectedSources)
     if (newSelection.has(sourceId)) {
       newSelection.delete(sourceId)
+      // If we're showing selected only and this was the last selection, switch to show all
+      if (showSelectedOnly && newSelection.size === 0) {
+        setShowSelectedOnly(false)
+      }
     } else {
       newSelection.add(sourceId)
     }
@@ -346,6 +350,10 @@ Instructions:
 
   const clearAllSources = () => {
     setSelectedSources(new Set())
+    // If we're showing selected only, switch back to show all
+    if (showSelectedOnly) {
+      setShowSelectedOnly(false)
+    }
   }
 
   // Reset pagination when filters change
