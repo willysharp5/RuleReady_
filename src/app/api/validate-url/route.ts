@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
         description: undefined,
       })
 
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if ((error as Error).name === 'AbortError') {
         return NextResponse.json(
           { isValid: false, error: 'Request timeout - website took too long to respond' },
           { status: 200 }
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           isValid: false, 
-          error: `Failed to connect to website: ${error.message}` 
+          error: `Failed to connect to website: ${(error as Error).message}` 
         },
         { status: 200 }
       )

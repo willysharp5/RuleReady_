@@ -35,17 +35,17 @@ export async function GET(req: NextRequest) {
       let filteredDeadlines = deadlines;
       
       if (type) {
-        filteredDeadlines = filteredDeadlines.filter((deadline: any) => 
+        filteredDeadlines = filteredDeadlines.filter((deadline: Record<string, unknown>) => 
           deadline.deadlineType === type
         );
       }
       
       // Enrich with rule information
       const enrichedDeadlines = await Promise.all(
-        filteredDeadlines.map(async (deadline: any) => {
+        filteredDeadlines.map(async (deadline: Record<string, unknown>) => {
           try {
             const rules = await convex.query(api.csvImport.getAllRules);
-            const rule = rules.find((r: any) => r.ruleId === deadline.ruleId);
+            const rule = rules.find((r: Record<string, unknown>) => r.ruleId === deadline.ruleId);
             
             return {
               ...deadline,

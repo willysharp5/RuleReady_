@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       query,
       answer: ragResult.answer,
       confidence: ragResult.confidence,
-      sources: ragResult.sources.map((source: any) => ({
+      sources: ragResult.sources.map((source: Record<string, unknown>) => ({
         ruleId: source.ruleId,
         jurisdiction: source.jurisdiction,
         topicKey: source.topicKey,

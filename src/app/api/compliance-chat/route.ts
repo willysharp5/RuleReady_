@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     // Get user's custom system prompt and settings FIRST
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
-    let userChatSettings: any = {};
+    let userChatSettings: Record<string, unknown> = {};
     try {
       userChatSettings = await convex.query("chatSettings:getChatSettings") || {};
     } catch (e) {

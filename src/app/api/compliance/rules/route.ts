@@ -21,26 +21,26 @@ export async function GET(req: NextRequest) {
     let filteredRules = allRules;
     
     if (jurisdiction) {
-      filteredRules = filteredRules.filter((rule: any) => 
+      filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
         rule.jurisdiction.toLowerCase() === jurisdiction.toLowerCase()
       );
     }
     
     if (topic) {
-      filteredRules = filteredRules.filter((rule: any) => 
+      filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
         rule.topicKey === topic
       );
     }
     
     if (priority) {
-      filteredRules = filteredRules.filter((rule: any) => 
+      filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
         rule.priority === priority
       );
     }
     
     if (changedSince) {
       const sinceDate = new Date(changedSince).getTime();
-      filteredRules = filteredRules.filter((rule: any) => 
+      filteredRules = filteredRules.filter((rule: Record<string, unknown>) => 
         (rule.lastSignificantChange || rule.updatedAt || rule.createdAt) >= sinceDate
       );
     }
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     
     // Format response
     const response = {
-      rules: filteredRules.map((rule: any) => ({
+      rules: filteredRules.map((rule: Record<string, unknown>) => ({
         ruleId: rule.ruleId,
         jurisdiction: rule.jurisdiction,
         topicKey: rule.topicKey,
