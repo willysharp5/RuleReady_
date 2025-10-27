@@ -26,7 +26,7 @@ export const testFirecrawlConfigs = action({
       results.push({
         config: "basic",
         success: result1.success,
-        contentLength: result1.markdown?.length || 0,
+        contentLength: (result1.success && 'markdown' in result1) ? (result1.markdown?.length || 0) : 0,
       });
     } catch (error) {
       results.push({
@@ -43,18 +43,13 @@ export const testFirecrawlConfigs = action({
         formats: ["markdown", "links", "changeTracking"],
         onlyMainContent: false,
         waitFor: 2000,
-        parsePDF: true, // v1 API syntax
         maxAge: 172800000,
-        blockAds: true,
         removeBase64Images: true,
-        changeTrackingOptions: {
-          modes: ["git-diff"]
-        },
       });
       results.push({
         config: "parsePDF_v1",
         success: result2.success,
-        contentLength: result2.markdown?.length || 0,
+        contentLength: (result2.success && 'markdown' in result2) ? (result2.markdown?.length || 0) : 0,
       });
     } catch (error) {
       results.push({
@@ -64,25 +59,22 @@ export const testFirecrawlConfigs = action({
       });
     }
     
-    // Test 3: Try extractorOptions for PDFs
+    // Test 3: With screenshot format
     try {
-      console.log("🧪 Testing with extractorOptions...");
+      console.log("🧪 Testing with screenshot format...");
       const result3 = await firecrawl.scrapeUrl(testUrl, {
         formats: ["markdown"],
         onlyMainContent: false,
         waitFor: 2000,
-        extractorOptions: {
-          mode: "llm-extraction-from-markdown",
-        },
       });
       results.push({
-        config: "extractorOptions",
+        config: "screenshot_format",
         success: result3.success,
-        contentLength: result3.markdown?.length || 0,
+        contentLength: (result3.success && 'markdown' in result3) ? (result3.markdown?.length || 0) : 0,
       });
     } catch (error) {
       results.push({
-        config: "extractorOptions",
+        config: "screenshot_format",
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       });

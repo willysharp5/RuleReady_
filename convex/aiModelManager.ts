@@ -133,10 +133,10 @@ export const testAIModel = action({
     modelId: v.id("aiModels"),
     testPrompt: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; response?: string; model?: string; provider?: string; error?: string }> => {
     try {
-      const model = await ctx.runQuery(api.aiModelManager.getAllAIModels)
-        .then((models: any) => models.find((m: any) => m._id === args.modelId));
+      const models = await ctx.runQuery(api.aiModelManager.getAllAIModels);
+      const model = models.find((m: any) => m._id === args.modelId);
       if (!model) {
         throw new Error("Model not found");
       }

@@ -12,7 +12,7 @@ export const callAI = action({
     temperature: v.optional(v.number()),
     maxTokens: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; response: string; model: string; provider: string; tokensUsed: number }> => {
     try {
       // Get model configuration for this purpose
       const modelConfig = await ctx.runQuery(api.aiModelManager.getModelConfigForPurpose, {
@@ -71,9 +71,19 @@ export const callAI = action({
   },
 });
 
+// Type for model data
+type ModelData = {
+  modelId: string;
+  baseUrl?: string;
+  provider: string;
+  name: string;
+  apiKeyEnvVar: string;
+  capabilities: string[];
+};
+
 // Google AI implementation
 async function callGoogleAI(
-  model: any, 
+  model: ModelData, 
   apiKey: string, 
   prompt: string, 
   systemPrompt: string, 
@@ -96,14 +106,14 @@ async function callGoogleAI(
 
 // OpenAI implementation
 async function callOpenAI(
-  model: any, 
+  model: ModelData, 
   apiKey: string, 
   prompt: string, 
   systemPrompt: string, 
   temperature: number, 
   maxTokens?: number
 ): Promise<string> {
-  const messages: any[] = [];
+  const messages: Array<{ role: string; content: string }> = [];
   
   if (systemPrompt) {
     messages.push({ role: "system", content: systemPrompt });
@@ -128,13 +138,13 @@ async function callOpenAI(
     throw new Error(`OpenAI API error: ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as { choices: Array<{ message?: { content?: string } }> };
   return data.choices[0]?.message?.content || "No response";
 }
 
 // Anthropic implementation
 async function callAnthropic(
-  model: any, 
+  model: ModelData, 
   apiKey: string, 
   prompt: string, 
   systemPrompt: string, 
@@ -161,7 +171,7 @@ async function callAnthropic(
     throw new Error(`Anthropic API error: ${response.statusText}`);
   }
   
-  const data = await response.json();
+  const data = await response.json() as { content: Array<{ text?: string }> };
   return data.content[0]?.text || "No response";
 }
 
@@ -171,7 +181,7 @@ export const generateEmbeddings = action({
     content: v.string(),
     purpose: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; embedding: number[]; model: string; dimensions: number }> => {
     try {
       const purpose = args.purpose || "embeddings";
       

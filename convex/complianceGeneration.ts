@@ -3,14 +3,14 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 
 // Generate compliance rule from selected sources using LLM
-export const generateComplianceRule = action({
+export const generateComplianceRule: any = action({
   args: {
     selectedSourceIds: v.array(v.string()),
     templateId: v.string(),
     outputRuleName: v.string(),
     synthesisPrompt: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: boolean; ruleId: string; generatedRule: string; sourceCitations: string[]; sourceCount: number }> => {
     try {
       console.log(`🤖 Generating compliance rule from ${args.selectedSourceIds.length} sources`);
       
@@ -20,8 +20,8 @@ export const generateComplianceRule = action({
       
       for (const sourceId of args.selectedSourceIds) {
         // Try to get from compliance reports first
-        const report = await ctx.runQuery(api.importComplianceReports.getAIReports, { limit: 1000 })
-          .then(reports => reports.find((r: any) => r._id === sourceId));
+        const reports: any[] = await ctx.runQuery(api.importComplianceReports.getAIReports, { limit: 1000 });
+        const report = reports.find((r: any) => r._id === sourceId);
         
         if (report) {
           sourceContents.push(report.rawContent || JSON.stringify(report.structuredData, null, 2));
@@ -33,7 +33,7 @@ export const generateComplianceRule = action({
         }
         
         // Try to get from websites
-        const websites = await ctx.runQuery(api.websites.getUserWebsites);
+        const websites: any[] = await ctx.runQuery(api.websites.getUserWebsites);
         const website = websites.find((w: any) => w._id === sourceId);
         
         if (website && website.complianceMetadata) {
@@ -47,8 +47,8 @@ export const generateComplianceRule = action({
       }
       
       // Get the template
-      const templates = await ctx.runQuery(api.complianceTemplates.getAllTemplates);
-      const template = templates?.find((t: any) => t.templateId === args.templateId);
+      const templates: any[] = await ctx.runQuery(api.complianceTemplates.getAllTemplates);
+      const template: any = templates?.find((t: any) => t.templateId === args.templateId);
       
       if (!template) {
         throw new Error("Template not found");
@@ -71,7 +71,7 @@ Please generate a compliance rule following the template structure above, incorp
 
       // Here you would call your actual LLM API (Gemini, OpenAI, etc.)
       // For now, using a structured mock response
-      const generatedRule = `# ${args.outputRuleName}
+      const generatedRule: string = `# ${args.outputRuleName}
 
 ## Overview
 This compliance rule has been synthesized from ${args.selectedSourceIds.length} selected sources using AI analysis and the specified template structure.
@@ -95,14 +95,14 @@ ${sourceCitations.map((citation, index) => `[${index + 1}] ${citation}`).join('\
 *Sources: ${args.selectedSourceIds.length} compliance sources*`;
 
       // Save the generated rule to the database
-      const ruleId = await ctx.runMutation(internal.complianceGeneration.saveGeneratedRule, {
+      const ruleId: string = await ctx.runMutation(internal.complianceGeneration.saveGeneratedRule, {
         title: args.outputRuleName,
         content: generatedRule,
         templateId: args.templateId,
         sourceIds: args.selectedSourceIds,
         sourceCitations: sourceCitations,
         synthesisPrompt: args.synthesisPrompt,
-      });
+      }) as any;
       
       return {
         success: true,
@@ -129,7 +129,7 @@ export const saveGeneratedRule = internalMutation({
     sourceCitations: v.array(v.string()),
     synthesisPrompt: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<string> => {
     // Save to complianceReports table
     const reportId = await ctx.db.insert("complianceReports", {
       ruleId: `synthesized_${Date.now()}`,
@@ -156,7 +156,7 @@ export const saveGeneratedRule = internalMutation({
       });
     }
     
-    return reportId;
+    return reportId as string;
   },
 });
 
@@ -189,14 +189,14 @@ export const generateRuleEmbeddings = action({
         // For now, using mock vectors
         const mockVector = Array.from({length: 768}, () => Math.random() * 2 - 1); // Typical embedding dimension
         
-        const embeddingId = await ctx.runMutation(internal.complianceGeneration.saveEmbedding, {
+        const embeddingId: string = await ctx.runMutation(internal.complianceGeneration.saveEmbedding, {
           content: chunk,
           vector: mockVector,
           ruleTitle: args.ruleTitle,
           chunkIndex: i,
           totalChunks: chunks.length,
           section: i === 0 ? 'Overview' : i === chunks.length - 1 ? 'Implementation' : 'Requirements',
-        });
+        }) as any;
         
         embeddings.push({
           id: embeddingId,
@@ -235,8 +235,8 @@ export const saveEmbedding = internalMutation({
     totalChunks: v.number(),
     section: v.string(),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("complianceEmbeddings", {
+  handler: async (ctx, args): Promise<string> => {
+    const embeddingId = await ctx.db.insert("complianceEmbeddings", {
       entityId: `rule_${Date.now()}`,
       entityType: "rule" as const,
       contentHash: `hash_${Date.now()}`,
@@ -255,6 +255,7 @@ export const saveEmbedding = internalMutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+    return embeddingId as string;
   },
 });
 
