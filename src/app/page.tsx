@@ -279,20 +279,23 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const formRef = useRef<HTMLFormElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   
-  // Compliance Research state
+  // Compliance Research state (chat-style)
   const [showResearchSection, setShowResearchSection] = useState(false)
   const [researchQuery, setResearchQuery] = useState('')
-  const [researchResults, setResearchResults] = useState<{
-    answer: string
-    internalSources: any[]
-    webSources: any[]
-    newsResults: any[]
-    imageResults: any[]
-    followUpQuestions: string[]
-  } | null>(null)
+  const [researchMessages, setResearchMessages] = useState<Array<{
+    id: string
+    role: 'user' | 'assistant'
+    content: string
+    internalSources?: any[]
+    webSources?: any[]
+    newsResults?: any[]
+    imageResults?: any[]
+  }>>([])
+  const [researchFollowUpQuestions, setResearchFollowUpQuestions] = useState<string[]>([])
   const [isResearching, setIsResearching] = useState(false)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
   const [researchTopic, setResearchTopic] = useState('')
+  const researchListRef = useRef<HTMLDivElement | null>(null)
   
   // Refs to track previous settings state and prevent duplicate messages
   const prevComplianceContextRef = useRef<boolean | null>(null)
@@ -997,15 +1000,32 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       return
     }
 
+    // Add user message to chat
+    const userMessageId = Date.now().toString()
+    setResearchMessages(prev => [...prev, {
+      id: userMessageId,
+      role: 'user',
+      content: researchQuery
+    }])
+    
+    const currentQuery = researchQuery
+    setResearchQuery('')
     setIsResearching(true)
-    setResearchResults(null)
+    
+    // Create assistant message that will stream
+    const assistantMessageId = (Date.now() + 1).toString()
+    setResearchMessages(prev => [...prev, {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: ''
+    }])
     
     try {
       const response = await fetch('/api/compliance-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: researchQuery,
+          query: currentQuery,
           includeInternalSources: true,
           jurisdiction: researchJurisdiction || undefined,
           topic: researchTopic || undefined,
@@ -1039,22 +1059,24 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
               
               if (parsed.type === 'sources') {
                 sources = parsed
+                // Update assistant message with sources
+                setResearchMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId ? {
+                    ...msg,
+                    internalSources: parsed.internalSources || [],
+                    webSources: parsed.sources || [],
+                    newsResults: parsed.newsResults || [],
+                    imageResults: parsed.imageResults || []
+                  } : msg
+                ))
               } else if (parsed.type === 'text') {
                 answer += parsed.content
-                // Update UI with partial answer
-                setResearchResults(prev => ({
-                  answer,
-                  internalSources: sources.internalSources || [],
-                  webSources: sources.sources || [],
-                  newsResults: sources.newsResults || [],
-                  imageResults: sources.imageResults || [],
-                  followUpQuestions: prev?.followUpQuestions || []
-                }))
+                // Update assistant message with streaming content
+                setResearchMessages(prev => prev.map(msg =>
+                  msg.id === assistantMessageId ? { ...msg, content: answer } : msg
+                ))
               } else if (parsed.type === 'followup') {
-                setResearchResults(prev => ({
-                  ...prev!,
-                  followUpQuestions: parsed.questions
-                }))
+                setResearchFollowUpQuestions(parsed.questions || [])
               }
             } catch (e) {
               // Skip invalid JSON
@@ -1062,6 +1084,14 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
           }
         }
       }
+      
+      // Scroll to bottom
+      setTimeout(() => {
+        researchListRef.current?.scrollTo({
+          top: researchListRef.current.scrollHeight,
+          behavior: 'smooth'
+        })
+      }, 100)
       
       addToast({
         variant: 'success',
@@ -1072,6 +1102,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
       
     } catch (error) {
       console.error('Research error:', error)
+      // Remove the empty assistant message
+      setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+      
       addToast({
         variant: 'error',
         title: 'Research failed',
@@ -2334,175 +2367,205 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
               </button>
             </div>
             
-            {/* Collapsible Research Content */}
+            {/* Collapsible Research Content - Chat Style */}
             {showResearchSection && (
-              <div className="p-6">
-                <form onSubmit={handleResearchSubmit} className="space-y-6">
-                  {/* Search Input */}
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="Ask anything about employment law... (e.g., What are California's harassment training requirements?)"
-                        value={researchQuery}
-                        onChange={(e) => setResearchQuery(e.target.value)}
-                        disabled={isResearching}
-                        className="pr-24 h-14 text-base"
-                      />
-                      <Button
-                        type="submit"
-                        disabled={isResearching || !researchQuery.trim()}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-10"
-                      >
-                        {isResearching ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Researching...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="h-4 w-4 mr-2" />
-                            Search
-                          </>
-                        )}
-                      </Button>
-                    </div>
+              <div className="bg-transparent">
+                {/* Optional Filters - Top Bar */}
+                <div className="px-6 pt-6 pb-3 border-b border-gray-200">
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={researchJurisdiction}
+                      onChange={(e) => setResearchJurisdiction(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      disabled={isResearching}
+                    >
+                      <option value="">All Jurisdictions</option>
+                      {jurisdictions?.map(j => (
+                        <option key={j.code} value={j.name}>{j.name}</option>
+                      ))}
+                    </select>
                     
-                    {/* Optional Filters */}
-                    <div className="flex flex-wrap gap-2">
-                      <select
-                        value={researchJurisdiction}
-                        onChange={(e) => setResearchJurisdiction(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        disabled={isResearching}
-                      >
-                        <option value="">All Jurisdictions</option>
-                        {jurisdictions?.map(j => (
-                          <option key={j.code} value={j.name}>{j.name}</option>
-                        ))}
-                      </select>
+                    <select
+                      value={researchTopic}
+                      onChange={(e) => setResearchTopic(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      disabled={isResearching}
+                    >
+                      <option value="">All Topics</option>
+                      {topics?.slice(0, 15).map(t => (
+                        <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Chat Messages Area */}
+                <div className="relative">
+                  <div ref={researchListRef} className="h-[520px] overflow-y-auto px-6 py-6">
+                    <div className="max-w-3xl mx-auto space-y-6">
+                      {researchMessages.length === 0 && (
+                        <div className="text-center text-gray-500 py-12">
+                          <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                          <p className="text-lg font-medium">Ask anything about employment law</p>
+                          <p className="text-sm mt-1">Powered by your compliance database + live web search</p>
+                        </div>
+                      )}
                       
-                      <select
-                        value={researchTopic}
-                        onChange={(e) => setResearchTopic(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        disabled={isResearching}
-                      >
-                        <option value="">All Topics</option>
-                        {topics?.slice(0, 15).map(t => (
-                          <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                        ))}
-                      </select>
+                      {researchMessages.map((m) => (
+                        <div key={m.id}>
+                          <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex items-start gap-3 w-full ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                              <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-purple-100 text-purple-700'}`}>
+                                {m.role === 'user' ? <User className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                              </div>
+                              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[85%] ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
+                                {m.role === 'user' ? (
+                                  <p>{m.content}</p>
+                                ) : (
+                                  <>
+                                    <div className="compliance-research-content">
+                                      <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]} 
+                                        rehypePlugins={[rehypeHighlight]}
+                                        components={{
+                                          h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                                          h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
+                                          h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                                          p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
+                                          ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
+                                          ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
+                                          li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
+                                          strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                                          em: ({children}) => <em className="italic">{children}</em>,
+                                        }}
+                                      >
+                                        {m.content || 'Searching...'}
+                                      </ReactMarkdown>
+                                    </div>
+                                    
+                                    {/* Sources - Internal Database */}
+                                    {m.internalSources && m.internalSources.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-gray-300">
+                                        <div className="text-xs font-medium text-purple-700 mb-2 flex items-center gap-1">
+                                          <FileText className="h-3 w-3" />
+                                          Your Database ({m.internalSources.length})
+                                        </div>
+                                        <ul className="space-y-1">
+                                          {m.internalSources.map((s: any, idx: number) => (
+                                            <li key={idx} className="text-xs text-purple-800">
+                                              <span className="font-mono mr-1">[{idx + 1}]</span>
+                                              <span className="font-medium">{s.title}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Sources - Web */}
+                                    {m.webSources && m.webSources.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-gray-300">
+                                        <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
+                                          <Globe className="h-3 w-3" />
+                                          Web Sources ({m.webSources.length})
+                                        </div>
+                                        <ul className="space-y-1">
+                                          {m.webSources.map((s: any, idx: number) => (
+                                            <li key={idx} className="text-xs text-blue-800">
+                                              <span className="font-mono mr-1">[{(m.internalSources?.length || 0) + idx + 1}]</span>
+                                              <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline">
+                                                {s.title}
+                                              </a>
+                                              <span className="text-gray-500 ml-1">({s.siteName})</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    
+                                    {/* News Results */}
+                                    {m.newsResults && m.newsResults.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-gray-300">
+                                        <div className="text-xs font-medium text-orange-700 mb-2">📰 News ({m.newsResults.length})</div>
+                                        <ul className="space-y-1">
+                                          {m.newsResults.slice(0, 3).map((n: any, idx: number) => (
+                                            <li key={idx} className="text-xs text-orange-800">
+                                              <a href={n.url} target="_blank" rel="noreferrer" className="hover:underline">
+                                                {n.title}
+                                              </a>
+                                              {n.publishedDate && <span className="text-gray-500 ml-1">({n.publishedDate})</span>}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {isResearching && (
+                        <div className="flex justify-start">
+                          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-2xl text-sm">
+                            <Search className="h-4 w-4 text-purple-600" />
+                            <Loader2 className="h-4 w-4 animate-spin text-purple-700" />
+                            <span className="text-gray-700">Researching…</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Results Display */}
-                  {researchResults && (
-                    <div className="mt-6 space-y-6">
-                      {/* AI Answer */}
-                      {researchResults.answer && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                          <h4 className="text-lg font-semibold text-purple-900 mb-3 flex items-center gap-2">
-                            <Bot className="h-5 w-5" />
-                            AI Answer
-                          </h4>
-                          <div className="prose prose-sm max-w-none text-gray-800">
-                            {researchResults.answer}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Sources Section */}
-                      {(researchResults.internalSources.length > 0 || researchResults.webSources.length > 0) && (
-                        <div className="space-y-4">
-                          <h4 className="text-lg font-semibold text-gray-900">Sources</h4>
-                          
-                          {/* Internal Database Sources */}
-                          {researchResults.internalSources.length > 0 && (
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-purple-700 flex items-center gap-1">
-                                <FileText className="h-4 w-4" />
-                                Your Compliance Database ({researchResults.internalSources.length})
-                              </h5>
-                              <div className="grid grid-cols-1 gap-3">
-                                {researchResults.internalSources.map((source: any, idx: number) => (
-                                  <div key={idx} className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                    <div className="flex items-start gap-3">
-                                      <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                        {idx + 1}
-                                      </span>
-                                      <div className="flex-1 min-w-0">
-                                        <h6 className="font-medium text-purple-900">{source.title}</h6>
-                                        {source.description && (
-                                          <p className="text-sm text-purple-700 mt-1">{source.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Web Sources */}
-                          {researchResults.webSources.length > 0 && (
-                            <div className="space-y-2">
-                              <h5 className="text-sm font-medium text-blue-700 flex items-center gap-1">
-                                <Globe className="h-4 w-4" />
-                                Web Sources ({researchResults.webSources.length})
-                              </h5>
-                              <div className="grid grid-cols-1 gap-3">
-                                {researchResults.webSources.map((source: any, idx: number) => (
-                                  <a
-                                    key={idx}
-                                    href={source.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-blue-50 border border-blue-200 rounded-lg p-4 hover:bg-blue-100 transition-colors"
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                        {researchResults.internalSources.length + idx + 1}
-                                      </span>
-                                      <div className="flex-1 min-w-0">
-                                        <h6 className="font-medium text-blue-900">{source.title}</h6>
-                                        {source.description && (
-                                          <p className="text-sm text-blue-700 mt-1 line-clamp-2">{source.description}</p>
-                                        )}
-                                        <p className="text-xs text-blue-600 mt-1">{source.siteName}</p>
-                                      </div>
-                                      <ExternalLink className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                    </div>
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Follow-up Questions */}
-                      {researchResults.followUpQuestions.length > 0 && (
-                        <div className="space-y-3">
-                          <h5 className="text-sm font-medium text-gray-700">Related Questions</h5>
-                          <div className="flex flex-wrap gap-2">
-                            {researchResults.followUpQuestions.map((question, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => {
-                                  setResearchQuery(question)
-                                  handleResearchSubmit(new Event('submit') as any)
-                                }}
-                                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm text-left transition-colors"
-                              >
-                                {question}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                </div>
+                
+                {/* Bottom composer */}
+                <form onSubmit={handleResearchSubmit} className="px-4 pb-4">
+                  {/* Follow-up question chips */}
+                  {researchFollowUpQuestions.length > 0 && (
+                    <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 mb-2">
+                      {researchFollowUpQuestions.map((q, idx) => (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          type="button"
+                          onClick={() => {
+                            setResearchQuery(q)
+                            setTimeout(() => {
+                              handleResearchSubmit(new Event('submit') as any)
+                            }, 0)
+                          }}
+                          disabled={isResearching}
+                        >
+                          {q}
+                        </Button>
+                      ))}
                     </div>
                   )}
+                  
+                  <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
+                    <Textarea
+                      value={researchQuery}
+                      onChange={(e) => setResearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          if (!isResearching && researchQuery.trim()) {
+                            handleResearchSubmit(e)
+                          }
+                        }
+                      }}
+                      rows={2}
+                      placeholder="Ask about employment law, regulations, requirements..."
+                      disabled={isResearching}
+                      className="resize-none border-0 focus-visible:ring-0"
+                    />
+                    <Button type="submit" disabled={isResearching || !researchQuery.trim()} className="h-9 w-9 rounded-full p-0">
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </form>
               </div>
             )}
