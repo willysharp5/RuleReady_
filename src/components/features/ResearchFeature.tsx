@@ -650,13 +650,14 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     // Don't save if we're loading an existing conversation or actively researching
     if (!hasCompleteExchange || isResearching || isLoadingConversation) return;
     
-    const autoSaveTimer = setTimeout(async () => {
+      const autoSaveTimer = setTimeout(async () => {
       try {
         // Pass existing conversationId if tab already has one
         const currentTab = tabs.find(t => t.id === activeTabId)
         
         const result = await saveConversation({
           conversationId: currentTab?.conversationId as any || undefined,
+          title: currentTab?.title, // Use tab title (Chat 1, Chat 2, etc.)
           messages: researchMessages,
           filters: {
             jurisdiction: researchState?.jurisdiction || researchJurisdiction,
