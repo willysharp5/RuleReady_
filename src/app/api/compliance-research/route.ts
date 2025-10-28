@@ -266,11 +266,13 @@ ${scrapedUrlSources.length > 0 ? `NEW SOURCES ADDED (use these):\n${scrapedUrlSo
 
 INSTRUCTIONS:
 - Update the answer based on the user's refinement instruction
-- PRESERVE the template structure and organization
-- KEEP sections that aren't mentioned unchanged
+- PRESERVE the exact markdown formatting style from the current answer
+- PRESERVE the template structure and organization (same headers, same sections)
+- KEEP sections that aren't mentioned unchanged (copy them exactly as-is)
 - ONLY modify what the user specifically requested
 - If new sources provided, integrate them and update citations
 - If jurisdiction/topic changed, update focus while keeping relevant content
+- Use the SAME markdown syntax (##, **, -, etc.) as the current answer
 - Maintain professional compliance documentation style
 
 Based on these sources:
