@@ -384,39 +384,23 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       try {
         while (true) {
           const { done, value } = await reader!.read()
-          if (done) {
-            console.log('📭 Stream done, total answer length:', answer.length)
-            break
-          }
+          if (done) break
           
           const chunk = decoder.decode(value)
           const lines = chunk.split('\n')
-          console.log(`📦 Received chunk with ${lines.length} lines`)
           
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6)
-              if (data === '[DONE]') {
-                console.log('🏁 Received [DONE] signal')
-                break
-              }
+              if (data === '[DONE]') break
               
               try {
                 const parsed = JSON.parse(data)
                 
-                if (!parsed || !parsed.type) {
-                  console.warn('⚠️ Received data without type field:', data.substring(0, 100))
-                  continue
-                }
+                if (!parsed || !parsed.type) continue
                 
                 if (parsed.type === 'sources') {
                   sources = parsed
-                  console.log('📊 Sources received:', {
-                    scrapedUrls: parsed.scrapedUrlSources?.length || 0,
-                    internal: parsed.internalSources?.length || 0,
-                    web: parsed.sources?.length || 0,
-                    news: parsed.newsResults?.length || 0
-                  })
                   // Update assistant message with sources
                   setResearchMessages(prev => prev.map(m =>
                     m.id === assistantMessageId
@@ -430,9 +414,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                       : m
                   ))
                 } else if (parsed.type === 'text') {
-                  console.log('📝 Text received:', parsed.content?.substring(0, 50))
                   answer += parsed.content
-                  console.log('💬 Answer length now:', answer.length)
                   // Update assistant message with streaming content
                   setResearchMessages(prev => prev.map(m =>
                     m.id === assistantMessageId
@@ -440,7 +422,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                       : m
                   ))
                 } else if (parsed.type === 'followup') {
-                  console.log('❓ Follow-up questions received:', parsed.questions)
                   setResearchFollowUpQuestions(parsed.questions || [])
                 }
               } catch (parseError) {
@@ -455,7 +436,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
         }
       } catch (readError: any) {
         if (readError.name === 'AbortError') {
-          console.log('Research aborted by user')
           // Update last message to show it was stopped
           setResearchMessages(prev => prev.map((m, idx) =>
             idx === prev.length - 1 && m.role === 'assistant'
@@ -468,9 +448,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       }
 
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log('Research was aborted')
-      } else {
+      if (error.name !== 'AbortError') {
         console.error('Research error:', error)
         addToast({
           variant: 'error',
