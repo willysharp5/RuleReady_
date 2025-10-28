@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, MapPin, Tag } from 'lucide-react'
+import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, MapPin, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import ReactMarkdown from 'remark-markdown'
+import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +35,33 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
   const templates = templatesQuery || []
+  
+  // URL validation state
+  const [urlValidation, setUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
+  
+  // Validate URL
+  const validateUrl = async (url: string, index: number) => {
+    if (!url.trim()) {
+      setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: false, message: '' } }))
+      return
+    }
+    
+    try {
+      new URL(url)
+      setUrlValidation(prev => ({ ...prev, [index]: { isValid: true, isValidating: false, message: 'Valid URL' } }))
+    } catch {
+      setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: 'Invalid URL format' } }))
+    }
+  }
+  
+  // Debounce URL validation
+  useEffect(() => {
+    const urls = researchState?.urls || ['']
+    urls.forEach((url, index) => {
+      const timer = setTimeout(() => validateUrl(url, index), 500)
+      return () => clearTimeout(timer)
+    })
+  }, [researchState?.urls])
   
   // Get display names
   const templateName = researchState?.selectedTemplate 
@@ -218,8 +245,56 @@ These appear AFTER "Based on these sources:" in your prompt.`
         </div>
       </div>
       
-      {/* Filters - Jurisdiction & Topic */}
+      {/* Filters - Template, Jurisdiction & Topic */}
       <div className="space-y-2">
+        {/* Template Selection */}
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-zinc-700 mb-1">
+            <FileText className="h-3 w-3" />
+            Template (Optional)
+          </label>
+          <div className="text-xs text-zinc-600 mb-1">
+            {researchState?.selectedTemplate 
+              ? `Using: ${templates?.find((t: any) => t.templateId === researchState.selectedTemplate)?.title || 'Template'}`
+              : 'No template selected'}
+          </div>
+          <select
+            className="w-full px-2 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded-md text-xs font-medium"
+            value=""
+            onChange={(e) => {
+              const selectedValue = e.target.value;
+              
+              if (selectedValue === 'view-all') {
+                window.location.href = '/settings#templates';
+                return;
+              } else if (selectedValue === 'none') {
+                if (setResearchState && researchState) {
+                  setResearchState({ ...researchState, selectedTemplate: '' })
+                }
+              } else if (selectedValue === 'new') {
+                window.location.href = '/settings#templates';
+                return;
+              } else if (selectedValue) {
+                if (setResearchState && researchState) {
+                  setResearchState({ ...researchState, selectedTemplate: selectedValue })
+                }
+              }
+              e.currentTarget.value = '';
+            }}
+          >
+            <option value="">Select Template...</option>
+            <option value="view-all" className="font-semibold">View All Templates →</option>
+            <option value="none">None (Default Prompt)</option>
+            <option value="new" className="font-semibold">Create New Template</option>
+            <option disabled>──────────</option>
+            {templates?.map((template: any) => (
+              <option key={template.templateId} value={template.templateId}>
+                {template.title} {template.isDefault ? '(Default)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        
         {/* Jurisdiction Filter */}
         <div>
           <label className="flex items-center gap-1 text-xs font-medium text-zinc-700 mb-1">
@@ -273,19 +348,34 @@ These appear AFTER "Based on these sources:" in your prompt.`
           <div className="space-y-2">
             {(researchState?.urls || ['']).map((url: string, index: number) => (
               <div key={index} className="flex items-center gap-1">
-                <Input
-                  type="url"
-                  placeholder="https://example.com"
-                  value={url}
-                  onChange={(e) => {
-                    if (setResearchState && researchState) {
-                      const newUrls = [...(researchState.urls || [''])]
-                      newUrls[index] = e.target.value
-                      setResearchState({ ...researchState, urls: newUrls })
-                    }
-                  }}
-                  className="h-8 text-xs"
-                />
+                <div className="flex-1 relative">
+                  <Input
+                    type="url"
+                    placeholder="https://example.com"
+                    value={url}
+                    onChange={(e) => {
+                      if (setResearchState && researchState) {
+                        const newUrls = [...(researchState.urls || [''])]
+                        newUrls[index] = e.target.value
+                        setResearchState({ ...researchState, urls: newUrls })
+                      }
+                    }}
+                    className={`h-8 text-xs pr-8 ${
+                      urlValidation[index]?.isValid === true ? 'border-green-500' :
+                      urlValidation[index]?.isValid === false ? 'border-red-500' :
+                      ''
+                    }`}
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
+                    {urlValidation[index]?.isValidating ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+                    ) : urlValidation[index]?.isValid === true ? (
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    ) : urlValidation[index]?.isValid === false ? (
+                      <X className="h-3 w-3 text-red-500" />
+                    ) : null}
+                  </div>
+                </div>
                 {(researchState?.urls || ['']).length > 1 && (
                   <Button
                     type="button"
@@ -320,6 +410,21 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 )}
               </div>
             ))}
+            
+            {/* Validation messages */}
+            {Object.entries(urlValidation).map(([idx, validation]: [string, any]) => {
+              const index = parseInt(idx);
+              if (!validation.message || !(researchState?.urls || [''])[index]?.trim()) return null;
+              return (
+                <div key={idx} className={`text-xs ${
+                  validation.isValid === true ? 'text-green-600' :
+                  validation.isValid === false ? 'text-red-600' :
+                  'text-gray-600'
+                }`}>
+                  URL {index + 1}: {validation.message}
+                </div>
+              );
+            })}
           </div>
           <p className="text-xs text-orange-700 mt-2">
             💡 PDFs supported - Firecrawl will extract text
