@@ -211,10 +211,11 @@ export const analyzeChangeImpact = internalAction({
       throw new Error(`Change ${args.changeId} not found`);
     }
     
-    // Get the associated rule
-    const rule: any = await ctx.runQuery(internal.complianceCrawler.getRule, {
-      ruleId: change.ruleId
-    });
+    // Get the associated rule from database
+    const rule = await ctx.db
+      .query("complianceRules")
+      .withIndex("by_rule_id", (q) => q.eq("ruleId", change.ruleId))
+      .first();
     
     if (!rule) {
       throw new Error(`Rule ${change.ruleId} not found`);

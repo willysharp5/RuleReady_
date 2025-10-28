@@ -32,14 +32,8 @@ export const generateComplianceRule = action({
           continue;
         }
         
-        // Try to get from websites
-        const websites: any[] = await ctx.runQuery(api.websites.getUserWebsites);
-        const website = websites.find((w: any) => w._id === sourceId);
-        
-        if (website && website.complianceMetadata) {
-          sourceContents.push(`Website: ${website.url}\nJurisdiction: ${website.complianceMetadata.jurisdiction}\nTopic: ${website.complianceMetadata.topicKey}\nPriority: ${website.complianceMetadata.priority}`);
-          sourceCitations.push(`${website.complianceMetadata.jurisdiction} - ${website.complianceMetadata.topicKey} (${website.url})`);
-        }
+        // Websites module removed - skip website lookup
+        // Sources come from compliance rules and reports only
       }
       
       if (sourceContents.length === 0) {
