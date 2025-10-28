@@ -13,7 +13,10 @@ export async function POST(request: Request) {
       topic,
       systemPrompt,
       firecrawlConfig,
-      urls // Array of URLs to scrape
+      urls, // Array of URLs to scrape
+      isRefinement, // Is this a refinement request?
+      currentAnswer, // The answer being refined
+      currentSources // Sources from original answer
     } = body;
     
     if (!query) {
@@ -32,9 +35,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
     }
 
-    console.log(`[${requestId}] Starting compliance research for: "${query}"`);
+    console.log(`[${requestId}] Starting compliance research for: "${query}"${isRefinement ? ' (REFINEMENT MODE)' : ''}`);
 
-    // Step 0: Scrape provided URLs (if any)
+    // Step 0: Scrape provided URLs (if any - new URLs only in refinement)
     let scrapedUrlSources: any[] = [];
     if (urls && Array.isArray(urls) && urls.length > 0) {
       console.log(`[${requestId}] Scraping ${urls.length} provided URLs...`);
@@ -88,67 +91,78 @@ export async function POST(request: Request) {
     const internalSources: any[] = [];
     // Will implement internal search after embeddings are generated
 
-    // Step 2: Search with Firecrawl v2 API
-    console.log(`[${requestId}] Searching with Firecrawl...`);
+    // Step 2: Search with Firecrawl v2 API (skip if refinement mode with no new URLs)
+    let webResults: any[] = [];
+    let newsData: any[] = [];
+    let imagesData: any[] = [];
     
-    // Enhance query with jurisdiction and topic filters
-    let enhancedQuery = query;
-    if (jurisdiction && topic) {
-      enhancedQuery = `${query} ${jurisdiction} ${topic}`;
-    } else if (jurisdiction) {
-      enhancedQuery = `${query} ${jurisdiction}`;
-    } else if (topic) {
-      enhancedQuery = `${query} ${topic}`;
-    }
-    
-    console.log(`[${requestId}] Enhanced query: "${enhancedQuery}"`);
-    
-    // Parse custom Firecrawl config or use defaults
-    let searchConfig: any = {
-      query: enhancedQuery,
-      sources: ['web', 'news', 'images'],
-      limit: 8,
-      scrapeOptions: {
-        formats: ['markdown'],
-        onlyMainContent: true,
-        maxAge: 86400000
+    if (isRefinement && urls && urls.length === 0) {
+      // Refinement mode with no new URLs - reuse existing sources
+      console.log(`[${requestId}] Refinement mode: Reusing existing sources`);
+      // Sources come from currentSources parameter
+    } else {
+      // Normal mode or refinement with new URLs - do web search
+      console.log(`[${requestId}] Searching with Firecrawl...`);
+      
+      // Enhance query with jurisdiction and topic filters
+      let enhancedQuery = query;
+      if (jurisdiction && topic) {
+        enhancedQuery = `${query} ${jurisdiction} ${topic}`;
+      } else if (jurisdiction) {
+        enhancedQuery = `${query} ${jurisdiction}`;
+      } else if (topic) {
+        enhancedQuery = `${query} ${topic}`;
       }
-    };
-    
-    if (firecrawlConfig) {
-      try {
-        const customConfig = JSON.parse(firecrawlConfig);
-        searchConfig = {
-          query: enhancedQuery,
-          ...customConfig
-        };
-        console.log(`[${requestId}] Using custom Firecrawl config`);
-      } catch (e) {
-        console.warn(`[${requestId}] Invalid Firecrawl config JSON, using defaults`);
+      
+      console.log(`[${requestId}] Enhanced query: "${enhancedQuery}"`);
+      
+      // Parse custom Firecrawl config or use defaults
+      let searchConfig: any = {
+        query: enhancedQuery,
+        sources: ['web', 'news', 'images'],
+        limit: 8,
+        scrapeOptions: {
+          formats: ['markdown'],
+          onlyMainContent: true,
+          maxAge: 86400000
+        }
+      };
+      
+      if (firecrawlConfig) {
+        try {
+          const customConfig = JSON.parse(firecrawlConfig);
+          searchConfig = {
+            query: enhancedQuery,
+            ...customConfig
+          };
+          console.log(`[${requestId}] Using custom Firecrawl config`);
+        } catch (e) {
+          console.warn(`[${requestId}] Invalid Firecrawl config JSON, using defaults`);
+        }
       }
-    }
-    
-    const searchResponse = await fetch('https://api.firecrawl.dev/v2/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(searchConfig)
-    });
+      
+      const searchResponse = await fetch('https://api.firecrawl.dev/v2/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(searchConfig)
+      });
 
-    if (!searchResponse.ok) {
-      const errorData = await searchResponse.json();
-      throw new Error(`Firecrawl API error: ${errorData.error || searchResponse.statusText}`);
-    }
+      if (!searchResponse.ok) {
+        const errorData = await searchResponse.json();
+        throw new Error(`Firecrawl API error: ${errorData.error || searchResponse.statusText}`);
+      }
 
-    const searchResult = await searchResponse.json();
-    const searchData = searchResult.data || {};
-    
-    // Extract results
-    const webResults = searchData.web || [];
-    const newsData = searchData.news || [];
-    const imagesData = searchData.images || [];
+      const searchResult = await searchResponse.json();
+      const searchData = searchResult.data || {};
+      
+      // Extract results
+      webResults = searchData.web || [];
+      newsData = searchData.news || [];
+      imagesData = searchData.images || [];
+    }
     
     // Transform sources
     const sources = webResults.map((item: any) => ({
@@ -235,11 +249,40 @@ FORMAT:
 
     const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
 
-    const userPrompt = `Answer this compliance research query: "${query}"
+    let userPrompt;
+    
+    if (isRefinement && currentAnswer) {
+      // Refinement mode: Include current answer and refinement instruction
+      userPrompt = `You are refining an existing compliance research answer.
+
+CURRENT ANSWER TO REFINE:
+${currentAnswer}
+
+USER REFINEMENT INSTRUCTION:
+${query}
+
+${jurisdiction ? `New jurisdiction focus: ${jurisdiction}\n` : ''}${topic ? `New topic focus: ${topic}\n` : ''}
+${scrapedUrlSources.length > 0 ? `NEW SOURCES ADDED (use these):\n${scrapedUrlSources.map((s: any, i: number) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}\n` : ''}
+
+INSTRUCTIONS:
+- Update the answer based on the user's refinement instruction
+- PRESERVE the template structure and organization
+- KEEP sections that aren't mentioned unchanged
+- ONLY modify what the user specifically requested
+- If new sources provided, integrate them and update citations
+- If jurisdiction/topic changed, update focus while keeping relevant content
+- Maintain professional compliance documentation style
+
+Based on these sources:
+${context}`;
+    } else {
+      // Normal mode: Generate new answer
+      userPrompt = `Answer this compliance research query: "${query}"
 
 ${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}
 Based on these sources:
 ${context}`;
+    }
 
     // Use Gemini streaming
     const chat = model.startChat({

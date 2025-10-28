@@ -314,6 +314,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [researchUrls, setResearchUrls] = useState<string[]>(['']) // Start with one empty field
   const [researchUrlValidation, setResearchUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
   const [showAdvancedResearchOptions, setShowAdvancedResearchOptions] = useState(false)
+  const [isRefinementMode, setIsRefinementMode] = useState(false)
+  const [answerBeingRefined, setAnswerBeingRefined] = useState<any>(null)
   const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
@@ -1193,6 +1195,15 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           systemPrompt: researchSystemPrompt,
           firecrawlConfig: researchFirecrawlConfig,
           urls: urlsToScrape.length > 0 ? urlsToScrape : undefined,
+          // Refinement mode data
+          isRefinement: isRefinementMode,
+          currentAnswer: isRefinementMode ? answerBeingRefined?.content : undefined,
+          currentSources: isRefinementMode ? {
+            scrapedUrls: answerBeingRefined?.scrapedUrlSources || [],
+            internal: answerBeingRefined?.internalSources || [],
+            web: answerBeingRefined?.webSources || [],
+            news: answerBeingRefined?.newsResults || []
+          } : undefined,
         }),
       })
 
@@ -1269,12 +1280,24 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       console.log('✅ Research complete. Final message state:', 
         researchMessages.find(m => m.id === assistantMessageId))
       
-      addToast({
-        variant: 'success',
-        title: 'Research complete',
-        description: `Found ${(sources.internalSources?.length || 0) + (sources.sources?.length || 0)} sources`,
-        duration: 3000
-      })
+      if (isRefinementMode) {
+        addToast({
+          variant: 'success',
+          title: 'Refinement complete',
+          description: 'Answer updated successfully',
+          duration: 3000
+        })
+        // Exit refinement mode after successful refinement
+        setIsRefinementMode(false)
+        setAnswerBeingRefined(null)
+      } else {
+        addToast({
+          variant: 'success',
+          title: 'Research complete',
+          description: `Found ${(sources.scrapedUrlSources?.length || 0) + (sources.internalSources?.length || 0) + (sources.sources?.length || 0)} sources`,
+          duration: 3000
+        })
+      }
       
     } catch (error) {
       console.error('Research error:', error)
@@ -1283,7 +1306,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       
       addToast({
         variant: 'error',
-        title: 'Research failed',
+        title: isRefinementMode ? 'Refinement failed' : 'Research failed',
         description: error instanceof Error ? error.message : 'Unknown error',
         duration: 5000
       })
@@ -2851,6 +2874,25 @@ These appear AFTER "Based on these sources:" in your prompt.`;
                                 className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
                                 type="button"
                                 onClick={() => {
+                                  setIsRefinementMode(true)
+                                  setAnswerBeingRefined(m)
+                                  setShowAdvancedResearchOptions(true)
+                                  // Scroll to composer
+                                  setTimeout(() => {
+                                    researchListRef.current?.scrollTo({
+                                      top: researchListRef.current.scrollHeight,
+                                      behavior: 'smooth'
+                                    })
+                                  }, 100)
+                                }}
+                              >
+                                <Edit className="h-3 w-3" /> Refine
+                              </button>
+                              <span className="h-3 w-px bg-gray-200" />
+                              <button 
+                                className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
+                                type="button"
+                                onClick={() => {
                                   setSavingResearchMessage(m)
                                   
                                   // Generate title with jurisdiction if available
@@ -2966,6 +3008,41 @@ These appear AFTER "Based on these sources:" in your prompt.`;
                           {q}
                         </Button>
                       ))}
+                    </div>
+                  )}
+                  
+                  {/* Refinement Mode Banner */}
+                  {isRefinementMode && answerBeingRefined && (
+                    <div className="max-w-3xl mx-auto mb-2">
+                      <div className="bg-purple-50 border-2 border-purple-400 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Edit className="h-5 w-5 text-purple-600" />
+                              <h4 className="font-semibold text-purple-900">Refinement Mode</h4>
+                            </div>
+                            <p className="text-sm text-purple-700">
+                              Refining: "{answerBeingRefined.content.substring(0, 60)}..."
+                            </p>
+                            <p className="text-xs text-purple-600 mt-1">
+                              Adjust filters/template below or just describe changes. AI will update the answer while preserving structure.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setIsRefinementMode(false)
+                              setAnswerBeingRefined(null)
+                            }}
+                            className="text-xs"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Exit Refinement
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
@@ -3290,12 +3367,14 @@ Follow the template sections but adapt based on the query. Not all sections may 
                         }
                       }}
                       rows={2}
-                      placeholder="Ask about employment law, regulations, requirements..."
+                      placeholder={isRefinementMode 
+                        ? "Tell AI what to change... (e.g., 'Change 2 hours to 5 hours', 'Add federal requirements', 'Expand penalties section')" 
+                        : "Ask about employment law, regulations, requirements..."}
                       disabled={isResearching}
                       className="resize-none border-0 focus-visible:ring-0"
                     />
                     <Button type="submit" disabled={isResearching || !researchQuery.trim()} className="h-9 w-9 rounded-full p-0">
-                      <ArrowUp className="h-4 w-4" />
+                      {isRefinementMode ? <Edit className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
                     </Button>
                   </div>
                 </form>
