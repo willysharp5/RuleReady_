@@ -96,10 +96,24 @@ export async function POST(request: Request) {
     let newsData: any[] = [];
     let imagesData: any[] = [];
     
-    if (isRefinement && urls && urls.length === 0) {
+    if (isRefinement && (!urls || urls.length === 0)) {
       // Refinement mode with no new URLs - reuse existing sources
       console.log(`[${requestId}] Refinement mode: Reusing existing sources`);
-      // Sources come from currentSources parameter
+      
+      // Load sources from currentSources parameter
+      if (currentSources) {
+        if (currentSources.scrapedUrls) {
+          scrapedUrlSources = currentSources.scrapedUrls;
+        }
+        if (currentSources.web) {
+          webResults = currentSources.web;
+        }
+        if (currentSources.news) {
+          newsData = currentSources.news;
+        }
+      }
+      
+      console.log(`[${requestId}] Loaded ${webResults.length} web sources, ${newsData.length} news sources from previous search`);
     } else {
       // Normal mode or refinement with new URLs - do web search
       console.log(`[${requestId}] Searching with Firecrawl...`);
@@ -164,26 +178,35 @@ export async function POST(request: Request) {
       imagesData = searchData.images || [];
     }
     
-    // Transform sources
-    const sources = webResults.map((item: any) => ({
-      url: item.url,
-      title: item.title || item.url,
-      description: item.description || item.snippet,
-      content: item.content,
-      markdown: item.markdown,
-      favicon: item.favicon,
-      image: item.ogImage || item.image,
-      siteName: new URL(item.url).hostname
-    })).filter((item: any) => item.url);
+    // Transform sources (skip if refinement mode - already transformed)
+    let sources, newsResults;
     
-    const newsResults = newsData.map((item: any) => ({
-      url: item.url,
-      title: item.title,
-      description: item.snippet || item.description,
-      publishedDate: item.date,
-      source: item.source || new URL(item.url).hostname,
-      image: item.imageUrl
-    })).filter((item: any) => item.url);
+    if (isRefinement && (!urls || urls.length === 0)) {
+      // Sources already transformed from previous search - use as-is
+      sources = webResults;
+      newsResults = newsData;
+    } else {
+      // Transform fresh search results
+      sources = webResults.map((item: any) => ({
+        url: item.url,
+        title: item.title || item.url,
+        description: item.description || item.snippet,
+        content: item.content,
+        markdown: item.markdown,
+        favicon: item.favicon,
+        image: item.ogImage || item.image,
+        siteName: new URL(item.url).hostname
+      })).filter((item: any) => item.url);
+      
+      newsResults = newsData.map((item: any) => ({
+        url: item.url,
+        title: item.title,
+        description: item.snippet || item.description,
+        publishedDate: item.date,
+        source: item.source || new URL(item.url).hostname,
+        image: item.imageUrl
+      })).filter((item: any) => item.url);
+    }
     
     const imageResults = imagesData.map((item: any) => {
       if (!item.url || !item.imageUrl) return null;
@@ -253,27 +276,32 @@ FORMAT:
     
     if (isRefinement && currentAnswer) {
       // Refinement mode: Include current answer and refinement instruction
-      userPrompt = `You are refining an existing compliance research answer.
+      userPrompt = `The user previously asked a compliance question and received an answer. Now they want you to refine that answer.
 
-CURRENT ANSWER:
+PREVIOUS ANSWER (for context):
 ${currentAnswer}
 
-USER WANTS YOU TO:
+USER'S REFINEMENT REQUEST:
 ${query}
 
 ${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}
 
-INSTRUCTIONS:
-- Update the answer based on what the user requested
-- Keep the same structure and organization (same headers, same sections)  
-- Only modify the parts the user mentioned
-- If they don't mention a section, leave it unchanged
-- Output your refined answer in MARKDOWN format
-- Use ## for headers, ** for bold, - for bullets
-- Cite sources as [1], [2], [3] inline
+YOUR TASK:
+Generate an updated compliance research answer that:
+1. Incorporates the user's requested changes
+2. Maintains the same overall structure and sections as the previous answer
+3. Keeps unchanged sections the same
+4. Adds or expands on what the user requested
 
-${scrapedUrlSources.length > 0 ? `NEW SOURCES to integrate:\n${scrapedUrlSources.map((s: any, i: number) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}\n` : ''}
-Based on these sources:
+FORMAT YOUR RESPONSE AS MARKDOWN:
+- Use ## for main section headers (like ## Overview, ## Requirements)
+- Use ### for subsection headers
+- Use **bold** for emphasis
+- Use - for bullet points
+- Use [1], [2], [3] for inline source citations
+- Write in clear, professional compliance documentation style
+
+Available sources for citations:
 ${context}`;
     } else {
       // Normal mode: Generate new answer
