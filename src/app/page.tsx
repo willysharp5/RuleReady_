@@ -2462,8 +2462,29 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           placeholder="You are RuleReady Research AI..."
                           className="font-mono text-xs"
                         />
+                        
+                        {/* Show what gets added when filters are selected */}
+                        {(researchJurisdiction || researchTopic) && (
+                          <div className="mt-2 p-3 bg-purple-100 border border-purple-300 rounded">
+                            <div className="text-xs font-medium text-purple-800 mb-1">
+                              ↓ These lines are automatically added to your prompt when you search:
+                            </div>
+                            <div className="text-xs font-mono text-purple-900 space-y-1">
+                              {researchJurisdiction && (
+                                <div>Focus on jurisdiction: {researchJurisdiction}</div>
+                              )}
+                              {researchTopic && (
+                                <div>Focus on topic: {topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic}</div>
+                              )}
+                            </div>
+                            <div className="text-xs text-purple-700 mt-2 italic">
+                              These appear after "Based on these sources:" in the final prompt sent to AI
+                            </div>
+                          </div>
+                        )}
+                        
                         <p className="text-xs text-gray-500 mt-1">
-                          Customize how the AI responds to research queries. Template selection auto-updates this prompt.
+                          Template selection auto-updates this prompt. Edit freely - your changes are preserved.
                         </p>
                       </div>
                       
@@ -2513,62 +2534,6 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (searches all)'}</div>
                           <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (searches all)'}</div>
                         </div>
-                      </div>
-                      
-                      {/* Live Prompt Preview - Shows What Gets Sent to AI */}
-                      <div className="bg-purple-50 border border-purple-300 rounded-lg p-4">
-                        <details>
-                          <summary className="cursor-pointer font-medium text-purple-800 hover:text-purple-900 text-sm flex items-center gap-1">
-                            <Eye className="h-4 w-4" />
-                            Preview Full Prompt Sent to AI
-                          </summary>
-                          <div className="mt-3 space-y-3">
-                            <div>
-                              <div className="text-xs font-medium text-purple-700 mb-1">System Instructions:</div>
-                              <div className="p-3 bg-white border border-purple-200 rounded text-xs font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">
-                                {researchSystemPrompt}
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-xs font-medium text-purple-700 mb-1">User Query Example:</div>
-                              <div className="p-3 bg-white border border-purple-200 rounded text-xs">
-                                Answer this compliance research query: "<span className="italic">Your question here</span>"
-                              </div>
-                            </div>
-                            
-                            {(researchJurisdiction || researchTopic) && (
-                              <div>
-                                <div className="text-xs font-medium text-purple-700 mb-1">Filter Instructions Added:</div>
-                                <div className="p-3 bg-purple-100 border border-purple-300 rounded text-xs space-y-1">
-                                  {researchJurisdiction && (
-                                    <div className="font-medium">Focus on jurisdiction: {researchJurisdiction}</div>
-                                  )}
-                                  {researchTopic && (
-                                    <div className="font-medium">Focus on topic: {topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic}</div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div>
-                              <div className="text-xs font-medium text-purple-700 mb-1">Then Sources Context:</div>
-                              <div className="p-3 bg-white border border-purple-200 rounded text-xs italic text-gray-600">
-                                Based on these sources:<br/>
-                                [1] Source Title<br/>
-                                URL: https://example.com<br/>
-                                [Content from Firecrawl search...]<br/>
-                                <br/>
-                                [2] Another Source...<br/>
-                                etc.
-                              </div>
-                            </div>
-                            
-                            <div className="text-xs text-purple-600 bg-purple-100 p-2 rounded">
-                              <strong>Note:</strong> This is the complete prompt structure. Sources are added dynamically after Firecrawl search completes.
-                            </div>
-                          </div>
-                        </details>
                       </div>
                     </div>
                   )}
