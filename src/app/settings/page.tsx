@@ -227,66 +227,8 @@ Instructions:
   const [newModelDescription, setNewModelDescription] = useState('')
 
   // Filter and combine compliance reports and websites for source selection
-  const availableSources = useMemo(() => {
-    const sources: Array<{
-      id: string
-      title: string
-      jurisdiction: string
-      topic: string
-      url: string
-      scrapedAt: number
-      wordCount: number
-      priority: string
-      type: 'report' | 'website'
-    }> = []
-
-    // Add compliance reports
-    if (allComplianceReports) {
-      allComplianceReports.forEach((report: Record<string, unknown>) => {
-        // Parse jurisdiction and topic from ruleId (e.g., "alabama_minimum_wage")
-        const ruleIdParts = report.ruleId?.split('_') || []
-        const jurisdiction = ruleIdParts[0] ? ruleIdParts[0].charAt(0).toUpperCase() + ruleIdParts[0].slice(1) : 'Unknown'
-        const topic = ruleIdParts.slice(1).join(' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'
-        
-        sources.push({
-          id: report._id,
-          title: `${jurisdiction} - ${topic}`,
-          jurisdiction: jurisdiction,
-          topic: topic,
-          url: report.sourceUrl || 'Internal Report',
-          scrapedAt: report.processedAt || report._creationTime || Date.now(),
-          wordCount: report.rawContent?.length || 0,
-          priority: 'high', // AI reports are typically high priority
-          type: 'report'
-        })
-      })
-    }
-
-    // Add website scrape results
-    if (websites) {
-      websites.forEach((website: Record<string, unknown>) => {
-        if (website.complianceMetadata) {
-          const jurisdiction = website.complianceMetadata.jurisdiction || 'Unknown'
-          const topic = website.complianceMetadata.topicKey || 'Unknown'
-          const priority = website.complianceMetadata.priority || 'medium'
-          
-          sources.push({
-            id: website._id,
-            title: `${jurisdiction} - ${topic}`,
-            jurisdiction: jurisdiction,
-            topic: topic,
-            url: website.url || 'Unknown URL',
-            scrapedAt: website.lastChecked || website.createdAt || Date.now(),
-            wordCount: 0, // Would need to get from scrape results
-            priority: priority,
-            type: 'website'
-          })
-        }
-      })
-    }
-
-    return sources
-  }, [allComplianceReports, websites])
+  // Data sources removed - no longer displaying reports/websites in settings
+  const availableSources: any[] = []
 
   // Filter sources based on search and filters
   const filteredSources = useMemo(() => {
