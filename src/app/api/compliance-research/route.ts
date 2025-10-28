@@ -295,8 +295,8 @@ Generate an updated compliance research answer that:
 
 CRITICAL: FORMAT YOUR ENTIRE RESPONSE AS MARKDOWN (not as code, not escaped):
 - Start headers with ## (like: ## Overview)
-- Do NOT escape markdown (NO backslashes like \\## or \\**)
-- Do NOT wrap in code blocks (NO ``` around your answer)
+- Do NOT escape markdown (NO backslashes)
+- Do NOT wrap in code blocks
 - Use **text** for bold
 - Use - for bullet lists
 - Cite sources as [1], [2], [3] inline
