@@ -637,18 +637,21 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       }
 
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('Research error:', error)
-        addToast({
-          variant: 'error',
-          title: 'Research failed',
-          description: error.message || 'Failed to complete research',
-          duration: 5000
-        })
-        
-        // Remove the empty assistant message
-        setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+      // Ignore abort errors (user cancelled)
+      if (error.name === 'AbortError' || error.message?.includes('cancelled') || error.message?.includes('aborted')) {
+        return
       }
+      
+      console.error('Research error:', error)
+      addToast({
+        variant: 'error',
+        title: 'Research failed',
+        description: error.message || 'Failed to complete research',
+        duration: 5000
+      })
+      
+      // Remove the empty assistant message
+      setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
     } finally {
       setIsResearching(false)
       setResearchAbortController(null)
