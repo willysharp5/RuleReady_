@@ -127,11 +127,6 @@ function SettingsContent() {
   
   // API key queries removed
   // Monitoring queries
-  const cronStatus = useQuery(api.monitoring.getCronJobStatus)
-  const embeddingJobs = useQuery(api.monitoring.getEmbeddingJobMetrics)
-  const crawlerHealth = useQuery(api.monitoring.getComplianceCrawlerHealth)
-  const systemStatus = useQuery(api.monitoring.getSystemStatus)
-  
   // Chat settings queries and mutations
   const chatSettings = useQuery(api.chatSettings.getChatSettings)
   const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
@@ -140,13 +135,6 @@ function SettingsContent() {
   const jurisdictions = useQuery(api.complianceQueries.getJurisdictions)
   const topics = useQuery(api.complianceQueries.getTopics)
   
-  // Compliance generation queries
-  const allComplianceReports = useQuery(api.importComplianceReports.getAIReports, {}) // Using existing function
-  const websites = useQuery(api.websites.getUserWebsites)
-  
-  // Compliance generation actions
-  const generateRule = useAction(api.complianceGeneration.generateComplianceRule)
-  const generateEmbeddings = useAction(api.complianceGeneration.generateRuleEmbeddings)
   
   // AI Models queries (commented out until backend is deployed)
   // const allAIModels = useQuery(api.aiModelManager.getAllAIModels)
