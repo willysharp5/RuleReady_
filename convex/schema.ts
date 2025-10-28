@@ -170,6 +170,35 @@ const schema = defineSchema({
     .index("by_saved_at", ["savedAt"])
     .index("by_jurisdiction", ["jurisdiction"])
     .index("by_topic", ["topic"]),
+
+  // Research conversations (full chat sessions)
+  researchConversations: defineTable({
+    title: v.string(), // Auto-generated or user-editable
+    messages: v.array(v.object({
+      id: v.string(),
+      role: v.union(v.literal("user"), v.literal("assistant")),
+      content: v.string(),
+      scrapedUrlSources: v.optional(v.array(v.any())),
+      internalSources: v.optional(v.array(v.any())),
+      webSources: v.optional(v.array(v.any())),
+      newsResults: v.optional(v.array(v.any())),
+    })),
+    filters: v.object({
+      jurisdiction: v.optional(v.string()),
+      topic: v.optional(v.string()),
+      templateUsed: v.optional(v.string()),
+    }),
+    settingsSnapshot: v.object({
+      systemPrompt: v.optional(v.string()),
+      firecrawlConfig: v.optional(v.string()),
+      additionalContext: v.optional(v.string()),
+    }),
+    messageCount: v.number(),
+    savedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_saved_at", ["savedAt"])
+    .index("by_message_count", ["messageCount"]),
 });
 
 export default schema;

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Plus, X, ExternalLink, Globe, FileText, Newspaper, Loader2, CheckCircle2, Info, User, Copy, Check, Edit, Save, ChevronLeft, ChevronRight, ArrowUp, Square, ArrowDown } from 'lucide-react'
+import { Search, Plus, X, ExternalLink, Globe, FileText, Newspaper, Loader2, CheckCircle2, Info, User, Copy, Check, Edit, Save, ChevronLeft, ChevronRight, ArrowUp, Square, ArrowDown, BookmarkPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +42,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const templates = templatesQuery || []
   
   const saveResearch = useMutation(api.savedResearch.saveResearch)
+  const saveConversation = useMutation(api.researchConversations.saveConversation)
   
   // Research state
   const [researchQuery, setResearchQuery] = useState('')
@@ -558,6 +559,48 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
 
+  const handleSaveConversation = async () => {
+    if (researchMessages.length === 0) {
+      addToast({
+        variant: 'error',
+        title: 'No conversation to save',
+        description: 'Start a research conversation first',
+        duration: 3000
+      })
+      return
+    }
+    
+    try {
+      const result = await saveConversation({
+        messages: researchMessages,
+        filters: {
+          jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+          topic: researchState?.topic || researchTopic,
+          templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
+        },
+        settingsSnapshot: {
+          systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
+          firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+          additionalContext: researchState?.additionalContext,
+        }
+      })
+      
+      addToast({
+        variant: 'success',
+        title: 'Conversation saved',
+        description: `Saved as: ${result.title}`,
+        duration: 3000
+      })
+    } catch (error) {
+      addToast({
+        variant: 'error',
+        title: 'Failed to save',
+        description: 'Could not save conversation',
+        duration: 3000
+      })
+    }
+  }
+
   const handleClearChat = () => {
     // Clear chat messages
     setResearchMessages([])
@@ -630,16 +673,28 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <h2 className="text-2xl font-semibold text-gray-900">Compliance Research</h2>
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
           </div>
-          <Button
-            onClick={handleClearChat}
-            variant="outline"
-            size="sm"
-            className="text-red-600 border-red-300 hover:bg-red-50"
-            disabled={researchMessages.length === 0}
-          >
-            <X className="w-4 h-4 mr-1" />
-            Clear Chat
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSaveConversation}
+              variant="outline"
+              size="sm"
+              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+              disabled={researchMessages.length === 0}
+            >
+              <BookmarkPlus className="w-4 h-4 mr-1" />
+              Save
+            </Button>
+            <Button
+              onClick={handleClearChat}
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-300 hover:bg-red-50"
+              disabled={researchMessages.length === 0}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Clear
+            </Button>
+          </div>
         </div>
       </div>
       
