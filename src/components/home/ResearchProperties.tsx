@@ -429,8 +429,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 const jurisdictionMatch = prompt.match(/Focus on jurisdiction: (.+)/);
                 if (jurisdictionMatch) {
                   parts.push(
-                    <div key="jurisdiction" className="font-bold text-sm text-purple-700">
-                      Focus on jurisdiction: {jurisdictionMatch[1]}
+                    <div key="jurisdiction" className="text-xs italic text-zinc-500">
+                      [Jurisdiction: {jurisdictionMatch[1]}]
                     </div>
                   );
                 }
@@ -439,8 +439,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 const topicMatch = prompt.match(/Focus on topic: (.+)/);
                 if (topicMatch) {
                   parts.push(
-                    <div key="topic" className="font-bold text-sm text-purple-700">
-                      Focus on topic: {topicMatch[1]}
+                    <div key="topic" className="text-xs italic text-zinc-500">
+                      [Topic: {topicMatch[1]}]
                     </div>
                   );
                 }
