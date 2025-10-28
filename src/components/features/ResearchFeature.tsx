@@ -44,6 +44,9 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const saveResearch = useMutation(api.savedResearch.saveResearch)
   const saveConversation = useMutation(api.researchConversations.saveConversation)
   
+  // Track current conversation ID for auto-save
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  
   // Research state
   const [researchQuery, setResearchQuery] = useState('')
   const [researchMessages, setResearchMessages] = useState<Array<{
@@ -559,47 +562,42 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
 
-  const handleSaveConversation = async () => {
-    if (researchMessages.length === 0) {
-      addToast({
-        variant: 'error',
-        title: 'No conversation to save',
-        description: 'Start a research conversation first',
-        duration: 3000
-      })
-      return
-    }
+  // Auto-save conversation after messages update (debounced)
+  useEffect(() => {
+    // Only auto-save if we have at least one complete exchange (user + assistant)
+    const hasCompleteExchange = researchMessages.length >= 2 && 
+                                researchMessages.some(m => m.role === 'assistant');
     
-    try {
-      const result = await saveConversation({
-        messages: researchMessages,
-        filters: {
-          jurisdiction: researchState?.jurisdiction || researchJurisdiction,
-          topic: researchState?.topic || researchTopic,
-          templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
-        },
-        settingsSnapshot: {
-          systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
-          firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
-          additionalContext: researchState?.additionalContext,
+    if (!hasCompleteExchange || isResearching) return;
+    
+    const autoSaveTimer = setTimeout(async () => {
+      try {
+        const result = await saveConversation({
+          messages: researchMessages,
+          filters: {
+            jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+            topic: researchState?.topic || researchTopic,
+            templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
+          },
+          settingsSnapshot: {
+            systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
+            firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+            additionalContext: researchState?.additionalContext,
+          }
+        })
+        
+        // Store conversation ID for future updates
+        if (result.conversationId) {
+          setCurrentConversationId(result.conversationId as string)
         }
-      })
-      
-      addToast({
-        variant: 'success',
-        title: 'Conversation saved',
-        description: `Saved as: ${result.title}`,
-        duration: 3000
-      })
-    } catch (error) {
-      addToast({
-        variant: 'error',
-        title: 'Failed to save',
-        description: 'Could not save conversation',
-        duration: 3000
-      })
-    }
-  }
+      } catch (error) {
+        // Silent failure for auto-save
+        console.error('Auto-save failed:', error)
+      }
+    }, 2000) // Auto-save 2 seconds after last message
+    
+    return () => clearTimeout(autoSaveTimer)
+  }, [researchMessages, isResearching])
 
   const handleClearChat = () => {
     // Clear chat messages
@@ -608,6 +606,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     setIsRefinementMode(false)
     setAnswerBeingRefined(null)
     setShowAdvancedResearchOptions(false)
+    setCurrentConversationId(null) // Reset conversation tracking
     
     // Reset to default system prompt
     const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -673,28 +672,16 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <h2 className="text-2xl font-semibold text-gray-900">Compliance Research</h2>
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleSaveConversation}
-              variant="outline"
-              size="sm"
-              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-              disabled={researchMessages.length === 0}
-            >
-              <BookmarkPlus className="w-4 h-4 mr-1" />
-              Save
-            </Button>
-            <Button
-              onClick={handleClearChat}
-              variant="outline"
-              size="sm"
-              className="text-red-600 border-red-300 hover:bg-red-50"
-              disabled={researchMessages.length === 0}
-            >
-              <X className="w-4 h-4 mr-1" />
-              Clear
-            </Button>
-          </div>
+          <Button
+            onClick={handleClearChat}
+            variant="outline"
+            size="sm"
+            className="text-red-600 border-red-300 hover:bg-red-50"
+            disabled={researchMessages.length === 0}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Clear Chat
+          </Button>
         </div>
       </div>
       
