@@ -457,13 +457,15 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 
                 if (parsed.type === 'warning') {
                   // Show warning toast
-                  console.log('⚠️ Received warning:', parsed.message)
-                  addToast({
-                    variant: 'error',
-                    title: 'Firecrawl Config Error',
-                    description: parsed.message,
-                    duration: 5000
-                  })
+                  console.log('⚠️ WARNING RECEIVED:', parsed.message)
+                  setTimeout(() => {
+                    addToast({
+                      variant: 'error',
+                      title: 'Firecrawl Config Error',
+                      description: parsed.message || 'Invalid JSON configuration detected',
+                      duration: 8000
+                    })
+                  }, 100)
                 } else if (parsed.type === 'sources') {
                   sources = parsed
                   // Update assistant message with sources

@@ -357,12 +357,17 @@ ${context}`;
 
           // Stream AI response
           for await (const chunk of result.stream) {
-            const text = chunk.text();
-            if (text) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'text',
-                content: text
-              })}\n\n`));
+            try {
+              const text = chunk.text();
+              if (text) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'text',
+                  content: text
+                })}\n\n`));
+              }
+            } catch (chunkError) {
+              // Ignore chunk errors, continue streaming
+              console.warn(`[${requestId}] Chunk error (ignoring):`, chunkError);
             }
           }
 
