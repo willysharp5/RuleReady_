@@ -453,6 +453,9 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               try {
                 const parsed = JSON.parse(data)
                 
+                // Debug: log all message types received
+                console.log('📨 Received SSE message type:', parsed.type)
+                
                 if (!parsed || !parsed.type) continue
                 
                 if (parsed.type === 'warning') {
