@@ -10,30 +10,18 @@
 
 import type * as chatSettings from "../chatSettings.js";
 import type * as complianceAI from "../complianceAI.js";
-import type * as complianceChanges from "../complianceChanges.js";
-import type * as complianceDeadlines from "../complianceDeadlines.js";
-import type * as complianceGeneration from "../complianceGeneration.js";
 import type * as complianceImport from "../complianceImport.js";
 import type * as complianceParser from "../complianceParser.js";
-import type * as compliancePriority from "../compliancePriority.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
-import type * as csvImport from "../csvImport.js";
-import type * as databaseCleanup from "../databaseCleanup.js";
-import type * as embeddingJobs from "../embeddingJobs.js";
 import type * as embeddingManager from "../embeddingManager.js";
-import type * as geminiFlashLite from "../geminiFlashLite.js";
 import type * as generateEmbeddings from "../generateEmbeddings.js";
 import type * as helpers from "../helpers.js";
-import type * as importComplianceReports from "../importComplianceReports.js";
 import type * as jurisdictionDetails from "../jurisdictionDetails.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
-import type * as ruleDetails from "../ruleDetails.js";
 import type * as savedResearch from "../savedResearch.js";
-import type * as singleUserSetup from "../singleUserSetup.js";
-import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
 
 import type {
@@ -53,30 +41,18 @@ import type {
 declare const fullApi: ApiFromModules<{
   chatSettings: typeof chatSettings;
   complianceAI: typeof complianceAI;
-  complianceChanges: typeof complianceChanges;
-  complianceDeadlines: typeof complianceDeadlines;
-  complianceGeneration: typeof complianceGeneration;
   complianceImport: typeof complianceImport;
   complianceParser: typeof complianceParser;
-  compliancePriority: typeof compliancePriority;
   complianceQueries: typeof complianceQueries;
   complianceRAG: typeof complianceRAG;
   complianceTemplates: typeof complianceTemplates;
-  csvImport: typeof csvImport;
-  databaseCleanup: typeof databaseCleanup;
-  embeddingJobs: typeof embeddingJobs;
   embeddingManager: typeof embeddingManager;
-  geminiFlashLite: typeof geminiFlashLite;
   generateEmbeddings: typeof generateEmbeddings;
   helpers: typeof helpers;
-  importComplianceReports: typeof importComplianceReports;
   jurisdictionDetails: typeof jurisdictionDetails;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
-  ruleDetails: typeof ruleDetails;
   savedResearch: typeof savedResearch;
-  singleUserSetup: typeof singleUserSetup;
-  testingMode: typeof testingMode;
   userSettings: typeof userSettings;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
