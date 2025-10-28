@@ -2572,7 +2572,40 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     <div className="px-6 pb-6 space-y-6">
                       {/* AI System Prompt */}
                       <div>
-                        <Label htmlFor="research-prompt">AI System Prompt</Label>
+                        <div className="flex items-center justify-between mb-1">
+                          <Label htmlFor="research-prompt">AI System Prompt</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Provide accurate, authoritative information about employment law.
+Cite sources using inline [1], [2], [3] format.
+Distinguish between federal and state requirements.
+Mention effective dates when relevant.
+Note penalties or deadlines when applicable.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.`;
+                              
+                              setResearchSystemPrompt(defaultPrompt);
+                              setSelectedResearchTemplate(''); // Clear template selection
+                              
+                              addToast({
+                                variant: 'success',
+                                title: 'Reset to default',
+                                description: 'AI System Prompt reset to default (template cleared)',
+                                duration: 2000
+                              });
+                            }}
+                            className="h-7 px-2 text-xs"
+                          >
+                            Reset to Default
+                          </Button>
+                        </div>
                         <Textarea
                           id="research-prompt"
                           value={researchSystemPrompt}
@@ -2603,7 +2636,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                         )}
                         
                         <p className="text-xs text-gray-500 mt-1">
-                          Template selection auto-updates this prompt. Edit freely - your changes are preserved.
+                          Template selection auto-updates this prompt. Edit freely - click "Reset to Default" to restore.
                         </p>
                       </div>
                       
