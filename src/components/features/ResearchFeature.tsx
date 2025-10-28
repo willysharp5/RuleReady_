@@ -540,12 +540,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     setAnswerBeingRefined(null)
     setShowAdvancedResearchOptions(false)
     
-    // Reset filters
-    updateJurisdiction('')
-    updateTopic('')
-    updateSelectedTemplate('')
-    updateUrls([''])
-    
     // Reset to default system prompt
     const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
 
@@ -563,20 +557,6 @@ Note: If jurisdiction/topic filters are selected, you will receive additional in
 "Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
 These appear AFTER "Based on these sources:" in your prompt.`
     
-    setResearchSystemPrompt(defaultPrompt)
-    
-    // Update parent state
-    if (setResearchState && researchState) {
-      setResearchState({
-        ...researchState,
-        systemPrompt: defaultPrompt,
-        selectedTemplate: '',
-        jurisdiction: '',
-        topic: '',
-        urls: ['']
-      })
-    }
-    
     // Reset Firecrawl config to default
     const defaultConfig = JSON.stringify({
       sources: ['web', 'news'],
@@ -590,13 +570,24 @@ These appear AFTER "Based on these sources:" in your prompt.`
       }
     }, null, 2)
     
+    // Reset local state
+    setResearchSystemPrompt(defaultPrompt)
     setResearchFirecrawlConfig(defaultConfig)
+    updateJurisdiction('')
+    updateTopic('')
+    updateSelectedTemplate('')
+    updateUrls([''])
     
-    // Update parent state with default config
+    // Reset parent state (this updates the right panel)
     if (setResearchState && researchState) {
       setResearchState({
-        ...researchState,
-        firecrawlConfig: defaultConfig
+        systemPrompt: defaultPrompt,
+        firecrawlConfig: defaultConfig,
+        model: researchState.model || 'gemini-2.0-flash-exp',
+        selectedTemplate: '',
+        jurisdiction: '',
+        topic: '',
+        urls: ['']
       })
     }
   }
