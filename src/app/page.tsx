@@ -313,6 +313,8 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   // Research URL scraping state
   const [researchUrls, setResearchUrls] = useState<string[]>(['']) // Start with one empty field
   const [researchUrlValidation, setResearchUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false)
+  const [showUrlScraping, setShowUrlScraping] = useState(false)
   const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
@@ -2897,7 +2899,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </div>
                   )}
                   
-                  {/* Filters & Template Manager - Below chat, above composer */}
+                  {/* Filters - Below chat, above composer */}
                   <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
                     <div className="flex items-center gap-1">
                       <select
@@ -2943,6 +2945,35 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       </Tooltip>
                     </div>
                     
+                    {/* Toggle buttons for advanced options */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                      className="h-8 px-3 text-xs"
+                      disabled={isResearching}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      {showTemplateDropdown ? 'Hide' : 'Show'} Templates
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowUrlScraping(!showUrlScraping)}
+                      className="h-8 px-3 text-xs"
+                      disabled={isResearching}
+                    >
+                      <Globe className="h-3 w-3 mr-1" />
+                      {showUrlScraping ? 'Hide' : 'Show'} URLs
+                    </Button>
+                  </div>
+                  
+                  {/* Template Dropdown - Collapsible */}
+                  {showTemplateDropdown && (
+                  <div className="max-w-3xl mx-auto mb-2">
                     <div className="flex items-center gap-1">
                     <select
                       className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium"
@@ -3062,9 +3093,11 @@ Follow the template sections but adapt based on the query. Not all sections may 
                     </Tooltip>
                     </div>
                   </div>
+                  )}
                   
-                  {/* Additional URLs to Scrape */}
-                  <div className="max-w-3xl mx-auto">
+                  {/* Additional URLs to Scrape - Collapsible */}
+                  {showUrlScraping && (
+                  <div className="max-w-3xl mx-auto mb-2">
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -3173,6 +3206,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       </p>
                     </div>
                   </div>
+                  )}
                   
                   <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
                     <Textarea
