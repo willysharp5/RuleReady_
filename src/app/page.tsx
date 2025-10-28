@@ -590,39 +590,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }, [enableComplianceContext, enableSemanticSearch, addSystemMessage])
   
-  // Get latest scrape for each website
-  const latestScrapes = useQuery(api.websites.getLatestScrapeForWebsites)
-  
-  // Get all scrape results for check log
-  // Removed: using direct fetch instead of useQuery
-  
-  
-
-  
-  // Get compliance filter data - using direct fetch instead of useQuery
-  
-  // Single-user mode: Check if setup is needed and auto-create websites
-  const setupStatus = useQuery(api.singleUserSetup.needsSetup)
-  
-  // AUTO-SETUP DISABLED - Uncomment to enable automatic website creation
-  // useEffect(() => {
-  //   if (setupStatus?.needsSetup) {
-  //     createAllWebsites()
-  //       .then((result) => {
-  //         addToast({
-  //           title: "Setup Complete",
-  //           description: `${result.created} compliance websites created and ready for monitoring`,
-  //         });
-  //       })
-  //       .catch(() => {
-  //         addToast({
-  //           title: "Setup Error",
-  //           description: "Failed to create compliance websites. Please try refreshing the page.",
-  //           variant: "error",
-  //         });
-  //       });
-  //   }
-  // }, [setupStatus?.needsSetup, createAllWebsites, addToast])
 
   // Handle escape key for modals
   const handleAuth = async (e: React.FormEvent) => {
