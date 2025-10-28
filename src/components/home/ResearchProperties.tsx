@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, MapPin, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
+import { useToast } from '@/hooks/use-toast'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -27,6 +29,8 @@ interface ResearchPropertiesProps {
 }
 
 export function ResearchProperties({ researchState, setResearchState, updateResearchSettings, onDismissError }: ResearchPropertiesProps) {
+  const { addToast } = useToast()
+  
   // Queries to get template and topic names
   const templatesQuery = useQuery(api.complianceTemplates.getActiveTemplates)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
@@ -35,6 +39,16 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
   const templates = templatesQuery || []
+  
+  // Mutations
+  const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
+  
+  // Template editor state
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<{
+    topicKey: string
+    topicName: string
+  } | null>(null)
   
   // URL validation state
   const [urlValidation, setUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
@@ -290,7 +304,12 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   setResearchState({ ...researchState, selectedTemplate: '' })
                 }
               } else if (selectedValue === 'new') {
-                window.location.href = '/settings#templates';
+                // Open template editor modal
+                setEditingTemplate({
+                  topicKey: '',
+                  topicName: 'New Template'
+                });
+                setShowTemplateEditor(true);
                 return;
               } else if (selectedValue) {
                 if (setResearchState && researchState) {
@@ -300,10 +319,9 @@ These appear AFTER "Based on these sources:" in your prompt.`
               e.currentTarget.value = '';
             }}
           >
-            <option value="">Select Template...</option>
-            <option value="view-all" className="font-semibold">View All Templates →</option>
             <option value="none">None (Default Prompt)</option>
-            <option value="new" className="font-semibold">Create New Template</option>
+            <option value="view-all" className="font-semibold">View All Templates →</option>
+            <option value="new" className="font-semibold">+ Create New Template</option>
             <option disabled>──────────</option>
             {templates?.map((template: any) => (
               <option key={template.templateId} value={template.templateId}>
@@ -770,6 +788,39 @@ These appear AFTER "Based on these sources:" in your prompt.`
           )}
         </div>
       </AccordionSection>
+      
+      {/* Template Editor Modal */}
+      {showTemplateEditor && editingTemplate && (
+        <ComplianceTemplateEditor
+          isOpen={showTemplateEditor}
+          onClose={() => {
+            setShowTemplateEditor(false)
+            setEditingTemplate(null)
+          }}
+          topicKey={editingTemplate.topicKey}
+          topicName={editingTemplate.topicName}
+          onSave={async (templateData) => {
+            try {
+              await upsertTemplate(templateData)
+              addToast({
+                variant: 'success',
+                title: 'Template saved',
+                description: 'Template has been saved successfully',
+                duration: 3000
+              })
+              setShowTemplateEditor(false)
+              setEditingTemplate(null)
+            } catch (error) {
+              addToast({
+                variant: 'destructive',
+                title: 'Error saving template',
+                description: error instanceof Error ? error.message : 'Unknown error',
+                duration: 5000
+              })
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
