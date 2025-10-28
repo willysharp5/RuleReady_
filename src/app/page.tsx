@@ -5679,10 +5679,10 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       li: ({children}) => <li className="leading-relaxed list-disc">{children}</li>,
                       strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
                       em: ({children}) => <em className="italic">{children}</em>,
-                      a: ({children, ...props}) => <a className="text-blue-600 hover:underline" {...props}>{children}</a>,
+                      a: ({children, ...props}) => <a className="text-blue-600 hover:underline font-medium" target="_blank" rel="noreferrer" {...props}>{children}</a>,
                     }}
                   >
-                    {savedResearchContent}
+                    {savingResearchMessage ? makeSourceLinksClickable(savedResearchContent, savingResearchMessage) : savedResearchContent}
                   </ReactMarkdown>
                 </div>
               ) : (
