@@ -313,6 +313,16 @@ ${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focu
 ${context}`;
     }
 
+    // Log what's being sent to AI
+    console.log(`[${requestId}] Prompt includes:`, {
+      hasJurisdiction: !!jurisdiction,
+      hasTopic: !!topic,
+      hasAdditionalContext: !!additionalContext,
+      additionalContextLength: additionalContext?.length || 0,
+      hasTemplate: finalSystemPrompt !== defaultSystemPrompt,
+      sourcesCount: allSources.length
+    });
+    
     // Use Gemini streaming
     const chat = model.startChat({
       history: [],
