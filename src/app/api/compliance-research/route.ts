@@ -255,26 +255,24 @@ FORMAT:
       // Refinement mode: Include current answer and refinement instruction
       userPrompt = `You are refining an existing compliance research answer.
 
-CURRENT ANSWER TO REFINE:
+CURRENT ANSWER:
 ${currentAnswer}
 
-USER REFINEMENT INSTRUCTION:
+USER WANTS YOU TO:
 ${query}
 
-${jurisdiction ? `New jurisdiction focus: ${jurisdiction}\n` : ''}${topic ? `New topic focus: ${topic}\n` : ''}
-${scrapedUrlSources.length > 0 ? `NEW SOURCES ADDED (use these):\n${scrapedUrlSources.map((s: any, i: number) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}\n` : ''}
+${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}
 
 INSTRUCTIONS:
-- Update the answer based on the user's refinement instruction
-- PRESERVE the exact markdown formatting style from the current answer
-- PRESERVE the template structure and organization (same headers, same sections)
-- KEEP sections that aren't mentioned unchanged (copy them exactly as-is)
-- ONLY modify what the user specifically requested
-- If new sources provided, integrate them and update citations
-- If jurisdiction/topic changed, update focus while keeping relevant content
-- Use the SAME markdown syntax (##, **, -, etc.) as the current answer
-- Maintain professional compliance documentation style
+- Update the answer based on what the user requested
+- Keep the same structure and organization (same headers, same sections)  
+- Only modify the parts the user mentioned
+- If they don't mention a section, leave it unchanged
+- Output your refined answer in MARKDOWN format
+- Use ## for headers, ** for bold, - for bullets
+- Cite sources as [1], [2], [3] inline
 
+${scrapedUrlSources.length > 0 ? `NEW SOURCES to integrate:\n${scrapedUrlSources.map((s: any, i: number) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}\n` : ''}
 Based on these sources:
 ${context}`;
     } else {
