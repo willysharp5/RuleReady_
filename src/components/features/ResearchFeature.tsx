@@ -533,11 +533,72 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   }
 
   const handleClearChat = () => {
+    // Clear chat messages
     setResearchMessages([])
     setResearchFollowUpQuestions([])
     setIsRefinementMode(false)
     setAnswerBeingRefined(null)
     setShowAdvancedResearchOptions(false)
+    
+    // Reset filters
+    updateJurisdiction('')
+    updateTopic('')
+    updateSelectedTemplate('')
+    updateUrls([''])
+    
+    // Reset to default system prompt
+    const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Your role is to provide accurate, authoritative information about employment law based on the sources provided.
+
+- Cite sources using inline [1], [2], [3] format
+- Distinguish between federal and state requirements
+- Mention effective dates when relevant
+- Note penalties or deadlines when applicable
+- Be specific and detailed in your responses
+
+If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.`
+    
+    setResearchSystemPrompt(defaultPrompt)
+    
+    // Update parent state
+    if (setResearchState && researchState) {
+      setResearchState({
+        ...researchState,
+        systemPrompt: defaultPrompt,
+        selectedTemplate: '',
+        jurisdiction: '',
+        topic: '',
+        urls: ['']
+      })
+    }
+    
+    // Reset Firecrawl config to default
+    const defaultConfig = JSON.stringify({
+      sources: ['web', 'news'],
+      limit: 8,
+      scrapeOptions: {
+        formats: ['markdown'],
+        onlyMainContent: true,
+        maxAge: 86400000,
+        removeBase64Images: true,
+        timeout: 60000
+      }
+    }, null, 2)
+    
+    setResearchFirecrawlConfig(defaultConfig)
+    
+    // Update parent state with default config
+    if (setResearchState && researchState) {
+      setResearchState({
+        ...researchState,
+        firecrawlConfig: defaultConfig
+      })
+    }
   }
 
   return (
