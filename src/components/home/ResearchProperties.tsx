@@ -442,19 +442,26 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 }
                 
                 if (topicMatch) {
+                  // Format topic: replace underscores with spaces and capitalize each word
+                  const formattedTopic = topicMatch[1]
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+                  
                   parts.push(
                     <div key="topic" className="flex items-baseline gap-1">
                       <span className="font-bold text-sm text-purple-700">Focus on topic:</span>
-                      <span className="text-xs italic text-zinc-500">{topicMatch[1]}</span>
+                      <span className="text-xs italic text-zinc-500">{formattedTopic}</span>
                     </div>
                   );
                 }
                 
-                // Additional context summary - Gray italic with source
+                // Additional context summary - Purple bold label, gray italic details (matching jurisdiction/topic styling)
                 if (hasAdditionalContext) {
                   parts.push(
-                    <div key="context" className="text-xs italic text-zinc-500 mt-1">
-                      [Additional Context: {researchState.additionalContext?.length || 0} characters from "Additional Context" textarea in right panel]
+                    <div key="context" className="flex items-baseline gap-1 mt-1">
+                      <span className="font-bold text-sm text-purple-700">Additional Context:</span>
+                      <span className="text-xs italic text-zinc-500">{researchState.additionalContext?.length || 0} characters</span>
                     </div>
                   );
                 }
@@ -482,11 +489,12 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   </div>
                 );
                 
-                // Template summary - Gray italic with source
+                // Template summary - Purple bold label, gray italic details (matching jurisdiction/topic styling)
                 if (templateMatch) {
                   parts.push(
-                    <div key="template" className="text-xs italic text-zinc-500 mt-2">
-                      [Template: "{templateMatch[1]}" loaded from Convex database]
+                    <div key="template" className="flex items-baseline gap-1 mt-2">
+                      <span className="font-bold text-sm text-purple-700">Template:</span>
+                      <span className="text-xs italic text-zinc-500">{templateMatch[1]}</span>
                     </div>
                   );
                 }

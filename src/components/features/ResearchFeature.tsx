@@ -971,15 +971,19 @@ These appear AFTER "Based on these sources:" in your prompt.`
   
   const handleSaveFromModal = async () => {
     try {
+      // Combine web and news sources
+      const allSources = [
+        ...(messageToSave?.webSources || []),
+        ...(messageToSave?.newsResults || [])
+      ]
+      
       await saveResearch({
         title: saveTitle,
         content: saveModalContent, // Already converted to markdown
-        originalQuery: saveTitle.substring(0, 100),
         jurisdiction: saveJurisdiction || undefined,
         topic: saveTopic || undefined,
         templateUsed: saveTemplate || undefined,
-        webSources: messageToSave?.webSources,
-        newsResults: messageToSave?.newsResults,
+        sources: allSources.length > 0 ? allSources : undefined,
       })
       
       addToast({
