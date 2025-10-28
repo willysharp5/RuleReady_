@@ -775,7 +775,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <div
               key={tab.id}
               className={`
-                flex items-center gap-2 px-3 py-1.5 rounded-t-md border-b-2 cursor-pointer
+                flex items-center gap-2 px-4 py-2 rounded-t-md border-b-2 cursor-pointer min-w-[120px]
                 ${activeTabId === tab.id 
                   ? 'bg-purple-50 border-purple-500 text-purple-700' 
                   : 'bg-zinc-50 border-transparent text-zinc-600 hover:bg-zinc-100'
