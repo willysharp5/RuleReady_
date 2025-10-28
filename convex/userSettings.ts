@@ -51,3 +51,30 @@ export const updateChatSettings = mutation({
     }
   },
 });
+
+// One-time cleanup to remove old fields from appSettings
+export const cleanupOldFieldsNow = mutation({
+  handler: async (ctx) => {
+    const settings = await ctx.db.query("appSettings").first();
+    
+    if (!settings) {
+      return { success: false, message: "No settings to clean" };
+    }
+    
+    // Replace the entire document with only clean fields
+    await ctx.db.replace(settings._id, {
+      chatSystemPrompt: settings.chatSystemPrompt,
+      chatModel: settings.chatModel,
+      enableComplianceContext: settings.enableComplianceContext,
+      maxContextReports: settings.maxContextReports,
+      enableSemanticSearch: settings.enableSemanticSearch,
+      researchSystemPrompt: settings.researchSystemPrompt,
+      researchModel: settings.researchModel,
+      researchFirecrawlConfig: settings.researchFirecrawlConfig,
+      createdAt: settings.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    });
+    
+    return { success: true, message: "Cleaned up old fields from appSettings" };
+  },
+});

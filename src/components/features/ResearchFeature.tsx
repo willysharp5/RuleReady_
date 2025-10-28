@@ -372,7 +372,9 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       })
 
       if (!response.ok) {
-        throw new Error('Research request failed')
+        const errorText = await response.text()
+        console.error('Research API error:', response.status, errorText)
+        throw new Error(`Research request failed: ${response.status} - ${errorText.substring(0, 200)}`)
       }
 
       const reader = response.body?.getReader()
