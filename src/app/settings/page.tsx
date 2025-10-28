@@ -328,8 +328,9 @@ Sources: ${structured.sources || 'Not specified'}`
         content = 'No content available for this report.'
         contentExplanation = 'This report exists in the database but has no content or structured data.'
       }
-    } else if (source.type === 'website' && websites) {
-      sourceWithContent = websites.find((website: Record<string, unknown>) => website._id === source.id)
+    } else if (source.type === 'website') {
+      // Websites removed - no content available
+      sourceWithContent = null
       content = `This is a tracked compliance website for ${source.jurisdiction} - ${source.topic}.
 
 Website URL: ${source.url}
@@ -876,7 +877,21 @@ Analyze the provided diff and return a JSON response with:
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                     <Bot className="h-6 w-6" />
-                    System Health & Job Monitoring
+                    Monitoring (Feature Removed)
+                  </h2>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                    <p className="text-blue-900">
+                      Website monitoring features have been removed. This app now focuses on compliance research and AI-powered analysis.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {false && activeSection === 'old-monitoring' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <Bot className="h-6 w-6" />
+                    System Health & Job Monitoring (DISABLED)
                   </h2>
                   
                   <div className="space-y-6">
