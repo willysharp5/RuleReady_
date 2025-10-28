@@ -810,7 +810,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 className="px-3 py-1.5 border border-gray-300 rounded text-sm"
                 disabled={isResearching}
               >
-                <option value="">All Jurisdictions</option>
+                <option value="">None</option>
                 {jurisdictions?.map(j => (
                   <option key={j.code} value={j.name}>{j.name}</option>
                 ))}
@@ -832,7 +832,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 className="px-3 py-1.5 border border-gray-300 rounded text-sm"
                 disabled={isResearching}
               >
-                <option value="">All Topics</option>
+                <option value="">None</option>
                 {topics?.slice(0, 15).map(t => (
                   <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
                 ))}
