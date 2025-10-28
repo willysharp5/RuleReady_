@@ -846,7 +846,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <div
               key={tab.id}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-t-md border-b-2 cursor-pointer min-w-[120px]
+                flex items-center justify-between gap-2 px-4 py-2 rounded-t-md border-b-2 cursor-pointer min-w-[140px]
                 ${activeTabId === tab.id 
                   ? 'bg-purple-50 border-purple-500 text-purple-700' 
                   : 'bg-zinc-50 border-transparent text-zinc-600 hover:bg-zinc-100'
@@ -864,12 +864,12 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     if (e.key === 'Enter') handleRenameTab(tab.id, editingTabTitle)
                     if (e.key === 'Escape') setIsEditingTab(null)
                   }}
-                  className="w-24 px-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="flex-1 px-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                   autoFocus
                 />
               ) : (
                 <span 
-                  className="text-xs font-medium"
+                  className="text-xs font-medium flex-1"
                   onDoubleClick={() => {
                     setIsEditingTab(tab.id)
                     setEditingTabTitle(tab.title)
@@ -885,7 +885,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     e.stopPropagation()
                     handleCloseTab(tab.id)
                   }}
-                  className="hover:bg-red-100 rounded p-0.5"
+                  className="hover:bg-red-100 rounded p-0.5 flex-shrink-0"
                 >
                   <X className="w-3 h-3" />
                 </button>
