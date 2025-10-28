@@ -49,15 +49,12 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   // Debounce timer refs
   const promptSaveTimerRef = useRef<NodeJS.Timeout>()
   const configSaveTimerRef = useRef<NodeJS.Timeout>()
-  const contextSaveTimerRef = useRef<NodeJS.Timeout>()
   
   // Saving indicators
   const [isSavingPrompt, setIsSavingPrompt] = useState(false)
   const [isSavingConfig, setIsSavingConfig] = useState(false)
-  const [isSavingContext, setIsSavingContext] = useState(false)
   const [promptSaved, setPromptSaved] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
-  const [contextSaved, setContextSaved] = useState(false)
 
   const handleSystemPromptChange = (prompt: string) => {
     // Update local state immediately
@@ -130,23 +127,10 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   }
   
   const handleAdditionalContextChange = (context: string) => {
-    // Update local state immediately
+    // Update local state only (not saved to database)
     if (setResearchState && researchState) {
       setResearchState({ ...researchState, additionalContext: context })
     }
-    
-    setContextSaved(false)
-    setIsSavingContext(true)
-    
-    // Debounce database save
-    if (contextSaveTimerRef.current) {
-      clearTimeout(contextSaveTimerRef.current)
-    }
-    contextSaveTimerRef.current = setTimeout(async () => {
-      setIsSavingContext(false)
-      setContextSaved(true)
-      setTimeout(() => setContextSaved(false), 2000)
-    }, 1000)
   }
   
   // Cleanup timers
@@ -154,7 +138,6 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
     return () => {
       if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
       if (configSaveTimerRef.current) clearTimeout(configSaveTimerRef.current)
-      if (contextSaveTimerRef.current) clearTimeout(contextSaveTimerRef.current)
     }
   }, [])
 
@@ -239,15 +222,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
       >
         <div className="space-y-3">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-zinc-700">Reference Documents or Notes</label>
-              {isSavingContext && (
-                <span className="text-xs text-zinc-500">Saving...</span>
-              )}
-              {contextSaved && (
-                <span className="text-xs text-green-600">✓ Saved</span>
-              )}
-            </div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1">Reference Documents or Notes</label>
             <textarea
               rows={6}
               placeholder="Paste compliance documents, rules text, or any reference information you want the AI to consider..."
@@ -256,7 +231,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
               onChange={(e) => handleAdditionalContextChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500 mt-1">
-              This text will be included in your research prompt to provide additional context to the AI.
+              Included in your next research query. Cleared when you refresh the page.
             </p>
           </div>
           <button
