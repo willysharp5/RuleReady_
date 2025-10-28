@@ -862,8 +862,35 @@ These appear AFTER "Based on these sources:" in your prompt.`
   const handleOpenSaveModal = (message: any) => {
     setMessageToSave(message)
     
-    // Build full markdown with sources
+    // Build source URL map for converting citations to links
+    const sourceUrls: { [key: number]: string } = {}
+    let currentIndex = 1
+    
+    // Scraped URLs first
+    if (message.scrapedUrlSources) {
+      message.scrapedUrlSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Internal sources (no URLs, skip)
+    if (message.internalSources) {
+      currentIndex += message.internalSources.length
+    }
+    
+    // Web sources
+    if (message.webSources) {
+      message.webSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Convert citation numbers [1], [2], [3] to clickable links in main content
     let fullMarkdown = message.content
+    Object.entries(sourceUrls).forEach(([num, url]) => {
+      const citationPattern = new RegExp(`\\[${num}\\]`, 'g')
+      fullMarkdown = fullMarkdown.replace(citationPattern, `[[${num}]](${url})`)
+    })
     
     // Add sources sections in markdown format
     
