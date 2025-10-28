@@ -14,13 +14,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
-import { useEditor, EditorContent } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Underline from '@tiptap/extension-underline'
-import TurndownService from 'turndown'
-import { remark } from 'remark'
-import remarkHtml from 'remark-html'
+import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -84,46 +78,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
   const [showSaveModal, setShowSaveModal] = useState(false)
-  const [messageToSave, setMessageToSave] = useState<any>(null)
-  const [showLinkInput, setShowLinkInput] = useState(false)
-  const [linkUrl, setLinkUrl] = useState('')
-  const [copiedFormat, setCopiedFormat] = useState<'docs' | 'markdown' | null>(null)
-  
-  // Turndown service for HTML to Markdown conversion
-  const turndownService = useRef(new TurndownService({
-    headingStyle: 'atx',
-    codeBlockStyle: 'fenced',
-    bulletListMarker: '-'
-  }))
-  
-  // Tiptap editor for WYSIWYG editing (memoized to prevent duplicate warnings)
-  const saveEditor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-blue-600 hover:underline',
-        },
-      }),
-      Underline,
-    ],
-    content: '',
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4',
-      },
-    },
-  }, []) // Empty deps array to prevent recreation
-  
-  // Convert markdown to HTML for Tiptap
-  const markdownToHtml = async (markdown: string) => {
-    const result = await remark()
-      .use(remarkHtml)
-      .process(markdown)
-    return String(result)
-  }
+  const [saveModalContent, setSaveModalContent] = useState('')
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -903,38 +858,10 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setIsEditingTab(null)
   }
 
-  const handleOpenSaveModal = async (message: any) => {
-    setMessageToSave(message)
+  const handleOpenSaveModal = (message: any) => {
     
-    // Build source URL map
-    const sourceUrls: { [key: number]: string } = {}
-    let currentIndex = 1
-    
-    // Scraped URLs first
-    if (message.scrapedUrlSources) {
-      message.scrapedUrlSources.forEach((s: any) => {
-        sourceUrls[currentIndex++] = s.url
-      })
-    }
-    
-    // Internal sources (no URLs, skip)
-    if (message.internalSources) {
-      currentIndex += message.internalSources.length
-    }
-    
-    // Web sources
-    if (message.webSources) {
-      message.webSources.forEach((s: any) => {
-        sourceUrls[currentIndex++] = s.url
-      })
-    }
-    
-    // Convert citation numbers [1], [2], [3] to clickable links
+    // Build full markdown with sources
     let fullMarkdown = message.content
-    Object.entries(sourceUrls).forEach(([num, url]) => {
-      const citationPattern = new RegExp(`\\[${num}\\]`, 'g')
-      fullMarkdown = fullMarkdown.replace(citationPattern, `[[${num}]](${url})`)
-    })
     
     // Add sources sections in markdown format
     
@@ -984,56 +911,61 @@ These appear AFTER "Based on these sources:" in your prompt.`
       });
     }
     
-    // Convert markdown to HTML and load into Tiptap
-    const html = await markdownToHtml(fullMarkdown)
-    saveEditor?.commands.setContent(html)
-    
+    setSaveModalContent(fullMarkdown)
     setShowSaveModal(true)
   }
   
-  const handleCloseSaveModal = () => {
-    setShowSaveModal(false)
-    setMessageToSave(null)
-    saveEditor?.commands.setContent('')
-    setCopiedFormat(null)
-  }
-  
-  const handleCopyForDocs = async () => {
-    // Copy HTML for Google Docs (rich text)
-    const html = saveEditor?.getHTML() || ''
+  const handleSaveFromModal = async (markdown: string) => {
     try {
-      // Create a blob with HTML content
-      const blob = new Blob([html], { type: 'text/html' })
-      const clipboardItem = new ClipboardItem({ 'text/html': blob })
-      await navigator.clipboard.write([clipboardItem])
-      setCopiedFormat('docs')
-      setTimeout(() => setCopiedFormat(null), 2000)
+      await saveResearch({
+        title: `Research - ${new Date().toLocaleDateString()}`,
+        content: markdown,
+        originalQuery: saveModalContent.substring(0, 100),
+        jurisdiction: researchState?.jurisdiction || researchJurisdiction || undefined,
+        topic: researchState?.topic || researchTopic || undefined,
+        templateUsed: researchState?.selectedTemplate || selectedResearchTemplate || undefined,
+        internalSources: messageToSave?.internalSources,
+        webSources: messageToSave?.webSources,
+        newsResults: messageToSave?.newsResults,
+      })
+      
+      addToast({
+        variant: 'success',
+        title: 'Research saved',
+        description: 'Saved to your research library',
+        duration: 3000
+      })
+      
+      setShowSaveModal(false)
     } catch (error) {
-      // Fallback: copy as plain HTML
-      await navigator.clipboard.writeText(html)
-      setCopiedFormat('docs')
-      setTimeout(() => setCopiedFormat(null), 2000)
+      addToast({
+        variant: 'error',
+        title: 'Save failed',
+        description: 'Could not save research',
+        duration: 3000
+      })
+      throw error
     }
-  }
-  
-  const handleCopyMarkdown = async () => {
-    // Convert HTML to Markdown
-    const html = saveEditor?.getHTML() || ''
-    const markdown = turndownService.current.turndown(html)
-    await navigator.clipboard.writeText(markdown)
-    setCopiedFormat('markdown')
-    setTimeout(() => setCopiedFormat(null), 2000)
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
-      {/* Save Modal - Full Screen */}
-      {showSaveModal && messageToSave && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center">
-          {/* Dark backdrop */}
+      {/* Save Modal - Reusable Component */}
+      <TiptapEditorModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        initialContent={saveModalContent}
+        title="Save Research Result"
+        onSave={handleSaveFromModal}
+      />
+      
+      {/* Delete Tab Confirmation Popover - Fixed Position */}
+      {showDeleteTabConfirm && (
+        <>
+          {/* Backdrop to catch clicks */}
           <div 
-            className="absolute inset-0 bg-black/60"
-            onClick={handleCloseSaveModal}
+            className="fixed inset-0 z-[99]"
+            onClick={() => setShowDeleteTabConfirm(null)}
           />
           
           {/* Modal content */}
