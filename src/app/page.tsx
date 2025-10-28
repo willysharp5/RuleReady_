@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -289,6 +289,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
     id: string
     role: 'user' | 'assistant'
     content: string
+    scrapedUrlSources?: any[]
     internalSources?: any[]
     webSources?: any[]
     newsResults?: any[]
@@ -308,6 +309,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [savedResearchTitle, setSavedResearchTitle] = useState('')
   const [savedResearchContent, setSavedResearchContent] = useState('')
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(false)
+  
+  // Research URL scraping state
+  const [researchUrls, setResearchUrls] = useState<string[]>(['']) // Start with one empty field
+  const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
   const [researchSystemPrompt, setResearchSystemPrompt] = useState(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -1075,6 +1080,9 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }])
     
     try {
+      // Filter out empty URLs
+      const urlsToScrape = researchUrls.filter(url => url.trim()).map(url => url.trim());
+      
       const response = await fetch('/api/compliance-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1085,6 +1093,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           topic: researchTopic || undefined,
           systemPrompt: researchSystemPrompt,
           firecrawlConfig: researchFirecrawlConfig,
+          urls: urlsToScrape.length > 0 ? urlsToScrape : undefined,
         }),
       })
 
@@ -1116,6 +1125,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               if (parsed.type === 'sources') {
                 sources = parsed
                 console.log('📊 Sources received:', {
+                  scrapedUrls: parsed.scrapedUrlSources?.length || 0,
                   internal: parsed.internalSources?.length || 0,
                   web: parsed.sources?.length || 0,
                   news: parsed.newsResults?.length || 0,
@@ -1125,6 +1135,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 setResearchMessages(prev => prev.map(msg => 
                   msg.id === assistantMessageId ? {
                     ...msg,
+                    scrapedUrlSources: parsed.scrapedUrlSources || [],
                     internalSources: parsed.internalSources || [],
                     webSources: parsed.sources || [],
                     newsResults: parsed.newsResults || [],
@@ -2542,6 +2553,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           <div><strong>Template:</strong> {selectedResearchTemplate ? (templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Selected') : 'None (uses default prompt)'}</div>
                           <div><strong>Jurisdiction:</strong> {researchJurisdiction || 'None (searches all)'}</div>
                           <div><strong>Topic:</strong> {researchTopic ? (topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic) : 'None (searches all)'}</div>
+                          <div><strong>URLs to Scrape:</strong> {researchUrls.filter(url => url.trim()).length > 0 ? `${researchUrls.filter(url => url.trim()).length} URL(s) provided` : 'None (web search only)'}</div>
                         </div>
                       </div>
                     </div>
@@ -2574,7 +2586,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                   <>
                                     {/* Debug info - always show for now */}
                                     <div className="mb-2 text-xs text-gray-400 font-mono">
-                                      Debug: {m.internalSources?.length || 0} internal, {m.webSources?.length || 0} web, {m.newsResults?.length || 0} news
+                                      Debug: {m.scrapedUrlSources?.length || 0} scraped, {m.internalSources?.length || 0} internal, {m.webSources?.length || 0} web, {m.newsResults?.length || 0} news
                                     </div>
                                     
                                     <div className="compliance-research-content">
@@ -2597,6 +2609,26 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                       </ReactMarkdown>
                                     </div>
                                     
+                                    {/* Sources - Scraped URLs (User Provided) */}
+                                    {m.scrapedUrlSources && m.scrapedUrlSources.length > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-gray-300">
+                                        <div className="text-xs font-medium text-orange-700 mb-2 flex items-center gap-1">
+                                          <Globe className="h-3 w-3" />
+                                          Your URLs ({m.scrapedUrlSources.length})
+                                        </div>
+                                        <ul className="space-y-1">
+                                          {m.scrapedUrlSources.map((s: any, idx: number) => (
+                                            <li key={idx} className="text-xs text-orange-800">
+                                              <span className="font-mono mr-1">[{idx + 1}]</span>
+                                              <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline font-medium">
+                                                {s.title}
+                                              </a>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    
                                     {/* Sources - Internal Database */}
                                     {m.internalSources && m.internalSources.length > 0 && (
                                       <div className="mt-3 pt-3 border-t border-gray-300">
@@ -2607,7 +2639,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                         <ul className="space-y-1">
                                           {m.internalSources.map((s: any, idx: number) => (
                                             <li key={idx} className="text-xs text-purple-800">
-                                              <span className="font-mono mr-1">[{idx + 1}]</span>
+                                              <span className="font-mono mr-1">[{(m.scrapedUrlSources?.length || 0) + idx + 1}]</span>
                                               <span className="font-medium">{s.title}</span>
                                             </li>
                                           ))}
@@ -2619,13 +2651,13 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                     {m.webSources && m.webSources.length > 0 && (
                                       <div className="mt-3 pt-3 border-t border-gray-300">
                                         <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
-                                          <Globe className="h-3 w-3" />
-                                          Web Sources ({m.webSources.length})
+                                          <Search className="h-3 w-3" />
+                                          Web Search ({m.webSources.length})
                                         </div>
                                         <ul className="space-y-1">
                                           {m.webSources.map((s: any, idx: number) => (
                                             <li key={idx} className="text-xs text-blue-800">
-                                              <span className="font-mono mr-1">[{(m.internalSources?.length || 0) + idx + 1}]</span>
+                                              <span className="font-mono mr-1">[{(m.scrapedUrlSources?.length || 0) + (m.internalSources?.length || 0) + idx + 1}]</span>
                                               <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline">
                                                 {s.title}
                                               </a>
@@ -2710,11 +2742,22 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                   // Add sources as formatted markdown
                                   let sourcesMarkdown = '';
                                   
+                                  // Scraped URLs (User Provided)
+                                  if (m.scrapedUrlSources && m.scrapedUrlSources.length > 0) {
+                                    sourcesMarkdown += '\n\n---\n\n## Sources - Your URLs\n\n';
+                                    m.scrapedUrlSources.forEach((s: any, idx: number) => {
+                                      sourcesMarkdown += `${idx + 1}. **[${s.title}](${s.url})**\n`;
+                                      if (s.description) sourcesMarkdown += `   - ${s.description}\n`;
+                                      sourcesMarkdown += '\n';
+                                    });
+                                  }
+                                  
                                   // Internal Database Sources
                                   if (m.internalSources && m.internalSources.length > 0) {
-                                    sourcesMarkdown += '\n\n---\n\n## Sources - Your Database\n\n';
+                                    sourcesMarkdown += '\n## Sources - Your Database\n\n';
                                     m.internalSources.forEach((s: any, idx: number) => {
-                                      sourcesMarkdown += `${idx + 1}. **${s.title}**\n`;
+                                      const num = (m.scrapedUrlSources?.length || 0) + idx + 1;
+                                      sourcesMarkdown += `${num}. **${s.title}**\n`;
                                       if (s.description) sourcesMarkdown += `   - ${s.description}\n`;
                                       sourcesMarkdown += '\n';
                                     });
@@ -2722,9 +2765,9 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                   
                                   // Web Sources
                                   if (m.webSources && m.webSources.length > 0) {
-                                    sourcesMarkdown += '\n## Sources - Web\n\n';
+                                    sourcesMarkdown += '\n## Sources - Web Search\n\n';
                                     m.webSources.forEach((s: any, idx: number) => {
-                                      const num = (m.internalSources?.length || 0) + idx + 1;
+                                      const num = (m.scrapedUrlSources?.length || 0) + (m.internalSources?.length || 0) + idx + 1;
                                       sourcesMarkdown += `${num}. **[${s.title}](${s.url})**\n`;
                                       if (s.description) sourcesMarkdown += `   - ${s.description}\n`;
                                       if (s.siteName) sourcesMarkdown += `   - Source: ${s.siteName}\n`;
@@ -2956,6 +2999,83 @@ Follow the template sections but adapt based on the query. Not all sections may 
                     }>
                       <Info className="h-4 w-4 text-purple-400 cursor-help" />
                     </Tooltip>
+                    </div>
+                  </div>
+                  
+                  {/* Additional URLs to Scrape */}
+                  <div className="max-w-3xl mx-auto">
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-orange-600" />
+                          <h5 className="text-sm font-medium text-orange-900">Additional URLs to Scrape (Optional)</h5>
+                          <Tooltip content={
+                            <div className="text-xs">
+                              <div>Add specific URLs to scrape and include in research.</div>
+                              <div className="mt-1">Firecrawl will scrape these pages and combine with web search.</div>
+                            </div>
+                          }>
+                            <Info className="h-4 w-4 text-orange-400 cursor-help" />
+                          </Tooltip>
+                        </div>
+                        <span className="text-xs text-orange-700">
+                          {researchUrls.filter(url => url.trim()).length} / {MAX_RESEARCH_URLS} URLs
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {researchUrls.map((url, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Input
+                              type="url"
+                              placeholder="https://example.com"
+                              value={url}
+                              onChange={(e) => {
+                                const newUrls = [...researchUrls];
+                                newUrls[index] = e.target.value;
+                                setResearchUrls(newUrls);
+                              }}
+                              disabled={isResearching}
+                              className="flex-1 text-sm"
+                            />
+                            {researchUrls.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newUrls = researchUrls.filter((_, i) => i !== index);
+                                  setResearchUrls(newUrls);
+                                }}
+                                disabled={isResearching}
+                                className="h-9 w-9 p-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {index === researchUrls.length - 1 && researchUrls.length < MAX_RESEARCH_URLS && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setResearchUrls([...researchUrls, '']);
+                                }}
+                                disabled={isResearching}
+                                className="h-9 w-9 p-0 bg-orange-100 border-orange-300 hover:bg-orange-200"
+                              >
+                                <Plus className="h-4 w-4 text-orange-600" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {researchUrls.filter(url => url.trim()).length > 3 && (
+                        <p className="text-xs text-orange-600 mt-2">
+                          ⚠️ More than 3 URLs may slow down research response time
+                        </p>
+                      )}
                     </div>
                   </div>
                   

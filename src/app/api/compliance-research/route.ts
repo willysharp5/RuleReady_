@@ -12,7 +12,8 @@ export async function POST(request: Request) {
       jurisdiction, 
       topic,
       systemPrompt,
-      firecrawlConfig 
+      firecrawlConfig,
+      urls // Array of URLs to scrape
     } = body;
     
     if (!query) {
@@ -33,11 +34,56 @@ export async function POST(request: Request) {
 
     console.log(`[${requestId}] Starting compliance research for: "${query}"`);
 
-    // Step 0: Internal DB search - TODO: Add later when embeddings are ready
+    // Step 0: Scrape provided URLs (if any)
+    let scrapedUrlSources: any[] = [];
+    if (urls && Array.isArray(urls) && urls.length > 0) {
+      console.log(`[${requestId}] Scraping ${urls.length} provided URLs...`);
+      
+      try {
+        // Scrape all URLs in parallel
+        const scrapePromises = urls.map(async (url: string) => {
+          const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${firecrawlApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              url: url,
+              formats: ['markdown'],
+              onlyMainContent: true
+            })
+          });
+          
+          if (scrapeResponse.ok) {
+            const scrapeData = await scrapeResponse.json();
+            return {
+              url: url,
+              title: scrapeData.data?.metadata?.title || new URL(url).hostname,
+              description: scrapeData.data?.metadata?.description || 'Scraped content',
+              content: scrapeData.data?.markdown || scrapeData.data?.content,
+              markdown: scrapeData.data?.markdown,
+              source: 'user-provided-url',
+              siteName: new URL(url).hostname
+            };
+          }
+          return null;
+        });
+        
+        const results = await Promise.all(scrapePromises);
+        scrapedUrlSources = results.filter(r => r !== null);
+        console.log(`[${requestId}] Scraped ${scrapedUrlSources.length} URLs successfully`);
+      } catch (urlError) {
+        console.warn(`[${requestId}] URL scraping failed:`, urlError);
+        // Continue with web search even if URL scraping fails
+      }
+    }
+
+    // Step 1: Internal DB search - TODO: Add later when embeddings are ready
     const internalSources: any[] = [];
     // Will implement internal search after embeddings are generated
 
-    // Step 1: Search with Firecrawl v2 API
+    // Step 2: Search with Firecrawl v2 API
     console.log(`[${requestId}] Searching with Firecrawl...`);
     
     // Enhance query with jurisdiction and topic filters
@@ -135,10 +181,10 @@ export async function POST(request: Request) {
 
     console.log(`[${requestId}] Found ${sources.length} web, ${newsResults.length} news, ${imageResults.length} images`);
 
-    // Step 2: Merge internal and web sources (internal sources first for priority)
-    const allSources = [...internalSources, ...sources];
+    // Step 3: Merge all sources (priority order: scraped URLs, internal DB, web search)
+    const allSources = [...scrapedUrlSources, ...internalSources, ...sources];
     
-    console.log(`[${requestId}] Total sources: ${allSources.length} (${internalSources.length} internal + ${sources.length} web)`);
+    console.log(`[${requestId}] Total sources: ${allSources.length} (${scrapedUrlSources.length} scraped URLs + ${internalSources.length} internal + ${sources.length} web)`);
 
     // Step 3: Prepare context from sources (internal first for better answers)
     const context = allSources
@@ -202,9 +248,10 @@ ${context}`;
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Send sources first (including internal sources)
+          // Send sources first (including scraped URLs, internal, and web sources)
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'sources',
+            scrapedUrlSources,
             internalSources,
             sources,
             newsResults,
