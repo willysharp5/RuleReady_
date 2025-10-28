@@ -73,7 +73,7 @@ function SettingsContent() {
   const isAuthenticated = true
   const authLoading = false
   
-  const [activeSection, setActiveSection] = useState<'monitoring' | 'jurisdictions' | 'templates' | 'generation' | 'ai-models'>('monitoring')
+  const [activeSection, setActiveSection] = useState<'jurisdictions' | 'templates' | 'generation' | 'ai-models'>('templates')
   
   // API keys removed
   // Webhook playground state
@@ -809,18 +809,16 @@ Analyze the provided diff and return a JSON response with:
             {/* Sidebar */}
             <div className="w-64 flex-shrink-0">
               <nav className="space-y-1">
-                {/* Email Notifications removed */}
-                {/* Firecrawl Auth removed */}
                 <button
-                  onClick={() => setActiveSection('monitoring')}
+                  onClick={() => setActiveSection('templates')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === 'monitoring'
+                    activeSection === 'templates'
                       ? 'bg-purple-100 text-purple-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
-                  <Bot className="h-4 w-4" />
-                  System Health
+                  <FileText className="h-4 w-4" />
+                  Compliance Templates
                 </button>
                 <button
                   onClick={() => setActiveSection('jurisdictions')}
@@ -834,17 +832,6 @@ Analyze the provided diff and return a JSON response with:
                   Jurisdictions
                 </button>
                 <button
-                  onClick={() => setActiveSection('templates')}
-                  className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeSection === 'templates'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <FileText className="h-4 w-4" />
-                  Compliance Templates
-                </button>
-                <button
                   onClick={() => setActiveSection('generation')}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeSection === 'generation'
@@ -853,7 +840,7 @@ Analyze the provided diff and return a JSON response with:
                   }`}
                 >
                   <Bot className="h-4 w-4" />
-                  Compliance Generation
+                  Embeddings & Generation
                 </button>
                 <button
                   onClick={() => setActiveSection('ai-models')}
@@ -873,21 +860,8 @@ Analyze the provided diff and return a JSON response with:
             <div className="flex-1 min-w-0 overflow-hidden">
               {/* Firecrawl Auth section removed */}
               
-              {activeSection === 'monitoring' && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                    <Bot className="h-6 w-6" />
-                    Monitoring (Feature Removed)
-                  </h2>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                    <p className="text-blue-900">
-                      Website monitoring features have been removed. This app now focuses on compliance research and AI-powered analysis.
-                    </p>
-                  </div>
-                </div>
-              )}
               
-              {false && activeSection === 'old-monitoring' && (
+              {false && (
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                     <Bot className="h-6 w-6" />
