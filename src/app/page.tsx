@@ -3041,34 +3041,30 @@ These appear AFTER "Based on these sources:" in your prompt.`;
                   {/* Refinement Mode Banner */}
                   {isRefinementMode && answerBeingRefined && (
                     <div className="max-w-3xl mx-auto mb-2">
-                      <div className="bg-purple-50 border-2 border-purple-400 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <Edit className="h-5 w-5 text-purple-600" />
-                              <h4 className="font-semibold text-purple-900">Refinement Mode</h4>
-                            </div>
-                            <p className="text-sm text-purple-700">
-                              Refining: "{answerBeingRefined.content.substring(0, 60)}..."
-                            </p>
-                            <p className="text-xs text-purple-600 mt-1">
-                              Adjust filters/template below or just describe changes. AI will update the answer while preserving structure.
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setIsRefinementMode(false)
-                              setAnswerBeingRefined(null)
-                            }}
-                            className="text-xs"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Exit Refinement
-                          </Button>
+                      <div className="bg-purple-50 border-2 border-purple-400 rounded-lg p-4 relative">
+                        {/* Big Red X - Top Right */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsRefinementMode(false)
+                            setAnswerBeingRefined(null)
+                          }}
+                          className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-110"
+                          title="Exit Refinement Mode"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                        
+                        <div className="flex items-center gap-2 mb-1">
+                          <Edit className="h-5 w-5 text-purple-600" />
+                          <h4 className="font-semibold text-purple-900">Refinement Mode</h4>
                         </div>
+                        <p className="text-sm text-purple-700">
+                          Refining: "{answerBeingRefined.content.substring(0, 60)}..."
+                        </p>
+                        <p className="text-xs text-purple-600 mt-1">
+                          Adjust filters/template below or just describe changes. AI will update the answer while preserving structure.
+                        </p>
                       </div>
                     </div>
                   )}
