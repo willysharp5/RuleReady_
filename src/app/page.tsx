@@ -2707,7 +2707,43 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                     contentWithHeader = `# Research Summary\n\n${headerParts.join(' | ')}\n\n---\n\n${m.content}`;
                                   }
                                   
-                                  setSavedResearchContent(contentWithHeader);
+                                  // Add sources as formatted markdown
+                                  let sourcesMarkdown = '';
+                                  
+                                  // Internal Database Sources
+                                  if (m.internalSources && m.internalSources.length > 0) {
+                                    sourcesMarkdown += '\n\n---\n\n## Sources - Your Database\n\n';
+                                    m.internalSources.forEach((s: any, idx: number) => {
+                                      sourcesMarkdown += `${idx + 1}. **${s.title}**\n`;
+                                      if (s.description) sourcesMarkdown += `   - ${s.description}\n`;
+                                      sourcesMarkdown += '\n';
+                                    });
+                                  }
+                                  
+                                  // Web Sources
+                                  if (m.webSources && m.webSources.length > 0) {
+                                    sourcesMarkdown += '\n## Sources - Web\n\n';
+                                    m.webSources.forEach((s: any, idx: number) => {
+                                      const num = (m.internalSources?.length || 0) + idx + 1;
+                                      sourcesMarkdown += `${num}. **[${s.title}](${s.url})**\n`;
+                                      if (s.description) sourcesMarkdown += `   - ${s.description}\n`;
+                                      if (s.siteName) sourcesMarkdown += `   - Source: ${s.siteName}\n`;
+                                      sourcesMarkdown += '\n';
+                                    });
+                                  }
+                                  
+                                  // News Results
+                                  if (m.newsResults && m.newsResults.length > 0) {
+                                    sourcesMarkdown += '\n## News Articles\n\n';
+                                    m.newsResults.forEach((n: any, idx: number) => {
+                                      sourcesMarkdown += `- **[${n.title}](${n.url})**\n`;
+                                      if (n.publishedDate) sourcesMarkdown += `  - Published: ${n.publishedDate}\n`;
+                                      if (n.source) sourcesMarkdown += `  - Source: ${n.source}\n`;
+                                      sourcesMarkdown += '\n';
+                                    });
+                                  }
+                                  
+                                  setSavedResearchContent(contentWithHeader + sourcesMarkdown);
                                   setShowSaveResearchModal(true);
                                 }}
                               >
