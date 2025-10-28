@@ -310,7 +310,8 @@ ${context}`;
       history: [],
     });
 
-    const result = await chat.sendMessageStream(userPrompt + '\n\nSystem instructions: ' + finalSystemPrompt);
+    const fullPrompt = userPrompt + '\n\nSystem instructions: ' + finalSystemPrompt;
+    const result = await chat.sendMessageStream(fullPrompt);
 
     // Create a readable stream for the response
     const encoder = new TextEncoder();
@@ -324,6 +325,12 @@ ${context}`;
               message: configError
             })}\n\n`));
           }
+          
+          // Send the final prompt for debugging
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'prompt',
+            prompt: fullPrompt
+          })}\n\n`));
           
           // Send sources first (including scraped URLs, internal, and web sources)
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({

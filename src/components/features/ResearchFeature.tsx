@@ -471,6 +471,14 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                       configError: warningDetails
                     })
                   }
+                } else if (parsed.type === 'prompt') {
+                  // Store the final prompt for debugging
+                  if (setResearchState && researchState) {
+                    setResearchState({
+                      ...researchState,
+                      lastPromptSent: parsed.prompt
+                    })
+                  }
                 } else if (parsed.type === 'sources') {
                   sources = parsed
                   // Update assistant message with sources
@@ -607,7 +615,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
         topic: '',
         urls: [''],
         additionalContext: '',
-        configError: null
+        configError: null,
+        lastPromptSent: ''
       })
     }
   }

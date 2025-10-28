@@ -46,7 +46,8 @@ export default function HomePage() {
     topic: '',
     urls: [''],
     additionalContext: '',
-    configError: null as { message: string; error: string; invalidJson?: string } | null
+    configError: null as { message: string; error: string; invalidJson?: string } | null,
+    lastPromptSent: '' // For debugging - shows what was sent to AI
   })
   
   const [settingsLoaded, setSettingsLoaded] = useState(false)

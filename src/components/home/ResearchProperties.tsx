@@ -3,6 +3,8 @@ import { Settings, Zap, Info, ExternalLink, X, AlertCircle } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -15,6 +17,7 @@ interface ResearchPropertiesProps {
     urls: string[]
     additionalContext?: string
     configError?: { message: string; error: string; invalidJson?: string } | null
+    lastPromptSent?: string
   }
   setResearchState?: (state: any) => void
   updateResearchSettings?: any
@@ -41,6 +44,7 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const [configOpen, setConfigOpen] = useState(false)
   const [systemPromptOpen, setSystemPromptOpen] = useState(true)
   const [contextOpen, setContextOpen] = useState(true)
+  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
   
   // Debounce timer refs
   const promptSaveTimerRef = useRef<NodeJS.Timeout>()
@@ -407,6 +411,37 @@ These appear AFTER "Based on these sources:" in your prompt.`
           <div className="pt-2 border-t border-zinc-200">
             <span className="text-zinc-500 text-[10px]">Updates when you change filters in the research composer</span>
           </div>
+        </div>
+      </AccordionSection>
+
+      <AccordionSection
+        title="Final Prompt Preview"
+        icon={Info}
+        isOpen={promptPreviewOpen}
+        onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
+      >
+        <div className="space-y-2">
+          <p className="text-xs text-zinc-600 mb-2">Read-only preview of the last prompt sent to AI (for debugging)</p>
+          {researchState?.lastPromptSent ? (
+            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded text-xs overflow-auto max-h-96">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({children}) => <h1 className="text-sm font-bold mb-2 text-zinc-900">{children}</h1>,
+                  h2: ({children}) => <h2 className="text-xs font-bold mb-1 text-zinc-800">{children}</h2>,
+                  p: ({children}) => <p className="mb-2 text-zinc-700 leading-relaxed">{children}</p>,
+                  ul: ({children}) => <ul className="mb-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+                  li: ({children}) => <li className="text-zinc-700">{children}</li>,
+                  strong: ({children}) => <strong className="font-semibold text-zinc-900">{children}</strong>,
+                  code: ({children}) => <code className="bg-zinc-200 px-1 py-0.5 rounded text-[10px]">{children}</code>,
+                }}
+              >
+                {researchState.lastPromptSent}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-500 italic">No research query sent yet</p>
+          )}
         </div>
       </AccordionSection>
     </div>
