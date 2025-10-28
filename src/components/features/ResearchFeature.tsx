@@ -525,29 +525,25 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                             Debug: {m.scrapedUrlSources?.length || 0} scraped, {m.internalSources?.length || 0} internal, {m.webSources?.length || 0} web, {m.newsResults?.length || 0} news
                           </div>
                           
-                          <div className="text-gray-900">
+                          <div className="compliance-research-content">
                             {m.content ? (
                               <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]}
+                                remarkPlugins={[remarkGfm]} 
+                                rehypePlugins={[rehypeHighlight]}
                                 components={{
-                                  h1: ({children}) => <h1 className="text-xl font-bold mb-3 mt-4 text-gray-900">{children}</h1>,
-                                  h2: ({children}) => <h2 className="text-lg font-bold mb-2 mt-3 text-gray-800">{children}</h2>,
-                                  h3: ({children}) => <h3 className="text-base font-semibold mb-2 mt-2 text-gray-800">{children}</h3>,
-                                  p: ({children}) => <p className="mb-3 leading-relaxed text-gray-700">{children}</p>,
-                                  ul: ({children}) => <ul className="mb-3 ml-6 list-disc space-y-1">{children}</ul>,
-                                  ol: ({children}) => <ol className="mb-3 ml-6 list-decimal space-y-1">{children}</ol>,
-                                  li: ({children}) => <li className="leading-relaxed text-gray-700">{children}</li>,
-                                  strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                                  em: ({children}) => <em className="italic text-gray-700">{children}</em>,
-                                  a: ({children, href}) => (
-                                    <a href={href} className="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noreferrer">
-                                      {children}
-                                    </a>
-                                  ),
-                                  code: ({children}) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">{children}</code>,
+                                  h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                                  h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
+                                  h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                                  p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
+                                  ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
+                                  ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
+                                  li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
+                                  strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                                  em: ({children}) => <em className="italic">{children}</em>,
+                                  a: ({children, ...props}) => <a className="text-blue-600 hover:underline font-medium" target="_blank" rel="noreferrer" {...props}>{children}</a>,
                                 }}
                               >
-                                {m.content}
+                                {makeSourceLinksClickable(m.content, m) || 'Searching...'}
                               </ReactMarkdown>
                             ) : (
                               <div className="flex items-center gap-2 text-gray-500">

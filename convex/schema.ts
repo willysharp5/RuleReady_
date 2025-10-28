@@ -14,6 +14,8 @@ const schema = defineSchema({
     researchSystemPrompt: v.optional(v.string()),
     researchModel: v.optional(v.string()),
     researchFirecrawlConfig: v.optional(v.string()),
+    // Legacy field - kept for compatibility with existing data (ignored by app)
+    emailNotificationsEnabled: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),
