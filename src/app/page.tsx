@@ -2725,30 +2725,41 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                   
                   {/* Filters & Template Manager - Below chat, above composer */}
                   <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
-                    <select
-                      value={researchJurisdiction}
-                      onChange={(e) => setResearchJurisdiction(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                      disabled={isResearching}
-                    >
-                      <option value="">All Jurisdictions</option>
-                      {jurisdictions?.map(j => (
-                        <option key={j.code} value={j.name}>{j.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={researchJurisdiction}
+                        onChange={(e) => setResearchJurisdiction(e.target.value)}
+                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        disabled={isResearching}
+                      >
+                        <option value="">All Jurisdictions</option>
+                        {jurisdictions?.map(j => (
+                          <option key={j.code} value={j.name}>{j.name}</option>
+                        ))}
+                      </select>
+                      <Tooltip content="Filters search results and tells AI to focus on this jurisdiction. Gets added as 'Focus on jurisdiction: X' in the prompt.">
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      </Tooltip>
+                    </div>
                     
-                    <select
-                      value={researchTopic}
-                      onChange={(e) => setResearchTopic(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                      disabled={isResearching}
-                    >
-                      <option value="">All Topics</option>
-                      {topics?.slice(0, 15).map(t => (
-                        <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={researchTopic}
+                        onChange={(e) => setResearchTopic(e.target.value)}
+                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        disabled={isResearching}
+                      >
+                        <option value="">All Topics</option>
+                        {topics?.slice(0, 15).map(t => (
+                          <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                        ))}
+                      </select>
+                      <Tooltip content="Filters search results and tells AI to focus on this topic. Gets added as 'Focus on topic: X' in the prompt.">
+                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                      </Tooltip>
+                    </div>
                     
+                    <div className="flex items-center gap-1">
                     <select
                       className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium"
                       onChange={(e) => {
@@ -2857,6 +2868,10 @@ Follow the template sections but adapt based on the query. Not all sections may 
                         </option>
                       ))}
                     </select>
+                    <Tooltip content="Templates provide structured format for AI responses (16-section compliance report structure). Selecting a template auto-updates the AI System Prompt with the template format.">
+                      <Info className="h-4 w-4 text-purple-400 cursor-help" />
+                    </Tooltip>
+                    </div>
                   </div>
                   
                   <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
