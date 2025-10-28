@@ -451,7 +451,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 if (hasAdditionalContext) {
                   parts.push(
                     <div key="context" className="text-xs italic text-zinc-500 mt-1">
-                      [Additional Context: {researchState.additionalContext?.length || 0} characters from user textarea]
+                      [Additional Context: {researchState.additionalContext?.length || 0} characters from "Additional Context" textarea in right panel]
                     </div>
                   );
                 }
@@ -469,9 +469,13 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 
                 parts.push(
                   <div key="sources" className="text-xs italic text-zinc-500 ml-2 space-y-0.5">
-                    <div>[{sourceCount} total sources:]</div>
-                    {scrapedCount > 0 && <div>• {scrapedCount} from user-provided URLs (Firecrawl scraped)</div>}
-                    {webNewsCount > 0 && <div>• {webNewsCount} from web/news search (Firecrawl Search API)</div>}
+                    <div>[{sourceCount} total sources injected here:]</div>
+                    {scrapedCount > 0 && (
+                      <div>• {scrapedCount} from URLs you provided (scraped via Firecrawl API)</div>
+                    )}
+                    {webNewsCount > 0 && (
+                      <div>• {webNewsCount} from web/news (Firecrawl Search API based on your query)</div>
+                    )}
                   </div>
                 );
                 
@@ -479,7 +483,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 if (templateMatch) {
                   parts.push(
                     <div key="template" className="text-xs italic text-zinc-500 mt-2">
-                      [Template: "{templateMatch[1]}" from database]
+                      [Template: "{templateMatch[1]}" loaded from Convex database]
                     </div>
                   );
                 }
