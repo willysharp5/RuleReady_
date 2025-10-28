@@ -581,6 +581,43 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
   
+  // Convert citation numbers to clickable links
+  const makeSourceLinksClickable = (content: string, message: any) => {
+    if (!content) return content
+    
+    // Build source URL map
+    const sourceUrls: { [key: number]: string } = {}
+    let currentIndex = 1
+    
+    // Scraped URLs first
+    if (message.scrapedUrlSources) {
+      message.scrapedUrlSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Internal sources (no URLs, skip)
+    if (message.internalSources) {
+      currentIndex += message.internalSources.length
+    }
+    
+    // Web sources
+    if (message.webSources) {
+      message.webSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Replace [1], [2], [3] with clickable markdown links
+    let processedContent = content
+    Object.entries(sourceUrls).forEach(([num, url]) => {
+      const citationPattern = new RegExp(`\\[${num}\\]`, 'g')
+      processedContent = processedContent.replace(citationPattern, `[[${num}]](${url})`)
+    })
+    
+    return processedContent
+  }
+  
   // Validate research URLs with debounce
   const validateResearchUrl = async (url: string, index: number) => {
     if (!url.trim()) {
@@ -2665,9 +2702,10 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                           li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
                                           strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
                                           em: ({children}) => <em className="italic">{children}</em>,
+                                          a: ({children, ...props}) => <a className="text-blue-600 hover:underline font-medium" target="_blank" rel="noreferrer" {...props}>{children}</a>,
                                         }}
                                       >
-                                        {m.content || 'Searching...'}
+                                        {makeSourceLinksClickable(m.content, m) || 'Searching...'}
                                       </ReactMarkdown>
                                     </div>
                                     
