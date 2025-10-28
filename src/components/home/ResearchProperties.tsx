@@ -39,18 +39,36 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   // URL validation state
   const [urlValidation, setUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
   
-  // Validate URL
+  // Validate URL - Check if it's a real accessible URL
   const validateUrl = async (url: string, index: number) => {
     if (!url.trim()) {
       setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: false, message: '' } }))
       return
     }
     
+    // First check format
     try {
       new URL(url)
-      setUrlValidation(prev => ({ ...prev, [index]: { isValid: true, isValidating: false, message: 'Valid URL' } }))
     } catch {
       setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: 'Invalid URL format' } }))
+      return
+    }
+    
+    // Set validating state
+    setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: true, message: 'Checking URL...' } }))
+    
+    // Actually check if URL is accessible via API route
+    try {
+      const response = await fetch(`/api/validate-url?url=${encodeURIComponent(url)}`)
+      const data = await response.json()
+      
+      if (data.valid) {
+        setUrlValidation(prev => ({ ...prev, [index]: { isValid: true, isValidating: false, message: data.message || 'URL is accessible' } }))
+      } else {
+        setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: data.message || 'URL not accessible' } }))
+      }
+    } catch (error) {
+      setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: 'Could not validate URL' } }))
     }
   }
   
@@ -341,10 +359,15 @@ These appear AFTER "Based on these sources:" in your prompt.`
         
         {/* Additional URLs */}
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-          <label className="flex items-center gap-1 text-xs font-medium text-orange-900 mb-2">
-            <Globe className="h-3 w-3" />
-            Additional URLs (Optional)
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="flex items-center gap-1 text-xs font-medium text-orange-900">
+              <Globe className="h-3 w-3" />
+              Additional URLs (Optional)
+            </label>
+            <span className="text-xs text-orange-700 font-medium">
+              {(researchState?.urls || ['']).filter((u: string) => u.trim()).length} / 5
+            </span>
+          </div>
           <div className="space-y-2">
             {(researchState?.urls || ['']).map((url: string, index: number) => (
               <div key={index} className="flex items-center gap-1">
