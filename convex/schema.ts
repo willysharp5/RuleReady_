@@ -147,18 +147,14 @@ const schema = defineSchema({
   savedResearch: defineTable({
     title: v.string(), // User-editable title
     content: v.string(), // Markdown content (research result)
-    originalQuery: v.optional(v.string()),
     jurisdiction: v.optional(v.string()),
     topic: v.optional(v.string()),
     templateUsed: v.optional(v.string()),
-    sources: v.optional(v.array(v.any())), // All sources (web + news + internal combined)
-    internalSources: v.optional(v.array(v.any())),
-    webSources: v.optional(v.array(v.any())),
-    newsResults: v.optional(v.array(v.any())),
-    savedAt: v.number(),
+    sources: v.optional(v.array(v.any())), // All sources combined
+    createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_saved_at", ["savedAt"])
+    .index("by_created_at", ["createdAt"])
     .index("by_jurisdiction", ["jurisdiction"])
     .index("by_topic", ["topic"]),
 

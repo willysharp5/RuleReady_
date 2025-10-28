@@ -41,7 +41,7 @@ export const saveResearch = mutation({
       topic: args.topic,
       templateUsed: args.templateUsed,
       sources: allSources.length > 0 ? allSources : undefined,
-      savedAt: now,
+      createdAt: now,
       updatedAt: now,
     });
     
@@ -75,7 +75,7 @@ export const getAllSavedResearch = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("savedResearch")
-      .withIndex("by_saved_at")
+      .withIndex("by_created_at")
       .order("desc")
       .collect();
   },
