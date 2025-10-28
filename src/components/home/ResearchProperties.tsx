@@ -428,19 +428,21 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   );
                 }
                 
-                // Filters - Purple bold
+                // Filters - Purple bold label, gray italic value
                 if (jurisdictionMatch) {
                   parts.push(
-                    <div key="jurisdiction" className="font-bold text-sm text-purple-700">
-                      Focus on jurisdiction: {jurisdictionMatch[1]}
+                    <div key="jurisdiction" className="flex items-baseline gap-1">
+                      <span className="font-bold text-sm text-purple-700">Focus on jurisdiction:</span>
+                      <span className="text-xs italic text-zinc-500">{jurisdictionMatch[1]}</span>
                     </div>
                   );
                 }
                 
                 if (topicMatch) {
                   parts.push(
-                    <div key="topic" className="font-bold text-sm text-purple-700">
-                      Focus on topic: {topicMatch[1]}
+                    <div key="topic" className="flex items-baseline gap-1">
+                      <span className="font-bold text-sm text-purple-700">Focus on topic:</span>
+                      <span className="text-xs italic text-zinc-500">{topicMatch[1]}</span>
                     </div>
                   );
                 }
