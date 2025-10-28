@@ -72,6 +72,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
   const [tabsLoaded, setTabsLoaded] = useState(false)
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -101,12 +102,15 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Load conversation messages when tab changes or conversation loads
   useEffect(() => {
     if (loadedConversation && activeTab.conversationId === conversationToLoad) {
+      setIsLoadingConversation(true)
       // Update tab with loaded messages
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId 
           ? { ...tab, messages: loadedConversation.messages || [] }
           : tab
       ))
+      // Give a moment for state to settle, then clear loading flag
+      setTimeout(() => setIsLoadingConversation(false), 100)
     }
   }, [loadedConversation, conversationToLoad, activeTabId])
   
@@ -643,11 +647,16 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     const hasCompleteExchange = researchMessages.length >= 2 && 
                                 researchMessages.some(m => m.role === 'assistant');
     
-    if (!hasCompleteExchange || isResearching) return;
+    // Don't save if we're loading an existing conversation or actively researching
+    if (!hasCompleteExchange || isResearching || isLoadingConversation) return;
     
     const autoSaveTimer = setTimeout(async () => {
       try {
+        // Pass existing conversationId if tab already has one
+        const currentTab = tabs.find(t => t.id === activeTabId)
+        
         const result = await saveConversation({
+          conversationId: currentTab?.conversationId as any || undefined,
           messages: researchMessages,
           filters: {
             jurisdiction: researchState?.jurisdiction || researchJurisdiction,
@@ -661,11 +670,18 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           }
         })
         
-        // Store conversation ID in the active tab
-        if (result.conversationId) {
+        // Store conversation ID in the active tab (only if new)
+        if (result.conversationId && !result.isUpdate) {
           setTabs(prev => prev.map(tab => 
             tab.id === activeTabId 
               ? { ...tab, conversationId: result.conversationId as string, hasUnsavedChanges: false }
+              : tab
+          ))
+        } else if (result.isUpdate) {
+          // Just mark as saved
+          setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
+              ? { ...tab, hasUnsavedChanges: false }
               : tab
           ))
         }
@@ -676,7 +692,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }, 2000) // Auto-save 2 seconds after last message
     
     return () => clearTimeout(autoSaveTimer)
-  }, [researchMessages, isResearching, activeTabId])
+  }, [researchMessages, isResearching, isLoadingConversation, activeTabId])
 
   const handleClearChat = async () => {
     // Delete the current tab's conversation from database if it exists

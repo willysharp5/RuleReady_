@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Save a research conversation
+// Save or update a research conversation
 export const saveConversation = mutation({
   args: {
+    conversationId: v.optional(v.id("researchConversations")),
     title: v.optional(v.string()),
     messages: v.array(v.object({
       id: v.string(),
@@ -36,21 +37,42 @@ export const saveConversation = mutation({
       return `${jurisdictionPrefix}${preview}${preview.length >= 50 ? '...' : ''}`;
     })();
     
-    const conversationId = await ctx.db.insert("researchConversations", {
-      title,
-      messages: args.messages,
-      filters: args.filters,
-      settingsSnapshot: args.settingsSnapshot,
-      messageCount: args.messages.length,
-      savedAt: now,
-      updatedAt: now,
-    });
-    
-    return { 
-      success: true, 
-      conversationId,
-      title 
-    };
+    // Update existing conversation or create new one
+    if (args.conversationId) {
+      // Update existing
+      await ctx.db.patch(args.conversationId, {
+        messages: args.messages,
+        filters: args.filters,
+        settingsSnapshot: args.settingsSnapshot,
+        messageCount: args.messages.length,
+        updatedAt: now,
+      });
+      
+      return { 
+        success: true, 
+        conversationId: args.conversationId,
+        title,
+        isUpdate: true
+      };
+    } else {
+      // Create new
+      const conversationId = await ctx.db.insert("researchConversations", {
+        title,
+        messages: args.messages,
+        filters: args.filters,
+        settingsSnapshot: args.settingsSnapshot,
+        messageCount: args.messages.length,
+        savedAt: now,
+        updatedAt: now,
+      });
+      
+      return { 
+        success: true, 
+        conversationId,
+        title,
+        isUpdate: false
+      };
+    }
   },
 });
 
