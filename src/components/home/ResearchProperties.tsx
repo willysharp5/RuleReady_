@@ -13,6 +13,7 @@ interface ResearchPropertiesProps {
     jurisdiction: string
     topic: string
     urls: string[]
+    additionalContext?: string
   }
   setResearchState?: (state: any) => void
   updateResearchSettings?: any
@@ -37,16 +38,20 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const [firecrawlOpen, setFirecrawlOpen] = useState(true)
   const [configOpen, setConfigOpen] = useState(false)
   const [systemPromptOpen, setSystemPromptOpen] = useState(true)
+  const [contextOpen, setContextOpen] = useState(false)
   
   // Debounce timer refs
   const promptSaveTimerRef = useRef<NodeJS.Timeout>()
   const configSaveTimerRef = useRef<NodeJS.Timeout>()
+  const contextSaveTimerRef = useRef<NodeJS.Timeout>()
   
   // Saving indicators
   const [isSavingPrompt, setIsSavingPrompt] = useState(false)
   const [isSavingConfig, setIsSavingConfig] = useState(false)
+  const [isSavingContext, setIsSavingContext] = useState(false)
   const [promptSaved, setPromptSaved] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
+  const [contextSaved, setContextSaved] = useState(false)
 
   const handleSystemPromptChange = (prompt: string) => {
     // Update local state immediately
@@ -118,11 +123,32 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
     }, 1000) // Save 1 second after user stops typing
   }
   
+  const handleAdditionalContextChange = (context: string) => {
+    // Update local state immediately
+    if (setResearchState && researchState) {
+      setResearchState({ ...researchState, additionalContext: context })
+    }
+    
+    setContextSaved(false)
+    setIsSavingContext(true)
+    
+    // Debounce database save
+    if (contextSaveTimerRef.current) {
+      clearTimeout(contextSaveTimerRef.current)
+    }
+    contextSaveTimerRef.current = setTimeout(async () => {
+      setIsSavingContext(false)
+      setContextSaved(true)
+      setTimeout(() => setContextSaved(false), 2000)
+    }, 1000)
+  }
+  
   // Cleanup timers
   useEffect(() => {
     return () => {
       if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
       if (configSaveTimerRef.current) clearTimeout(configSaveTimerRef.current)
+      if (contextSaveTimerRef.current) clearTimeout(contextSaveTimerRef.current)
     }
   }, [])
 
@@ -304,6 +330,44 @@ These appear AFTER "Based on these sources:" in your prompt.`
       </AccordionSection>
 
       <AccordionSection
+        title="Additional Context"
+        icon={Info}
+        isOpen={contextOpen}
+        onToggle={() => setContextOpen(!contextOpen)}
+      >
+        <div className="space-y-3">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium text-zinc-700">Reference Documents or Notes</label>
+              {isSavingContext && (
+                <span className="text-xs text-zinc-500">Saving...</span>
+              )}
+              {contextSaved && (
+                <span className="text-xs text-green-600">✓ Saved</span>
+              )}
+            </div>
+            <textarea
+              rows={6}
+              placeholder="Paste compliance documents, rules text, or any reference information you want the AI to consider..."
+              className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md resize-y min-h-[100px] max-h-[400px]"
+              value={researchState?.additionalContext || ''}
+              onChange={(e) => handleAdditionalContextChange(e.target.value)}
+            />
+            <p className="text-xs text-zinc-500 mt-1">
+              This text will be included in your research prompt to provide additional context to the AI.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-xs px-2 py-1 border border-red-300 rounded hover:bg-red-50 text-red-600 w-full"
+            onClick={() => handleAdditionalContextChange('')}
+          >
+            Clear Context
+          </button>
+        </div>
+      </AccordionSection>
+
+      <AccordionSection
         title="Current Configuration"
         icon={Info}
         isOpen={configOpen}
@@ -328,6 +392,14 @@ These appear AFTER "Based on these sources:" in your prompt.`
               {(researchState?.urls?.filter((url: string) => url.trim()).length || 0) > 0 
                 ? `${researchState?.urls?.filter((url: string) => url.trim()).length} URL(s)` 
                 : 'None (web search only)'}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-600">Additional Context:</span>
+            <span className="font-medium text-zinc-900">
+              {researchState?.additionalContext && researchState.additionalContext.trim() 
+                ? `${researchState.additionalContext.length} characters` 
+                : 'None'}
             </span>
           </div>
           <div className="pt-2 border-t border-zinc-200">

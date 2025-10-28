@@ -23,6 +23,7 @@ interface ResearchFeatureProps {
     jurisdiction: string
     topic: string
     urls: string[]
+    additionalContext?: string
   }
   setResearchState?: (state: any) => void
 }
@@ -409,6 +410,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           topic: researchState?.topic || researchTopic || undefined,
           systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
           firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+          additionalContext: researchState?.additionalContext || undefined,
           urls: (researchState?.urls || researchUrls).filter((url: string) => url.trim()).length > 0 
             ? (researchState?.urls || researchUrls).filter((url: string) => url.trim()).map((url: string) => url.trim())
             : undefined,
@@ -587,7 +589,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
         selectedTemplate: '',
         jurisdiction: '',
         topic: '',
-        urls: ['']
+        urls: [''],
+        additionalContext: ''
       })
     }
   }

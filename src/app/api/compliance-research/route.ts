@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       topic,
       systemPrompt,
       firecrawlConfig,
+      additionalContext, // User-provided reference documents or context
       urls, // Array of URLs to scrape
       isRefinement, // Is this a refinement request?
       currentAnswer, // The answer being refined
@@ -302,14 +303,13 @@ CRITICAL: FORMAT YOUR ENTIRE RESPONSE AS MARKDOWN (not as code, not escaped):
 - Cite sources as [1], [2], [3] inline
 - Just write natural markdown as if writing a document
 
-Available sources for citations:
+${additionalContext ? `ADDITIONAL CONTEXT PROVIDED BY USER:\n${additionalContext}\n\n` : ''}Available sources for citations:
 ${context}`;
     } else {
       // Normal mode: Generate new answer
       userPrompt = `Answer this compliance research query: "${query}"
 
-${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}
-Based on these sources:
+${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focus on topic: ${topic}\n` : ''}${additionalContext ? `\nADDITIONAL CONTEXT PROVIDED BY USER:\n${additionalContext}\n\n` : ''}Based on these sources:
 ${context}`;
     }
 

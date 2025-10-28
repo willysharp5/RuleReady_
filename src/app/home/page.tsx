@@ -44,7 +44,8 @@ export default function HomePage() {
     selectedTemplate: '',
     jurisdiction: '',
     topic: '',
-    urls: ['']
+    urls: [''],
+    additionalContext: ''
   })
   
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -56,7 +57,8 @@ export default function HomePage() {
         ...prev,
         systemPrompt: researchSettingsQuery.researchSystemPrompt,
         firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
-        model: researchSettingsQuery.researchModel
+        model: researchSettingsQuery.researchModel,
+        additionalContext: ''
       }))
       setSettingsLoaded(true)
     }
