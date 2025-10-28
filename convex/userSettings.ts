@@ -10,7 +10,6 @@ export const getUserSettings = query({
     if (!settings) {
       // Return default settings if none exist
       return {
-        emailNotificationsEnabled: true,
         chatSystemPrompt: undefined,
         enableComplianceContext: true,
         maxContextReports: 5,
@@ -29,7 +28,6 @@ export const updateChatSettings = mutation({
     enableComplianceContext: v.optional(v.boolean()),
     maxContextReports: v.optional(v.number()),
     enableSemanticSearch: v.optional(v.boolean()),
-    aiSystemPrompt: v.optional(v.string()), // For change analysis
   },
   handler: async (ctx, args) => {
     // Single-user mode: update or create the single settings record
@@ -40,7 +38,6 @@ export const updateChatSettings = mutation({
       enableComplianceContext: args.enableComplianceContext,
       maxContextReports: args.maxContextReports,
       enableSemanticSearch: args.enableSemanticSearch,
-      aiSystemPrompt: args.aiSystemPrompt,
       updatedAt: Date.now(),
     };
 
@@ -48,36 +45,6 @@ export const updateChatSettings = mutation({
       await ctx.db.patch(existingSettings._id, updateData);
     } else {
       await ctx.db.insert("appSettings", {
-        emailNotificationsEnabled: true,
-        ...updateData,
-        createdAt: Date.now(),
-      });
-    }
-  },
-});
-
-// Update email notification settings (single-user mode)
-export const updateEmailSettings = mutation({
-  args: {
-    emailNotificationsEnabled: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    // Single-user mode: update or create the single settings record
-    const existingSettings = await ctx.db.query("appSettings").first();
-    
-    const updateData = {
-      emailNotificationsEnabled: args.emailNotificationsEnabled,
-      updatedAt: Date.now(),
-    };
-
-    if (existingSettings) {
-      await ctx.db.patch(existingSettings._id, updateData);
-    } else {
-      await ctx.db.insert("appSettings", {
-        chatSystemPrompt: undefined,
-        enableComplianceContext: true,
-        maxContextReports: 5,
-        enableSemanticSearch: true,
         ...updateData,
         createdAt: Date.now(),
       });
