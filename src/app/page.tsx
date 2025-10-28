@@ -313,8 +313,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   // Research URL scraping state
   const [researchUrls, setResearchUrls] = useState<string[]>(['']) // Start with one empty field
   const [researchUrlValidation, setResearchUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
-  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false)
-  const [showUrlScraping, setShowUrlScraping] = useState(false)
+  const [showAdvancedResearchOptions, setShowAdvancedResearchOptions] = useState(false)
   const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
@@ -2899,81 +2898,83 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                     </div>
                   )}
                   
-                  {/* Filters - Below chat, above composer */}
-                  <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={researchJurisdiction}
-                        onChange={(e) => setResearchJurisdiction(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        disabled={isResearching}
-                      >
-                        <option value="">All Jurisdictions</option>
-                        {jurisdictions?.map(j => (
-                          <option key={j.code} value={j.name}>{j.name}</option>
-                        ))}
-                      </select>
-                      <Tooltip content={
-                        <div className="text-xs">
-                          <div>Filters search results and tells AI to focus on this jurisdiction.</div>
-                          <div className="mt-1">Gets added as: "Focus on jurisdiction: X"</div>
-                        </div>
-                      }>
-                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                      </Tooltip>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={researchTopic}
-                        onChange={(e) => setResearchTopic(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        disabled={isResearching}
-                      >
-                        <option value="">All Topics</option>
-                        {topics?.slice(0, 15).map(t => (
-                          <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                        ))}
-                      </select>
-                      <Tooltip content={
-                        <div className="text-xs">
-                          <div>Filters search results and tells AI to focus on this topic.</div>
-                          <div className="mt-1">Gets added as: "Focus on topic: X"</div>
-                        </div>
-                      }>
-                        <Info className="h-4 w-4 text-gray-400 cursor-help" />
-                      </Tooltip>
-                    </div>
-                    
-                    {/* Toggle buttons for advanced options */}
+                  {/* Single Toggle for All Advanced Options */}
+                  <div className="max-w-3xl mx-auto mb-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
-                      className="h-8 px-3 text-xs"
+                      onClick={() => setShowAdvancedResearchOptions(!showAdvancedResearchOptions)}
+                      className="w-full h-9 text-sm"
                       disabled={isResearching}
                     >
-                      <FileText className="h-3 w-3 mr-1" />
-                      {showTemplateDropdown ? 'Hide' : 'Show'} Templates
-                    </Button>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowUrlScraping(!showUrlScraping)}
-                      className="h-8 px-3 text-xs"
-                      disabled={isResearching}
-                    >
-                      <Globe className="h-3 w-3 mr-1" />
-                      {showUrlScraping ? 'Hide' : 'Show'} URLs
+                      <div className="flex items-center justify-center gap-2">
+                        {showAdvancedResearchOptions ? (
+                          <>
+                            <ChevronLeft className="h-4 w-4" />
+                            Hide Additional Prompts
+                          </>
+                        ) : (
+                          <>
+                            <ChevronRight className="h-4 w-4" />
+                            Show Additional Prompts (Jurisdiction, Topic, Templates, URLs)
+                          </>
+                        )}
+                      </div>
                     </Button>
                   </div>
                   
-                  {/* Template Dropdown - Collapsible */}
-                  {showTemplateDropdown && (
-                  <div className="max-w-3xl mx-auto mb-2">
+                  {/* Advanced Options Section - All Together */}
+                  {showAdvancedResearchOptions && (
+                  <div className="max-w-3xl mx-auto mb-3 space-y-3">
+                    {/* Filters Row */}
+                    <div className="flex flex-wrap gap-2">
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={researchJurisdiction}
+                          onChange={(e) => setResearchJurisdiction(e.target.value)}
+                          className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                          disabled={isResearching}
+                        >
+                          <option value="">All Jurisdictions</option>
+                          {jurisdictions?.map(j => (
+                            <option key={j.code} value={j.name}>{j.name}</option>
+                          ))}
+                        </select>
+                        <Tooltip content={
+                          <div className="text-xs">
+                            <div>Filters search results and tells AI to focus on this jurisdiction.</div>
+                            <div className="mt-1">Gets added as: "Focus on jurisdiction: X"</div>
+                          </div>
+                        }>
+                          <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                        </Tooltip>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={researchTopic}
+                          onChange={(e) => setResearchTopic(e.target.value)}
+                          className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+                          disabled={isResearching}
+                        >
+                          <option value="">All Topics</option>
+                          {topics?.slice(0, 15).map(t => (
+                            <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                          ))}
+                        </select>
+                        <Tooltip content={
+                          <div className="text-xs">
+                            <div>Filters search results and tells AI to focus on this topic.</div>
+                            <div className="mt-1">Gets added as: "Focus on topic: X"</div>
+                          </div>
+                        }>
+                          <Info className="h-4 w-4 text-gray-400 cursor-help" />
+                        </Tooltip>
+                      </div>
+                    </div>
+                    
+                    {/* Template Dropdown */}
                     <div className="flex items-center gap-1">
                     <select
                       className="px-3 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded text-sm font-medium"
@@ -3092,13 +3093,9 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       <Info className="h-4 w-4 text-purple-400 cursor-help" />
                     </Tooltip>
                     </div>
-                  </div>
-                  )}
                   
-                  {/* Additional URLs to Scrape - Collapsible */}
-                  {showUrlScraping && (
-                  <div className="max-w-3xl mx-auto mb-2">
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  {/* Additional URLs to Scrape */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Globe className="h-4 w-4 text-orange-600" />
@@ -3208,6 +3205,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
                   </div>
                   )}
                   
+                  {/* Text Composer - Always Visible */}
                   <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
                     <Textarea
                       value={researchQuery}
