@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Settings, Zap, Info, ExternalLink } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery } from "convex/react"
@@ -8,15 +8,17 @@ interface ResearchPropertiesProps {
   researchState?: {
     systemPrompt: string
     firecrawlConfig: string
+    model?: string
     selectedTemplate: string
     jurisdiction: string
     topic: string
     urls: string[]
   }
   setResearchState?: (state: any) => void
+  updateResearchSettings?: any
 }
 
-export function ResearchProperties({ researchState, setResearchState }: ResearchPropertiesProps) {
+export function ResearchProperties({ researchState, setResearchState, updateResearchSettings }: ResearchPropertiesProps) {
   // Queries to get template and topic names
   const templatesQuery = useQuery(api.complianceTemplates.getActiveTemplates)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
@@ -35,18 +37,76 @@ export function ResearchProperties({ researchState, setResearchState }: Research
   const [firecrawlOpen, setFirecrawlOpen] = useState(true)
   const [configOpen, setConfigOpen] = useState(false)
   const [systemPromptOpen, setSystemPromptOpen] = useState(true)
+  
+  // Debounce timer refs
+  const promptSaveTimerRef = useRef<NodeJS.Timeout>()
+  const configSaveTimerRef = useRef<NodeJS.Timeout>()
 
   const handleSystemPromptChange = (prompt: string) => {
+    // Update local state immediately
     if (setResearchState && researchState) {
       setResearchState({ ...researchState, systemPrompt: prompt })
+    }
+    
+    // Debounce database save
+    if (promptSaveTimerRef.current) {
+      clearTimeout(promptSaveTimerRef.current)
+    }
+    promptSaveTimerRef.current = setTimeout(() => {
+      if (updateResearchSettings) {
+        updateResearchSettings({
+          researchSystemPrompt: prompt,
+          researchModel: researchState?.model,
+          researchFirecrawlConfig: researchState?.firecrawlConfig
+        })
+      }
+    }, 1000) // Save 1 second after user stops typing
+  }
+  
+  const handleModelChange = (model: string) => {
+    // Update local state immediately
+    if (setResearchState && researchState) {
+      setResearchState({ ...researchState, model })
+    }
+    
+    // Save to database immediately
+    if (updateResearchSettings) {
+      updateResearchSettings({
+        researchSystemPrompt: researchState?.systemPrompt,
+        researchModel: model,
+        researchFirecrawlConfig: researchState?.firecrawlConfig
+      })
     }
   }
 
   const handleFirecrawlConfigChange = (config: string) => {
+    // Update local state immediately
     if (setResearchState && researchState) {
       setResearchState({ ...researchState, firecrawlConfig: config })
     }
+    
+    // Debounce database save
+    if (configSaveTimerRef.current) {
+      clearTimeout(configSaveTimerRef.current)
+    }
+    configSaveTimerRef.current = setTimeout(() => {
+      if (updateResearchSettings) {
+        updateResearchSettings({
+          researchSystemPrompt: researchState?.systemPrompt,
+          researchModel: researchState?.model,
+          researchFirecrawlConfig: config
+        })
+      }
+    }, 1000) // Save 1 second after user stops typing
   }
+  
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
+      if (configSaveTimerRef.current) clearTimeout(configSaveTimerRef.current)
+    }
+  }, [])
 
   const handleResetFirecrawlConfig = () => {
     const defaultConfig = JSON.stringify({
@@ -61,8 +121,18 @@ export function ResearchProperties({ researchState, setResearchState }: Research
       }
     }, null, 2)
     
+    // Update local state
     if (setResearchState && researchState) {
       setResearchState({ ...researchState, firecrawlConfig: defaultConfig })
+    }
+    
+    // Save to database
+    if (updateResearchSettings) {
+      updateResearchSettings({
+        researchSystemPrompt: researchState?.systemPrompt,
+        researchModel: researchState?.model,
+        researchFirecrawlConfig: defaultConfig
+      })
     }
   }
 
@@ -83,8 +153,18 @@ Note: If jurisdiction/topic filters are selected, you will receive additional in
 "Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
 These appear AFTER "Based on these sources:" in your prompt.`
     
+    // Update local state
     if (setResearchState && researchState) {
       setResearchState({ ...researchState, systemPrompt: defaultPrompt, selectedTemplate: '' })
+    }
+    
+    // Save to database
+    if (updateResearchSettings) {
+      updateResearchSettings({
+        researchSystemPrompt: defaultPrompt,
+        researchModel: researchState?.model,
+        researchFirecrawlConfig: researchState?.firecrawlConfig
+      })
     }
   }
 
@@ -110,12 +190,15 @@ These appear AFTER "Based on these sources:" in your prompt.`
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
-            <select className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm">
+            <select 
+              className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
+              value={researchState?.model || 'gemini-2.0-flash-exp'}
+              onChange={(e) => handleModelChange(e.target.value)}
+            >
               <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
               <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
               <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
             </select>
-            <p className="text-xs text-zinc-500 mt-1">Model selection coming soon</p>
           </div>
           
           <div>

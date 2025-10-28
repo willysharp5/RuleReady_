@@ -13,9 +13,10 @@ interface RightPropertiesPanelProps {
   onToggle: () => void
   researchState?: any
   setResearchState?: (state: any) => void
+  updateResearchSettings?: any
 }
 
-export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState }: RightPropertiesPanelProps) {
+export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState, updateResearchSettings }: RightPropertiesPanelProps) {
   return (
     <aside 
       className={`
@@ -49,6 +50,7 @@ export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, research
             <ResearchProperties 
               researchState={researchState}
               setResearchState={setResearchState}
+              updateResearchSettings={updateResearchSettings}
             />
           )}
           {activeFeature === 'templates' && <TemplatesProperties />}

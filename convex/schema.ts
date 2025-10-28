@@ -21,6 +21,10 @@ const schema = defineSchema({
     enableComplianceContext: v.optional(v.boolean()),
     maxContextReports: v.optional(v.number()),
     enableSemanticSearch: v.optional(v.boolean()),
+    // Research settings
+    researchSystemPrompt: v.optional(v.string()),
+    researchModel: v.optional(v.string()),
+    researchFirecrawlConfig: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),

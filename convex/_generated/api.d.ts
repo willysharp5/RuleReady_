@@ -21,6 +21,7 @@ import type * as helpers from "../helpers.js";
 import type * as jurisdictionDetails from "../jurisdictionDetails.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
+import type * as researchSettings from "../researchSettings.js";
 import type * as savedResearch from "../savedResearch.js";
 import type * as userSettings from "../userSettings.js";
 
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   jurisdictionDetails: typeof jurisdictionDetails;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
+  researchSettings: typeof researchSettings;
   savedResearch: typeof savedResearch;
   userSettings: typeof userSettings;
 }>;

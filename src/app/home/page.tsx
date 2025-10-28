@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MessageCircle, Search, FileText, MapPin, Layers } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
@@ -9,6 +9,8 @@ import ResearchFeature from '@/components/features/ResearchFeature'
 import TemplatesFeature from '@/components/features/TemplatesFeature'
 import JurisdictionsFeature from '@/components/features/JurisdictionsFeature'
 import TopicsFeature from '@/components/features/TopicsFeature'
+import { useQuery, useMutation } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 
 type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics'
 
@@ -30,39 +32,32 @@ export default function HomePage() {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('chat')
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true)
   
+  // Load research settings from database
+  const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)
+  const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
+  
   // Research state - lifted to share between feature and properties
   const [researchState, setResearchState] = useState({
-    systemPrompt: `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
-
-Your role is to provide accurate, authoritative information about employment law based on the sources provided.
-
-- Cite sources using inline [1], [2], [3] format
-- Distinguish between federal and state requirements
-- Mention effective dates when relevant
-- Note penalties or deadlines when applicable
-- Be specific and detailed in your responses
-
-If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
-
-Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
-"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
-These appear AFTER "Based on these sources:" in your prompt.`,
-    firecrawlConfig: JSON.stringify({
-      sources: ['web', 'news'],
-      limit: 8,
-      scrapeOptions: {
-        formats: ['markdown'],
-        onlyMainContent: true,
-        maxAge: 86400000,
-        removeBase64Images: true,
-        timeout: 60000
-      }
-    }, null, 2),
+    systemPrompt: '',
+    firecrawlConfig: '',
+    model: 'gemini-2.0-flash-exp',
     selectedTemplate: '',
     jurisdiction: '',
     topic: '',
     urls: ['']
   })
+  
+  // Load research settings from database on mount
+  useEffect(() => {
+    if (researchSettingsQuery) {
+      setResearchState(prev => ({
+        ...prev,
+        systemPrompt: researchSettingsQuery.researchSystemPrompt,
+        firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
+        model: researchSettingsQuery.researchModel
+      }))
+    }
+  }, [researchSettingsQuery])
 
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -100,6 +95,7 @@ These appear AFTER "Based on these sources:" in your prompt.`,
           onToggle={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
           researchState={researchState}
           setResearchState={setResearchState}
+          updateResearchSettings={updateResearchSettings}
         />
       </div>
     </div>
