@@ -112,13 +112,7 @@ const schema = defineSchema({
     name: v.string(), // "California", "Texas", "Federal"
     type: v.union(v.literal("federal"), v.literal("state"), v.literal("local")),
     parentJurisdiction: v.optional(v.string()),
-    ruleCount: v.number(),
     lastUpdated: v.number(),
-    crawlSettings: v.object({
-      primaryDomains: v.array(v.string()),
-      updateFrequency: v.string(),
-      priority: v.string(),
-    }),
   })
     .index("by_type", ["type"])
     .index("by_code", ["code"]),
@@ -128,13 +122,9 @@ const schema = defineSchema({
     name: v.string(), // "Minimum Wage", "Overtime & Hours"
     category: v.string(), // "Wages & Hours", "Leave & Benefits"
     description: v.string(),
-    priority: v.string(),
-    ruleCount: v.number(),
-    changeFrequency: v.string(), // How often this topic typically changes
     keywords: v.array(v.string()), // For AI-powered change detection
   })
     .index("by_category", ["category"])
-    .index("by_priority", ["priority"])
     .index("by_topic_key", ["topicKey"]),
 
   // Compliance templates
@@ -156,11 +146,15 @@ const schema = defineSchema({
   // Saved research results (from Compliance Research feature)
   savedResearch: defineTable({
     title: v.string(), // User-editable title
-    content: v.string(), // Markdown content
+    content: v.string(), // Markdown content (research result)
+    originalQuery: v.optional(v.string()),
     jurisdiction: v.optional(v.string()),
     topic: v.optional(v.string()),
     templateUsed: v.optional(v.string()),
-    sources: v.optional(v.array(v.any())), // All sources (web + news combined)
+    sources: v.optional(v.array(v.any())), // All sources (web + news + internal combined)
+    internalSources: v.optional(v.array(v.any())),
+    webSources: v.optional(v.array(v.any())),
+    newsResults: v.optional(v.array(v.any())),
     savedAt: v.number(),
     updatedAt: v.number(),
   })

@@ -1,4 +1,5 @@
 import { mutation } from "./_generated/server";
+import { v } from "convex/values";
 
 // One-time cleanup to remove old fields from appSettings
 export const cleanupOldFields = mutation({
@@ -32,6 +33,39 @@ export const cleanupOldFields = mutation({
     return { 
       message: "Cleaned up appSettings - removed old fields",
       fieldsKept: Object.keys(cleanSettings)
+    };
+  },
+});
+
+// Remove deprecated fields from all jurisdictions and topics
+export const removeDeprecatedFields = mutation({
+  handler: async (ctx) => {
+    console.log("🔄 Starting migration to remove deprecated fields...");
+    
+    // Update all jurisdictions
+    const jurisdictions = await ctx.db.query("jurisdictions").collect();
+    console.log(`Found ${jurisdictions.length} jurisdictions`);
+    
+    for (const jurisdiction of jurisdictions) {
+      const { crawlSettings, ruleCount, ...cleanData } = jurisdiction as any;
+      await ctx.db.replace(jurisdiction._id, cleanData);
+    }
+    console.log(`✅ Updated ${jurisdictions.length} jurisdictions`);
+    
+    // Update all topics
+    const topics = await ctx.db.query("complianceTopics").collect();
+    console.log(`Found ${topics.length} topics`);
+    
+    for (const topic of topics) {
+      const { changeFrequency, priority, ruleCount, ...cleanData } = topic as any;
+      await ctx.db.replace(topic._id, cleanData);
+    }
+    console.log(`✅ Updated ${topics.length} topics`);
+    
+    return {
+      success: true,
+      jurisdictionsUpdated: jurisdictions.length,
+      topicsUpdated: topics.length,
     };
   },
 });

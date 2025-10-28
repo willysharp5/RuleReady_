@@ -1297,7 +1297,6 @@ Analyze the provided diff and return a JSON response with:
                             <tr>
                               <th className="text-left p-3 font-medium">Jurisdiction</th>
                               <th className="text-left p-3 font-medium">Type</th>
-                              <th className="text-left p-3 font-medium">Rules</th>
                               <th className="text-left p-3 font-medium">Last Updated</th>
                               <th className="text-left p-3 font-medium">Actions</th>
                             </tr>
@@ -1326,10 +1325,6 @@ Analyze the provided diff and return a JSON response with:
                                   }`}>
                                     {jurisdiction.type}
                                   </span>
-                                </td>
-                                <td className="p-3">
-                                  <span className="font-medium">{jurisdiction.ruleCount}</span>
-                                  <span className="text-gray-500 ml-1">rules</span>
                                 </td>
                                 <td className="p-3 text-gray-600">
                                   {jurisdiction.lastUpdated ? 
@@ -1396,9 +1391,6 @@ Analyze the provided diff and return a JSON response with:
                               Next
                             </button>
                           </div>
-                          <span>
-                            Total rules: {jurisdictions?.reduce((sum, j) => sum + j.ruleCount, 0) || 0}
-                          </span>
                         </div>
                       </div>
                     </div>
