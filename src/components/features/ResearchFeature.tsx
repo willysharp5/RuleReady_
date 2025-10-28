@@ -498,32 +498,30 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     );
                   };
                   
+                  // Build error message as plain text with line breaks
+                  let errorDescription = `Using default settings instead.\n\n`;
+                  errorDescription += `Error: ${errorMsg}\n\n`;
+                  
+                  if (errorPosition >= 0 && warningDetails.invalidJson) {
+                    const contextBefore = 40;
+                    const contextAfter = 40;
+                    const start = Math.max(0, errorPosition - contextBefore);
+                    const end = Math.min(warningDetails.invalidJson.length, errorPosition + contextAfter);
+                    
+                    const before = warningDetails.invalidJson.substring(start, errorPosition);
+                    const errorChar = warningDetails.invalidJson.substring(errorPosition, errorPosition + 1) || '?';
+                    const after = warningDetails.invalidJson.substring(errorPosition + 1, end);
+                    
+                    errorDescription += `Location: ${start > 0 ? '...' : ''}${before}>>>${errorChar}<<<${after}${end < warningDetails.invalidJson.length ? '...' : ''}\n\n`;
+                  }
+                  
+                  errorDescription += `→ Fix in Search Configuration (JSON) on the right panel`;
+                  
                   setTimeout(() => {
                     addToast({
                       variant: 'error',
-                      title: 'Invalid Firecrawl Configuration',
-                      description: (
-                        <div className="text-sm space-y-2">
-                          <p className="font-semibold">Using default settings instead</p>
-                          <div className="text-xs space-y-1">
-                            <p className="font-semibold text-red-800">Error:</p>
-                            <p className="text-red-700">{errorMsg}</p>
-                          </div>
-                          {warningDetails.invalidJson && (
-                            <div className="mt-2">
-                              <p className="text-xs font-semibold mb-1">Error location:</p>
-                              <div className="p-2 bg-red-900/20 rounded text-xs font-mono overflow-auto max-h-32 leading-relaxed">
-                                {errorPosition >= 0 ? (
-                                  highlightErrorInJson(warningDetails.invalidJson, errorPosition)
-                                ) : (
-                                  warningDetails.invalidJson.substring(0, 150) + (warningDetails.invalidJson.length > 150 ? '...' : '')
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          <p className="text-xs mt-2 text-gray-600">→ Check Search Configuration (JSON) in the right panel</p>
-                        </div>
-                      ),
+                      title: 'Invalid Firecrawl JSON - Using Defaults',
+                      description: errorDescription,
                       duration: 12000
                     })
                   }, 100)
