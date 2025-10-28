@@ -326,8 +326,17 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }])
     
     const currentQuery = researchQuery
+    const wasInRefinementMode = isRefinementMode
+    
     setResearchQuery('')
     setIsResearching(true)
+    
+    // Clear refinement mode when starting the request
+    if (isRefinementMode) {
+      setIsRefinementMode(false)
+      setAnswerBeingRefined(null)
+      setShowAdvancedResearchOptions(false)
+    }
     
     // Create assistant message that will stream
     const assistantMessageId = (Date.now() + 1).toString()
@@ -360,9 +369,9 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             ? (researchState?.urls || researchUrls).filter((url: string) => url.trim()).map((url: string) => url.trim())
             : undefined,
           // Refinement mode data
-          isRefinement: isRefinementMode,
-          currentAnswer: isRefinementMode ? answerBeingRefined?.content : undefined,
-          currentSources: isRefinementMode ? {
+          isRefinement: wasInRefinementMode,
+          currentAnswer: wasInRefinementMode ? answerBeingRefined?.content : undefined,
+          currentSources: wasInRefinementMode ? {
             scrapedUrls: answerBeingRefined?.scrapedUrlSources || [],
             internal: answerBeingRefined?.internalSources || [],
             web: answerBeingRefined?.webSources || [],
