@@ -11,6 +11,7 @@ import JurisdictionsFeature from '@/components/features/JurisdictionsFeature'
 import TopicsFeature from '@/components/features/TopicsFeature'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics'
 
@@ -29,8 +30,25 @@ const navItems: NavItem[] = [
 ]
 
 export default function HomePage() {
-  const [activeFeature, setActiveFeature] = useState<FeatureType>('chat')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as FeatureType | null
+  
+  const [activeFeature, setActiveFeature] = useState<FeatureType>(tabParam || 'chat')
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true)
+  
+  // Update URL when feature changes
+  const handleFeatureChange = (feature: FeatureType) => {
+    setActiveFeature(feature)
+    router.push(`/home?tab=${feature}`)
+  }
+  
+  // Sync with URL parameter
+  useEffect(() => {
+    if (tabParam && tabParam !== activeFeature) {
+      setActiveFeature(tabParam)
+    }
+  }, [tabParam])
   
   // Load research settings from database
   const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)
@@ -79,7 +97,7 @@ export default function HomePage() {
         <LeftNavigation 
           navItems={navItems}
           activeFeature={activeFeature}
-          onFeatureChange={setActiveFeature}
+          onFeatureChange={handleFeatureChange}
         />
 
         {/* Main Content Area */}
