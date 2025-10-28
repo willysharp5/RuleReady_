@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Zap, Info, ExternalLink, X, AlertCircle } from 'lucide-react'
+import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, MapPin, Tag } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown from 'remark-markdown'
 import remarkGfm from 'remark-gfm'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -28,9 +30,11 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   // Queries to get template and topic names
   const templatesQuery = useQuery(api.complianceTemplates.getActiveTemplates)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
+  const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   
-  const templates = templatesQuery || []
+  const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
+  const templates = templatesQuery || []
   
   // Get display names
   const templateName = researchState?.selectedTemplate 
@@ -211,6 +215,115 @@ These appear AFTER "Based on these sources:" in your prompt.`
           <div><strong>2. Data Gathering:</strong> Firecrawl searches web/news + scrapes your URLs</div>
           <div><strong>3. AI Analysis:</strong> AI model analyzes all sources with your instructions</div>
           <div><strong>4. Formatted Answer:</strong> Markdown response with [1], [2] citations</div>
+        </div>
+      </div>
+      
+      {/* Filters - Jurisdiction & Topic */}
+      <div className="space-y-2">
+        {/* Jurisdiction Filter */}
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-zinc-700 mb-1">
+            <MapPin className="h-3 w-3" />
+            Jurisdiction (Optional)
+          </label>
+          <select
+            className="w-full px-2 py-1.5 border border-zinc-200 rounded-md text-xs"
+            value={researchState?.jurisdiction || ''}
+            onChange={(e) => {
+              if (setResearchState && researchState) {
+                setResearchState({ ...researchState, jurisdiction: e.target.value })
+              }
+            }}
+          >
+            <option value="">All Jurisdictions</option>
+            {jurisdictions.map((j: any) => (
+              <option key={j.code} value={j.name}>{j.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Topic Filter */}
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-zinc-700 mb-1">
+            <Tag className="h-3 w-3" />
+            Topic (Optional)
+          </label>
+          <select
+            className="w-full px-2 py-1.5 border border-zinc-200 rounded-md text-xs"
+            value={researchState?.topic || ''}
+            onChange={(e) => {
+              if (setResearchState && researchState) {
+                setResearchState({ ...researchState, topic: e.target.value })
+              }
+            }}
+          >
+            <option value="">All Topics</option>
+            {topics.map((t: any) => (
+              <option key={t.topicKey} value={t.name}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Additional URLs */}
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <label className="flex items-center gap-1 text-xs font-medium text-orange-900 mb-2">
+            <Globe className="h-3 w-3" />
+            Additional URLs (Optional)
+          </label>
+          <div className="space-y-2">
+            {(researchState?.urls || ['']).map((url: string, index: number) => (
+              <div key={index} className="flex items-center gap-1">
+                <Input
+                  type="url"
+                  placeholder="https://example.com"
+                  value={url}
+                  onChange={(e) => {
+                    if (setResearchState && researchState) {
+                      const newUrls = [...(researchState.urls || [''])]
+                      newUrls[index] = e.target.value
+                      setResearchState({ ...researchState, urls: newUrls })
+                    }
+                  }}
+                  className="h-8 text-xs"
+                />
+                {(researchState?.urls || ['']).length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (setResearchState && researchState) {
+                        const newUrls = (researchState.urls || ['']).filter((_: string, i: number) => i !== index)
+                        setResearchState({ ...researchState, urls: newUrls })
+                      }
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+                {index === (researchState?.urls || ['']).length - 1 && (researchState?.urls || ['']).length < 5 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (setResearchState && researchState) {
+                        const newUrls = [...(researchState.urls || ['']), '']
+                        setResearchState({ ...researchState, urls: newUrls })
+                      }
+                    }}
+                    className="h-8 w-8 p-0 bg-orange-100 hover:bg-orange-200"
+                  >
+                    <Plus className="h-3 w-3 text-orange-600" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-orange-700 mt-2">
+            💡 PDFs supported - Firecrawl will extract text
+          </p>
         </div>
       </div>
 
