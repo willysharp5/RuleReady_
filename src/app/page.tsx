@@ -2754,7 +2754,11 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                       onChange={(e) => {
                         const selectedValue = e.target.value;
                         
-                        if (selectedValue === 'none') {
+                        if (selectedValue === 'view-all') {
+                          // Navigate to settings page
+                          router.push('/settings#templates');
+                          return;
+                        } else if (selectedValue === 'none') {
                           // Clear template - reset to default prompt
                           setSelectedResearchTemplate('');
                           setResearchSystemPrompt(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -2840,6 +2844,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
                           ? `Using: ${templates?.find((t: any) => t.templateId === selectedResearchTemplate)?.title || 'Template'}`
                           : 'Templates...'}
                       </option>
+                      <option value="view-all" className="font-semibold">View All Templates →</option>
                       <option value="none">None (Default Prompt)</option>
                       <option value="new" className="font-semibold">Create New Template</option>
                       {selectedResearchTemplate && (
