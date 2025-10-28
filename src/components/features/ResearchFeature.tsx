@@ -47,6 +47,13 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const updateConversationTitle = useMutation(api.researchConversations.updateConversationTitle)
   const allConversationsQuery = useQuery(api.researchConversations.getAllConversations)
   
+  // Query to load a specific conversation when tab is clicked
+  const [conversationToLoad, setConversationToLoad] = useState<string | null>(null)
+  const loadedConversation = useQuery(
+    api.researchConversations.getConversation,
+    conversationToLoad ? { conversationId: conversationToLoad as any } : 'skip'
+  )
+  
   // Tab management
   const [tabs, setTabs] = useState<Array<{
     id: string
@@ -64,6 +71,53 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
+  const [tabsLoaded, setTabsLoaded] = useState(false)
+  
+  // Load saved conversations as tabs on mount
+  useEffect(() => {
+    if (allConversationsQuery && !tabsLoaded) {
+      const conversations = allConversationsQuery || []
+      
+      if (conversations.length > 0) {
+        // Create tabs from saved conversations
+        const loadedTabs = conversations.map((conv, idx) => ({
+          id: conv._id,
+          title: conv.title,
+          conversationId: conv._id,
+          messages: [], // Will load when tab is activated
+          hasUnsavedChanges: false
+        }))
+        
+        setTabs(loadedTabs)
+        setActiveTabId(loadedTabs[0].id)
+        // Trigger loading of first conversation
+        setConversationToLoad(loadedTabs[0].conversationId)
+      }
+      
+      setTabsLoaded(true)
+    }
+  }, [allConversationsQuery, tabsLoaded])
+  
+  // Load conversation messages when tab changes or conversation loads
+  useEffect(() => {
+    if (loadedConversation && activeTab.conversationId === conversationToLoad) {
+      // Update tab with loaded messages
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, messages: loadedConversation.messages || [] }
+          : tab
+      ))
+    }
+  }, [loadedConversation, conversationToLoad, activeTabId])
+  
+  // When switching tabs, load that tab's conversation if not already loaded
+  useEffect(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId)
+    if (activeTab?.conversationId && activeTab.messages.length === 0) {
+      // Tab has conversationId but no messages loaded yet
+      setConversationToLoad(activeTab.conversationId)
+    }
+  }, [activeTabId, tabs])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
