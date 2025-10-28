@@ -450,6 +450,9 @@ These appear AFTER "Based on these sources:" in your prompt.`
               );
             })}
           </div>
+          <p className="text-xs text-orange-700 mt-2">
+            💡 Tip: PDFs are supported - paste PDF URLs directly
+          </p>
         </div>
       </div>
 
