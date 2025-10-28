@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Search, Plus, X, ExternalLink, Globe, FileText, Newspaper, Loader2, CheckCircle2, Info, User, Copy, Check, Edit, Save, ChevronLeft, ChevronRight, ArrowUp, Square, ArrowDown, BookmarkPlus } from 'lucide-react'
+import { Search, Plus, X, ExternalLink, Globe, FileText, Newspaper, Loader2, CheckCircle2, Info, User, Copy, Check, Edit, Save, ChevronLeft, ChevronRight, ArrowUp, Square, ArrowDown, BookmarkPlus, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link as LinkIcon, Undo, Redo, Underline as UnderlineIcon, Code, Strikethrough, Quote, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Superscript as SuperscriptIcon, Subscript as SubscriptIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +14,13 @@ import { Tooltip } from '@/components/ui/tooltip'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
+import TurndownService from 'turndown'
+import { remark } from 'remark'
+import remarkHtml from 'remark-html'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -78,8 +85,44 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [messageToSave, setMessageToSave] = useState<any>(null)
-  const [savePreviewMode, setSavePreviewMode] = useState<'preview' | 'markdown'>('preview')
-  const [saveEditContent, setSaveEditContent] = useState('')
+  const [showLinkInput, setShowLinkInput] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  
+  // Turndown service for HTML to Markdown conversion
+  const turndownService = useRef(new TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    bulletListMarker: '-'
+  }))
+  
+  // Tiptap editor for WYSIWYG editing (memoized to prevent duplicate warnings)
+  const saveEditor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 hover:underline',
+        },
+      }),
+      Underline,
+    ],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4',
+      },
+    },
+  }, []) // Empty deps array to prevent recreation
+  
+  // Convert markdown to HTML for Tiptap
+  const markdownToHtml = async (markdown: string) => {
+    const result = await remark()
+      .use(remarkHtml)
+      .process(markdown)
+    return String(result)
+  }
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -859,17 +902,98 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setIsEditingTab(null)
   }
 
-  const handleOpenSaveModal = (message: any) => {
+  const handleOpenSaveModal = async (message: any) => {
     setMessageToSave(message)
-    setSaveEditContent(message.content)
-    setSavePreviewMode('preview')
+    
+    // Build source URL map
+    const sourceUrls: { [key: number]: string } = {}
+    let currentIndex = 1
+    
+    // Scraped URLs first
+    if (message.scrapedUrlSources) {
+      message.scrapedUrlSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Internal sources (no URLs, skip)
+    if (message.internalSources) {
+      currentIndex += message.internalSources.length
+    }
+    
+    // Web sources
+    if (message.webSources) {
+      message.webSources.forEach((s: any) => {
+        sourceUrls[currentIndex++] = s.url
+      })
+    }
+    
+    // Convert citation numbers [1], [2], [3] to clickable links
+    let fullMarkdown = message.content
+    Object.entries(sourceUrls).forEach(([num, url]) => {
+      const citationPattern = new RegExp(`\\[${num}\\]`, 'g')
+      fullMarkdown = fullMarkdown.replace(citationPattern, `[[${num}]](${url})`)
+    })
+    
+    // Add sources sections in markdown format
+    
+    // Scraped URLs
+    if (message.scrapedUrlSources && message.scrapedUrlSources.length > 0) {
+      fullMarkdown += '\n\n---\n\n## 🔗 Your URLs\n\n';
+      message.scrapedUrlSources.forEach((s: any, idx: number) => {
+        const domain = new URL(s.url).hostname;
+        const num = idx + 1;
+        fullMarkdown += `[[${num}](${s.url})] [${s.title}](${s.url}) (${domain})\n\n`;
+      });
+    }
+    
+    // Internal Database Sources
+    if (message.internalSources && message.internalSources.length > 0) {
+      fullMarkdown += '\n## 📚 Your Database\n\n';
+      message.internalSources.forEach((s: any, idx: number) => {
+        const num = (message.scrapedUrlSources?.length || 0) + idx + 1;
+        fullMarkdown += `[${num}] ${s.title}\n\n`;
+      });
+    }
+    
+    // Web Sources  
+    if (message.webSources && message.webSources.length > 0) {
+      const count = message.webSources.length;
+      fullMarkdown += `\n## 🌐 Web Search (${count})\n\n`;
+      message.webSources.forEach((s: any, idx: number) => {
+        const num = (message.scrapedUrlSources?.length || 0) + (message.internalSources?.length || 0) + idx + 1;
+        const domain = s.siteName || (s.url ? new URL(s.url).hostname : '');
+        fullMarkdown += `[[${num}](${s.url})] [${s.title}](${s.url}) (${domain})\n\n`;
+      });
+    }
+    
+    // News Results
+    if (message.newsResults && message.newsResults.length > 0) {
+      const count = message.newsResults.length;
+      fullMarkdown += `\n## 📰 News (${count})\n\n`;
+      message.newsResults.forEach((n: any, idx: number) => {
+        fullMarkdown += `[${n.title}](${n.url})\n`;
+        if (n.publishedDate || n.source) {
+          const parts = [];
+          if (n.publishedDate) parts.push(n.publishedDate);
+          if (n.source) parts.push(n.source);
+          fullMarkdown += `\n*${parts.join(' • ')}*\n`;
+        }
+        fullMarkdown += '\n';
+      });
+    }
+    
+    // Convert markdown to HTML and load into Tiptap
+    const html = await markdownToHtml(fullMarkdown)
+    saveEditor?.commands.setContent(html)
+    
     setShowSaveModal(true)
   }
   
   const handleCloseSaveModal = () => {
     setShowSaveModal(false)
     setMessageToSave(null)
-    setSaveEditContent('')
+    saveEditor?.commands.setContent('')
   }
 
   return (
@@ -896,68 +1020,308 @@ These appear AFTER "Based on these sources:" in your prompt.`
               </button>
             </div>
             
-            {/* Toggle: Preview / Markdown */}
-            <div className="flex gap-2 p-4 border-b border-gray-200">
-              <button
-                onClick={() => setSavePreviewMode('preview')}
-                className={`px-3 py-1.5 text-sm rounded ${
-                  savePreviewMode === 'preview'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => setSavePreviewMode('markdown')}
-                className={`px-3 py-1.5 text-sm rounded ${
-                  savePreviewMode === 'markdown'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Markdown
-              </button>
-            </div>
-            
-            {/* Content area */}
-            <div className="flex-1 overflow-auto p-4">
-              {savePreviewMode === 'preview' ? (
-                // Preview mode - rendered markdown
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]} 
-                    rehypePlugins={[rehypeHighlight]}
-                    components={{
-                      h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
-                      p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
-                      ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
-                      ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
-                      li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
-                      strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
-                      a: ({children, ...props}) => <a className="text-blue-600 hover:underline font-medium" target="_blank" rel="noreferrer" {...props}>{children}</a>,
-                    }}
-                  >
-                    {saveEditContent}
-                  </ReactMarkdown>
+            {/* Tiptap Editor with Toolbar */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Toolbar - Always at Top */}
+              {saveEditor && (
+                <div className="flex-shrink-0 border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50">
+                    {/* Undo/Redo */}
+                    <button
+                      onClick={() => saveEditor.chain().focus().undo().run()}
+                      className="p-2 rounded hover:bg-gray-200 disabled:opacity-30"
+                      title="Undo"
+                      disabled={!saveEditor.can().undo()}
+                    >
+                      <Undo className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().redo().run()}
+                      className="p-2 rounded hover:bg-gray-200 disabled:opacity-30"
+                      title="Redo"
+                      disabled={!saveEditor.can().redo()}
+                    >
+                      <Redo className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    
+                    {/* Heading Dropdown */}
+                    <select
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === 'p') {
+                          saveEditor.chain().focus().setParagraph().run()
+                        } else {
+                          const level = parseInt(value) as 1 | 2 | 3
+                          saveEditor.chain().focus().toggleHeading({ level }).run()
+                        }
+                      }}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100"
+                      value={
+                        saveEditor.isActive('heading', { level: 1 }) ? '1' :
+                        saveEditor.isActive('heading', { level: 2 }) ? '2' :
+                        saveEditor.isActive('heading', { level: 3 }) ? '3' : 'p'
+                      }
+                    >
+                      <option value="p">Normal</option>
+                      <option value="1">H1</option>
+                      <option value="2">H2</option>
+                      <option value="3">H3</option>
+                    </select>
+                    
+                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    
+                    {/* Lists */}
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleBulletList().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('bulletList') ? 'bg-purple-100' : ''}`}
+                      title="Bullet List"
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleOrderedList().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('orderedList') ? 'bg-purple-100' : ''}`}
+                      title="Numbered List"
+                    >
+                      <ListOrdered className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    
+                    {/* Text Formatting */}
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleBold().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('bold') ? 'bg-purple-100' : ''}`}
+                      title="Bold"
+                    >
+                      <Bold className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleItalic().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('italic') ? 'bg-purple-100' : ''}`}
+                      title="Italic"
+                    >
+                      <Italic className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleStrike().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('strike') ? 'bg-purple-100' : ''}`}
+                      title="Strikethrough"
+                    >
+                      <Strikethrough className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleCode().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('code') ? 'bg-purple-100' : ''}`}
+                      title="Inline Code"
+                    >
+                      <Code className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => saveEditor.chain().focus().toggleUnderline().run()}
+                      className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('underline') ? 'bg-purple-100' : ''}`}
+                      title="Underline"
+                    >
+                      <UnderlineIcon className="w-4 h-4" />
+                    </button>
+                    
+                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    
+                    {/* Link */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          if (saveEditor.isActive('link')) {
+                            // If on a link, show edit/remove options
+                            const currentUrl = saveEditor.getAttributes('link').href
+                            setLinkUrl(currentUrl || '')
+                          }
+                          setShowLinkInput(!showLinkInput)
+                        }}
+                        className={`p-2 rounded hover:bg-gray-200 ${saveEditor.isActive('link') ? 'bg-purple-100' : ''}`}
+                        title={saveEditor.isActive('link') ? "Edit/Remove Link" : "Insert Link"}
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Link Input Popover */}
+                      {showLinkInput && (
+                        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 w-72 z-20">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            {saveEditor.isActive('link') ? 'Edit URL:' : 'Enter URL:'}
+                          </label>
+                          <div className="relative mb-2">
+                            <Input
+                              type="url"
+                              value={linkUrl}
+                              onChange={(e) => setLinkUrl(e.target.value)}
+                              placeholder="https://example.com"
+                              className="text-sm pr-8"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  if (linkUrl) {
+                                    saveEditor.chain().focus().setLink({ href: linkUrl }).run()
+                                  }
+                                  setLinkUrl('')
+                                  setShowLinkInput(false)
+                                }
+                                if (e.key === 'Escape') {
+                                  setLinkUrl('')
+                                  setShowLinkInput(false)
+                                }
+                              }}
+                              autoFocus
+                            />
+                            {saveEditor.isActive('link') && (
+                              <button
+                                onClick={() => {
+                                  saveEditor.chain().focus().unsetLink().run()
+                                  setLinkUrl('')
+                                  // Don't close popover - let user continue editing
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full p-1"
+                                title="Remove link"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              onClick={() => {
+                                setLinkUrl('')
+                                setShowLinkInput(false)
+                              }}
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (linkUrl) {
+                                  saveEditor.chain().focus().setLink({ href: linkUrl }).run()
+                                }
+                                setLinkUrl('')
+                                setShowLinkInput(false)
+                              }}
+                              size="sm"
+                              className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              {saveEditor.isActive('link') ? 'Update' : 'Insert'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                 </div>
-              ) : (
-                // Markdown mode - editable textarea
-                <textarea
-                  value={saveEditContent}
-                  onChange={(e) => setSaveEditContent(e.target.value)}
-                  className="w-full h-full p-4 font-mono text-sm border border-gray-200 rounded resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Edit your research result markdown..."
-                />
               )}
+              
+              {/* Editor Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
+                <EditorContent editor={saveEditor} />
+              </div>
+              
+                <style jsx global>{`
+                  .tiptap {
+                    min-height: 500px;
+                    padding: 1rem;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: #111827;
+                  }
+                  .tiptap:focus {
+                    outline: 2px solid #a855f7;
+                    outline-offset: -2px;
+                  }
+                  
+                  /* Headers */
+                  .tiptap h1 {
+                    font-size: 1.125rem;
+                    font-weight: bold;
+                    margin-bottom: 0.5rem;
+                    margin-top: 0.75rem;
+                    color: #111827;
+                  }
+                  .tiptap h2 {
+                    font-size: 1rem;
+                    font-weight: bold;
+                    margin-top: 0.75rem;
+                    margin-bottom: 0.25rem;
+                    color: #1f2937;
+                  }
+                  .tiptap h3 {
+                    font-size: 0.875rem;
+                    font-weight: bold;
+                    margin-top: 0.5rem;
+                    margin-bottom: 0.25rem;
+                    color: #374151;
+                  }
+                  
+                  /* Paragraphs and lists */
+                  .tiptap p {
+                    margin-bottom: 0.5rem;
+                    line-height: 1.6;
+                  }
+                  .tiptap ul, .tiptap ol {
+                    margin-left: 1rem;
+                    margin-bottom: 0.5rem;
+                  }
+                  .tiptap li {
+                    list-style-type: disc;
+                    margin-bottom: 0.125rem;
+                    line-height: 1.5;
+                  }
+                  
+                  /* Links and formatting */
+                  .tiptap a {
+                    color: #2563eb;
+                    text-decoration: underline;
+                    cursor: pointer;
+                    font-weight: 500;
+                  }
+                  .tiptap a:hover {
+                    color: #1d4ed8;
+                  }
+                  .tiptap strong {
+                    font-weight: 600;
+                    color: #111827;
+                  }
+                  .tiptap code {
+                    background-color: #f3f4f6;
+                    padding: 0.125rem 0.25rem;
+                    border-radius: 0.25rem;
+                    font-family: monospace;
+                    font-size: 0.875em;
+                    color: #dc2626;
+                  }
+                  .tiptap hr {
+                    border: none;
+                    border-top: 2px solid #d1d5db;
+                    margin: 1.5rem 0;
+                  }
+                  
+                  /* Source sections styling - match chat window */
+                  .tiptap h2 {
+                    font-size: 0.75rem !important;
+                    font-weight: 600 !important;
+                    margin-top: 1rem !important;
+                    margin-bottom: 0.5rem !important;
+                  }
+                  
+                  /* Specific source section colors */
+                  .tiptap h2:first-of-type {
+                    color: #1f2937 !important;
+                  }
+                `}</style>
             </div>
             
             {/* Footer with actions */}
             <div className="flex items-center justify-between p-4 border-t border-gray-200">
               <div className="text-xs text-gray-500">
-                {saveEditContent.length} characters
+                Click and edit the content above - changes save to markdown format
               </div>
               <div className="flex gap-2">
                 <Button
