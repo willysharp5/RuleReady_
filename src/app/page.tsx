@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus, Square } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -316,6 +316,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [showAdvancedResearchOptions, setShowAdvancedResearchOptions] = useState(false)
   const [isRefinementMode, setIsRefinementMode] = useState(false)
   const [answerBeingRefined, setAnswerBeingRefined] = useState<any>(null)
+  const [researchAbortController, setResearchAbortController] = useState<AbortController | null>(null)
   const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
@@ -1180,6 +1181,10 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       content: ''
     }])
     
+    // Create abort controller for this request
+    const controller = new AbortController()
+    setResearchAbortController(controller)
+    
     try {
       // Filter out empty URLs
       const urlsToScrape = researchUrls.filter(url => url.trim()).map(url => url.trim());
@@ -1187,6 +1192,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       const response = await fetch('/api/compliance-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           query: currentQuery,
           includeInternalSources: true,
@@ -1299,19 +1305,40 @@ These appear AFTER "Based on these sources:" in your prompt.`)
         })
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Research error:', error)
-      // Remove the empty assistant message
-      setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
       
-      addToast({
-        variant: 'error',
-        title: isRefinementMode ? 'Refinement failed' : 'Research failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        duration: 5000
-      })
+      // Check if it was aborted
+      if (error.name === 'AbortError') {
+        // Remove the empty assistant message
+        setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+        
+        addToast({
+          variant: 'success',
+          title: 'Research stopped',
+          description: 'You cancelled the research request',
+          duration: 2000
+        })
+      } else {
+        // Remove the empty assistant message
+        setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+        
+        addToast({
+          variant: 'error',
+          title: isRefinementMode ? 'Refinement failed' : 'Research failed',
+          description: error instanceof Error ? error.message : 'Unknown error',
+          duration: 5000
+        })
+      }
     } finally {
       setIsResearching(false)
+      setResearchAbortController(null)
+    }
+  }
+  
+  const handleStopResearch = () => {
+    if (researchAbortController) {
+      researchAbortController.abort()
     }
   }
 
@@ -3373,9 +3400,20 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       disabled={isResearching}
                       className="resize-none border-0 focus-visible:ring-0"
                     />
-                    <Button type="submit" disabled={isResearching || !researchQuery.trim()} className="h-9 w-9 rounded-full p-0">
-                      {isRefinementMode ? <Edit className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
-                    </Button>
+                    {isResearching ? (
+                      <Button 
+                        type="button" 
+                        onClick={handleStopResearch} 
+                        className="h-9 w-9 rounded-full p-0 bg-red-600 hover:bg-red-700"
+                        title="Stop research"
+                      >
+                        <Square className="h-4 w-4 fill-current" />
+                      </Button>
+                    ) : (
+                      <Button type="submit" disabled={!researchQuery.trim()} className="h-9 w-9 rounded-full p-0">
+                        {isRefinementMode ? <Edit className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
+                      </Button>
+                    )}
                   </div>
                 </form>
               </div>
