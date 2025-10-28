@@ -398,64 +398,63 @@ These appear AFTER "Based on these sources:" in your prompt.`
         <div className="space-y-2">
           <p className="text-xs text-zinc-600 mb-2">Shows the prompt structure (data summarized for clarity)</p>
           {researchState?.lastPromptSent ? (
-            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded overflow-auto max-h-96 space-y-2">
+            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded overflow-auto max-h-96 space-y-2 text-xs">
               {(() => {
                 const prompt = researchState.lastPromptSent;
                 const parts: JSX.Element[] = [];
                 
-                // Extract query
+                // Parse sections
                 const queryMatch = prompt.match(/Answer this compliance research query: "(.+?)"/);
+                const refinementMatch = prompt.match(/The user previously asked.+?USER'S REFINEMENT REQUEST:\s*(.+?)(?=\n\n)/s);
+                const jurisdictionMatch = prompt.match(/Focus on jurisdiction: (.+)/);
+                const topicMatch = prompt.match(/Focus on topic: (.+)/);
+                const hasAdditionalContext = prompt.includes('ADDITIONAL CONTEXT PROVIDED BY USER:');
+                const sourceCount = (prompt.match(/\[\d+\]/g) || []).length;
+                const templateMatch = prompt.match(/IMPORTANT: Structure your response using this template format:\s*#\s*(.+?)\s*Compliance Template/);
+                const systemMatch = prompt.match(/System instructions:\s*(.+?)(?=\n\nIMPORTANT:|$)/s);
+                
+                // Main query - Purple bold
                 if (queryMatch) {
                   parts.push(
                     <div key="query" className="font-bold text-sm text-purple-700">
                       Answer this compliance research query: "{queryMatch[1]}"
                     </div>
                   );
+                } else if (refinementMatch) {
+                  parts.push(
+                    <div key="refine" className="font-bold text-sm text-purple-700">
+                      [Refinement Mode] {refinementMatch[1]}
+                    </div>
+                  );
                 }
                 
-                // Refinement mode detection
-                if (prompt.includes('The user previously asked')) {
-                  const refinementMatch = prompt.match(/The user previously asked.+?Now they want you to refine/s);
-                  if (refinementMatch) {
-                    parts.push(
-                      <div key="refine" className="font-bold text-sm text-purple-700">
-                        [Refinement Mode]
-                      </div>
-                    );
-                  }
-                }
-                
-                // Jurisdiction
-                const jurisdictionMatch = prompt.match(/Focus on jurisdiction: (.+)/);
+                // Filters - Purple bold
                 if (jurisdictionMatch) {
                   parts.push(
-                    <div key="jurisdiction" className="text-xs italic text-zinc-500">
-                      [Jurisdiction: {jurisdictionMatch[1]}]
+                    <div key="jurisdiction" className="font-bold text-sm text-purple-700">
+                      Focus on jurisdiction: {jurisdictionMatch[1]}
                     </div>
                   );
                 }
                 
-                // Topic
-                const topicMatch = prompt.match(/Focus on topic: (.+)/);
                 if (topicMatch) {
                   parts.push(
-                    <div key="topic" className="text-xs italic text-zinc-500">
-                      [Topic: {topicMatch[1]}]
+                    <div key="topic" className="font-bold text-sm text-purple-700">
+                      Focus on topic: {topicMatch[1]}
                     </div>
                   );
                 }
                 
-                // Additional Context
-                if (prompt.includes('ADDITIONAL CONTEXT PROVIDED BY USER:')) {
+                // Additional context summary - Gray italic
+                if (hasAdditionalContext) {
                   parts.push(
-                    <div key="context" className="text-xs italic text-zinc-500 mt-2">
+                    <div key="context" className="text-xs italic text-zinc-500 mt-1">
                       [Additional Context: {researchState.additionalContext?.length || 0} characters]
                     </div>
                   );
                 }
                 
-                // Sources
-                const sourceCount = (prompt.match(/\[\d+\]/g) || []).length;
+                // Sources summary - Purple bold header + gray summary
                 parts.push(
                   <div key="sources-header" className="font-bold text-sm text-purple-700 mt-2">
                     Based on these sources:
@@ -467,37 +466,34 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   </div>
                 );
                 
-                // Template detection
-                if (prompt.includes('IMPORTANT: Structure your response using this template format:')) {
-                  const templateMatch = prompt.match(/# (.+?) Compliance Template/);
-                  const templateTitle = templateMatch ? templateMatch[1] : 'Custom Template';
+                // Template summary - Gray italic
+                if (templateMatch) {
                   parts.push(
                     <div key="template" className="text-xs italic text-zinc-500 mt-2">
-                      [Template: {templateTitle}]
+                      [Template: {templateMatch[1]} Compliance Template]
                     </div>
                   );
                 }
                 
-                // System instructions
+                // System instructions - Blue header
                 parts.push(
-                  <div key="system-header" className="font-bold text-sm text-blue-700 mt-3 mb-1">
+                  <div key="system-header" className="font-bold text-sm text-blue-700 mt-3">
                     System instructions:
                   </div>
                 );
                 
-                const systemMatch = prompt.match(/System instructions: (.+?)$/s);
+                // System instructions content - Regular text
                 if (systemMatch) {
-                  const systemText = systemMatch[1]
-                    .split('\n')
-                    .filter(line => !line.includes('IMPORTANT: Structure') && !line.includes('# ') && !line.includes('## '))
-                    .slice(0, 10) // First 10 lines only
-                    .join('\n');
-                  
-                  parts.push(
-                    <div key="system-content" className="text-xs text-blue-800 whitespace-pre-wrap">
-                      {systemText.trim()}
-                    </div>
-                  );
+                  const systemLines = systemMatch[1].trim().split('\n');
+                  systemLines.forEach((line, idx) => {
+                    if (line.trim()) {
+                      parts.push(
+                        <div key={`sys-${idx}`} className="text-xs text-zinc-700">
+                          {line}
+                        </div>
+                      );
+                    }
+                  });
                 }
                 
                 return <>{parts}</>;
