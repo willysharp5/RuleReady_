@@ -2687,9 +2687,28 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 type="button"
                                 onClick={() => {
                                   setSavingResearchMessage(m)
-                                  setSavedResearchTitle(m.content.substring(0, 100).split('\n')[0].replace(/[#*]/g, '').trim())
-                                  setSavedResearchContent(m.content)
-                                  setShowSaveResearchModal(true)
+                                  
+                                  // Generate title with jurisdiction if available
+                                  const firstLine = m.content.substring(0, 100).split('\n')[0].replace(/[#*]/g, '').trim();
+                                  const titleWithJurisdiction = researchJurisdiction 
+                                    ? `${researchJurisdiction} - ${firstLine}`
+                                    : firstLine;
+                                  setSavedResearchTitle(titleWithJurisdiction);
+                                  
+                                  // Add jurisdiction/topic as header in markdown if selected
+                                  let contentWithHeader = m.content;
+                                  if (researchJurisdiction || researchTopic) {
+                                    const headerParts = [];
+                                    if (researchJurisdiction) headerParts.push(`**Jurisdiction:** ${researchJurisdiction}`);
+                                    if (researchTopic) {
+                                      const topicName = topics?.find(t => t.topicKey === researchTopic)?.name || researchTopic;
+                                      headerParts.push(`**Topic:** ${topicName}`);
+                                    }
+                                    contentWithHeader = `# Research Summary\n\n${headerParts.join(' | ')}\n\n---\n\n${m.content}`;
+                                  }
+                                  
+                                  setSavedResearchContent(contentWithHeader);
+                                  setShowSaveResearchModal(true);
                                 }}
                               >
                                 <Save className="h-3 w-3" /> Save
