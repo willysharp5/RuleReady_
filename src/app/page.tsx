@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, ExternalLink, LogIn, X, Search, Bot, Info, FileText, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus, Globe, ChevronLeft, ChevronRight, Square } from 'lucide-react'
+import { Loader2, ExternalLink, LogIn, X, Search, Bot, Info, FileText, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus, Globe, ChevronLeft, ChevronRight, Square, Scale } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -1113,7 +1113,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       
       <Hero 
         title={
-          <div className="flex flex-col leading-none">
+          <div className="flex flex-col items-center leading-none">
+            <Scale className="h-16 w-16 text-purple-600 mb-4" />
             <span className="bg-gradient-to-tr from-blue-600 to-indigo-500 bg-clip-text text-transparent">
               RuleReady
             </span>

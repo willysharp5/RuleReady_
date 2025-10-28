@@ -43,21 +43,42 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   
   const saveResearch = useMutation(api.savedResearch.saveResearch)
   const saveConversation = useMutation(api.researchConversations.saveConversation)
+  const deleteConversation = useMutation(api.researchConversations.deleteConversation)
+  const updateConversationTitle = useMutation(api.researchConversations.updateConversationTitle)
+  const allConversationsQuery = useQuery(api.researchConversations.getAllConversations)
   
-  // Track current conversation ID for auto-save
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  
-  // Research state
-  const [researchQuery, setResearchQuery] = useState('')
-  const [researchMessages, setResearchMessages] = useState<Array<{
+  // Tab management
+  const [tabs, setTabs] = useState<Array<{
     id: string
-    role: 'user' | 'assistant'
-    content: string
-    scrapedUrlSources?: any[]
-    internalSources?: any[]
-    webSources?: any[]
-    newsResults?: any[]
-  }>>([])
+    title: string
+    conversationId: string | null
+    messages: any[]
+    hasUnsavedChanges: boolean
+  }>>([{
+    id: 'tab-1',
+    title: 'Chat 1',
+    conversationId: null,
+    messages: [],
+    hasUnsavedChanges: false
+  }])
+  const [activeTabId, setActiveTabId] = useState('tab-1')
+  const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
+  const [editingTabTitle, setEditingTabTitle] = useState('')
+  
+  // Get active tab
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
+  
+  // Sync researchMessages with active tab
+  const [researchQuery, setResearchQuery] = useState('')
+  const researchMessages = activeTab.messages
+  const setResearchMessages = (messages: any) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId 
+        ? { ...tab, messages: typeof messages === 'function' ? messages(tab.messages) : messages, hasUnsavedChanges: true }
+        : tab
+    ))
+  }
+  
   const [researchFollowUpQuestions, setResearchFollowUpQuestions] = useState<string[]>([])
   const [isResearching, setIsResearching] = useState(false)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
@@ -599,7 +620,16 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     return () => clearTimeout(autoSaveTimer)
   }, [researchMessages, isResearching])
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
+    // Delete the current conversation from database if it exists
+    if (currentConversationId) {
+      try {
+        await deleteConversation({ conversationId: currentConversationId as any })
+      } catch (error) {
+        console.error('Failed to delete conversation:', error)
+      }
+    }
+    
     // Clear chat messages
     setResearchMessages([])
     setResearchFollowUpQuestions([])
