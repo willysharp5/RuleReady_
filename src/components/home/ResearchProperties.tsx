@@ -403,12 +403,13 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 const prompt = researchState.lastPromptSent;
                 const parts: JSX.Element[] = [];
                 
-                // Parse sections
-                const queryMatch = prompt.match(/Answer this compliance research query: "(.+?)"/);
-                const refinementMatch = prompt.match(/The user previously asked.+?USER'S REFINEMENT REQUEST:\s*(.+?)(?=\n\n)/s);
-                const jurisdictionMatch = prompt.match(/Focus on jurisdiction: (.+)/);
-                const topicMatch = prompt.match(/Focus on topic: (.+)/);
-                const hasAdditionalContext = prompt.includes('ADDITIONAL CONTEXT PROVIDED BY USER:');
+                // Parse sections - only match actual values before "Based on these sources", not examples in system prompt
+                const beforeSources = prompt.split('Based on these sources:')[0];
+                const queryMatch = beforeSources.match(/Answer this compliance research query: "(.+?)"/);
+                const refinementMatch = beforeSources.match(/The user previously asked.+?USER'S REFINEMENT REQUEST:\s*(.+?)(?=\n\n)/s);
+                const jurisdictionMatch = beforeSources.match(/Focus on jurisdiction: (.+?)(?=\n|$)/);
+                const topicMatch = beforeSources.match(/Focus on topic: (.+?)(?=\n|$)/);
+                const hasAdditionalContext = beforeSources.includes('ADDITIONAL CONTEXT PROVIDED BY USER:');
                 const sourceCount = (prompt.match(/\[\d+\]/g) || []).length;
                 const templateMatch = prompt.match(/IMPORTANT: Structure your response using this template format:\s*#\s*(.+?)\s*Compliance Template/);
                 const systemMatch = prompt.match(/System instructions:\s*(.+?)(?=\n\nIMPORTANT:|$)/s);
