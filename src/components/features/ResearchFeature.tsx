@@ -73,6 +73,8 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [editingTabTitle, setEditingTabTitle] = useState('')
   const [tabsLoaded, setTabsLoaded] = useState(false)
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -696,20 +698,10 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   }, [researchMessages, isResearching, isLoadingConversation, activeTabId])
 
   const handleClearChat = async () => {
-    // Delete the current tab's conversation from database if it exists
-    const currentTab = tabs.find(t => t.id === activeTabId)
-    if (currentTab?.conversationId) {
-      try {
-        await deleteConversation({ conversationId: currentTab.conversationId as any })
-      } catch (error) {
-        console.error('Failed to delete conversation:', error)
-      }
-    }
-    
-    // Clear messages in active tab only
+    // Clear messages in active tab only (does NOT delete from database)
     setTabs(prev => prev.map(tab => 
       tab.id === activeTabId 
-        ? { ...tab, messages: [], conversationId: null, hasUnsavedChanges: false }
+        ? { ...tab, messages: [] }
         : tab
     ))
     
@@ -717,6 +709,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     setIsRefinementMode(false)
     setAnswerBeingRefined(null)
     setShowAdvancedResearchOptions(false)
+    setShowClearConfirm(false)
     
     // Reset to default system prompt
     const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -790,6 +783,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
     if (tabs.length === 1) return // Don't close last tab
     
     const tabToClose = tabs.find(t => t.id === tabId)
+    
+    // Delete from database if it has a conversationId
     if (tabToClose?.conversationId) {
       await deleteConversation({ conversationId: tabToClose.conversationId as any })
     }
@@ -801,6 +796,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
     if (activeTabId === tabId) {
       setActiveTabId(newTabs[0].id)
     }
+    
+    setShowDeleteTabConfirm(null)
   }
   
   const handleRenameTab = async (tabId: string, newTitle: string) => {
@@ -828,16 +825,42 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <h2 className="text-2xl font-semibold text-gray-900">Compliance Research</h2>
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
           </div>
-          <Button
-            onClick={handleClearChat}
-            variant="outline"
-            size="sm"
-            className="text-red-600 border-red-300 hover:bg-red-50"
-            disabled={researchMessages.length === 0}
-          >
-            <X className="w-4 h-4 mr-1" />
-            Clear Chat
-          </Button>
+          <div className="relative">
+            <Button
+              onClick={() => setShowClearConfirm(true)}
+              variant="outline"
+              size="sm"
+              className="text-red-600 border-red-300 hover:bg-red-50"
+              disabled={researchMessages.length === 0}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Clear Chat
+            </Button>
+            
+            {/* Clear Chat Confirmation Popover */}
+            {showClearConfirm && (
+              <div className="absolute top-full right-0 mt-2 bg-white border-2 border-red-300 rounded-lg shadow-xl p-4 w-72 z-50">
+                <p className="text-sm font-semibold text-gray-900 mb-2">Clear this chat?</p>
+                <p className="text-xs text-gray-600 mb-3">Messages will be removed but the conversation stays saved in the database.</p>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    onClick={() => setShowClearConfirm(false)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleClearChat}
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Tabs */}
@@ -880,15 +903,51 @@ These appear AFTER "Based on these sources:" in your prompt.`
               )}
               
               {tabs.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleCloseTab(tab.id)
-                  }}
-                  className="hover:bg-red-100 rounded p-0.5 flex-shrink-0"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowDeleteTabConfirm(tab.id)
+                    }}
+                    className="hover:bg-red-100 rounded p-0.5 flex-shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  
+                  {/* Delete Tab Confirmation Popover */}
+                  {showDeleteTabConfirm === tab.id && (
+                    <div 
+                      className="absolute top-full left-0 mt-2 bg-white border-2 border-red-300 rounded-lg shadow-xl p-3 w-64 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-xs font-semibold text-gray-900 mb-1">Delete "{tab.title}"?</p>
+                      <p className="text-xs text-gray-600 mb-3">This will permanently delete the conversation from the database.</p>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowDeleteTabConfirm(null)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCloseTab(tab.id)
+                          }}
+                          size="sm"
+                          className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}
