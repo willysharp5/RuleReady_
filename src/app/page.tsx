@@ -312,6 +312,7 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   
   // Research URL scraping state
   const [researchUrls, setResearchUrls] = useState<string[]>(['']) // Start with one empty field
+  const [researchUrlValidation, setResearchUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
   const MAX_RESEARCH_URLS = 5
   
   // Research configuration state
@@ -578,6 +579,66 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       setTimeout(() => setCopiedResearchMessageId(null), 2000)
     }
   }
+  
+  // Validate research URLs with debounce
+  const validateResearchUrl = async (url: string, index: number) => {
+    if (!url.trim()) {
+      setResearchUrlValidation(prev => ({
+        ...prev,
+        [index]: { isValid: null, isValidating: false, message: '' }
+      }))
+      return
+    }
+
+    setResearchUrlValidation(prev => ({
+      ...prev,
+      [index]: { isValid: null, isValidating: true, message: 'Validating...' }
+    }))
+
+    try {
+      // Basic URL format validation
+      let processedUrl = url.trim()
+      if (!processedUrl.match(/^https?:\/\//)) {
+        processedUrl = 'https://' + processedUrl
+      }
+      
+      const urlObj = new URL(processedUrl)
+      
+      // Check if it's a PDF
+      const isPdf = processedUrl.toLowerCase().endsWith('.pdf')
+      
+      // Simple validation - just check URL format
+      setResearchUrlValidation(prev => ({
+        ...prev,
+        [index]: { 
+          isValid: true, 
+          isValidating: false, 
+          message: isPdf ? '✓ PDF detected' : '✓ Valid URL' 
+        }
+      }))
+    } catch (e) {
+      setResearchUrlValidation(prev => ({
+        ...prev,
+        [index]: { isValid: false, isValidating: false, message: 'Invalid URL format' }
+      }))
+    }
+  }
+  
+  // Debounced URL validation
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = []
+    
+    researchUrls.forEach((url: string, index: number) => {
+      if (url.trim()) {
+        const timer = setTimeout(() => {
+          validateResearchUrl(url, index)
+        }, 800)
+        timers.push(timer)
+      }
+    })
+    
+    return () => timers.forEach(timer => clearTimeout(timer))
+  }, [researchUrls])
   
   // URL validation function
   const validateUrl = async (inputUrl: string) => {
@@ -3026,18 +3087,33 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       <div className="space-y-2">
                         {researchUrls.map((url, index) => (
                           <div key={index} className="flex items-center gap-2">
-                            <Input
-                              type="url"
-                              placeholder="https://example.com"
-                              value={url}
-                              onChange={(e) => {
-                                const newUrls = [...researchUrls];
-                                newUrls[index] = e.target.value;
-                                setResearchUrls(newUrls);
-                              }}
-                              disabled={isResearching}
-                              className="flex-1 text-sm"
-                            />
+                            <div className="flex-1 relative">
+                              <Input
+                                type="url"
+                                placeholder="https://example.com or https://example.com/file.pdf"
+                                value={url}
+                                onChange={(e) => {
+                                  const newUrls = [...researchUrls];
+                                  newUrls[index] = e.target.value;
+                                  setResearchUrls(newUrls);
+                                }}
+                                disabled={isResearching}
+                                className={`w-full pr-10 text-sm ${
+                                  researchUrlValidation[index]?.isValid === true ? 'border-green-500 focus:ring-green-500' :
+                                  researchUrlValidation[index]?.isValid === false ? 'border-red-500 focus:ring-red-500' :
+                                  'border-gray-300'
+                                }`}
+                              />
+                              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                {researchUrlValidation[index]?.isValidating ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                ) : researchUrlValidation[index]?.isValid === true ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                ) : researchUrlValidation[index]?.isValid === false ? (
+                                  <X className="h-4 w-4 text-red-500" />
+                                ) : null}
+                              </div>
+                            </div>
                             {researchUrls.length > 1 && (
                               <Button
                                 type="button"
@@ -3069,6 +3145,21 @@ Follow the template sections but adapt based on the query. Not all sections may 
                             )}
                           </div>
                         ))}
+                        
+                        {/* Validation messages */}
+                        {Object.entries(researchUrlValidation).map(([idx, validation]: [string, any]) => {
+                          const index = parseInt(idx);
+                          if (!validation.message || !researchUrls[index]?.trim()) return null;
+                          return (
+                            <div key={idx} className={`text-xs ${
+                              validation.isValid === true ? 'text-green-600' :
+                              validation.isValid === false ? 'text-red-600' :
+                              'text-gray-600'
+                            }`}>
+                              URL {index + 1}: {validation.message}
+                            </div>
+                          );
+                        })}
                       </div>
                       
                       {researchUrls.filter(url => url.trim()).length > 3 && (
@@ -3076,6 +3167,10 @@ Follow the template sections but adapt based on the query. Not all sections may 
                           ⚠️ More than 3 URLs may slow down research response time
                         </p>
                       )}
+                      
+                      <p className="text-xs text-orange-700 mt-2">
+                        💡 Tip: PDFs are supported - paste PDF URLs directly
+                      </p>
                     </div>
                   </div>
                   

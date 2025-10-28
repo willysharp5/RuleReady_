@@ -42,6 +42,9 @@ export async function POST(request: Request) {
       try {
         // Scrape all URLs in parallel
         const scrapePromises = urls.map(async (url: string) => {
+          // Check if URL is a PDF
+          const isPdf = url.toLowerCase().endsWith('.pdf');
+          
           const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
             method: 'POST',
             headers: {
@@ -51,7 +54,9 @@ export async function POST(request: Request) {
             body: JSON.stringify({
               url: url,
               formats: ['markdown'],
-              onlyMainContent: true
+              onlyMainContent: true,
+              // Add PDF parser if it's a PDF (v1 API compatible)
+              ...(isPdf ? { extractorOptions: { mode: 'llm-extraction' } } : {})
             })
           });
           
