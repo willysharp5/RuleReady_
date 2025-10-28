@@ -209,7 +209,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
         <div className="text-xs text-blue-800 space-y-1.5">
           <div><strong>1. Your Input:</strong> Query + filters + optional context</div>
           <div><strong>2. Data Gathering:</strong> Firecrawl searches web/news + scrapes your URLs</div>
-          <div><strong>3. AI Analysis:</strong> Gemini AI analyzes all sources with your instructions</div>
+          <div><strong>3. AI Analysis:</strong> AI model analyzes all sources with your instructions</div>
           <div><strong>4. Formatted Answer:</strong> Markdown response with [1], [2] citations</div>
         </div>
       </div>
