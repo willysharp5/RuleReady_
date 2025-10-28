@@ -413,17 +413,19 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 const templateMatch = prompt.match(/IMPORTANT: Structure your response using this template format:\s*#\s*(.+?)\s*Compliance Template/);
                 const systemMatch = prompt.match(/System instructions:\s*(.+?)(?=\n\nIMPORTANT:|$)/s);
                 
-                // Main query - Purple bold
+                // Main query - Purple bold label, gray italic value
                 if (queryMatch) {
                   parts.push(
-                    <div key="query" className="font-bold text-sm text-purple-700">
-                      Answer this compliance research query: "{queryMatch[1]}"
+                    <div key="query" className="flex items-baseline gap-1 flex-wrap">
+                      <span className="font-bold text-sm text-purple-700">Answer this compliance research query:</span>
+                      <span className="text-xs italic text-zinc-500">"{queryMatch[1]}" (your query)</span>
                     </div>
                   );
                 } else if (refinementMatch) {
                   parts.push(
-                    <div key="refine" className="font-bold text-sm text-purple-700">
-                      [Refinement Mode] {refinementMatch[1]}
+                    <div key="refine" className="flex items-baseline gap-1 flex-wrap">
+                      <span className="font-bold text-sm text-purple-700">[Refinement Mode]</span>
+                      <span className="text-xs italic text-zinc-500">{refinementMatch[1]} (your refinement request)</span>
                     </div>
                   );
                 }
