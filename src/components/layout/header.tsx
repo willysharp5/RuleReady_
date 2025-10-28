@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback } from 'react'
-import { Github, LogOut, User, Loader2, ChevronDown, Code, Settings, Scale } from 'lucide-react'
+import { useState } from 'react'
+import { Github, LogOut, User, Loader2, ChevronDown, Settings, Scale } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,8 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useQuery, useAction } from "convex/react"
-import { api } from "../../../convex/_generated/api"
 
 interface HeaderProps {
   showCTA?: boolean
@@ -27,30 +25,6 @@ export function Header({ showCTA = true, ctaText = "View on GitHub", ctaHref = "
   const [isSigningOut, setIsSigningOut] = useState(false)
   // Single-user mode: no user query needed
   const currentUser = null
-  const firecrawlKey = useQuery(api.firecrawlKeys.getUserFirecrawlKey)
-  const getTokenUsage = useAction(api.firecrawlKeysActions.getTokenUsage)
-  const [tokenUsage, setTokenUsage] = useState<{ remaining?: number; error?: string } | null>(null)
-  
-  const fetchTokenUsage = useCallback(async () => {
-    try {
-      const result = await getTokenUsage()
-      if (result?.usage) {
-        const remaining = Math.max(result.usage.limit - result.usage.current, 0)
-        setTokenUsage({ remaining })
-      }
-    } catch {
-      setTokenUsage({ error: 'Failed to fetch token usage' })
-    }
-  }, [getTokenUsage])
-  
-  useEffect(() => {
-    if (firecrawlKey && isAuthenticated) {
-      fetchTokenUsage()
-      // Refresh credits every 30 seconds
-      const interval = setInterval(fetchTokenUsage, 30000)
-      return () => clearInterval(interval)
-    }
-  }, [firecrawlKey?.hasKey, isAuthenticated, fetchTokenUsage])
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
