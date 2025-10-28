@@ -258,7 +258,7 @@ RESPONSE STYLE FOR COMPLIANCE:
 
 FORMAT:
 - Use markdown for readability (## for headers, **bold**, - for bullets)
-- Do NOT wrap your response in code blocks (NO ``` around your answer)
+- Do NOT wrap your response in code blocks
 - Do NOT escape markdown syntax
 - Write natural markdown as if writing a document
 - Include citations inline as [1], [2], etc. when referencing specific sources
