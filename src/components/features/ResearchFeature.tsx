@@ -949,18 +949,29 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setShowSaveModal(true)
   }
   
-  const handleProceedToEditor = () => {
-    // Close metadata popover and open Tiptap editor
-    setShowSaveMetadataPopover(false)
-    handleOpenSaveModal(messageToSave)
+  const handleSaveButtonClick = (markdown: string) => {
+    // When user clicks Save in Tiptap, show metadata popover first
+    // Pre-populate metadata
+    const jurisdiction = researchState?.jurisdiction || researchJurisdiction || ''
+    const topic = researchState?.topic || researchTopic || ''
+    const template = researchState?.selectedTemplate || selectedResearchTemplate || ''
+    const date = new Date().toLocaleDateString()
+    const titlePrefix = jurisdiction ? `${jurisdiction} - ` : ''
+    setSaveTitle(`${titlePrefix}Research - ${date}`)
+    setSaveJurisdiction(jurisdiction)
+    setSaveTopic(topic)
+    setSaveTemplate(template)
+    setSaveModalContent(markdown) // Store the edited content
+    setShowSaveModal(false) // Close Tiptap
+    setShowSaveMetadataPopover(true) // Show metadata form
   }
   
-  const handleSaveFromModal = async (markdown: string) => {
+  const handleSaveFromModal = async () => {
     try {
       await saveResearch({
         title: saveTitle,
-        content: markdown,
-        originalQuery: saveModalContent.substring(0, 100),
+        content: saveModalContent, // Already converted to markdown
+        originalQuery: saveTitle.substring(0, 100),
         jurisdiction: saveJurisdiction || undefined,
         topic: saveTopic || undefined,
         templateUsed: saveTemplate || undefined,
@@ -975,7 +986,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
         duration: 3000
       })
       
-      setShowSaveModal(false)
+      setShowSaveMetadataPopover(false)
     } catch (error) {
       addToast({
         variant: 'error',
@@ -983,7 +994,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
         description: 'Could not save research',
         duration: 3000
       })
-      throw error
     }
   }
 
@@ -1066,10 +1076,10 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 Cancel
               </Button>
               <Button
-                onClick={handleProceedToEditor}
+                onClick={handleSaveFromModal}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
               >
-                Continue to Editor
+                Save to Library
               </Button>
             </div>
           </div>
@@ -1081,8 +1091,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
         initialContent={saveModalContent}
-        title="Save Research Result"
-        onSave={handleSaveFromModal}
+        title="Edit Research Result"
+        onSave={handleSaveButtonClick}
       />
       
       {/* Delete Tab Confirmation Popover - Fixed Position */}
@@ -1425,20 +1435,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     <button 
                       className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
                       type="button"
-                      onClick={() => {
-                        setMessageToSave(m)
-                        // Pre-populate metadata
-                        const jurisdiction = researchState?.jurisdiction || researchJurisdiction || ''
-                        const topic = researchState?.topic || researchTopic || ''
-                        const template = researchState?.selectedTemplate || selectedResearchTemplate || ''
-                        const date = new Date().toLocaleDateString()
-                        const titlePrefix = jurisdiction ? `${jurisdiction} - ` : ''
-                        setSaveTitle(`${titlePrefix}Research - ${date}`)
-                        setSaveJurisdiction(jurisdiction)
-                        setSaveTopic(topic)
-                        setSaveTemplate(template)
-                        setShowSaveMetadataPopover(true)
-                      }}
+                      onClick={() => handleOpenSaveModal(m)}
                     >
                       <Save className="h-3 w-3" /> Save
                     </button>
