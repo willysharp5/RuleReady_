@@ -257,7 +257,10 @@ RESPONSE STYLE FOR COMPLIANCE:
 - Note penalties or deadlines when applicable
 
 FORMAT:
-- Use markdown for readability
+- Use markdown for readability (## for headers, **bold**, - for bullets)
+- Do NOT wrap your response in code blocks (NO ``` around your answer)
+- Do NOT escape markdown syntax
+- Write natural markdown as if writing a document
 - Include citations inline as [1], [2], etc. when referencing specific sources
 - Citations correspond to source order (first source = [1], second = [2], etc.)
 - Structure longer responses with headers and bullet points
