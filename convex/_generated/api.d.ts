@@ -40,6 +40,7 @@ import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
 import type * as monitoring from "../monitoring.js";
 import type * as ruleDetails from "../ruleDetails.js";
+import type * as savedResearch from "../savedResearch.js";
 import type * as singleUserSetup from "../singleUserSetup.js";
 import type * as testingMode from "../testingMode.js";
 import type * as userSettings from "../userSettings.js";
@@ -93,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sanitize": typeof lib_sanitize;
   monitoring: typeof monitoring;
   ruleDetails: typeof ruleDetails;
+  savedResearch: typeof savedResearch;
   singleUserSetup: typeof singleUserSetup;
   testingMode: typeof testingMode;
   userSettings: typeof userSettings;

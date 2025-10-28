@@ -416,6 +416,24 @@ const schema = defineSchema({
     .index("by_template_id", ["templateId"])
     .index("by_topic", ["topicKey"])
     .index("by_active", ["isActive"]),
+
+  // Saved research results (from Compliance Research feature)
+  savedResearch: defineTable({
+    title: v.string(), // User-editable title
+    content: v.string(), // Markdown content
+    originalQuery: v.string(), // The question asked
+    jurisdiction: v.optional(v.string()),
+    topic: v.optional(v.string()),
+    templateUsed: v.optional(v.string()),
+    internalSources: v.optional(v.array(v.any())),
+    webSources: v.optional(v.array(v.any())),
+    newsResults: v.optional(v.array(v.any())),
+    savedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_saved_at", ["savedAt"])
+    .index("by_jurisdiction", ["jurisdiction"])
+    .index("by_topic", ["topic"]),
 });
 
 export default schema;

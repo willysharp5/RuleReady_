@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper } from 'lucide-react'
+import { Loader2, Clock, ExternalLink, LogIn, X, Play, Pause, Globe, RefreshCw, Search, ChevronLeft, ChevronRight, Maximize2, Minimize2, Bot, Eye, Info, FileText, Monitor, File, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -125,6 +125,8 @@ export default function HomePage() {
   const pauseWebsite = useMutation(api.websites.pauseWebsite)
   const updateWebsite = useMutation(api.websites.updateWebsite)
   const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
+  const saveResearch = useMutation(api.savedResearch.saveResearch)
+  const updateSavedResearch = useMutation(api.savedResearch.updateSavedResearch)
   const triggerScrape = useAction(api.firecrawl.triggerScrape)
   const crawlWebsite = useAction(api.firecrawl.crawlWebsite)
   const chatSettings = useQuery(api.chatSettings.getChatSettings)
@@ -299,6 +301,13 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
   const [selectedResearchTemplate, setSelectedResearchTemplate] = useState<string>('')
   const researchListRef = useRef<HTMLDivElement | null>(null)
   const [copiedResearchMessageId, setCopiedResearchMessageId] = useState<string | null>(null)
+  
+  // Save research modal state
+  const [showSaveResearchModal, setShowSaveResearchModal] = useState(false)
+  const [savingResearchMessage, setSavingResearchMessage] = useState<any>(null)
+  const [savedResearchTitle, setSavedResearchTitle] = useState('')
+  const [savedResearchContent, setSavedResearchContent] = useState('')
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState(false)
   
   // Research configuration state
   const [researchSystemPrompt, setResearchSystemPrompt] = useState(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -2673,11 +2682,17 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                                 )}
                               </button>
                               <span className="h-3 w-px bg-gray-200" />
-                              <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                                <ThumbsUp className="h-3 w-3" />
-                              </button>
-                              <button className="inline-flex items-center text-xs hover:text-gray-700" type="button">
-                                <ThumbsDown className="h-3 w-3" />
+                              <button 
+                                className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
+                                type="button"
+                                onClick={() => {
+                                  setSavingResearchMessage(m)
+                                  setSavedResearchTitle(m.content.substring(0, 100).split('\n')[0].replace(/[#*]/g, '').trim())
+                                  setSavedResearchContent(m.content)
+                                  setShowSaveResearchModal(true)
+                                }}
+                              >
+                                <Save className="h-3 w-3" /> Save
                               </button>
                             </div>
                           )}
@@ -5210,6 +5225,151 @@ Follow the template sections but adapt based on the query. Not all sections may 
             await upsertTemplate(templateData)
           }}
         />
+      )}
+      
+      {/* Save Research Modal */}
+      {showSaveResearchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Save Research Result</h3>
+              <button
+                onClick={() => setShowSaveResearchModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 flex-1 overflow-y-auto space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title
+                </label>
+                <Input
+                  value={savedResearchTitle}
+                  onChange={(e) => setSavedResearchTitle(e.target.value)}
+                  placeholder="Enter a title for this research..."
+                  className="w-full"
+                />
+              </div>
+              
+              {/* Editor/Preview Toggle */}
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  Content
+                </label>
+                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowMarkdownPreview(false)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                      !showMarkdownPreview
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Edit className="h-3 w-3 inline mr-1" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMarkdownPreview(true)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                      showMarkdownPreview
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Eye className="h-3 w-3 inline mr-1" />
+                    Preview
+                  </button>
+                </div>
+              </div>
+              
+              {/* Editor or Preview */}
+              {showMarkdownPreview ? (
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[300px]">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      h1: ({children}) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-xl font-bold mt-4 mb-2 text-gray-800">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-lg font-bold mt-3 mb-2 text-gray-800">{children}</h3>,
+                      p: ({children}) => <p className="mb-3 leading-relaxed">{children}</p>,
+                      ul: ({children}) => <ul className="mb-3 space-y-1 ml-5">{children}</ul>,
+                      ol: ({children}) => <ol className="mb-3 space-y-1 ml-5">{children}</ol>,
+                      li: ({children}) => <li className="leading-relaxed list-disc">{children}</li>,
+                      strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                      em: ({children}) => <em className="italic">{children}</em>,
+                      a: ({children, ...props}) => <a className="text-blue-600 hover:underline" {...props}>{children}</a>,
+                    }}
+                  >
+                    {savedResearchContent}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <Textarea
+                  value={savedResearchContent}
+                  onChange={(e) => setSavedResearchContent(e.target.value)}
+                  rows={15}
+                  placeholder="Edit your research content..."
+                  className="font-mono text-sm"
+                />
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-6 border-t flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowSaveResearchModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await saveResearch({
+                      title: savedResearchTitle || 'Untitled Research',
+                      content: savedResearchContent,
+                      originalQuery: savingResearchMessage?.content?.substring(0, 200) || '',
+                      jurisdiction: researchJurisdiction || undefined,
+                      topic: researchTopic || undefined,
+                      templateUsed: selectedResearchTemplate || undefined,
+                      internalSources: savingResearchMessage?.internalSources,
+                      webSources: savingResearchMessage?.webSources,
+                      newsResults: savingResearchMessage?.newsResults,
+                    })
+                    
+                    addToast({
+                      variant: 'success',
+                      title: 'Research saved',
+                      description: `"${savedResearchTitle}" saved successfully`,
+                      duration: 3000
+                    })
+                    
+                    setShowSaveResearchModal(false)
+                  } catch (error) {
+                    addToast({
+                      variant: 'error',
+                      title: 'Save failed',
+                      description: error instanceof Error ? error.message : 'Unknown error',
+                      duration: 5000
+                    })
+                  }
+                }}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Research
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
       
       <Footer />
