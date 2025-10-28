@@ -396,23 +396,104 @@ These appear AFTER "Based on these sources:" in your prompt.`
         onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
       >
         <div className="space-y-2">
-          <p className="text-xs text-zinc-600 mb-2">Read-only preview of the last prompt sent to AI (for debugging)</p>
+          <p className="text-xs text-zinc-600 mb-2">Shows the prompt structure (data summarized for clarity)</p>
           {researchState?.lastPromptSent ? (
-            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded text-xs overflow-auto max-h-96">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  h1: ({children}) => <h1 className="text-sm font-bold mb-2 text-zinc-900">{children}</h1>,
-                  h2: ({children}) => <h2 className="text-xs font-bold mb-1 text-zinc-800">{children}</h2>,
-                  p: ({children}) => <p className="mb-2 text-zinc-700 leading-relaxed">{children}</p>,
-                  ul: ({children}) => <ul className="mb-2 ml-4 list-disc space-y-0.5">{children}</ul>,
-                  li: ({children}) => <li className="text-zinc-700">{children}</li>,
-                  strong: ({children}) => <strong className="font-semibold text-zinc-900">{children}</strong>,
-                  code: ({children}) => <code className="bg-zinc-200 px-1 py-0.5 rounded text-[10px]">{children}</code>,
-                }}
-              >
-                {researchState.lastPromptSent}
-              </ReactMarkdown>
+            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded overflow-auto max-h-96 space-y-3">
+              {(() => {
+                const prompt = researchState.lastPromptSent;
+                
+                // Extract the main parts
+                const lines = prompt.split('\n');
+                let promptParts: JSX.Element[] = [];
+                let inDataSection = false;
+                let dataLineCount = 0;
+                let dataSectionName = '';
+                
+                lines.forEach((line, idx) => {
+                  // Detect data sections
+                  if (line.includes('ADDITIONAL CONTEXT PROVIDED BY USER:')) {
+                    inDataSection = true;
+                    dataSectionName = 'Additional Context';
+                    dataLineCount = 0;
+                    promptParts.push(
+                      <div key={idx} className="text-xs italic text-zinc-500">
+                        [Additional Context: {researchState.additionalContext?.length || 0} characters injected here]
+                      </div>
+                    );
+                    return;
+                  }
+                  
+                  if (line.includes('Based on these sources:')) {
+                    inDataSection = true;
+                    dataSectionName = 'Sources';
+                    dataLineCount = 0;
+                    const sourceCount = (prompt.match(/\[\d+\]/g) || []).length;
+                    promptParts.push(
+                      <div key={idx} className="font-semibold text-sm text-purple-700 mt-2">
+                        {line}
+                      </div>
+                    );
+                    promptParts.push(
+                      <div key={`${idx}-data`} className="text-xs italic text-zinc-500 ml-2">
+                        [{sourceCount} sources with content injected here]
+                      </div>
+                    );
+                    return;
+                  }
+                  
+                  if (line.includes('System instructions:')) {
+                    inDataSection = false;
+                    promptParts.push(
+                      <div key={idx} className="font-semibold text-sm text-blue-700 mt-3 mb-1">
+                        {line}
+                      </div>
+                    );
+                    return;
+                  }
+                  
+                  // Skip source data lines (they're verbose)
+                  if (inDataSection && dataSectionName === 'Sources' && line.match(/^\[\d+\]/)) {
+                    dataLineCount++;
+                    return;
+                  }
+                  
+                  // Skip additional context data lines
+                  if (inDataSection && dataSectionName === 'Additional Context' && line.trim()) {
+                    return;
+                  }
+                  
+                  // Regular prompt lines - make prominent
+                  if (line.trim()) {
+                    if (line.startsWith('Answer this') || line.startsWith('The user previously')) {
+                      promptParts.push(
+                        <div key={idx} className="font-bold text-sm text-zinc-900">
+                          {line}
+                        </div>
+                      );
+                    } else if (line.startsWith('Focus on') || line.startsWith('USER') || line.startsWith('YOUR TASK') || line.startsWith('CRITICAL') || line.startsWith('INSTRUCTIONS')) {
+                      promptParts.push(
+                        <div key={idx} className="font-semibold text-xs text-purple-700 mt-2">
+                          {line}
+                        </div>
+                      );
+                    } else if (line.startsWith('-')) {
+                      promptParts.push(
+                        <div key={idx} className="text-xs text-zinc-700 ml-2">
+                          {line}
+                        </div>
+                      );
+                    } else {
+                      promptParts.push(
+                        <div key={idx} className="text-xs text-zinc-700">
+                          {line}
+                        </div>
+                      );
+                    }
+                  }
+                });
+                
+                return <div className="space-y-1">{promptParts}</div>;
+              })()}
             </div>
           ) : (
             <p className="text-xs text-zinc-500 italic">No research query sent yet</p>
