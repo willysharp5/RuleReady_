@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
+import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -46,6 +47,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const saveConversation = useMutation(api.researchConversations.saveConversation)
   const deleteConversation = useMutation(api.researchConversations.deleteConversation)
   const updateConversationTitle = useMutation(api.researchConversations.updateConversationTitle)
+  const upsertTemplate = useMutation(api.complianceTemplates.upsertTemplate)
   const allConversationsQuery = useQuery(api.researchConversations.getAllConversations)
   
   // Query to load a specific conversation when tab is clicked
@@ -1891,6 +1893,39 @@ Follow the template sections but adapt based on the query. Not all sections may 
           )}
         </div>
       </form>
+      
+      {/* Template Editor Modal */}
+      {showTemplateEditor && editingTemplate && (
+        <ComplianceTemplateEditor
+          isOpen={showTemplateEditor}
+          onClose={() => {
+            setShowTemplateEditor(false)
+            setEditingTemplate(null)
+          }}
+          topicKey={editingTemplate.topicKey}
+          topicName={editingTemplate.topicName}
+          onSave={async (templateData) => {
+            try {
+              await upsertTemplate(templateData)
+              addToast({
+                variant: 'success',
+                title: 'Template saved',
+                description: 'Template has been saved successfully',
+                duration: 3000
+              })
+              setShowTemplateEditor(false)
+              setEditingTemplate(null)
+            } catch (error) {
+              addToast({
+                variant: 'destructive',
+                title: 'Error saving template',
+                description: error instanceof Error ? error.message : 'Unknown error',
+                duration: 5000
+              })
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
