@@ -52,12 +52,6 @@ export default function HomePage() {
   // Load research settings from database on mount
   useEffect(() => {
     if (researchSettingsQuery && !settingsLoaded) {
-      console.log('📚 Loading research settings from database:', {
-        hasSystemPrompt: !!researchSettingsQuery.researchSystemPrompt,
-        hasFirecrawlConfig: !!researchSettingsQuery.researchFirecrawlConfig,
-        model: researchSettingsQuery.researchModel
-      })
-      
       setResearchState(prev => ({
         ...prev,
         systemPrompt: researchSettingsQuery.researchSystemPrompt,
