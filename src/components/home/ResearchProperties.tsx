@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Zap, Info, ExternalLink } from 'lucide-react'
+import { Settings, Zap, Info, ExternalLink, X, AlertCircle } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
@@ -14,12 +14,14 @@ interface ResearchPropertiesProps {
     topic: string
     urls: string[]
     additionalContext?: string
+    configError?: { message: string; error: string; invalidJson?: string } | null
   }
   setResearchState?: (state: any) => void
   updateResearchSettings?: any
+  onDismissError?: () => void
 }
 
-export function ResearchProperties({ researchState, setResearchState, updateResearchSettings }: ResearchPropertiesProps) {
+export function ResearchProperties({ researchState, setResearchState, updateResearchSettings, onDismissError }: ResearchPropertiesProps) {
   // Queries to get template and topic names
   const templatesQuery = useQuery(api.complianceTemplates.getActiveTemplates)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)

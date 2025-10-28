@@ -36,12 +36,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Gemini API key not configured' }, { status: 500 });
     }
 
-    console.log(`[${requestId}] Starting compliance research for: "${query}"${isRefinement ? ' (REFINEMENT MODE)' : ''}`);
-
     // Step 0: Scrape provided URLs (if any - new URLs only in refinement)
     let scrapedUrlSources: any[] = [];
     if (urls && Array.isArray(urls) && urls.length > 0) {
-      console.log(`[${requestId}] Scraping ${urls.length} provided URLs...`);
       
       try {
         // Scrape all URLs in parallel
@@ -81,9 +78,7 @@ export async function POST(request: Request) {
         
         const results = await Promise.all(scrapePromises);
         scrapedUrlSources = results.filter(r => r !== null);
-        console.log(`[${requestId}] Scraped ${scrapedUrlSources.length} URLs successfully`);
       } catch (urlError) {
-        console.warn(`[${requestId}] URL scraping failed:`, urlError);
         // Continue with web search even if URL scraping fails
       }
     }
@@ -100,8 +95,6 @@ export async function POST(request: Request) {
     
     if (isRefinement && (!urls || urls.length === 0)) {
       // Refinement mode with no new URLs - reuse existing sources
-      console.log(`[${requestId}] Refinement mode: Reusing existing sources`);
-      
       // Load sources from currentSources parameter
       if (currentSources) {
         if (currentSources.scrapedUrls) {
@@ -114,12 +107,8 @@ export async function POST(request: Request) {
           newsData = currentSources.news;
         }
       }
-      
-      console.log(`[${requestId}] Loaded ${webResults.length} web sources, ${newsData.length} news sources from previous search`);
     } else {
       // Normal mode or refinement with new URLs - do web search
-      console.log(`[${requestId}] Searching with Firecrawl...`);
-      
       // Enhance query with jurisdiction and topic filters
       let enhancedQuery = query;
       if (jurisdiction && topic) {
@@ -129,8 +118,6 @@ export async function POST(request: Request) {
       } else if (topic) {
         enhancedQuery = `${query} ${topic}`;
       }
-      
-      console.log(`[${requestId}] Enhanced query: "${enhancedQuery}"`);
       
       // Parse custom Firecrawl config or use defaults
       let searchConfig: any = {
@@ -151,10 +138,13 @@ export async function POST(request: Request) {
             query: enhancedQuery,
             ...customConfig
           };
-          console.log(`[${requestId}] Using custom Firecrawl config`);
         } catch (e) {
-          console.warn(`[${requestId}] Invalid Firecrawl config JSON, using defaults`);
-          configError = `Invalid Firecrawl JSON configuration - using defaults. Error: ${e instanceof Error ? e.message : 'Parse failed'}`;
+          const errorMsg = e instanceof Error ? e.message : 'Parse failed';
+          configError = JSON.stringify({
+            message: 'Invalid Firecrawl JSON configuration - using defaults',
+            error: errorMsg,
+            invalidJson: firecrawlConfig
+          });
         }
       }
       
@@ -315,16 +305,6 @@ ${jurisdiction ? `Focus on jurisdiction: ${jurisdiction}\n` : ''}${topic ? `Focu
 ${context}`;
     }
 
-    // Log what's being sent to AI
-    console.log(`[${requestId}] Prompt includes:`, {
-      hasJurisdiction: !!jurisdiction,
-      hasTopic: !!topic,
-      hasAdditionalContext: !!additionalContext,
-      additionalContextLength: additionalContext?.length || 0,
-      hasTemplate: finalSystemPrompt !== defaultSystemPrompt,
-      sourcesCount: allSources.length
-    });
-    
     // Use Gemini streaming
     const chat = model.startChat({
       history: [],
@@ -367,7 +347,6 @@ ${context}`;
               }
             } catch (chunkError) {
               // Ignore chunk errors, continue streaming
-              console.warn(`[${requestId}] Chunk error (ignoring):`, chunkError);
             }
           }
 

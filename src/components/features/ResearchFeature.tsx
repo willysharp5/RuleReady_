@@ -453,15 +453,10 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               try {
                 const parsed = JSON.parse(data)
                 
-                // Debug: log all message types received
-                console.log('📨 Received SSE message type:', parsed.type)
-                
                 if (!parsed || !parsed.type) continue
                 
                 if (parsed.type === 'warning') {
-                  // Show warning toast with detailed error info
-                  console.log('⚠️ WARNING RECEIVED:', parsed.message)
-                  
+                  // Set config error state to show in right panel
                   let warningDetails;
                   try {
                     warningDetails = typeof parsed.message === 'string' ? JSON.parse(parsed.message) : parsed.message;
@@ -469,62 +464,13 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     warningDetails = { message: parsed.message };
                   }
                   
-                  // Extract error position from error message
-                  const errorMsg = warningDetails.error || '';
-                  const positionMatch = errorMsg.match(/position (\d+)/);
-                  const errorPosition = positionMatch ? parseInt(positionMatch[1]) : -1;
-                  
-                  // Highlight error location in JSON
-                  const highlightErrorInJson = (json: string, errorPos: number) => {
-                    if (errorPos < 0 || errorPos >= json.length) return json;
-                    
-                    const contextBefore = 30;
-                    const contextAfter = 30;
-                    const start = Math.max(0, errorPos - contextBefore);
-                    const end = Math.min(json.length, errorPos + contextAfter);
-                    
-                    const before = json.substring(start, errorPos);
-                    const errorChar = json.substring(errorPos, errorPos + 1);
-                    const after = json.substring(errorPos + 1, end);
-                    
-                    return (
-                      <>
-                        {start > 0 && '...'}
-                        <span className="text-gray-400">{before}</span>
-                        <span className="bg-red-600 text-white px-0.5 font-bold">{errorChar || '⚠'}</span>
-                        <span className="text-gray-400">{after}</span>
-                        {end < json.length && '...'}
-                      </>
-                    );
-                  };
-                  
-                  // Build error message as plain text with line breaks
-                  let errorDescription = `Using default settings instead.\n\n`;
-                  errorDescription += `Error: ${errorMsg}\n\n`;
-                  
-                  if (errorPosition >= 0 && warningDetails.invalidJson) {
-                    const contextBefore = 40;
-                    const contextAfter = 40;
-                    const start = Math.max(0, errorPosition - contextBefore);
-                    const end = Math.min(warningDetails.invalidJson.length, errorPosition + contextAfter);
-                    
-                    const before = warningDetails.invalidJson.substring(start, errorPosition);
-                    const errorChar = warningDetails.invalidJson.substring(errorPosition, errorPosition + 1) || '?';
-                    const after = warningDetails.invalidJson.substring(errorPosition + 1, end);
-                    
-                    errorDescription += `Location: ${start > 0 ? '...' : ''}${before}>>>${errorChar}<<<${after}${end < warningDetails.invalidJson.length ? '...' : ''}\n\n`;
-                  }
-                  
-                  errorDescription += `→ Fix in Search Configuration (JSON) on the right panel`;
-                  
-                  setTimeout(() => {
-                    addToast({
-                      variant: 'error',
-                      title: 'Invalid Firecrawl JSON - Using Defaults',
-                      description: errorDescription,
-                      duration: 12000
+                  // Update parent state to show error in right panel
+                  if (setResearchState && researchState) {
+                    setResearchState({
+                      ...researchState,
+                      configError: warningDetails
                     })
-                  }, 100)
+                  }
                 } else if (parsed.type === 'sources') {
                   sources = parsed
                   // Update assistant message with sources
@@ -660,7 +606,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
         jurisdiction: '',
         topic: '',
         urls: [''],
-        additionalContext: ''
+        additionalContext: '',
+        configError: null
       })
     }
   }

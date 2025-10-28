@@ -45,7 +45,8 @@ export default function HomePage() {
     jurisdiction: '',
     topic: '',
     urls: [''],
-    additionalContext: ''
+    additionalContext: '',
+    configError: null as { message: string; error: string; invalidJson?: string } | null
   })
   
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -101,6 +102,7 @@ export default function HomePage() {
           researchState={researchState}
           setResearchState={setResearchState}
           updateResearchSettings={updateResearchSettings}
+          onDismissError={() => setResearchState(prev => ({ ...prev, configError: null }))}
         />
       </div>
     </div>
