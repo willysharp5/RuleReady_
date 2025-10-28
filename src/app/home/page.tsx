@@ -47,17 +47,26 @@ export default function HomePage() {
     urls: ['']
   })
   
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+  
   // Load research settings from database on mount
   useEffect(() => {
-    if (researchSettingsQuery) {
+    if (researchSettingsQuery && !settingsLoaded) {
+      console.log('📚 Loading research settings from database:', {
+        hasSystemPrompt: !!researchSettingsQuery.researchSystemPrompt,
+        hasFirecrawlConfig: !!researchSettingsQuery.researchFirecrawlConfig,
+        model: researchSettingsQuery.researchModel
+      })
+      
       setResearchState(prev => ({
         ...prev,
         systemPrompt: researchSettingsQuery.researchSystemPrompt,
         firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
         model: researchSettingsQuery.researchModel
       }))
+      setSettingsLoaded(true)
     }
-  }, [researchSettingsQuery])
+  }, [researchSettingsQuery, settingsLoaded])
 
   return (
     <div className="flex flex-col h-screen bg-white">

@@ -41,6 +41,12 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   // Debounce timer refs
   const promptSaveTimerRef = useRef<NodeJS.Timeout>()
   const configSaveTimerRef = useRef<NodeJS.Timeout>()
+  
+  // Saving indicators
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
+  const [promptSaved, setPromptSaved] = useState(false)
+  const [configSaved, setConfigSaved] = useState(false)
 
   const handleSystemPromptChange = (prompt: string) => {
     // Update local state immediately
@@ -48,17 +54,23 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
       setResearchState({ ...researchState, systemPrompt: prompt })
     }
     
+    setPromptSaved(false)
+    setIsSavingPrompt(true)
+    
     // Debounce database save
     if (promptSaveTimerRef.current) {
       clearTimeout(promptSaveTimerRef.current)
     }
-    promptSaveTimerRef.current = setTimeout(() => {
+    promptSaveTimerRef.current = setTimeout(async () => {
       if (updateResearchSettings) {
-        updateResearchSettings({
+        await updateResearchSettings({
           researchSystemPrompt: prompt,
           researchModel: researchState?.model,
           researchFirecrawlConfig: researchState?.firecrawlConfig
         })
+        setIsSavingPrompt(false)
+        setPromptSaved(true)
+        setTimeout(() => setPromptSaved(false), 2000)
       }
     }, 1000) // Save 1 second after user stops typing
   }
@@ -85,17 +97,23 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
       setResearchState({ ...researchState, firecrawlConfig: config })
     }
     
+    setConfigSaved(false)
+    setIsSavingConfig(true)
+    
     // Debounce database save
     if (configSaveTimerRef.current) {
       clearTimeout(configSaveTimerRef.current)
     }
-    configSaveTimerRef.current = setTimeout(() => {
+    configSaveTimerRef.current = setTimeout(async () => {
       if (updateResearchSettings) {
-        updateResearchSettings({
+        await updateResearchSettings({
           researchSystemPrompt: researchState?.systemPrompt,
           researchModel: researchState?.model,
           researchFirecrawlConfig: config
         })
+        setIsSavingConfig(false)
+        setConfigSaved(true)
+        setTimeout(() => setConfigSaved(false), 2000)
       }
     }, 1000) // Save 1 second after user stops typing
   }
@@ -203,7 +221,15 @@ These appear AFTER "Based on these sources:" in your prompt.`
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+              <div className="flex items-center gap-2">
+                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+                {isSavingPrompt && (
+                  <span className="text-xs text-zinc-500">Saving...</span>
+                )}
+                {promptSaved && (
+                  <span className="text-xs text-green-600">✓ Saved</span>
+                )}
+              </div>
               <button
                 type="button"
                 className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
@@ -220,7 +246,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
               onChange={(e) => handleSystemPromptChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500 mt-1">
-              Template selection auto-updates this prompt. Edit freely - click "Reset to Default" to restore.
+              Auto-saves as you type. Template selection auto-updates this prompt.
             </p>
           </div>
         </div>
@@ -237,6 +263,12 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-zinc-600">Firecrawl API</span>
               <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">v2</span>
+              {isSavingConfig && (
+                <span className="text-xs text-zinc-500">Saving...</span>
+              )}
+              {configSaved && (
+                <span className="text-xs text-green-600">✓ Saved</span>
+              )}
             </div>
             <div className="flex gap-2">
               <a
@@ -266,7 +298,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
             onChange={(e) => handleFirecrawlConfigChange(e.target.value)}
           />
           <p className="text-xs text-zinc-500">
-            <strong>Note:</strong> Changes to this config apply to your next research query
+            Auto-saves as you type. Changes apply to your next research query.
           </p>
         </div>
       </AccordionSection>
