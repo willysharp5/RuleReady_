@@ -719,13 +719,13 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       <form onSubmit={handleResearchSubmit} className="flex-shrink-0">
         {/* Follow-up question chips */}
         {researchFollowUpQuestions.length > 0 && (
-          <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 mb-2">
+          <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 py-3 mb-2">
             {researchFollowUpQuestions.map((q, idx) => (
               <Button
                 key={idx}
                 variant="outline"
                 size="sm"
-                className="h-7 px-2 text-xs"
+                className="h-auto py-1.5 px-3 text-xs leading-relaxed"
                 type="button"
                 onClick={() => {
                   setResearchQuery(q)
