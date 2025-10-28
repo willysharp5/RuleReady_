@@ -1223,55 +1223,63 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       let answer = ''
       let sources: any = {}
       
-      while (true) {
-        const { done, value } = await reader!.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === '[DONE]') break
-            
-            try {
-              const parsed = JSON.parse(data)
+      try {
+        while (true) {
+          const { done, value } = await reader!.read()
+          if (done) break
+          
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') break
               
-              if (parsed.type === 'sources') {
-                sources = parsed
-                console.log('📊 Sources received:', {
-                  scrapedUrls: parsed.scrapedUrlSources?.length || 0,
-                  internal: parsed.internalSources?.length || 0,
-                  web: parsed.sources?.length || 0,
-                  news: parsed.newsResults?.length || 0,
-                  images: parsed.imageResults?.length || 0
-                })
-                // Update assistant message with sources
-                setResearchMessages(prev => prev.map(msg => 
-                  msg.id === assistantMessageId ? {
-                    ...msg,
-                    scrapedUrlSources: parsed.scrapedUrlSources || [],
-                    internalSources: parsed.internalSources || [],
-                    webSources: parsed.sources || [],
-                    newsResults: parsed.newsResults || [],
-                    imageResults: parsed.imageResults || []
-                  } : msg
-                ))
-              } else if (parsed.type === 'text') {
-                answer += parsed.content
-                // Update assistant message with streaming content
-                setResearchMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId ? { ...msg, content: answer } : msg
-                ))
-              } else if (parsed.type === 'followup') {
-                setResearchFollowUpQuestions(parsed.questions || [])
+              try {
+                const parsed = JSON.parse(data)
+                
+                if (parsed.type === 'sources') {
+                  sources = parsed
+                  console.log('📊 Sources received:', {
+                    scrapedUrls: parsed.scrapedUrlSources?.length || 0,
+                    internal: parsed.internalSources?.length || 0,
+                    web: parsed.sources?.length || 0,
+                    news: parsed.newsResults?.length || 0,
+                    images: parsed.imageResults?.length || 0
+                  })
+                  // Update assistant message with sources
+                  setResearchMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId ? {
+                      ...msg,
+                      scrapedUrlSources: parsed.scrapedUrlSources || [],
+                      internalSources: parsed.internalSources || [],
+                      webSources: parsed.sources || [],
+                      newsResults: parsed.newsResults || [],
+                      imageResults: parsed.imageResults || []
+                    } : msg
+                  ))
+                } else if (parsed.type === 'text') {
+                  answer += parsed.content
+                  // Update assistant message with streaming content
+                  setResearchMessages(prev => prev.map(msg =>
+                    msg.id === assistantMessageId ? { ...msg, content: answer } : msg
+                  ))
+                } else if (parsed.type === 'followup') {
+                  setResearchFollowUpQuestions(parsed.questions || [])
+                }
+              } catch (e) {
+                // Skip invalid JSON
               }
-            } catch (e) {
-              // Skip invalid JSON
             }
           }
         }
+      } catch (streamError: any) {
+        // Handle stream reading errors (including abort)
+        if (streamError.name === 'AbortError') {
+          throw streamError // Re-throw to be caught by outer catch
+        }
+        console.warn('Stream reading error:', streamError)
       }
       
       // Scroll to bottom
