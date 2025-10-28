@@ -445,32 +445,39 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   );
                 }
                 
-                // Additional context summary - Gray italic
+                // Additional context summary - Gray italic with source
                 if (hasAdditionalContext) {
                   parts.push(
                     <div key="context" className="text-xs italic text-zinc-500 mt-1">
-                      [Additional Context: {researchState.additionalContext?.length || 0} characters]
+                      [Additional Context: {researchState.additionalContext?.length || 0} characters from user textarea]
                     </div>
                   );
                 }
                 
-                // Sources summary - Purple bold header + gray summary
+                // Sources summary - Purple bold header + gray summary with breakdown
                 parts.push(
                   <div key="sources-header" className="font-bold text-sm text-purple-700 mt-2">
                     Based on these sources:
                   </div>
                 );
+                
+                // Calculate source breakdown
+                const scrapedCount = (prompt.match(/URL: https?:\/\//g) || []).length;
+                const webNewsCount = sourceCount - scrapedCount;
+                
                 parts.push(
-                  <div key="sources" className="text-xs italic text-zinc-500 ml-2">
-                    [{sourceCount} sources with content]
+                  <div key="sources" className="text-xs italic text-zinc-500 ml-2 space-y-0.5">
+                    <div>[{sourceCount} total sources:]</div>
+                    {scrapedCount > 0 && <div>• {scrapedCount} from user-provided URLs (Firecrawl scraped)</div>}
+                    {webNewsCount > 0 && <div>• {webNewsCount} from web/news search (Firecrawl Search API)</div>}
                   </div>
                 );
                 
-                // Template summary - Gray italic
+                // Template summary - Gray italic with source
                 if (templateMatch) {
                   parts.push(
                     <div key="template" className="text-xs italic text-zinc-500 mt-2">
-                      [Template: {templateMatch[1]} Compliance Template]
+                      [Template: "{templateMatch[1]}" from database]
                     </div>
                   );
                 }
