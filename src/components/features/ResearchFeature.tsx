@@ -187,16 +187,60 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     setTimeout(() => checkScrollPosition(), 100)
   }, [researchMessages, checkScrollPosition, scrollToBottom])
 
-  // Copy message handler
-  const handleCopyResearchMessage = async (content: string, messageId: string) => {
+  // Copy message handler - includes sources in markdown
+  const handleCopyResearchMessage = async (message: any, messageId: string) => {
+    let fullContent = message.content;
+    
+    // Add sources sections in markdown format
+    
+    // Scraped URLs
+    if (message.scrapedUrlSources && message.scrapedUrlSources.length > 0) {
+      fullContent += '\n\n---\n\n## Sources - Your URLs\n\n';
+      message.scrapedUrlSources.forEach((s: any, idx: number) => {
+        fullContent += `${idx + 1}. **[${s.title}](${s.url})**\n`;
+      });
+    }
+    
+    // Internal Database Sources
+    if (message.internalSources && message.internalSources.length > 0) {
+      fullContent += '\n\n## Sources - Your Database\n\n';
+      message.internalSources.forEach((s: any, idx: number) => {
+        const num = (message.scrapedUrlSources?.length || 0) + idx + 1;
+        fullContent += `${num}. **${s.title}**\n`;
+      });
+    }
+    
+    // Web Sources
+    if (message.webSources && message.webSources.length > 0) {
+      fullContent += '\n\n## Sources - Web Search\n\n';
+      message.webSources.forEach((s: any, idx: number) => {
+        const num = (message.scrapedUrlSources?.length || 0) + (message.internalSources?.length || 0) + idx + 1;
+        fullContent += `${num}. **[${s.title}](${s.url})**\n`;
+        if (s.description) fullContent += `   - ${s.description}\n`;
+        if (s.siteName) fullContent += `   - Source: ${s.siteName}\n`;
+        fullContent += '\n';
+      });
+    }
+    
+    // News Results
+    if (message.newsResults && message.newsResults.length > 0) {
+      fullContent += '\n\n## News Articles\n\n';
+      message.newsResults.forEach((n: any, idx: number) => {
+        fullContent += `- **[${n.title}](${n.url})**\n`;
+        if (n.publishedDate) fullContent += `  - Published: ${n.publishedDate}\n`;
+        if (n.source) fullContent += `  - Source: ${n.source}\n`;
+        fullContent += '\n';
+      });
+    }
+    
     try {
-      await navigator.clipboard.writeText(content)
+      await navigator.clipboard.writeText(fullContent)
       setCopiedResearchMessageId(messageId)
       setTimeout(() => setCopiedResearchMessageId(null), 2000)
     } catch (error) {
       console.error('Failed to copy research message:', error)
       const textArea = document.createElement('textarea')
-      textArea.value = content
+      textArea.value = fullContent
       document.body.appendChild(textArea)
       textArea.select()
       document.execCommand('copy')
@@ -644,7 +688,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                       className={`inline-flex items-center gap-1 text-xs hover:text-gray-700 transition-colors ${
                         copiedResearchMessageId === m.id ? 'text-green-600' : ''
                       }`} 
-                      onClick={() => handleCopyResearchMessage(m.content, m.id)} 
+                      onClick={() => handleCopyResearchMessage(m, m.id)} 
                       type="button"
                     >
                       {copiedResearchMessageId === m.id ? (
