@@ -77,9 +77,14 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
+  const [showSaveMetadataPopover, setShowSaveMetadataPopover] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [saveModalContent, setSaveModalContent] = useState('')
   const [messageToSave, setMessageToSave] = useState<any>(null)
+  const [saveTitle, setSaveTitle] = useState('')
+  const [saveJurisdiction, setSaveJurisdiction] = useState('')
+  const [saveTopic, setSaveTopic] = useState('')
+  const [saveTemplate, setSaveTemplate] = useState('')
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -944,16 +949,21 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setShowSaveModal(true)
   }
   
+  const handleProceedToEditor = () => {
+    // Close metadata popover and open Tiptap editor
+    setShowSaveMetadataPopover(false)
+    handleOpenSaveModal(messageToSave)
+  }
+  
   const handleSaveFromModal = async (markdown: string) => {
     try {
       await saveResearch({
-        title: `Research - ${new Date().toLocaleDateString()}`,
+        title: saveTitle,
         content: markdown,
         originalQuery: saveModalContent.substring(0, 100),
-        jurisdiction: researchState?.jurisdiction || researchJurisdiction || undefined,
-        topic: researchState?.topic || researchTopic || undefined,
-        templateUsed: researchState?.selectedTemplate || selectedResearchTemplate || undefined,
-        internalSources: messageToSave?.internalSources,
+        jurisdiction: saveJurisdiction || undefined,
+        topic: saveTopic || undefined,
+        templateUsed: saveTemplate || undefined,
         webSources: messageToSave?.webSources,
         newsResults: messageToSave?.newsResults,
       })
@@ -961,7 +971,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
       addToast({
         variant: 'success',
         title: 'Research saved',
-        description: 'Saved to your research library',
+        description: `Saved as: ${saveTitle}`,
         duration: 3000
       })
       
@@ -979,6 +989,93 @@ These appear AFTER "Based on these sources:" in your prompt.`
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Save Metadata Popover - First Step */}
+      {showSaveMetadataPopover && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowSaveMetadataPopover(false)}
+          />
+          
+          <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Save to Library</h3>
+            
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <Input
+                  value={saveTitle}
+                  onChange={(e) => setSaveTitle(e.target.value)}
+                  placeholder="Research title..."
+                  className="text-sm"
+                />
+              </div>
+              
+              {/* Jurisdiction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jurisdiction</label>
+                <select
+                  value={saveJurisdiction}
+                  onChange={(e) => setSaveJurisdiction(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">None</option>
+                  {jurisdictions?.map(j => (
+                    <option key={j.code} value={j.name}>{j.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Topic */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                <select
+                  value={saveTopic}
+                  onChange={(e) => setSaveTopic(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">None</option>
+                  {topics?.map(t => (
+                    <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Template */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Template Used</label>
+                <select
+                  value={saveTemplate}
+                  onChange={(e) => setSaveTemplate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="">None</option>
+                  {templates?.map(t => (
+                    <option key={t.templateId} value={t.templateId}>{t.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 justify-end mt-6">
+              <Button
+                onClick={() => setShowSaveMetadataPopover(false)}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleProceedToEditor}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Continue to Editor
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Save Modal - Reusable Component */}
       <TiptapEditorModal
         isOpen={showSaveModal}
@@ -1328,7 +1425,20 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     <button 
                       className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
                       type="button"
-                      onClick={() => handleOpenSaveModal(m)}
+                      onClick={() => {
+                        setMessageToSave(m)
+                        // Pre-populate metadata
+                        const jurisdiction = researchState?.jurisdiction || researchJurisdiction || ''
+                        const topic = researchState?.topic || researchTopic || ''
+                        const template = researchState?.selectedTemplate || selectedResearchTemplate || ''
+                        const date = new Date().toLocaleDateString()
+                        const titlePrefix = jurisdiction ? `${jurisdiction} - ` : ''
+                        setSaveTitle(`${titlePrefix}Research - ${date}`)
+                        setSaveJurisdiction(jurisdiction)
+                        setSaveTopic(topic)
+                        setSaveTemplate(template)
+                        setShowSaveMetadataPopover(true)
+                      }}
                     >
                       <Save className="h-3 w-3" /> Save
                     </button>
