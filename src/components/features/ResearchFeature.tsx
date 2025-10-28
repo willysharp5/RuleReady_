@@ -456,14 +456,72 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 if (!parsed || !parsed.type) continue
                 
                 if (parsed.type === 'warning') {
-                  // Show warning toast
+                  // Show warning toast with detailed error info
                   console.log('⚠️ WARNING RECEIVED:', parsed.message)
+                  
+                  let warningDetails;
+                  try {
+                    warningDetails = typeof parsed.message === 'string' ? JSON.parse(parsed.message) : parsed.message;
+                  } catch {
+                    warningDetails = { message: parsed.message };
+                  }
+                  
+                  // Extract error position from error message
+                  const errorMsg = warningDetails.error || '';
+                  const positionMatch = errorMsg.match(/position (\d+)/);
+                  const errorPosition = positionMatch ? parseInt(positionMatch[1]) : -1;
+                  
+                  // Highlight error location in JSON
+                  const highlightErrorInJson = (json: string, errorPos: number) => {
+                    if (errorPos < 0 || errorPos >= json.length) return json;
+                    
+                    const contextBefore = 30;
+                    const contextAfter = 30;
+                    const start = Math.max(0, errorPos - contextBefore);
+                    const end = Math.min(json.length, errorPos + contextAfter);
+                    
+                    const before = json.substring(start, errorPos);
+                    const errorChar = json.substring(errorPos, errorPos + 1);
+                    const after = json.substring(errorPos + 1, end);
+                    
+                    return (
+                      <>
+                        {start > 0 && '...'}
+                        <span className="text-gray-400">{before}</span>
+                        <span className="bg-red-600 text-white px-0.5 font-bold">{errorChar || '⚠'}</span>
+                        <span className="text-gray-400">{after}</span>
+                        {end < json.length && '...'}
+                      </>
+                    );
+                  };
+                  
                   setTimeout(() => {
                     addToast({
                       variant: 'error',
-                      title: 'Firecrawl Config Error',
-                      description: parsed.message || 'Invalid JSON configuration detected',
-                      duration: 8000
+                      title: 'Invalid Firecrawl Configuration',
+                      description: (
+                        <div className="text-sm space-y-2">
+                          <p className="font-semibold">Using default settings instead</p>
+                          <div className="text-xs space-y-1">
+                            <p className="font-semibold text-red-800">Error:</p>
+                            <p className="text-red-700">{errorMsg}</p>
+                          </div>
+                          {warningDetails.invalidJson && (
+                            <div className="mt-2">
+                              <p className="text-xs font-semibold mb-1">Error location:</p>
+                              <div className="p-2 bg-red-900/20 rounded text-xs font-mono overflow-auto max-h-32 leading-relaxed">
+                                {errorPosition >= 0 ? (
+                                  highlightErrorInJson(warningDetails.invalidJson, errorPosition)
+                                ) : (
+                                  warningDetails.invalidJson.substring(0, 150) + (warningDetails.invalidJson.length > 150 ? '...' : '')
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          <p className="text-xs mt-2 text-gray-600">→ Check Search Configuration (JSON) in the right panel</p>
+                        </div>
+                      ),
+                      duration: 12000
                     })
                   }, 100)
                 } else if (parsed.type === 'sources') {
