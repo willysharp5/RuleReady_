@@ -293,13 +293,14 @@ Generate an updated compliance research answer that:
 3. Keeps unchanged sections the same
 4. Adds or expands on what the user requested
 
-FORMAT YOUR RESPONSE AS MARKDOWN:
-- Use ## for main section headers (like ## Overview, ## Requirements)
-- Use ### for subsection headers
-- Use **bold** for emphasis
-- Use - for bullet points
-- Use [1], [2], [3] for inline source citations
-- Write in clear, professional compliance documentation style
+CRITICAL: FORMAT YOUR ENTIRE RESPONSE AS MARKDOWN (not as code, not escaped):
+- Start headers with ## (like: ## Overview)
+- Do NOT escape markdown (NO backslashes like \\## or \\**)
+- Do NOT wrap in code blocks (NO ``` around your answer)
+- Use **text** for bold
+- Use - for bullet lists
+- Cite sources as [1], [2], [3] inline
+- Just write natural markdown as if writing a document
 
 Available sources for citations:
 ${context}`;
