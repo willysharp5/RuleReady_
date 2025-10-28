@@ -457,9 +457,10 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 
                 if (parsed.type === 'warning') {
                   // Show warning toast
+                  console.log('⚠️ Received warning:', parsed.message)
                   addToast({
                     variant: 'error',
-                    title: 'Configuration Warning',
+                    title: 'Firecrawl Config Error',
                     description: parsed.message,
                     duration: 5000
                   })
