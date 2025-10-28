@@ -345,6 +345,15 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       // Filter out empty URLs
       const urlsToScrape = researchUrls.filter(url => url.trim()).map(url => url.trim());
       
+      // Log refinement request
+      if (isRefinementMode) {
+        console.log('🔄 Starting refinement mode:', {
+          hasAnswer: !!answerBeingRefined?.content,
+          answerLength: answerBeingRefined?.content?.length,
+          hasSources: !!(answerBeingRefined?.scrapedUrlSources || answerBeingRefined?.webSources)
+        })
+      }
+      
       const response = await fetch('/api/compliance-research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
