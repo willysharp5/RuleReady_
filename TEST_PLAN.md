@@ -1,5 +1,9 @@
 # 🧪 End-to-End Workflow Test Plan
 
+   - https://www.dfeh.ca.gov/shpt/
+   - https://www.eeoc.gov/sexual-harassment
+   - https://www.eeoc.gov/sites/default/files/migrated_files/youth/downloads/teacher_manual.pdf
+
 ## 📍 Test Case: California Sexual Harassment Training
 
 ### 🌐 URLs to Scrape:

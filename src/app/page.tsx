@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/header'
 import { Hero } from '@/components/layout/hero'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, ExternalLink, LogIn, X, Search, Bot, Info, FileText, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus } from 'lucide-react'
+import { Loader2, ExternalLink, LogIn, X, Search, Bot, Info, FileText, CheckCircle2, MessageCircle, User, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, Copy, Check, Newspaper, Save, Edit, Plus, Globe, ChevronLeft, ChevronRight, Square } from 'lucide-react'
 import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useRouter } from 'next/navigation'
@@ -46,39 +46,6 @@ interface ChatMessage {
     jurisdiction: string
     topic: string
   }
-}
-
-// Helper function to format interval display
-function formatInterval(minutes: number | undefined): string {
-  if (!minutes || minutes === 0) return 'Not set';
-  if (minutes < 1) return `${Math.round(minutes * 60)} seconds`;
-  if (minutes === 1) return '1 minute';
-  if (minutes < 60) return `${minutes} minutes`;
-  if (minutes === 60) return '1 hour';
-  if (minutes < 1440) {
-    const hours = minutes / 60;
-    return hours === 1 ? '1 hour' : `${Math.floor(hours)} hours`;
-  }
-  const days = minutes / 1440;
-  return days === 1 ? '1 day' : `${Math.floor(days)} days`;
-}
-
-// Helper function to get favicon URL with fallback
-function getFaviconUrl(url: string): string {
-  try {
-    const domain = new URL(url).hostname;
-    // Use Google's favicon service (most reliable)
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-  } catch {
-    return '/ruleready-icon.svg'; // Use local fallback
-  }
-}
-
-
-// Helper function to clean website name by removing priority prefixes
-function cleanWebsiteName(name: string): string {
-  // Remove priority prefixes like [CRITICAL], [HIGH], [MEDIUM], [LOW], [TEST]
-  return name.replace(/^\[(CRITICAL|HIGH|MEDIUM|LOW|TEST)\]\s*/, '');
 }
 
 export default function HomePage() {
@@ -566,110 +533,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     return () => timers.forEach(timer => clearTimeout(timer))
   }, [researchUrls])
   
-  // URL validation function
-  const validateUrl = async (inputUrl: string) => {
-    if (!inputUrl.trim()) {
-      setUrlValidation({
-        isValid: null,
-        isValidating: false,
-        message: ''
-      })
-      return
-    }
-
-    // Basic URL format validation
-    try {
-      const url = new URL(inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`)
-      
-      setUrlValidation({
-        isValid: null,
-        isValidating: true,
-        message: 'Validating URL...'
-      })
-
-      // Try to fetch the URL to verify it's accessible
-      const response = await fetch('/api/validate-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: url.toString() }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.isValid) {
-        setUrlValidation({
-          isValid: true,
-          isValidating: false,
-          message: 'URL is valid and accessible',
-          siteTitle: result.title,
-          siteDescription: result.description
-        })
-      } else {
-        setUrlValidation({
-          isValid: false,
-          isValidating: false,
-          message: result.error || 'URL is not accessible or invalid'
-        })
-      }
-    } catch {
-      setUrlValidation({
-        isValid: false,
-        isValidating: false,
-        message: 'Invalid URL format'
-      })
-    }
-  }
-
-  // Debounced URL validation
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (url.trim()) {
-        validateUrl(url)
-      }
-    }, 1000) // Wait 1 second after user stops typing
-
-    return () => clearTimeout(timeoutId)
-  }, [url])
-  
-  // Update firecrawl config when settings change (v1 API compatible)
-  useEffect(() => {
-    const config: Record<string, unknown> = {
-      formats: ["markdown", "links"],
-      onlyMainContent: false,
-      waitFor: 2000,
-      maxAge: 172800000, // 48 hours cache
-      removeBase64Images: true
-    }
-    
-    if (monitorType === 'full_site') {
-      config.limit = maxPages
-      config.maxDepth = maxCrawlDepth
-    }
-    
-    setFirecrawlConfig(JSON.stringify(config, null, 2))
-  }, [monitorType, maxPages, maxCrawlDepth])
   
   
-  // Auto-adjust frequency based on priority (following documented system logic)
-  useEffect(() => {
-    let adjustedInterval: number
-    
-    if (selectedPriorityLevel === "critical") {
-      adjustedInterval = 1440 // Daily (24 hours)
-    } else if (selectedPriorityLevel === "high") {
-      adjustedInterval = 2880 // Every 2 days (48 hours)
-    } else if (selectedPriorityLevel === "medium") {
-      adjustedInterval = 10080 // Weekly (7 days)
-    } else if (selectedPriorityLevel === "low") {
-      adjustedInterval = 43200 // Monthly (30 days)
-    } else {
-      adjustedInterval = 1440 // Default to daily
-    }
-    
-    setCheckInterval(adjustedInterval)
-  }, [selectedPriorityLevel])
   
   // Load chat settings from database - NO FALLBACK DEFAULTS
   useEffect(() => {
@@ -760,24 +625,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   // }, [setupStatus?.needsSetup, createAllWebsites, addToast])
 
   // Handle escape key for modals
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (viewingSpecificScrape) {
-          setViewingSpecificScrape(null)
-        }
-        if (showWebhookModal) {
-          setShowWebhookModal(false)
-          setEditingWebsiteId(null)
-          setPendingWebsite(null)
-        }
-      }
-    }
-    
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [viewingSpecificScrape, showWebhookModal])
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsAuthenticating(true)
@@ -910,124 +757,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       }
     } finally {
       setIsAuthenticating(false)
-    }
-  }
-
-  const handleAddWebsite = () => {
-    // Branch based on monitoring mode
-    if (monitoringMode === 'once') {
-      // One-time scrape - call handleMonitorOnce
-      handleMonitorOnce()
-    } else {
-      // Scheduled monitoring - proceed with normal website creation
-      if (!url) {
-        setError('Please enter a URL')
-        return
-      }
-
-      // Add https:// if no protocol is specified
-      let processedUrl = url.trim()
-      if (!processedUrl.match(/^https?:\/\//)) {
-        processedUrl = 'https://' + processedUrl
-      }
-
-      // Basic URL validation and auto-generate name
-      let autoGeneratedName = ''
-      try {
-        const urlObj = new URL(processedUrl)
-        // Generate a friendly name from the hostname
-        autoGeneratedName = urlObj.hostname
-          .replace('www.', '')
-          .split('.')[0]
-          .charAt(0).toUpperCase() + urlObj.hostname.replace('www.', '').split('.')[0].slice(1)
-      } catch {
-        setError('Please enter a valid URL')
-        return
-      }
-
-      setError('')
-      
-      // Store the pending website data and show the modal
-      setPendingWebsite({
-        url: processedUrl,
-        name: autoGeneratedName
-      })
-      setShowWebhookModal(true)
-      setUrl('')
-    }
-  }
-
-  const handleMonitorOnce = async () => {
-    if (!url) {
-      setError('Please enter a URL')
-      return
-    }
-
-    // Add https:// if no protocol is specified
-    let processedUrl = url.trim()
-    if (!processedUrl.match(/^https?:\/\//)) {
-      processedUrl = 'https://' + processedUrl
-    }
-
-    // Basic URL validation
-    try {
-      new URL(processedUrl)
-    } catch {
-      setError('Please enter a valid URL')
-      return
-    }
-
-    setError('')
-    setIsMonitoringOnce(true)
-    
-    try {
-      const domain = new URL(processedUrl).hostname
-      const websiteId = await createWebsite({
-        url: processedUrl,
-        name: `[ONE-TIME] ${domain}`,
-        checkInterval: 525600, // 1 year (365 days) - effectively never auto-checks
-        notificationPreference: 'none',
-        monitorType: monitorType === 'full_site' ? 'full_site' : 'single_page',
-        crawlLimit: maxPages,
-        crawlDepth: maxCrawlDepth,
-      })
-      
-      // Prepare AI/Firecrawl options from UI
-      let parsedConfig: Record<string, unknown> | undefined
-      try {
-        parsedConfig = firecrawlConfig ? JSON.parse(firecrawlConfig) : undefined
-      } catch {
-        parsedConfig = undefined
-      }
-
-      // Scrape and save to the website entry
-      const result = await crawlWebsite({ 
-        url: processedUrl,
-        limit: monitorType === 'full_site' ? maxPages : 1,
-        config: parsedConfig,
-        saveToDb: true,
-        websiteId: websiteId,
-      })
-      
-      addToast({
-        variant: 'success',
-        title: 'One-time monitoring completed',
-        description: `Scraped ${result.totalPages} page${result.totalPages !== 1 ? 's' : ''} from ${processedUrl}${result.savedScrapeResultIds?.length ? ' • Saved to history' : ''}`,
-        duration: 5000
-      })
-      
-      setUrl('')
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to monitor website'
-      setError(errorMessage)
-      addToast({
-        variant: 'error',
-        title: 'Monitoring failed',
-        description: errorMessage,
-        duration: 5000
-      })
-    } finally {
-      setIsMonitoringOnce(false)
     }
   }
 
@@ -1253,29 +982,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
 
 
 
-  const handleCheckNow = async (websiteId: string) => {
-    setProcessingWebsites(prev => new Set([...prev, websiteId]))
-    
-    try {
-      await triggerScrape({ websiteId: websiteId as any }) // eslint-disable-line @typescript-eslint/no-explicit-any
-      // The UI will automatically update via Convex reactive queries
-      
-      // Keep processing indicator for a bit to show the scrape is running
-      setTimeout(() => {
-        setProcessingWebsites(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(websiteId)
-          return newSet
-        })
-      }, 5000) // Increased to 5 seconds
-    } catch {
-      setProcessingWebsites(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(websiteId)
-        return newSet
-      })
-    }
-  }
 
   // Skip authentication for single-user mode
   if (false && authLoading) {
@@ -1455,9 +1161,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       
       <MainContent maxWidth="7xl" className="py-12">
         <div className="space-y-6">
-          {/* Compliance Guide */}
-          <ComplianceGuide />
-          
           {/* AI Chat Assistant */}
           <div className="bg-white rounded-lg shadow-sm">
             {/* Collapsible Header */}
@@ -2822,6 +2525,8 @@ Follow the template sections but adapt based on the query. Not all sections may 
               </div>
             )}
           </div>
+        </div>
+      </MainContent>
       
       <Footer />
     </Layout>
