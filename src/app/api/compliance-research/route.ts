@@ -326,7 +326,7 @@ ${context}`;
               parts: [{
                 text: `Based on this compliance query: "${query}"
 
-Generate 5 natural follow-up questions that would help the user understand related compliance topics.
+Generate 3 natural follow-up questions that would help the user understand related compliance topics.
 
 ONLY generate questions if the query warrants them:
 - Make them genuinely helpful for compliance research
@@ -343,7 +343,7 @@ Return only the questions, one per line, no numbering.`
             .split('\n')
             .map(q => q.trim())
             .filter(q => q.length > 0)
-            .slice(0, 5);
+            .slice(0, 3);
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'followup',
