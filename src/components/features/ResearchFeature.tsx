@@ -272,9 +272,23 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   }, [researchMessages.length, checkScrollPosition])
 
   // Auto-scroll on new messages
+  // Auto-scroll to bottom ONLY when user is near bottom (not reading previous messages)
   useEffect(() => {
-    scrollToBottom()
-    setShowScrollButton(false)
+    const el = researchListRef.current
+    if (!el) return
+    
+    // Check if user is near bottom (within 200px)
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
+    
+    // Only auto-scroll if user is near bottom
+    if (isNearBottom) {
+      scrollToBottom('instant')
+      setShowScrollButton(false)
+    } else {
+      // User scrolled up, show scroll button
+      setShowScrollButton(true)
+    }
+    
     setTimeout(() => checkScrollPosition(), 100)
   }, [researchMessages, checkScrollPosition, scrollToBottom])
 
