@@ -1399,13 +1399,44 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => {
-                    // TODO: Implement save functionality
-                    handleCloseSaveModal()
+                  onClick={async () => {
+                    // Convert HTML to Markdown for storage
+                    const html = saveEditor?.getHTML() || ''
+                    const markdown = turndownService.current.turndown(html)
+                    
+                    try {
+                      await saveResearch({
+                        title: `Research - ${new Date().toLocaleDateString()}`,
+                        content: markdown,
+                        originalQuery: messageToSave.content.substring(0, 100),
+                        jurisdiction: researchState?.jurisdiction || researchJurisdiction || undefined,
+                        topic: researchState?.topic || researchTopic || undefined,
+                        templateUsed: researchState?.selectedTemplate || selectedResearchTemplate || undefined,
+                        internalSources: messageToSave.internalSources,
+                        webSources: messageToSave.webSources,
+                        newsResults: messageToSave.newsResults,
+                      })
+                      
+                      addToast({
+                        variant: 'success',
+                        title: 'Research saved',
+                        description: 'Saved to your research library',
+                        duration: 3000
+                      })
+                      
+                      handleCloseSaveModal()
+                    } catch (error) {
+                      addToast({
+                        variant: 'error',
+                        title: 'Save failed',
+                        description: 'Could not save research',
+                        duration: 3000
+                      })
+                    }
                   }}
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  Save
+                  Save to Library
                 </Button>
               </div>
             </div>
