@@ -583,7 +583,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
 
-  // Auto-save conversation after messages update (debounced)
+  // Auto-save active tab conversation after messages update (debounced)
   useEffect(() => {
     // Only auto-save if we have at least one complete exchange (user + assistant)
     const hasCompleteExchange = researchMessages.length >= 2 && 
@@ -607,9 +607,13 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           }
         })
         
-        // Store conversation ID for future updates
+        // Store conversation ID in the active tab
         if (result.conversationId) {
-          setCurrentConversationId(result.conversationId as string)
+          setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
+              ? { ...tab, conversationId: result.conversationId as string, hasUnsavedChanges: false }
+              : tab
+          ))
         }
       } catch (error) {
         // Silent failure for auto-save
@@ -618,25 +622,30 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }, 2000) // Auto-save 2 seconds after last message
     
     return () => clearTimeout(autoSaveTimer)
-  }, [researchMessages, isResearching])
+  }, [researchMessages, isResearching, activeTabId])
 
   const handleClearChat = async () => {
-    // Delete the current conversation from database if it exists
-    if (currentConversationId) {
+    // Delete the current tab's conversation from database if it exists
+    const currentTab = tabs.find(t => t.id === activeTabId)
+    if (currentTab?.conversationId) {
       try {
-        await deleteConversation({ conversationId: currentConversationId as any })
+        await deleteConversation({ conversationId: currentTab.conversationId as any })
       } catch (error) {
         console.error('Failed to delete conversation:', error)
       }
     }
     
-    // Clear chat messages
-    setResearchMessages([])
+    // Clear messages in active tab only
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId 
+        ? { ...tab, messages: [], conversationId: null, hasUnsavedChanges: false }
+        : tab
+    ))
+    
     setResearchFollowUpQuestions([])
     setIsRefinementMode(false)
     setAnswerBeingRefined(null)
     setShowAdvancedResearchOptions(false)
-    setCurrentConversationId(null) // Reset conversation tracking
     
     // Reset to default system prompt
     const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -693,11 +702,57 @@ These appear AFTER "Based on these sources:" in your prompt.`
     }
   }
 
+  const handleAddTab = () => {
+    const newTabNumber = tabs.length + 1
+    const newTab = {
+      id: `tab-${Date.now()}`,
+      title: `Chat ${newTabNumber}`,
+      conversationId: null,
+      messages: [],
+      hasUnsavedChanges: false
+    }
+    setTabs(prev => [...prev, newTab])
+    setActiveTabId(newTab.id)
+  }
+  
+  const handleCloseTab = async (tabId: string) => {
+    if (tabs.length === 1) return // Don't close last tab
+    
+    const tabToClose = tabs.find(t => t.id === tabId)
+    if (tabToClose?.conversationId) {
+      await deleteConversation({ conversationId: tabToClose.conversationId as any })
+    }
+    
+    const newTabs = tabs.filter(t => t.id !== tabId)
+    setTabs(newTabs)
+    
+    // Switch to another tab if closing active tab
+    if (activeTabId === tabId) {
+      setActiveTabId(newTabs[0].id)
+    }
+  }
+  
+  const handleRenameTab = async (tabId: string, newTitle: string) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === tabId ? { ...tab, title: newTitle } : tab
+    ))
+    
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab?.conversationId) {
+      await updateConversationTitle({
+        conversationId: tab.conversationId as any,
+        title: newTitle
+      })
+    }
+    
+    setIsEditingTab(null)
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
       {/* Header */}
-      <div className="border-b border-gray-200 flex-shrink-0 pb-6">
-        <div className="flex items-start justify-between">
+      <div className="border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 pt-4 pb-2">
           <div>
             <h2 className="text-2xl font-semibold text-gray-900">Compliance Research</h2>
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
@@ -712,6 +767,68 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <X className="w-4 h-4 mr-1" />
             Clear Chat
           </Button>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex items-center gap-2 px-6 overflow-x-auto scrollbar-hide">
+          {tabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`
+                flex items-center gap-2 px-3 py-1.5 rounded-t-md border-b-2 cursor-pointer
+                ${activeTabId === tab.id 
+                  ? 'bg-purple-50 border-purple-500 text-purple-700' 
+                  : 'bg-zinc-50 border-transparent text-zinc-600 hover:bg-zinc-100'
+                }
+              `}
+              onClick={() => setActiveTabId(tab.id)}
+            >
+              {isEditingTab === tab.id ? (
+                <input
+                  type="text"
+                  value={editingTabTitle}
+                  onChange={(e) => setEditingTabTitle(e.target.value)}
+                  onBlur={() => handleRenameTab(tab.id, editingTabTitle)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRenameTab(tab.id, editingTabTitle)
+                    if (e.key === 'Escape') setIsEditingTab(null)
+                  }}
+                  className="w-24 px-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  autoFocus
+                />
+              ) : (
+                <span 
+                  className="text-xs font-medium"
+                  onDoubleClick={() => {
+                    setIsEditingTab(tab.id)
+                    setEditingTabTitle(tab.title)
+                  }}
+                >
+                  {tab.title}
+                </span>
+              )}
+              
+              {tabs.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleCloseTab(tab.id)
+                  }}
+                  className="hover:bg-red-100 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+          
+          <button
+            onClick={handleAddTab}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded"
+          >
+            <Plus className="w-3 h-3" />
+            New
+          </button>
         </div>
       </div>
       
