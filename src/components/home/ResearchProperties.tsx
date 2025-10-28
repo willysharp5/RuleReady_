@@ -407,12 +407,13 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     onClick={() => {
                       if (setResearchState && researchState) {
                         const newUrls = (researchState.urls || ['']).filter((_: string, i: number) => i !== index)
-                        setResearchState({ ...researchState, urls: newUrls })
+                        // If we removed the last URL, ensure at least one empty field remains
+                        setResearchState({ ...researchState, urls: newUrls.length > 0 ? newUrls : [''] })
                       }
                     }}
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 hover:bg-red-50"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3 w-3 text-red-500" />
                   </Button>
                 )}
                 {index === (researchState?.urls || ['']).length - 1 && (researchState?.urls || ['']).length < 5 && (
@@ -449,9 +450,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
               );
             })}
           </div>
-          <p className="text-xs text-orange-700 mt-2">
-            💡 PDFs supported - Firecrawl will extract text
-          </p>
         </div>
       </div>
 
