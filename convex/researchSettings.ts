@@ -53,7 +53,6 @@ export const updateResearchSettings = mutation({
     } else {
       // Create new settings
       await ctx.db.insert("appSettings", {
-        emailNotificationsEnabled: true,
         researchSystemPrompt: args.researchSystemPrompt,
         researchModel: args.researchModel,
         researchFirecrawlConfig: args.researchFirecrawlConfig,

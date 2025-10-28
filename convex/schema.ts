@@ -4,17 +4,6 @@ import { v } from "convex/values";
 const schema = defineSchema({
   // App settings (single-user mode - global app configuration)
   appSettings: defineTable({
-    emailNotificationsEnabled: v.boolean(),
-    emailTemplate: v.optional(v.string()),
-    // AI Analysis settings (keep for existing data)
-    aiAnalysisEnabled: v.optional(v.boolean()),
-    aiModel: v.optional(v.string()),
-    aiBaseUrl: v.optional(v.string()),
-    aiSystemPrompt: v.optional(v.string()),
-    aiMeaningfulChangeThreshold: v.optional(v.number()),
-    aiApiKey: v.optional(v.string()),
-    emailOnlyIfMeaningful: v.optional(v.boolean()),
-    webhookOnlyIfMeaningful: v.optional(v.boolean()),
     // Chat settings
     chatSystemPrompt: v.optional(v.string()),
     chatModel: v.optional(v.string()),

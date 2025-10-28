@@ -29,7 +29,6 @@ export const updateChatSettings = mutation({
     } else {
       // Create new settings
       await ctx.db.insert("appSettings", {
-        emailNotificationsEnabled: true,
         chatSystemPrompt: args.chatSystemPrompt,
         chatModel: args.chatModel,
         enableComplianceContext: args.enableComplianceContext,
