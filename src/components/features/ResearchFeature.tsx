@@ -455,7 +455,15 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 
                 if (!parsed || !parsed.type) continue
                 
-                if (parsed.type === 'sources') {
+                if (parsed.type === 'warning') {
+                  // Show warning toast
+                  addToast({
+                    variant: 'error',
+                    title: 'Configuration Warning',
+                    description: parsed.message,
+                    duration: 5000
+                  })
+                } else if (parsed.type === 'sources') {
                   sources = parsed
                   // Update assistant message with sources
                   setResearchMessages(prev => prev.map(m =>

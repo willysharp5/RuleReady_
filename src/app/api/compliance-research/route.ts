@@ -96,6 +96,7 @@ export async function POST(request: Request) {
     let webResults: any[] = [];
     let newsData: any[] = [];
     let imagesData: any[] = [];
+    let configError: string | null = null;
     
     if (isRefinement && (!urls || urls.length === 0)) {
       // Refinement mode with no new URLs - reuse existing sources
@@ -153,6 +154,7 @@ export async function POST(request: Request) {
           console.log(`[${requestId}] Using custom Firecrawl config`);
         } catch (e) {
           console.warn(`[${requestId}] Invalid Firecrawl config JSON, using defaults`);
+          configError = `Invalid Firecrawl JSON configuration - using defaults. Error: ${e instanceof Error ? e.message : 'Parse failed'}`;
         }
       }
       
@@ -335,6 +337,14 @@ ${context}`;
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send config error if any
+          if (configError) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'warning',
+              message: configError
+            })}\n\n`));
+          }
+          
           // Send sources first (including scraped URLs, internal, and web sources)
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'sources',
