@@ -76,6 +76,10 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [messageToSave, setMessageToSave] = useState<any>(null)
+  const [savePreviewMode, setSavePreviewMode] = useState<'preview' | 'markdown'>('preview')
+  const [saveEditContent, setSaveEditContent] = useState('')
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -841,8 +845,128 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setIsEditingTab(null)
   }
 
+  const handleOpenSaveModal = (message: any) => {
+    setMessageToSave(message)
+    setSaveEditContent(message.content)
+    setSavePreviewMode('preview')
+    setShowSaveModal(true)
+  }
+  
+  const handleCloseSaveModal = () => {
+    setShowSaveModal(false)
+    setMessageToSave(null)
+    setSaveEditContent('')
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Save Modal - Full Screen */}
+      {showSaveModal && messageToSave && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          {/* Dark backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60"
+            onClick={handleCloseSaveModal}
+          />
+          
+          {/* Modal content */}
+          <div className="relative bg-white rounded-lg shadow-2xl w-[90vw] max-w-4xl h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Save Research Result</h3>
+              <button
+                onClick={handleCloseSaveModal}
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Toggle: Preview / Markdown */}
+            <div className="flex gap-2 p-4 border-b border-gray-200">
+              <button
+                onClick={() => setSavePreviewMode('preview')}
+                className={`px-3 py-1.5 text-sm rounded ${
+                  savePreviewMode === 'preview'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setSavePreviewMode('markdown')}
+                className={`px-3 py-1.5 text-sm rounded ${
+                  savePreviewMode === 'markdown'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Markdown
+              </button>
+            </div>
+            
+            {/* Content area */}
+            <div className="flex-1 overflow-auto p-4">
+              {savePreviewMode === 'preview' ? (
+                // Preview mode - rendered markdown
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]} 
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-base font-bold mt-3 mb-1 text-gray-800">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-sm font-bold mt-2 mb-1 text-gray-800">{children}</h3>,
+                      p: ({children}) => <p className="mb-2 leading-normal">{children}</p>,
+                      ul: ({children}) => <ul className="mb-2 space-y-0.5 ml-4">{children}</ul>,
+                      ol: ({children}) => <ol className="mb-2 space-y-0.5 ml-4">{children}</ol>,
+                      li: ({children}) => <li className="leading-normal list-disc">{children}</li>,
+                      strong: ({children}) => <strong className="font-bold text-gray-900">{children}</strong>,
+                      a: ({children, ...props}) => <a className="text-blue-600 hover:underline font-medium" target="_blank" rel="noreferrer" {...props}>{children}</a>,
+                    }}
+                  >
+                    {saveEditContent}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                // Markdown mode - editable textarea
+                <textarea
+                  value={saveEditContent}
+                  onChange={(e) => setSaveEditContent(e.target.value)}
+                  className="w-full h-full p-4 font-mono text-sm border border-gray-200 rounded resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Edit your research result markdown..."
+                />
+              )}
+            </div>
+            
+            {/* Footer with actions */}
+            <div className="flex items-center justify-between p-4 border-t border-gray-200">
+              <div className="text-xs text-gray-500">
+                {saveEditContent.length} characters
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCloseSaveModal}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // TODO: Implement save functionality
+                    handleCloseSaveModal()
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Delete Tab Confirmation Popover - Fixed Position */}
       {showDeleteTabConfirm && (
         <>
@@ -1183,9 +1307,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     <button 
                       className="inline-flex items-center gap-1 text-xs hover:text-gray-700" 
                       type="button"
-                      onClick={() => {
-                        // Save research functionality (placeholder)
-                      }}
+                      onClick={() => handleOpenSaveModal(m)}
                     >
                       <Save className="h-3 w-3" /> Save
                     </button>
