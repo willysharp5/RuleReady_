@@ -2737,7 +2737,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           <option key={j.code} value={j.name}>{j.name}</option>
                         ))}
                       </select>
-                      <Tooltip content="Filters search results and tells AI to focus on this jurisdiction. Gets added as 'Focus on jurisdiction: X' in the prompt.">
+                      <Tooltip content={
+                        <div className="text-xs">
+                          <div>Filters search results and tells AI to focus on this jurisdiction.</div>
+                          <div className="mt-1">Gets added as: "Focus on jurisdiction: X"</div>
+                        </div>
+                      }>
                         <Info className="h-4 w-4 text-gray-400 cursor-help" />
                       </Tooltip>
                     </div>
@@ -2754,7 +2759,12 @@ Provide a meaningful change score (0-1) and reasoning for the assessment.`)
                           <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
                         ))}
                       </select>
-                      <Tooltip content="Filters search results and tells AI to focus on this topic. Gets added as 'Focus on topic: X' in the prompt.">
+                      <Tooltip content={
+                        <div className="text-xs">
+                          <div>Filters search results and tells AI to focus on this topic.</div>
+                          <div className="mt-1">Gets added as: "Focus on topic: X"</div>
+                        </div>
+                      }>
                         <Info className="h-4 w-4 text-gray-400 cursor-help" />
                       </Tooltip>
                     </div>
@@ -2868,7 +2878,12 @@ Follow the template sections but adapt based on the query. Not all sections may 
                         </option>
                       ))}
                     </select>
-                    <Tooltip content="Templates provide structured format for AI responses (16-section compliance report structure). Selecting a template auto-updates the AI System Prompt with the template format.">
+                    <Tooltip content={
+                      <div className="text-xs">
+                        <div>Templates provide structured format for AI responses.</div>
+                        <div className="mt-1">Selecting a template auto-updates the AI System Prompt.</div>
+                      </div>
+                    }>
                       <Info className="h-4 w-4 text-purple-400 cursor-help" />
                     </Tooltip>
                     </div>
