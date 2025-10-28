@@ -1345,8 +1345,14 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   }
   
   const handleStopResearch = () => {
-    if (researchAbortController) {
-      researchAbortController.abort()
+    try {
+      if (researchAbortController) {
+        researchAbortController.abort()
+        setResearchAbortController(null)
+      }
+    } catch (e) {
+      // Abort may throw, silently handle
+      console.log('Research stopped')
     }
   }
 
