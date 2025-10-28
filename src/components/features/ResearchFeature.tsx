@@ -87,6 +87,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [messageToSave, setMessageToSave] = useState<any>(null)
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
+  const [copiedFormat, setCopiedFormat] = useState<'docs' | 'markdown' | null>(null)
   
   // Turndown service for HTML to Markdown conversion
   const turndownService = useRef(new TurndownService({
@@ -994,6 +995,34 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setShowSaveModal(false)
     setMessageToSave(null)
     saveEditor?.commands.setContent('')
+    setCopiedFormat(null)
+  }
+  
+  const handleCopyForDocs = async () => {
+    // Copy HTML for Google Docs (rich text)
+    const html = saveEditor?.getHTML() || ''
+    try {
+      // Create a blob with HTML content
+      const blob = new Blob([html], { type: 'text/html' })
+      const clipboardItem = new ClipboardItem({ 'text/html': blob })
+      await navigator.clipboard.write([clipboardItem])
+      setCopiedFormat('docs')
+      setTimeout(() => setCopiedFormat(null), 2000)
+    } catch (error) {
+      // Fallback: copy as plain HTML
+      await navigator.clipboard.writeText(html)
+      setCopiedFormat('docs')
+      setTimeout(() => setCopiedFormat(null), 2000)
+    }
+  }
+  
+  const handleCopyMarkdown = async () => {
+    // Convert HTML to Markdown
+    const html = saveEditor?.getHTML() || ''
+    const markdown = turndownService.current.turndown(html)
+    await navigator.clipboard.writeText(markdown)
+    setCopiedFormat('markdown')
+    setTimeout(() => setCopiedFormat(null), 2000)
   }
 
   return (
@@ -1012,12 +1041,51 @@ These appear AFTER "Based on these sources:" in your prompt.`
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Save Research Result</h3>
-              <button
-                onClick={handleCloseSaveModal}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Copy Buttons */}
+                <Button
+                  onClick={handleCopyForDocs}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                >
+                  {copiedFormat === 'docs' ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy for Docs
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleCopyMarkdown}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                >
+                  {copiedFormat === 'markdown' ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copy Markdown
+                    </>
+                  )}
+                </Button>
+                <button
+                  onClick={handleCloseSaveModal}
+                  className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             
             {/* Tiptap Editor with Toolbar */}
