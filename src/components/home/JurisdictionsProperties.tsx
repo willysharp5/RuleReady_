@@ -66,7 +66,7 @@ export function JurisdictionsProperties() {
           {/* Federal */}
           {federal && (
             <option value={federal.code}>
-              🏛️ {federal.name}
+              {federal.name}
             </option>
           )}
           
@@ -76,13 +76,13 @@ export function JurisdictionsProperties() {
           {states.map((state: any) => (
             <optgroup key={state.code} label={state.name}>
               <option value={state.code}>
-                📍 {state.name}
+                {state.name}
               </option>
               
               {/* Cities under this state */}
               {citiesByState[state.code]?.map((city: any) => (
                 <option key={city.code} value={city.code}>
-                  &nbsp;&nbsp;🏙️ {city.name}
+                  &nbsp;&nbsp;&nbsp;{city.name}
                 </option>
               ))}
             </optgroup>
