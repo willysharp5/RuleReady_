@@ -1,135 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { MessageCircle, Search, FileText, MapPin, Layers, Zap } from 'lucide-react'
-import { LeftNavigation } from '@/components/home/LeftNavigation'
-import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
-import ChatFeature from '@/components/features/ChatFeature'
-import ResearchFeature from '@/components/features/ResearchFeature'
-import TemplatesFeature from '@/components/features/TemplatesFeature'
-import JurisdictionsFeature from '@/components/features/JurisdictionsFeature'
-import TopicsFeature from '@/components/features/TopicsFeature'
-import AIModelsFeature from '@/components/features/AIModelsFeature'
-import { useQuery, useMutation } from "convex/react"
-import { api } from "../../../convex/_generated/api"
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
+import HomePage from './HomePage'
 
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
-
-interface NavItem {
-  id: FeatureType
-  label: string
-  icon: React.ElementType
-}
-
-const navItems: NavItem[] = [
-  { id: 'chat', label: 'Chat', icon: MessageCircle },
-  { id: 'research', label: 'Research', icon: Search },
-  { id: 'templates', label: 'Templates', icon: FileText },
-  { id: 'jurisdictions', label: 'Jurisdictions', icon: MapPin },
-  { id: 'topics', label: 'Topics', icon: Layers },
-  { id: 'ai-models', label: 'AI Models', icon: Zap },
-]
-
-export default function HomePage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab') as FeatureType | null
-  const featureParam = searchParams.get('feature') as FeatureType | null
-  
-  const initialFeature = featureParam || tabParam || 'chat'
-  const [activeFeature, setActiveFeature] = useState<FeatureType>(initialFeature)
-  const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true)
-  
-  // Update URL when feature changes
-  const handleFeatureChange = (feature: FeatureType) => {
-    setActiveFeature(feature)
-    router.push(`/home?tab=${feature}`)
-  }
-  
-  // Sync with URL parameter
-  useEffect(() => {
-    const urlFeature = featureParam || tabParam
-    if (urlFeature && urlFeature !== activeFeature) {
-      setActiveFeature(urlFeature)
-    }
-  }, [tabParam, featureParam])
-  
-  // Load research settings from database
-  const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)
-  const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
-  
-  // Research state - lifted to share between feature and properties
-  const [researchState, setResearchState] = useState({
-    systemPrompt: '',
-    firecrawlConfig: '',
-    model: 'gemini-2.0-flash-exp',
-    selectedTemplate: '',
-    jurisdiction: '',
-    topic: '',
-    urls: [''],
-    additionalContext: '',
-    configError: null as { message: string; error: string; invalidJson?: string } | null,
-    lastPromptSent: '' // For debugging - shows what was sent to AI
-  })
-  
-  const [settingsLoaded, setSettingsLoaded] = useState(false)
-  
-  // Load research settings from database on mount
-  useEffect(() => {
-    if (researchSettingsQuery && !settingsLoaded) {
-      setResearchState(prev => ({
-        ...prev,
-        systemPrompt: researchSettingsQuery.researchSystemPrompt,
-        firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
-        model: researchSettingsQuery.researchModel,
-        additionalContext: ''
-      }))
-      setSettingsLoaded(true)
-    }
-  }, [researchSettingsQuery, settingsLoaded])
-
+export default function Page() {
   return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 h-16 border-b border-zinc-200 bg-white px-6 flex items-center">
-        <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
-      </header>
-
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Navigation */}
-        <LeftNavigation 
-          navItems={navItems}
-          activeFeature={activeFeature}
-          onFeatureChange={handleFeatureChange}
-        />
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-auto bg-white">
-          <div className="max-w-[800px] mx-auto p-6">
-            {activeFeature === 'chat' && <ChatFeature />}
-            {activeFeature === 'research' && (
-              <ResearchFeature researchState={researchState} setResearchState={setResearchState} />
-            )}
-            {activeFeature === 'templates' && <TemplatesFeature />}
-            {activeFeature === 'jurisdictions' && <JurisdictionsFeature />}
-            {activeFeature === 'topics' && <TopicsFeature />}
-            {activeFeature === 'ai-models' && <AIModelsFeature />}
-          </div>
-        </main>
-
-        {/* Right Properties Panel */}
-        <RightPropertiesPanel 
-          activeFeature={activeFeature}
-          isOpen={propertiesPanelOpen}
-          onToggle={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
-          researchState={researchState}
-          setResearchState={setResearchState}
-          updateResearchSettings={updateResearchSettings}
-          onDismissError={() => setResearchState(prev => ({ ...prev, configError: null }))}
-        />
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
-    </div>
+    }>
+      <HomePage />
+    </Suspense>
   )
 }
+
