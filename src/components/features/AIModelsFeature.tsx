@@ -430,18 +430,24 @@ Next steps:
               </div>
               
               <div>
-                <Label>Temperature</Label>
-                <Input
-                  type="number"
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Temperature</Label>
+                  <span className="text-sm font-medium text-purple-600">{configTemperature}</span>
+                </div>
+                <input
+                  type="range"
                   min="0"
-                  max="2"
+                  max="1"
                   step="0.1"
                   value={configTemperature}
                   onChange={(e) => setConfigTemperature(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Lower = more focused, Higher = more creative
-                </p>
+                <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                  <span>0 (Focused)</span>
+                  <span>0.5 (Balanced)</span>
+                  <span>1 (Creative)</span>
+                </div>
               </div>
               
               <div>
