@@ -310,10 +310,73 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 setShowTemplateEditor(true);
                 e.currentTarget.value = researchState?.selectedTemplate || '';
                 return;
-              } else {
-                // Set template (empty string for no template, or template ID)
+              } else if (selectedValue === '') {
+                // No template selected - use default prompt
+                const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Your role is to provide accurate, authoritative information about employment law based on the sources provided.
+
+- Cite sources using inline [1], [2], [3] format
+- Distinguish between federal and state requirements
+- Mention effective dates when relevant
+- Note penalties or deadlines when applicable
+- Be specific and detailed in your responses
+
+If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.`;
+                
                 if (setResearchState && researchState) {
-                  setResearchState({ ...researchState, selectedTemplate: selectedValue })
+                  setResearchState({ ...researchState, selectedTemplate: '', systemPrompt: defaultPrompt })
+                }
+                
+                // Also update via settings if available
+                if (updateResearchSettings) {
+                  updateResearchSettings({
+                    researchSystemPrompt: defaultPrompt,
+                    researchModel: researchState?.model,
+                    researchFirecrawlConfig: researchState?.firecrawlConfig
+                  })
+                }
+              } else {
+                // Template selected - update system prompt with template structure
+                const template = templates?.find((t: any) => t.templateId === selectedValue);
+                if (template && template.markdownContent) {
+                  const enhancedPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+
+Your role is to provide accurate, authoritative information about employment law based on the sources provided.
+
+- Cite sources using inline [1], [2], [3] format
+- Distinguish between federal and state requirements
+- Mention effective dates when relevant
+- Note penalties or deadlines when applicable
+- Be specific and detailed in your responses
+
+If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
+
+Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
+"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
+These appear AFTER "Based on these sources:" in your prompt.
+
+IMPORTANT: Structure your response using this template format:
+${template.markdownContent}
+
+Follow the template sections but adapt based on the query. Not all sections may be relevant for every query.`;
+                  
+                  if (setResearchState && researchState) {
+                    setResearchState({ ...researchState, selectedTemplate: selectedValue, systemPrompt: enhancedPrompt })
+                  }
+                  
+                  // Also update via settings if available
+                  if (updateResearchSettings) {
+                    updateResearchSettings({
+                      researchSystemPrompt: enhancedPrompt,
+                      researchModel: researchState?.model,
+                      researchFirecrawlConfig: researchState?.firecrawlConfig
+                    })
+                  }
                 }
               }
             }}
