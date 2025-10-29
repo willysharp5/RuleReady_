@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, MapPin, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
+import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 import { useToast } from '@/hooks/use-toast'
+import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -404,23 +405,27 @@ Follow the template sections but adapt based on the query. Not all sections may 
         {/* Jurisdiction Filter */}
         <div>
           <label className="flex items-center gap-1 text-xs font-medium text-zinc-700 mb-1">
-            <MapPin className="h-3 w-3" />
             Jurisdiction (Optional)
           </label>
-          <select
-            className="w-full px-2 py-1.5 border border-zinc-200 rounded-md text-xs"
-            value={researchState?.jurisdiction || ''}
-            onChange={(e) => {
+          <JurisdictionSelect
+            value={researchState?.jurisdiction ? 
+              jurisdictions.find((j: any) => 
+                j.name === researchState.jurisdiction || 
+                j.code === researchState.jurisdiction ||
+                j.displayName === researchState.jurisdiction
+              ) : null
+            }
+            onChange={(jurisdiction: any) => {
               if (setResearchState && researchState) {
-                setResearchState({ ...researchState, jurisdiction: e.target.value })
+                setResearchState({
+                  ...researchState,
+                  jurisdiction: jurisdiction?.displayName || jurisdiction?.name || ''
+                })
               }
             }}
-          >
-            <option value="">All Jurisdictions</option>
-            {jurisdictions.map((j: any) => (
-              <option key={j.code} value={j.name}>{j.name}</option>
-            ))}
-          </select>
+            placeholder="All jurisdictions (federal default)"
+            className="text-xs"
+          />
         </div>
         
         {/* Topic Filter */}
