@@ -1,54 +1,17 @@
 import { useState } from 'react'
-import { MapPin, Building2, Landmark, X, Search } from 'lucide-react'
+import { MapPin, Building2, Landmark, X } from 'lucide-react'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import { Input } from '@/components/ui/input'
+import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 
 export function JurisdictionsProperties() {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<any>(null)
-  const [selectorSearch, setSelectorSearch] = useState('')
   
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const jurisdictions = jurisdictionsQuery || []
   
-  // Filter by search
-  const filteredJurisdictions = selectorSearch
-    ? jurisdictions.filter((j: any) =>
-        j.name.toLowerCase().includes(selectorSearch.toLowerCase()) ||
-        j.code.toLowerCase().includes(selectorSearch.toLowerCase()) ||
-        (j.displayName && j.displayName.toLowerCase().includes(selectorSearch.toLowerCase()))
-      )
-    : jurisdictions
-  
-  // Organize hierarchically
-  const federal = filteredJurisdictions.find((j: any) => j.level === 'federal')
-  const states = filteredJurisdictions
-    .filter((j: any) => j.level === 'state')
-    .sort((a: any, b: any) => a.name.localeCompare(b.name))
-  
-  const citiesByState = filteredJurisdictions
-    .filter((j: any) => j.level === 'city')
-    .reduce((acc: any, city: any) => {
-      if (!acc[city.stateCode]) acc[city.stateCode] = []
-      acc[city.stateCode].push(city)
-      return acc
-    }, {})
-  
-  // Sort cities within each state
-  Object.keys(citiesByState).forEach(stateCode => {
-    citiesByState[stateCode].sort((a: any, b: any) => a.name.localeCompare(b.name))
-  })
-  
-  const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const code = e.target.value
-    if (!code) {
-      setSelectedJurisdiction(null)
-      return
-    }
-    
-    const selected = jurisdictions.find((j: any) => j.code === code)
-    setSelectedJurisdiction(selected)
-  }
+  const states = jurisdictions.filter((j: any) => j.level === 'state')
+  const cities = jurisdictions.filter((j: any) => j.level === 'city')
   
   return (
     <div className="space-y-2">
@@ -62,69 +25,18 @@ export function JurisdictionsProperties() {
         </div>
       </div>
       
-      {/* Hierarchical Dropdown */}
+      {/* Jurisdiction Selector */}
       <div>
-        <label className="block text-xs font-medium text-zinc-700 mb-2">
+        <label className="block text-xs font-medium text-zinc-700 mb-1">
           Test Jurisdiction Selector
         </label>
-        
-        {/* Search for dropdown */}
-        <div className="relative mb-2">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-zinc-400" />
-          <Input
-            value={selectorSearch}
-            onChange={(e) => setSelectorSearch(e.target.value)}
-            placeholder="Filter jurisdictions..."
-            className="h-8 text-xs pl-7 pr-7"
-          />
-          {selectorSearch && (
-            <button
-              onClick={() => setSelectorSearch('')}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-        
-        <select
-          value={selectedJurisdiction?.code || ''}
-          onChange={handleSelect}
-          className="w-full px-2 py-1.5 text-xs border border-zinc-200 rounded-md"
-          size={8}
-        >
-          <option value="">All Jurisdictions (Federal)</option>
-          
-          {/* Federal */}
-          {federal && (
-            <option value={federal.code}>
-              {federal.name}
-            </option>
-          )}
-          
-          <option disabled>──────────</option>
-          
-          {/* States with nested cities */}
-          {states.map((state: any) => (
-            <optgroup key={state.code} label={state.name}>
-              <option value={state.code}>
-                {state.name}
-              </option>
-              
-              {/* Cities under this state */}
-              {citiesByState[state.code]?.map((city: any) => (
-                <option key={city.code} value={city.code}>
-                  &nbsp;&nbsp;&nbsp;{city.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <JurisdictionSelect
+          value={selectedJurisdiction}
+          onChange={setSelectedJurisdiction}
+          placeholder="Search or select jurisdiction..."
+        />
         <p className="text-xs text-zinc-500 mt-1">
-          {selectorSearch 
-            ? `${filteredJurisdictions.length} matching`
-            : 'Search or select to test hierarchy'
-          }
+          Searchable dropdown with Federal, States, and Cities
         </p>
       </div>
       
