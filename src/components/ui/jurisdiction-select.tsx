@@ -12,7 +12,7 @@ interface JurisdictionSelectProps {
   className?: string
 }
 
-export function JurisdictionSelect({ value, onChange, placeholder = "Select jurisdiction...", className = "" }: JurisdictionSelectProps) {
+export function JurisdictionSelect({ value, onChange, placeholder = "No jurisdiction selected", className = "" }: JurisdictionSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)

@@ -423,7 +423,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
                 })
               }
             }}
-            placeholder="All jurisdictions (federal default)"
+            placeholder="No jurisdiction selected"
             className="text-xs"
           />
         </div>
