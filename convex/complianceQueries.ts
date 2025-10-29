@@ -15,6 +15,50 @@ export const getTopics = query({
   },
 });
 
+// Create or update jurisdiction
+export const upsertJurisdiction = mutation({
+  args: {
+    id: v.optional(v.id("jurisdictions")),
+    code: v.string(),
+    name: v.string(),
+    type: v.union(v.literal("federal"), v.literal("state"), v.literal("local")),
+    level: v.optional(v.union(v.literal("federal"), v.literal("state"), v.literal("city"))),
+    parentCode: v.optional(v.string()),
+    stateCode: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    hasEmploymentLaws: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...data } = args;
+    
+    if (id) {
+      // Update existing
+      await ctx.db.patch(id, {
+        ...data,
+        lastUpdated: Date.now(),
+      });
+      return { success: true, id };
+    } else {
+      // Create new
+      const newId = await ctx.db.insert("jurisdictions", {
+        ...data,
+        lastUpdated: Date.now(),
+      });
+      return { success: true, id: newId };
+    }
+  },
+});
+
+// Delete jurisdiction
+export const deleteJurisdiction = mutation({
+  args: { id: v.id("jurisdictions") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
+
 // Seed jurisdictions data
 export const seedJurisdictions = mutation({
   handler: async (ctx) => {

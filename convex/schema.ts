@@ -115,14 +115,29 @@ const schema = defineSchema({
     .index("by_entity_chunk", ["entityId", "chunkIndex"]),
 
   jurisdictions: defineTable({
-    code: v.string(), // "CA", "TX", "FED"
-    name: v.string(), // "California", "Texas", "Federal"
+    code: v.string(), // "US" | "CA" | "CA-SF"
+    name: v.string(), // "Federal" | "California" | "San Francisco"
     type: v.union(v.literal("federal"), v.literal("state"), v.literal("local")),
+    
+    // New hierarchical fields (optional for backward compatibility)
+    level: v.optional(v.union(v.literal("federal"), v.literal("state"), v.literal("city"))),
+    parentCode: v.optional(v.string()), // "US" for states, "CA" for CA cities
+    stateCode: v.optional(v.string()),  // "CA" for cities in California
+    displayName: v.optional(v.string()), // "San Francisco, CA"
+    
+    // Legacy fields (keep for compatibility)
     parentJurisdiction: v.optional(v.string()),
+    
+    // Metadata
+    isActive: v.optional(v.boolean()),
+    hasEmploymentLaws: v.optional(v.boolean()),
     lastUpdated: v.number(),
   })
     .index("by_type", ["type"])
-    .index("by_code", ["code"]),
+    .index("by_code", ["code"])
+    .index("by_level", ["level"])
+    .index("by_state", ["stateCode"])
+    .index("by_parent", ["parentCode"]),
 
   complianceTopics: defineTable({
     topicKey: v.string(), // "minimum_wage", "overtime"
