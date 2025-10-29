@@ -26,10 +26,19 @@ export function JurisdictionSelect({ value, onChange, placeholder = "Select juri
         j.name.toLowerCase().includes(search.toLowerCase()) ||
         j.code.toLowerCase().includes(search.toLowerCase()) ||
         (j.displayName && j.displayName.toLowerCase().includes(search.toLowerCase()))
-      )
+      ).sort((a: any, b: any) => {
+        // Sort by level then name
+        if (a.level !== b.level) {
+          const levelOrder: any = { federal: 0, state: 1, city: 2 }
+          return levelOrder[a.level] - levelOrder[b.level]
+        }
+        return a.name.localeCompare(b.name)
+      })
     : jurisdictions
   
-  // Organize hierarchically
+  // If searching, show flat list. Otherwise, organize hierarchically
+  const showHierarchy = !search
+  
   const federal = filtered.find((j: any) => j.level === 'federal')
   const states = filtered
     .filter((j: any) => j.level === 'state')
@@ -137,53 +146,77 @@ export function JurisdictionSelect({ value, onChange, placeholder = "Select juri
           
           {/* Options List */}
           <div className="overflow-y-auto">
-            {/* Federal */}
-            {federal && (
+            {search ? (
+              // Flat filtered list when searching
               <>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(federal)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 text-left"
-                >
-                  <Landmark className="w-4 h-4 text-blue-600" />
-                  <span>{federal.name}</span>
-                </button>
-                <div className="border-t border-zinc-100" />
-              </>
-            )}
-            
-            {/* States and Cities */}
-            {states.map((state: any) => (
-              <div key={state.code}>
-                <button
-                  type="button"
-                  onClick={() => handleSelect(state)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 text-left font-medium"
-                >
-                  <MapPin className="w-4 h-4 text-green-600" />
-                  <span>{state.name}</span>
-                </button>
-                
-                {/* Cities under this state */}
-                {citiesByState[state.code]?.map((city: any) => (
+                {filtered.map((j: any) => (
                   <button
-                    key={city.code}
+                    key={j.code}
                     type="button"
-                    onClick={() => handleSelect(city)}
-                    className="w-full flex items-center gap-2 pl-8 pr-3 py-2 text-xs hover:bg-orange-50 text-left"
+                    onClick={() => handleSelect(j)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left ${
+                      j.level === 'federal' ? 'hover:bg-blue-50' :
+                      j.level === 'state' ? 'hover:bg-green-50' :
+                      'hover:bg-orange-50'
+                    }`}
                   >
-                    <Building2 className="w-3 h-3 text-orange-600" />
-                    <span>{city.name}</span>
+                    {getIcon(j.level)}
+                    <span>{j.displayName || j.name}</span>
+                    <span className="ml-auto text-zinc-400 text-xs">{j.code}</span>
                   </button>
                 ))}
-              </div>
-            ))}
-            
-            {/* Empty state */}
-            {filtered.length === 0 && (
-              <div className="px-3 py-4 text-xs text-center text-zinc-500">
-                No jurisdictions found
-              </div>
+                
+                {filtered.length === 0 && (
+                  <div className="px-3 py-4 text-xs text-center text-zinc-500">
+                    No jurisdictions found
+                  </div>
+                )}
+              </>
+            ) : (
+              // Hierarchical list when not searching
+              <>
+                {/* Federal */}
+                {federal && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(federal)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-blue-50 text-left"
+                    >
+                      <Landmark className="w-4 h-4 text-blue-600" />
+                      <span>{federal.name}</span>
+                    </button>
+                    <div className="border-t border-zinc-100" />
+                  </>
+                )}
+                
+                {/* States and Cities */}
+                {states.map((state: any) => (
+                  <div key={state.code}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(state)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-green-50 text-left font-medium"
+                    >
+                      <MapPin className="w-4 h-4 text-green-600" />
+                      <span>{state.name}</span>
+                    </button>
+                    
+                    {/* Cities under this state */}
+                    {citiesByState[state.code]?.map((city: any) => (
+                      <button
+                        key={city.code}
+                        type="button"
+                        onClick={() => handleSelect(city)}
+                        className="w-full flex items-center gap-2 pl-8 pr-3 py-2 text-xs hover:bg-orange-50 text-left"
+                      >
+                        <Building2 className="w-3 h-3 text-orange-600" />
+                        <span>{city.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </div>
