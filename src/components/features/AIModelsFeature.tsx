@@ -47,6 +47,12 @@ export default function AIModelsFeature() {
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
     
+    // Embeddings models don't have configurable settings
+    if (purpose === 'embeddings') {
+      alert('Embeddings models convert text to vectors and do not have temperature or token settings to configure.')
+      return
+    }
+    
     // Load prompts from existing settings
     switch (purpose) {
       case 'chat':
@@ -58,11 +64,6 @@ export default function AIModelsFeature() {
         setConfigSystemPrompt('')
         setConfigTemperature(0.3)
         setConfigMaxTokens(8192)
-        break
-      case 'embeddings':
-        setConfigSystemPrompt('')
-        setConfigTemperature(0)
-        setConfigMaxTokens(0)
         break
       case 'change_analysis':
         setConfigSystemPrompt('')
