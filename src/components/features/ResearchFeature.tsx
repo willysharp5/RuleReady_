@@ -638,7 +638,11 @@ These appear AFTER "Based on these sources:" in your prompt.`)
 
     } catch (error: any) {
       // Ignore abort errors (user cancelled)
-      if (error.name === 'AbortError' || error.message?.includes('cancelled') || error.message?.includes('aborted')) {
+      if (error.name === 'AbortError' || 
+          error.message?.toLowerCase().includes('cancel') || 
+          error.message?.toLowerCase().includes('abort') ||
+          error.reason?.toLowerCase().includes('cancel')) {
+        // User intentionally stopped - don't log as error
         return
       }
       
