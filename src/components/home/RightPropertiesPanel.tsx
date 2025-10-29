@@ -4,8 +4,9 @@ import { ResearchProperties } from './ResearchProperties'
 import { TemplatesProperties } from './TemplatesProperties'
 import { JurisdictionsProperties } from './JurisdictionsProperties'
 import { TopicsProperties } from './TopicsProperties'
+import { AIModelsProperties } from './AIModelsProperties'
 
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics'
+type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
 interface RightPropertiesPanelProps {
   activeFeature: FeatureType
@@ -87,6 +88,7 @@ export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, research
           {activeFeature === 'templates' && <TemplatesProperties />}
           {activeFeature === 'jurisdictions' && <JurisdictionsProperties />}
           {activeFeature === 'topics' && <TopicsProperties />}
+          {activeFeature === 'ai-models' && <AIModelsProperties />}
         </div>
       )}
     </aside>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Search, FileText, MapPin, Layers } from 'lucide-react'
+import { MessageCircle, Search, FileText, MapPin, Layers, Zap } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
 import ChatFeature from '@/components/features/ChatFeature'
@@ -9,11 +9,12 @@ import ResearchFeature from '@/components/features/ResearchFeature'
 import TemplatesFeature from '@/components/features/TemplatesFeature'
 import JurisdictionsFeature from '@/components/features/JurisdictionsFeature'
 import TopicsFeature from '@/components/features/TopicsFeature'
+import AIModelsFeature from '@/components/features/AIModelsFeature'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useRouter, useSearchParams } from 'next/navigation'
 
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics'
+type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
 interface NavItem {
   id: FeatureType
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { id: 'templates', label: 'Templates', icon: FileText },
   { id: 'jurisdictions', label: 'Jurisdictions', icon: MapPin },
   { id: 'topics', label: 'Topics', icon: Layers },
+  { id: 'ai-models', label: 'AI Models', icon: Zap },
 ]
 
 export default function HomePage() {
@@ -113,6 +115,7 @@ export default function HomePage() {
             {activeFeature === 'templates' && <TemplatesFeature />}
             {activeFeature === 'jurisdictions' && <JurisdictionsFeature />}
             {activeFeature === 'topics' && <TopicsFeature />}
+            {activeFeature === 'ai-models' && <AIModelsFeature />}
           </div>
         </main>
 
