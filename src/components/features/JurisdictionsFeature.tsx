@@ -251,13 +251,21 @@ export default function JurisdictionsFeature() {
       {/* Search and Stats */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-        <Input
-          value={searchQuery}
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Input
+            value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by name, code, or type..."
-          className="pl-10"
-        />
+            placeholder="Search jurisdictions..."
+            className="pl-10 pr-8"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => handleSearch('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="text-sm text-gray-600">
           {filtered.length} of {jurisdictions.length} jurisdictions
