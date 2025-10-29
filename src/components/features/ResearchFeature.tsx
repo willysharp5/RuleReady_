@@ -624,35 +624,34 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           }
         }
       } catch (readError: any) {
-        if (readError.name === 'AbortError') {
+        // Check if stream read was aborted
+        if (readError.name === 'AbortError' || readError.message?.toLowerCase().includes('abort')) {
           // Update last message to show it was stopped
           setResearchMessages(prev => prev.map((m, idx) =>
             idx === prev.length - 1 && m.role === 'assistant'
               ? { ...m, content: (m.content || '') + '\n\n_[Research stopped by user]_' }
               : m
           ))
+          // Don't throw - just return from the function
+          return
         } else {
           throw readError
         }
       }
 
     } catch (error: any) {
-      // Ignore abort errors (user cancelled)
-      const errorString = JSON.stringify(error).toLowerCase()
-      const messageString = (error.message || '').toLowerCase()
-      const reasonString = (error.reason || '').toLowerCase()
+      // Check if this is an abort/cancel (user stopped research)
+      const isAbort = error.name === 'AbortError' || 
+                      (error.message && error.message.toLowerCase().includes('abort')) ||
+                      (error.message && error.message.toLowerCase().includes('cancel'))
       
-      if (error.name === 'AbortError' || 
-          messageString.includes('cancel') || 
-          messageString.includes('abort') ||
-          reasonString.includes('cancel') ||
-          reasonString.includes('abort') ||
-          errorString.includes('cancel') ||
-          errorString.includes('abort')) {
-        // User intentionally stopped - don't log as error
+      if (isAbort) {
+        // User intentionally stopped - silently clean up
+        setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
         return
       }
       
+      // Only log actual errors, not user cancellations
       console.error('Research error:', error)
       addToast({
         variant: 'error',
@@ -671,11 +670,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   
   const handleStopResearch = () => {
     if (researchAbortController) {
-      try {
-        researchAbortController.abort('User cancelled research')
-      } catch (e) {
-        // Ignore abort errors
-      }
+      // Abort without reason to avoid error messages
+      researchAbortController.abort()
       setResearchAbortController(null)
       setIsResearching(false)
     }
