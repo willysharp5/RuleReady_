@@ -377,6 +377,14 @@ Follow the template sections but adapt based on the query. Not all sections may 
                       researchFirecrawlConfig: researchState?.firecrawlConfig
                     })
                   }
+                  
+                  // Show success message
+                  addToast({
+                    variant: 'success',
+                    title: 'Template applied',
+                    description: `Using ${template.title} - check AI Settings to see the updated prompt`,
+                    duration: 3000
+                  })
                 }
               }
             }}
@@ -732,9 +740,8 @@ Follow the template sections but adapt based on the query. Not all sections may 
                 const jurisdictionMatch = beforeSources.match(/Focus on jurisdiction: (.+?)(?=\n|$)/);
                 const topicMatch = beforeSources.match(/Focus on topic: (.+?)(?=\n|$)/);
                 const hasAdditionalContext = beforeSources.includes('ADDITIONAL CONTEXT PROVIDED BY USER:');
+                const hasTemplate = prompt.includes('IMPORTANT: Structure your response using this template format:');
                 const sourceCount = (prompt.match(/\[\d+\]/g) || []).length;
-                const templateMatch = prompt.match(/IMPORTANT: Structure your response using this template format:\s*#\s*(.+?)\s*Compliance Template/);
-                const systemMatch = prompt.match(/System instructions:\s*(.+?)(?=\n\nIMPORTANT:|$)/s);
                 
                 // Main query - Purple bold label, gray italic value
                 if (queryMatch) {
@@ -774,6 +781,20 @@ Follow the template sections but adapt based on the query. Not all sections may 
                     <div key="topic" className="flex items-baseline gap-1">
                       <span className="font-bold text-sm text-purple-700">Focus on topic:</span>
                       <span className="text-xs italic text-zinc-500">{formattedTopic}</span>
+                    </div>
+                  );
+                }
+                
+                // Template info
+                if (hasTemplate) {
+                  const templateName = researchState?.selectedTemplate 
+                    ? templates?.find((t: any) => t.templateId === researchState.selectedTemplate)?.title || 'Template'
+                    : 'Template';
+                  
+                  parts.push(
+                    <div key="template" className="flex items-baseline gap-1 mt-1">
+                      <span className="font-bold text-sm text-purple-700">Using Template:</span>
+                      <span className="text-xs italic text-zinc-500">{templateName}</span>
                     </div>
                   );
                 }
