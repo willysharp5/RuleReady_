@@ -153,6 +153,20 @@ export function JurisdictionsProperties() {
                 </span>
               </div>
             )}
+            
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Active:</span>
+              <span className={`font-medium ${selectedJurisdiction.isActive !== false ? 'text-green-600' : 'text-red-600'}`}>
+                {selectedJurisdiction.isActive !== false ? '✓ Yes' : '✗ No'}
+              </span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Has Laws:</span>
+              <span className={`font-medium ${selectedJurisdiction.hasEmploymentLaws !== false ? 'text-green-600' : 'text-gray-500'}`}>
+                {selectedJurisdiction.hasEmploymentLaws !== false ? '✓ Yes' : '✗ No'}
+              </span>
+            </div>
           </div>
           
           <div className="mt-3 pt-3 border-t border-zinc-200">

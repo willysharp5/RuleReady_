@@ -27,6 +27,13 @@ export default function JurisdictionsFeature() {
   const [formParentCode, setFormParentCode] = useState('')
   const [formStateCode, setFormStateCode] = useState('')
   const [formDisplayName, setFormDisplayName] = useState('')
+  const [formIsActive, setFormIsActive] = useState(true)
+  const [formHasEmploymentLaws, setFormHasEmploymentLaws] = useState(true)
+  
+  // Filters
+  const [filterLevel, setFilterLevel] = useState<string>('')
+  const [filterActive, setFilterActive] = useState<string>('')
+  const [filterHasLaws, setFilterHasLaws] = useState<string>('')
   
   // Load jurisdictions from database
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
@@ -36,12 +43,18 @@ export default function JurisdictionsFeature() {
   const upsertJurisdiction = useMutation(api.complianceQueries.upsertJurisdiction)
   const deleteJurisdiction = useMutation(api.complianceQueries.deleteJurisdiction)
 
-  // Filter by search
-  const filtered = jurisdictions.filter((j: any) => 
-    j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    j.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    j.level.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter by search and filters
+  const filtered = jurisdictions.filter((j: any) => {
+    const matchesSearch = j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      j.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      j.level.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesLevel = !filterLevel || j.level === filterLevel
+    const matchesActive = !filterActive || String(j.isActive) === filterActive
+    const matchesHasLaws = !filterHasLaws || String(j.hasEmploymentLaws) === filterHasLaws
+    
+    return matchesSearch && matchesLevel && matchesActive && matchesHasLaws
+  })
   
   // Paginate
   const totalPages = Math.ceil(filtered.length / pageSize)
@@ -63,6 +76,8 @@ export default function JurisdictionsFeature() {
     setFormParentCode('US')
     setFormStateCode('')
     setFormDisplayName('')
+    setFormIsActive(true)
+    setFormHasEmploymentLaws(true)
     setShowModal(true)
   }
   
@@ -75,6 +90,8 @@ export default function JurisdictionsFeature() {
     setFormParentCode(jurisdiction.parentCode || '')
     setFormStateCode(jurisdiction.stateCode || '')
     setFormDisplayName(jurisdiction.displayName || jurisdiction.name)
+    setFormIsActive(jurisdiction.isActive !== false) // Default true if not set
+    setFormHasEmploymentLaws(jurisdiction.hasEmploymentLaws !== false)
     setShowModal(true)
   }
   
@@ -192,8 +209,8 @@ export default function JurisdictionsFeature() {
         parentCode: parentCode,
         stateCode: formStateCode || undefined,
         displayName: formDisplayName || formName,
-        isActive: true,
-        hasEmploymentLaws: true,
+        isActive: formIsActive,
+        hasEmploymentLaws: formHasEmploymentLaws,
       })
       
       addToast({
@@ -248,27 +265,86 @@ export default function JurisdictionsFeature() {
         </Button>
       </div>
 
-      {/* Search and Stats */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search jurisdictions..."
-            className="pl-10 pr-8"
-          />
-          {searchQuery && (
+      {/* Search and Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search jurisdictions..."
+              className="pl-10 pr-8"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <div className="text-sm text-gray-600">
+            {filtered.length} of {jurisdictions.length}
+          </div>
+        </div>
+        
+        {/* Filter Row */}
+        <div className="flex items-center gap-2">
+          <select
+            value={filterLevel}
+            onChange={(e) => {
+              setFilterLevel(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-md"
+          >
+            <option value="">All Levels</option>
+            <option value="federal">Federal</option>
+            <option value="state">State</option>
+            <option value="city">City</option>
+          </select>
+          
+          <select
+            value={filterActive}
+            onChange={(e) => {
+              setFilterActive(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-md"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          
+          <select
+            value={filterHasLaws}
+            onChange={(e) => {
+              setFilterHasLaws(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-md"
+          >
+            <option value="">All</option>
+            <option value="true">Has Laws</option>
+            <option value="false">No Laws</option>
+          </select>
+          
+          {(filterLevel || filterActive || filterHasLaws) && (
             <button
-              onClick={() => handleSearch('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              onClick={() => {
+                setFilterLevel('')
+                setFilterActive('')
+                setFilterHasLaws('')
+                setCurrentPage(1)
+              }}
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium"
             >
-              <X className="h-4 w-4" />
+              Clear Filters
             </button>
           )}
-        </div>
-        <div className="text-sm text-gray-600">
-          {filtered.length} of {jurisdictions.length} jurisdictions
         </div>
       </div>
 
@@ -553,6 +629,38 @@ export default function JurisdictionsFeature() {
                   </div>
                 </div>
               )}
+              
+              {/* Settings */}
+              <div className="border-t pt-4">
+                <Label className="mb-3 block">Settings</Label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formIsActive}
+                      onChange={(e) => setFormIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Active</div>
+                      <div className="text-xs text-gray-500">Show in dropdowns and research filters</div>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formHasEmploymentLaws}
+                      onChange={(e) => setFormHasEmploymentLaws(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Has Employment Laws</div>
+                      <div className="text-xs text-gray-500">This jurisdiction has specific employment regulations</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
             
             <div className="flex gap-3 p-6 border-t">
