@@ -1,12 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Zap, Bot, Edit3 } from 'lucide-react'
+import { Plus, Zap, Bot, Edit3, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 export default function AIModelsFeature() {
-  const [configPurpose, setConfigPurpose] = useState<string | null>(null)
+  // AI Models configuration state
+  const [showModelConfig, setShowModelConfig] = useState(false)
+  const [configPurpose, setConfigPurpose] = useState('')
+  const [configSystemPrompt, setConfigSystemPrompt] = useState('')
+  const [configTemperature, setConfigTemperature] = useState(0.7)
+  const [configMaxTokens, setConfigMaxTokens] = useState(4096)
+  
+  // Add model state
   const [showAddModel, setShowAddModel] = useState(false)
+  const [newModelName, setNewModelName] = useState('')
+  const [newModelProvider, setNewModelProvider] = useState('')
+  const [newModelId, setNewModelId] = useState('')
+  const [newModelApiKey, setNewModelApiKey] = useState('')
+  const [newModelBaseUrl, setNewModelBaseUrl] = useState('')
+  const [newModelCapabilities, setNewModelCapabilities] = useState<string[]>([])
+  const [newModelDescription, setNewModelDescription] = useState('')
 
   const getEnvironmentStatus = () => {
     return [
@@ -16,11 +33,97 @@ export default function AIModelsFeature() {
   }
 
   const handleAddModel = () => {
+    // Reset form
+    setNewModelName('')
+    setNewModelProvider('')
+    setNewModelId('')
+    setNewModelApiKey('')
+    setNewModelBaseUrl('')
+    setNewModelCapabilities([])
+    setNewModelDescription('')
     setShowAddModel(true)
   }
 
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
+    
+    // Load prompts from existing settings
+    switch (purpose) {
+      case 'chat':
+        setConfigSystemPrompt('')
+        setConfigTemperature(0.7)
+        setConfigMaxTokens(4096)
+        break
+      case 'rule_generation':
+        setConfigSystemPrompt('')
+        setConfigTemperature(0.3)
+        setConfigMaxTokens(8192)
+        break
+      case 'embeddings':
+        setConfigSystemPrompt('')
+        setConfigTemperature(0)
+        setConfigMaxTokens(0)
+        break
+      case 'change_analysis':
+        setConfigSystemPrompt('')
+        setConfigTemperature(0.5)
+        setConfigMaxTokens(4096)
+        break
+    }
+    
+    setShowModelConfig(true)
+  }
+
+  const handleCapabilityToggle = (capability: string) => {
+    setNewModelCapabilities(prev => 
+      prev.includes(capability) 
+        ? prev.filter(c => c !== capability)
+        : [...prev, capability]
+    )
+  }
+
+  const handleSaveNewModel = () => {
+    if (!newModelName || !newModelProvider || !newModelId || !newModelApiKey) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    // Check for capability conflicts
+    const conflictWarnings = []
+    if (newModelCapabilities.includes('chat')) {
+      conflictWarnings.push('This will replace Google Gemini 2.0 Flash as the chat model')
+    }
+    if (newModelCapabilities.includes('generation')) {
+      conflictWarnings.push('This will replace Google Gemini 2.0 Flash as the rule generation model')
+    }
+    if (newModelCapabilities.includes('embeddings')) {
+      conflictWarnings.push('This will replace Google Text Embedding 004 as the embeddings model')
+    }
+    if (newModelCapabilities.includes('analysis')) {
+      conflictWarnings.push('This will become the new change analysis model')
+    }
+
+    // Show confirmation if there are conflicts
+    if (conflictWarnings.length > 0) {
+      const confirmMessage = `Adding this model will make the following changes:\n\n${conflictWarnings.map(w => `• ${w}`).join('\n')}\n\nDo you want to continue?`
+      if (!confirm(confirmMessage)) {
+        return
+      }
+    }
+
+    alert(`Model added successfully! 
+
+Next steps:
+1. Add ${newModelApiKey} to your .env.local file
+2. The new model will be assigned to: ${newModelCapabilities.join(', ')}
+3. Previous models for these purposes will be replaced`)
+    
+    setShowAddModel(false)
+  }
+
+  const handleSaveModelConfig = async () => {
+    alert('Configuration noted. System prompts are managed in their respective sections for per-use customization.')
+    setShowModelConfig(false)
   }
 
   return (
@@ -171,7 +274,7 @@ export default function AIModelsFeature() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-green-600 font-medium">✓ Active</span>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => alert('Test functionality coming soon')}>
                   Test
                 </Button>
               </div>
@@ -194,7 +297,7 @@ export default function AIModelsFeature() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-green-600 font-medium">✓ Active</span>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => alert('Test functionality coming soon')}>
                   Test
                 </Button>
               </div>
@@ -204,7 +307,164 @@ export default function AIModelsFeature() {
         </div>
       </div>
       
+      {/* Add Model Modal */}
+      {showAddModel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold">Add New AI Model</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAddModel(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <Label>Model Name *</Label>
+                <Input
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                  placeholder="e.g., GPT-4 Turbo"
+                />
+              </div>
+              
+              <div>
+                <Label>Provider *</Label>
+                <select
+                  value={newModelProvider}
+                  onChange={(e) => setNewModelProvider(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="">Select provider...</option>
+                  <option value="OpenAI">OpenAI</option>
+                  <option value="Anthropic">Anthropic</option>
+                  <option value="Google">Google</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              
+              <div>
+                <Label>Model ID *</Label>
+                <Input
+                  value={newModelId}
+                  onChange={(e) => setNewModelId(e.target.value)}
+                  placeholder="e.g., gpt-4-turbo, claude-3-opus"
+                />
+              </div>
+              
+              <div>
+                <Label>API Key Environment Variable *</Label>
+                <Input
+                  value={newModelApiKey}
+                  onChange={(e) => setNewModelApiKey(e.target.value)}
+                  placeholder="e.g., OPENAI_API_KEY"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  You'll need to add this to your .env.local file
+                </p>
+              </div>
+              
+              <div>
+                <Label>Base URL (optional)</Label>
+                <Input
+                  value={newModelBaseUrl}
+                  onChange={(e) => setNewModelBaseUrl(e.target.value)}
+                  placeholder="e.g., https://api.openai.com/v1"
+                />
+              </div>
+              
+              <div>
+                <Label>Capabilities *</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {['chat', 'generation', 'embeddings', 'analysis'].map(cap => (
+                    <label key={cap} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={newModelCapabilities.includes(cap)}
+                        onChange={() => handleCapabilityToggle(cap)}
+                        className="rounded"
+                      />
+                      <span className="text-sm capitalize">{cap}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  value={newModelDescription}
+                  onChange={(e) => setNewModelDescription(e.target.value)}
+                  placeholder="Brief description of this model..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 p-6 border-t">
+              <Button variant="outline" onClick={() => setShowAddModel(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveNewModel} className="flex-1 bg-purple-500 hover:bg-purple-600">
+                Add Model
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Configure Model Modal */}
+      {showModelConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-xl font-semibold">Configure {configPurpose.replace('_', ' ').toUpperCase()} Model</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowModelConfig(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                System prompts are managed in their respective feature sections for per-use customization.
+              </div>
+              
+              <div>
+                <Label>Temperature</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={configTemperature}
+                  onChange={(e) => setConfigTemperature(parseFloat(e.target.value))}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Lower = more focused, Higher = more creative
+                </p>
+              </div>
+              
+              <div>
+                <Label>Max Tokens</Label>
+                <Input
+                  type="number"
+                  value={configMaxTokens}
+                  onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 p-6 border-t">
+              <Button variant="outline" onClick={() => setShowModelConfig(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveModelConfig} className="flex-1 bg-purple-500 hover:bg-purple-600">
+                Save Configuration
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
