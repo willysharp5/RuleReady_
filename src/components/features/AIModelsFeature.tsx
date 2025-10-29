@@ -47,12 +47,6 @@ export default function AIModelsFeature() {
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
     
-    // Embeddings models don't have configurable settings
-    if (purpose === 'embeddings') {
-      alert('Embeddings models convert text to vectors and do not have temperature or token settings to configure.')
-      return
-    }
-    
     // Load prompts from existing settings
     switch (purpose) {
       case 'chat':
@@ -64,6 +58,12 @@ export default function AIModelsFeature() {
         setConfigSystemPrompt('')
         setConfigTemperature(0.3)
         setConfigMaxTokens(8192)
+        break
+      case 'embeddings':
+        // Embeddings have no temperature/tokens but still show modal
+        setConfigSystemPrompt('')
+        setConfigTemperature(0)
+        setConfigMaxTokens(0)
         break
       case 'change_analysis':
         setConfigSystemPrompt('')
@@ -419,46 +419,75 @@ Next steps:
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-xl font-semibold">Configure {configPurpose.replace('_', ' ').toUpperCase()} Model</h3>
+              <h3 className="text-xl font-semibold">
+                Configure {configPurpose === 'embeddings' ? 'Embeddings' : configPurpose.replace('_', ' ')} Model
+              </h3>
               <Button variant="ghost" size="sm" onClick={() => setShowModelConfig(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             
             <div className="p-6 space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-                System prompts are managed in their respective feature sections for per-use customization.
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Temperature</Label>
-                  <span className="text-sm font-medium text-purple-600">{configTemperature}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={configTemperature}
-                  onChange={(e) => setConfigTemperature(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                />
-                <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
-                  <span>0 (Focused)</span>
-                  <span>0.5 (Balanced)</span>
-                  <span>1 (Creative)</span>
-                </div>
-              </div>
-              
-              <div>
-                <Label>Max Tokens</Label>
-                <Input
-                  type="number"
-                  value={configMaxTokens}
-                  onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
-                />
-              </div>
+              {configPurpose === 'embeddings' ? (
+                // Special UI for embeddings
+                <>
+                  <div>
+                    <Label>AI Model</Label>
+                    <select className="w-full px-3 py-2 border rounded-md bg-gray-50" disabled>
+                      <option>Google Text Embedding 004 (google)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">Embedding Model Configuration</h4>
+                    <p className="text-sm text-blue-800 mb-3">
+                      Embedding models don't use system prompts or temperature settings. They convert text into numerical vectors for semantic search.
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div><strong>Current Model:</strong> Google Text Embedding 004</div>
+                      <div><strong>Dimensions:</strong> 768</div>
+                      <div><strong>Purpose:</strong> Semantic search in compliance chat</div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Regular config for text generation models
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
+                    System prompts are managed in their respective feature sections for per-use customization.
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Temperature</Label>
+                      <span className="text-sm font-medium text-purple-600">{configTemperature}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={configTemperature}
+                      onChange={(e) => setConfigTemperature(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                    />
+                    <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                      <span>0 (Focused)</span>
+                      <span>0.5 (Balanced)</span>
+                      <span>1 (Creative)</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label>Max Tokens</Label>
+                    <Input
+                      type="number"
+                      value={configMaxTokens}
+                      onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             
             <div className="flex gap-3 p-6 border-t">
