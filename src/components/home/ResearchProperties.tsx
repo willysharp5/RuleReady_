@@ -832,26 +832,12 @@ Follow the template sections but adapt based on the query. Not all sections may 
                   </div>
                 );
                 
-                // System instructions - Blue header
+                // System instructions summary
                 parts.push(
-                  <div key="system-header" className="font-bold text-sm text-blue-700 mt-3">
-                    System instructions:
+                  <div key="system-summary" className="font-bold text-sm text-blue-700 mt-3">
+                    System instructions: [View in AI Settings accordion above]
                   </div>
                 );
-                
-                // System instructions content - Regular text
-                if (systemMatch) {
-                  const systemLines = systemMatch[1].trim().split('\n');
-                  systemLines.forEach((line, idx) => {
-                    if (line.trim()) {
-                      parts.push(
-                        <div key={`sys-${idx}`} className="text-xs text-zinc-700">
-                          {line}
-                        </div>
-                      );
-                    }
-                  });
-                }
                 
                 return <>{parts}</>;
               })()}
