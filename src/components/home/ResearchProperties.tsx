@@ -832,16 +832,6 @@ Follow the template sections but adapt based on the query. Not all sections may 
                   </div>
                 );
                 
-                // Template summary - Purple bold label, gray italic details (matching jurisdiction/topic styling)
-                if (templateMatch) {
-                  parts.push(
-                    <div key="template" className="flex items-baseline gap-1 mt-2">
-                      <span className="font-bold text-sm text-purple-700">Template:</span>
-                      <span className="text-xs italic text-zinc-500">{templateMatch[1]}</span>
-                    </div>
-                  );
-                }
-                
                 // System instructions - Blue header
                 parts.push(
                   <div key="system-header" className="font-bold text-sm text-blue-700 mt-3">
