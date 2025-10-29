@@ -638,10 +638,17 @@ These appear AFTER "Based on these sources:" in your prompt.`)
 
     } catch (error: any) {
       // Ignore abort errors (user cancelled)
+      const errorString = JSON.stringify(error).toLowerCase()
+      const messageString = (error.message || '').toLowerCase()
+      const reasonString = (error.reason || '').toLowerCase()
+      
       if (error.name === 'AbortError' || 
-          error.message?.toLowerCase().includes('cancel') || 
-          error.message?.toLowerCase().includes('abort') ||
-          error.reason?.toLowerCase().includes('cancel')) {
+          messageString.includes('cancel') || 
+          messageString.includes('abort') ||
+          reasonString.includes('cancel') ||
+          reasonString.includes('abort') ||
+          errorString.includes('cancel') ||
+          errorString.includes('abort')) {
         // User intentionally stopped - don't log as error
         return
       }
