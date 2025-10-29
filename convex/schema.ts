@@ -2,6 +2,13 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
+  // App authentication (single record)
+  app: defineTable({
+    password: v.string(), // Simple password for access control
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
+
   // App settings (single-user mode - global app configuration)
   appSettings: defineTable({
     // Chat settings
