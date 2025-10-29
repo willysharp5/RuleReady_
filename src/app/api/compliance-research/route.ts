@@ -214,12 +214,8 @@ export async function POST(request: Request) {
       };
     }).filter(Boolean);
 
-    console.log(`[${requestId}] Found ${sources.length} web, ${newsResults.length} news, ${imageResults.length} images`);
-
     // Step 3: Merge all sources (priority order: scraped URLs, internal DB, web search)
     const allSources = [...scrapedUrlSources, ...internalSources, ...sources];
-    
-    console.log(`[${requestId}] Total sources: ${allSources.length} (${scrapedUrlSources.length} scraped URLs + ${internalSources.length} internal + ${sources.length} web)`);
 
     // Step 3: Prepare context from sources (internal first for better answers)
     const context = allSources
@@ -235,8 +231,6 @@ export async function POST(request: Request) {
       .join('\n\n---\n\n');
 
     // Step 3: Generate AI response with Gemini (streaming)
-    console.log(`[${requestId}] Generating AI response with Gemini...`);
-    
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
