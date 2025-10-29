@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, Search, ChevronLeft, ChevronRight, Plus, Edit3, Trash2, X } from 'lucide-react'
+import { MapPin, Search, ChevronLeft, ChevronRight, Plus, Edit3, Trash2, X, Building2, Landmark } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -23,7 +23,6 @@ export default function JurisdictionsFeature() {
   // Form state
   const [formCode, setFormCode] = useState('')
   const [formName, setFormName] = useState('')
-  const [formType, setFormType] = useState<'federal' | 'state' | 'local'>('state')
   const [formLevel, setFormLevel] = useState<'federal' | 'state' | 'city'>('state')
   const [formParentCode, setFormParentCode] = useState('')
   const [formStateCode, setFormStateCode] = useState('')
@@ -41,7 +40,7 @@ export default function JurisdictionsFeature() {
   const filtered = jurisdictions.filter((j: any) => 
     j.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     j.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    j.type.toLowerCase().includes(searchQuery.toLowerCase())
+    j.level.toLowerCase().includes(searchQuery.toLowerCase())
   )
   
   // Paginate
@@ -60,7 +59,6 @@ export default function JurisdictionsFeature() {
     setEditingJurisdiction(null)
     setFormCode('')
     setFormName('')
-    setFormType('state')
     setFormLevel('state')
     setFormParentCode('US')
     setFormStateCode('')
@@ -73,16 +71,16 @@ export default function JurisdictionsFeature() {
     setEditingJurisdiction(jurisdiction)
     setFormCode(jurisdiction.code)
     setFormName(jurisdiction.name)
-    setFormType(jurisdiction.type)
-    setFormLevel(jurisdiction.level || jurisdiction.type)
-    setFormParentCode(jurisdiction.parentCode || (jurisdiction.type === 'state' ? 'US' : ''))
+    setFormLevel(jurisdiction.level || 'state')
+    setFormParentCode(jurisdiction.parentCode || '')
     setFormStateCode(jurisdiction.stateCode || '')
     setFormDisplayName(jurisdiction.displayName || jurisdiction.name)
     setShowModal(true)
   }
   
-  // Save jurisdiction
+  // Validate and save jurisdiction
   const handleSave = async () => {
+    // Basic validation
     if (!formCode || !formName) {
       addToast({
         variant: 'destructive',
@@ -93,14 +91,105 @@ export default function JurisdictionsFeature() {
       return
     }
     
+    // Validate code format based on level
+    if (formLevel === 'federal') {
+      if (formCode !== 'US') {
+        addToast({
+          variant: 'destructive',
+          title: 'Invalid Code',
+          description: 'Federal code must be "US"',
+          duration: 3000
+        })
+        return
+      }
+    } else if (formLevel === 'state') {
+      // State code must be exactly 2 uppercase letters
+      if (!/^[A-Z]{2}$/.test(formCode)) {
+        addToast({
+          variant: 'destructive',
+          title: 'Invalid State Code',
+          description: 'State code must be exactly 2 uppercase letters (e.g., CA, NY, WV)',
+          duration: 3000
+        })
+        return
+      }
+    } else if (formLevel === 'city') {
+      // City code must be STATE-CITY format (e.g., CA-SF)
+      if (!/^[A-Z]{2}-[A-Z]+$/.test(formCode)) {
+        addToast({
+          variant: 'destructive',
+          title: 'Invalid City Code',
+          description: 'City code must be STATE-CITY format (e.g., CA-SF, NY-NYC)',
+          duration: 3000
+        })
+        return
+      }
+      
+      // State code is required for cities
+      if (!formStateCode || !/^[A-Z]{2}$/.test(formStateCode)) {
+        addToast({
+          variant: 'destructive',
+          title: 'Invalid State Code',
+          description: 'Cities must have a valid 2-letter state code (e.g., CA)',
+          duration: 3000
+        })
+        return
+      }
+      
+      // Parent code required for cities
+      if (!formParentCode) {
+        addToast({
+          variant: 'destructive',
+          title: 'Missing Parent Code',
+          description: 'Cities must have a parent code (state code)',
+          duration: 3000
+        })
+        return
+      }
+      
+      // Display name required for cities
+      if (!formDisplayName) {
+        addToast({
+          variant: 'destructive',
+          title: 'Missing Display Name',
+          description: 'Cities should have a display name (e.g., "San Francisco, CA")',
+          duration: 3000
+        })
+        return
+      }
+    }
+    
+    // Check for duplicate codes
+    if (!editingJurisdiction) {
+      const exists = jurisdictions.find((j: any) => j.code === formCode)
+      if (exists) {
+        addToast({
+          variant: 'destructive',
+          title: 'Duplicate Code',
+          description: `A jurisdiction with code "${formCode}" already exists`,
+          duration: 3000
+        })
+        return
+      }
+    }
+    
     try {
+      // Auto-calculate parentCode based on level
+      let parentCode: string | undefined;
+      
+      if (formLevel === 'state') {
+        parentCode = 'US';
+      } else if (formLevel === 'city') {
+        parentCode = formStateCode; // Parent is the state
+      }
+      // Federal has no parent
+      
       await upsertJurisdiction({
         id: editingJurisdiction?._id,
         code: formCode,
         name: formName,
-        type: formType,
         level: formLevel,
-        parentCode: formParentCode || undefined,
+        parentCode: parentCode,
         stateCode: formStateCode || undefined,
         displayName: formDisplayName || formName,
         isActive: true,
@@ -149,8 +238,8 @@ export default function JurisdictionsFeature() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-zinc-900">Jurisdictions</h2>
+      <div>
+        <h2 className="text-2xl font-semibold text-zinc-900">Jurisdictions</h2>
           <p className="text-sm text-zinc-500 mt-1">Manage US jurisdictions and compliance rules</p>
         </div>
         <Button onClick={handleCreate} className="bg-purple-500 hover:bg-purple-600">
@@ -162,13 +251,13 @@ export default function JurisdictionsFeature() {
       {/* Search and Stats */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input
-            value={searchQuery}
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        <Input
+          value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by name, code, or type..."
-            className="pl-10"
-          />
+          className="pl-10"
+        />
         </div>
         <div className="text-sm text-gray-600">
           {filtered.length} of {jurisdictions.length} jurisdictions
@@ -184,23 +273,23 @@ export default function JurisdictionsFeature() {
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-start gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-purple-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-zinc-900">{jurisdiction.name}</h3>
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-zinc-900">{jurisdiction.name}</h3>
                   <p className="text-xs text-zinc-500 mt-0.5 uppercase">{jurisdiction.code}</p>
-                  <span className={`
-                    inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded-full
-                    ${jurisdiction.type === 'federal' 
+                <span className={`
+                  inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded-full
+                    ${jurisdiction.level === 'federal' 
                       ? 'bg-blue-100 text-blue-700' 
-                      : jurisdiction.type === 'state'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-700'
-                    }
-                  `}>
-                    {jurisdiction.level || jurisdiction.type}
-                  </span>
+                      : jurisdiction.level === 'state'
+                    ? 'bg-green-100 text-green-700' 
+                      : 'bg-orange-100 text-orange-700'
+                  }
+                `}>
+                    {jurisdiction.level}
+                </span>
                 </div>
               </div>
             </div>
@@ -217,7 +306,7 @@ export default function JurisdictionsFeature() {
                 Edit
               </Button>
               
-              {jurisdiction.type !== 'federal' && (
+              {jurisdiction.level !== 'federal' && (
                 <DeleteConfirmationPopover
                   trigger={
                     <Button
@@ -301,11 +390,39 @@ export default function JurisdictionsFeature() {
                   <Label>Code *</Label>
                   <Input
                     value={formCode}
-                    onChange={(e) => setFormCode(e.target.value)}
-                    placeholder="e.g., CA or CA-SF"
+                    onChange={(e) => {
+                      // Auto-uppercase
+                      const upperValue = e.target.value.toUpperCase()
+                      setFormCode(upperValue)
+                      
+                      // Auto-fill state code for cities
+                      if (formLevel === 'city' && upperValue.includes('-')) {
+                        const stateCode = upperValue.split('-')[0]
+                        if (stateCode.length === 2) {
+                          setFormStateCode(stateCode)
+                          setFormParentCode(stateCode)
+                        }
+                      }
+                    }}
+                    placeholder={formLevel === 'city' ? 'CA-SF' : formLevel === 'state' ? 'CA' : 'US'}
+                    className={
+                      formCode && (
+                        (formLevel === 'federal' && formCode !== 'US') ||
+                        (formLevel === 'state' && !/^[A-Z]{2}$/.test(formCode)) ||
+                        (formLevel === 'city' && !/^[A-Z]{2}-[A-Z]+$/.test(formCode))
+                      ) ? 'border-red-500' : ''
+                    }
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    State: 2 letters (CA). City: STATE-CITY (CA-SF)
+                  <p className={`text-xs mt-1 ${
+                    formCode && (
+                      (formLevel === 'federal' && formCode !== 'US') ||
+                      (formLevel === 'state' && !/^[A-Z]{2}$/.test(formCode)) ||
+                      (formLevel === 'city' && !/^[A-Z]{2}-[A-Z]+$/.test(formCode))
+                    ) ? 'text-red-600' : 'text-gray-500'
+                  }`}>
+                    {formLevel === 'state' && 'State: 2 letters (CA, NY, WV)'}
+                    {formLevel === 'city' && 'City: STATE-CITY (CA-SF, NY-NYC)'}
+                    {formLevel === 'federal' && 'Federal: Must be "US"'}
                   </p>
                 </div>
                 
@@ -313,76 +430,121 @@ export default function JurisdictionsFeature() {
                   <Label>Name *</Label>
                   <Input
                     value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g., California"
+                    onChange={(e) => {
+                      setFormName(e.target.value)
+                      
+                      // Auto-generate display name for cities
+                      if (formLevel === 'city' && formStateCode) {
+                        setFormDisplayName(`${e.target.value}, ${formStateCode}`)
+                      }
+                    }}
+                    placeholder={formLevel === 'city' ? 'San Francisco' : 'California'}
                   />
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Type</Label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as any)}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="federal">Federal</option>
-                    <option value="state">State</option>
-                    <option value="local">Local</option>
-                  </select>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label>Level *</Label>
                 </div>
-                
-                <div>
-                  <Label>Level</Label>
-                  <select
-                    value={formLevel}
-                    onChange={(e) => setFormLevel(e.target.value as any)}
-                    className="w-full px-3 py-2 border rounded-md"
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormLevel('federal')
+                      setFormCode('US')
+                      setFormParentCode('')
+                      setFormStateCode('')
+                      setFormDisplayName('Federal')
+                    }}
+                    className={`p-3 border rounded-lg transition-all ${
+                      formLevel === 'federal'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
                   >
-                    <option value="federal">Federal</option>
-                    <option value="state">State</option>
-                    <option value="city">City</option>
-                  </select>
+                    <Landmark className="h-5 w-5 mx-auto mb-1" />
+                    <div className="text-xs font-medium">Federal</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormLevel('state')
+                      setFormParentCode('US')
+                      setFormStateCode('')
+                      setFormDisplayName(formName)
+                    }}
+                    className={`p-3 border rounded-lg transition-all ${
+                      formLevel === 'state'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <MapPin className="h-5 w-5 mx-auto mb-1" />
+                    <div className="text-xs font-medium">State</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormLevel('city')
+                      setFormDisplayName('')
+                    }}
+                    className={`p-3 border rounded-lg transition-all ${
+                      formLevel === 'city'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <Building2 className="h-5 w-5 mx-auto mb-1" />
+                    <div className="text-xs font-medium">City</div>
+                  </button>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Select jurisdiction level: Federal (US), State (CA, NY), or City (CA-SF)
+                </p>
               </div>
               
               {formLevel === 'city' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>State Code</Label>
-                    <Input
-                      value={formStateCode}
-                      onChange={(e) => setFormStateCode(e.target.value)}
-                      placeholder="e.g., CA"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      For cities: parent state code
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <Label>Display Name</Label>
-                    <Input
-                      value={formDisplayName}
-                      onChange={(e) => setFormDisplayName(e.target.value)}
-                      placeholder="e.g., San Francisco, CA"
-                    />
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 mb-3">
+                    <strong>City-Specific Fields</strong>
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>State Code *</Label>
+                      <Input
+                        value={formStateCode}
+                        onChange={(e) => {
+                          const upper = e.target.value.toUpperCase()
+                          setFormStateCode(upper)
+                          // Auto-generate display name when state code changes
+                          if (formName && upper.length === 2) {
+                            setFormDisplayName(`${formName}, ${upper}`)
+                          }
+                        }}
+                        placeholder="CA"
+                        maxLength={2}
+                        className={formStateCode && !/^[A-Z]{2}$/.test(formStateCode) ? 'border-red-500' : ''}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        2-letter state code (auto-fills from code)
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label>Display Name *</Label>
+                      <Input
+                        value={formDisplayName}
+                        onChange={(e) => setFormDisplayName(e.target.value)}
+                        placeholder="San Francisco, CA"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Auto-generated from name + state
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
-              
-              <div>
-                <Label>Parent Code</Label>
-                <Input
-                  value={formParentCode}
-                  onChange={(e) => setFormParentCode(e.target.value)}
-                  placeholder="e.g., US for states, CA for cities"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  States: "US". Cities: state code (e.g., "CA")
-                </p>
-              </div>
             </div>
             
             <div className="flex gap-3 p-6 border-t">

@@ -21,8 +21,7 @@ export const upsertJurisdiction = mutation({
     id: v.optional(v.id("jurisdictions")),
     code: v.string(),
     name: v.string(),
-    type: v.union(v.literal("federal"), v.literal("state"), v.literal("local")),
-    level: v.optional(v.union(v.literal("federal"), v.literal("state"), v.literal("city"))),
+    level: v.union(v.literal("federal"), v.literal("state"), v.literal("city")),
     parentCode: v.optional(v.string()),
     stateCode: v.optional(v.string()),
     displayName: v.optional(v.string()),
@@ -56,77 +55,6 @@ export const deleteJurisdiction = mutation({
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
     return { success: true };
-  },
-});
-
-// Seed jurisdictions data
-export const seedJurisdictions = mutation({
-  handler: async (ctx) => {
-    const jurisdictions = [
-      { code: "federal", name: "Federal", type: "federal" as const },
-      { code: "alabama", name: "Alabama", type: "state" as const },
-      { code: "alaska", name: "Alaska", type: "state" as const },
-      { code: "arizona", name: "Arizona", type: "state" as const },
-      { code: "arkansas", name: "Arkansas", type: "state" as const },
-      { code: "california", name: "California", type: "state" as const },
-      { code: "colorado", name: "Colorado", type: "state" as const },
-      { code: "connecticut", name: "Connecticut", type: "state" as const },
-      { code: "delaware", name: "Delaware", type: "state" as const },
-      { code: "florida", name: "Florida", type: "state" as const },
-      { code: "georgia", name: "Georgia", type: "state" as const },
-      { code: "hawaii", name: "Hawaii", type: "state" as const },
-      { code: "idaho", name: "Idaho", type: "state" as const },
-      { code: "illinois", name: "Illinois", type: "state" as const },
-      { code: "indiana", name: "Indiana", type: "state" as const },
-      { code: "iowa", name: "Iowa", type: "state" as const },
-      { code: "kansas", name: "Kansas", type: "state" as const },
-      { code: "kentucky", name: "Kentucky", type: "state" as const },
-      { code: "louisiana", name: "Louisiana", type: "state" as const },
-      { code: "maine", name: "Maine", type: "state" as const },
-      { code: "maryland", name: "Maryland", type: "state" as const },
-      { code: "massachusetts", name: "Massachusetts", type: "state" as const },
-      { code: "michigan", name: "Michigan", type: "state" as const },
-      { code: "minnesota", name: "Minnesota", type: "state" as const },
-      { code: "mississippi", name: "Mississippi", type: "state" as const },
-      { code: "missouri", name: "Missouri", type: "state" as const },
-      { code: "montana", name: "Montana", type: "state" as const },
-      { code: "nebraska", name: "Nebraska", type: "state" as const },
-      { code: "nevada", name: "Nevada", type: "state" as const },
-      { code: "new_hampshire", name: "New Hampshire", type: "state" as const },
-      { code: "new_jersey", name: "New Jersey", type: "state" as const },
-      { code: "new_mexico", name: "New Mexico", type: "state" as const },
-      { code: "new_york", name: "New York", type: "state" as const },
-      { code: "north_carolina", name: "North Carolina", type: "state" as const },
-      { code: "north_dakota", name: "North Dakota", type: "state" as const },
-      { code: "ohio", name: "Ohio", type: "state" as const },
-      { code: "oklahoma", name: "Oklahoma", type: "state" as const },
-      { code: "oregon", name: "Oregon", type: "state" as const },
-      { code: "pennsylvania", name: "Pennsylvania", type: "state" as const },
-      { code: "rhode_island", name: "Rhode Island", type: "state" as const },
-      { code: "south_carolina", name: "South Carolina", type: "state" as const },
-      { code: "south_dakota", name: "South Dakota", type: "state" as const },
-      { code: "tennessee", name: "Tennessee", type: "state" as const },
-      { code: "texas", name: "Texas", type: "state" as const },
-      { code: "utah", name: "Utah", type: "state" as const },
-      { code: "vermont", name: "Vermont", type: "state" as const },
-      { code: "virginia", name: "Virginia", type: "state" as const },
-      { code: "washington", name: "Washington", type: "state" as const },
-      { code: "west_virginia", name: "West Virginia", type: "state" as const },
-      { code: "wisconsin", name: "Wisconsin", type: "state" as const },
-      { code: "wyoming", name: "Wyoming", type: "state" as const },
-      { code: "district_of_columbia", name: "District of Columbia", type: "state" as const },
-    ];
-
-    let count = 0;
-    for (const jurisdiction of jurisdictions) {
-      await ctx.db.insert("jurisdictions", {
-        ...jurisdiction,
-        lastUpdated: Date.now(),
-      });
-      count++;
-    }
-
-    return { inserted: count };
   },
 });
 

@@ -18,7 +18,6 @@ import type * as helpers from "../helpers.js";
 import type * as jurisdictionDetails from "../jurisdictionDetails.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
-import type * as migrateJurisdictionCodes from "../migrateJurisdictionCodes.js";
 import type * as researchConversations from "../researchConversations.js";
 import type * as researchSettings from "../researchSettings.js";
 import type * as savedResearch from "../savedResearch.js";
@@ -49,7 +48,6 @@ declare const fullApi: ApiFromModules<{
   jurisdictionDetails: typeof jurisdictionDetails;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
-  migrateJurisdictionCodes: typeof migrateJurisdictionCodes;
   researchConversations: typeof researchConversations;
   researchSettings: typeof researchSettings;
   savedResearch: typeof savedResearch;

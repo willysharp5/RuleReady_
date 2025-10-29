@@ -117,23 +117,18 @@ const schema = defineSchema({
   jurisdictions: defineTable({
     code: v.string(), // "US" | "CA" | "CA-SF"
     name: v.string(), // "Federal" | "California" | "San Francisco"
-    type: v.union(v.literal("federal"), v.literal("state"), v.literal("local")),
+    level: v.union(v.literal("federal"), v.literal("state"), v.literal("city")),
     
-    // New hierarchical fields (optional for backward compatibility)
-    level: v.optional(v.union(v.literal("federal"), v.literal("state"), v.literal("city"))),
+    // Hierarchical fields
     parentCode: v.optional(v.string()), // "US" for states, "CA" for CA cities
     stateCode: v.optional(v.string()),  // "CA" for cities in California
     displayName: v.optional(v.string()), // "San Francisco, CA"
-    
-    // Legacy fields (keep for compatibility)
-    parentJurisdiction: v.optional(v.string()),
     
     // Metadata
     isActive: v.optional(v.boolean()),
     hasEmploymentLaws: v.optional(v.boolean()),
     lastUpdated: v.number(),
   })
-    .index("by_type", ["type"])
     .index("by_code", ["code"])
     .index("by_level", ["level"])
     .index("by_state", ["stateCode"])
