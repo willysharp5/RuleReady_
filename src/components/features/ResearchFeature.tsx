@@ -490,7 +490,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     if (isRefinementMode) {
       setIsRefinementMode(false)
       setAnswerBeingRefined(null)
-      setShowAdvancedResearchOptions(false)
     }
     
     // Create assistant message that will stream
@@ -760,7 +759,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     setResearchFollowUpQuestions([])
     setIsRefinementMode(false)
     setAnswerBeingRefined(null)
-    setShowAdvancedResearchOptions(false)
     setShowClearConfirm(false)
     
     // Reset to default system prompt
@@ -1427,7 +1425,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
                       onClick={() => {
                         setIsRefinementMode(true)
                         setAnswerBeingRefined(m)
-                        setShowAdvancedResearchOptions(true)
                         // Scroll to composer
                         setTimeout(() => {
                           researchListRef.current?.scrollTo({
