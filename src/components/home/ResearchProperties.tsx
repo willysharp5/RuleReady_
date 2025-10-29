@@ -104,10 +104,10 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const topicName = researchState?.topic
     ? topics?.find((t: any) => t.topicKey === researchState.topic)?.name || researchState.topic
     : null
-  const [firecrawlOpen, setFirecrawlOpen] = useState(true)
+  const [firecrawlOpen, setFirecrawlOpen] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
-  const [systemPromptOpen, setSystemPromptOpen] = useState(true)
-  const [contextOpen, setContextOpen] = useState(true)
+  const [systemPromptOpen, setSystemPromptOpen] = useState(false)
+  const [contextOpen, setContextOpen] = useState(false)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
   
   // Debounce timer refs
