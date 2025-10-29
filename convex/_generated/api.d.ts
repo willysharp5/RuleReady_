@@ -9,11 +9,6 @@
  */
 
 import type * as chatSettings from "../chatSettings.js";
-import type * as cleanupAppSettings from "../cleanupAppSettings.js";
-import type * as cleanupAppSettingsOnce from "../cleanupAppSettingsOnce.js";
-import type * as complianceAI from "../complianceAI.js";
-import type * as complianceImport from "../complianceImport.js";
-import type * as complianceParser from "../complianceParser.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
@@ -44,11 +39,6 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   chatSettings: typeof chatSettings;
-  cleanupAppSettings: typeof cleanupAppSettings;
-  cleanupAppSettingsOnce: typeof cleanupAppSettingsOnce;
-  complianceAI: typeof complianceAI;
-  complianceImport: typeof complianceImport;
-  complianceParser: typeof complianceParser;
   complianceQueries: typeof complianceQueries;
   complianceRAG: typeof complianceRAG;
   complianceTemplates: typeof complianceTemplates;
