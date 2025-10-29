@@ -2231,7 +2231,7 @@ These appear AFTER "Based on these sources:" in your prompt.`;
                         
                         if (selectedValue === 'view-all') {
                           // Navigate to settings page
-                          router.push('/settings#templates');
+                          router.push('/home?feature=templates');
                           return;
                         } else if (selectedValue === 'none') {
                           // Clear template - reset to default prompt

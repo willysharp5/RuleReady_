@@ -33,8 +33,10 @@ export default function HomePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as FeatureType | null
+  const featureParam = searchParams.get('feature') as FeatureType | null
   
-  const [activeFeature, setActiveFeature] = useState<FeatureType>(tabParam || 'chat')
+  const initialFeature = featureParam || tabParam || 'chat'
+  const [activeFeature, setActiveFeature] = useState<FeatureType>(initialFeature)
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true)
   
   // Update URL when feature changes
@@ -45,10 +47,11 @@ export default function HomePage() {
   
   // Sync with URL parameter
   useEffect(() => {
-    if (tabParam && tabParam !== activeFeature) {
-      setActiveFeature(tabParam)
+    const urlFeature = featureParam || tabParam
+    if (urlFeature && urlFeature !== activeFeature) {
+      setActiveFeature(urlFeature)
     }
-  }, [tabParam])
+  }, [tabParam, featureParam])
   
   // Load research settings from database
   const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)

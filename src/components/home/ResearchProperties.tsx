@@ -298,7 +298,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
               const selectedValue = e.target.value;
               
               if (selectedValue === 'view-all') {
-                window.location.href = '/settings#templates';
+                window.location.href = '/home?feature=templates';
                 e.currentTarget.value = researchState?.selectedTemplate || '';
                 return;
               } else if (selectedValue === 'new') {
