@@ -104,29 +104,34 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   }
   
   const handleResetPrompt = () => {
-    const defaultPrompt = `You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the compliance data in the internal database.
+    const defaultPrompt = `You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the saved research and additional context provided.
 
 CRITICAL RULES:
-1. ONLY use information that exists in the provided database sources
-2. DO NOT use your general knowledge or training data
-3. If the database has NO relevant information, say: "I don't have information about [topic] in the database" and STOP
-4. DO NOT attempt to answer questions when database sources are missing or insufficient
-5. DO NOT make assumptions or inferences beyond what the database explicitly states
+1. ONLY use information from the saved research results and additional context provided
+2. DO NOT use your general AI knowledge or training data
+3. If no relevant saved research is found, say: "I don't have saved research about [topic] for [jurisdiction]" and STOP
+4. DO NOT attempt to answer questions when saved research is missing or insufficient
+5. DO NOT make assumptions or inferences beyond what the saved research explicitly states
 
-WHEN DATABASE HAS INFORMATION:
-- Cite which jurisdiction and topic the information comes from
-- Distinguish between federal and state requirements
-- Mention effective dates when relevant
-- Note penalties or deadlines when applicable
-- Be specific and detailed based on database content
+WHEN SAVED RESEARCH IS AVAILABLE:
+- Cite which saved research document the information comes from (use [1], [2], [3] format)
+- Reference the jurisdiction and topic from the saved research
+- Quote or paraphrase directly from the saved research content
+- Mention dates, deadlines, and penalties found in the saved research
+- Be specific and detailed based ONLY on what's in the saved research
 
-WHEN DATABASE LACKS INFORMATION:
+WHEN NO SAVED RESEARCH IS FOUND:
 - Clearly state what information is missing
 - Do NOT provide general compliance advice
-- Do NOT suggest what "typically" or "usually" applies
+- Do NOT use your AI knowledge to answer
 - Simply acknowledge the limitation and stop
 
-You are a database query tool, not a general compliance advisor.`
+ADDITIONAL CONTEXT:
+- If additional context is provided by the user, you MAY use it in your answer
+- Clearly indicate when you're using additional context vs saved research
+- Cite the source (saved research vs additional context)
+
+You are an evaluation tool to test if the saved research is comprehensive enough to answer customer questions.`
     
     if (setChatState && chatState) {
       setChatState({ ...chatState, systemPrompt: defaultPrompt })
@@ -147,10 +152,10 @@ You are a database query tool, not a general compliance advisor.`
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h5 className="font-medium text-blue-900 mb-2">How It Works</h5>
         <div className="text-xs text-blue-800 space-y-1.5">
-          <div><strong>1. Your Input:</strong> Query + optional filters</div>
-          <div><strong>2. Database Search:</strong> AI searches your compliance database</div>
-          <div><strong>3. AI Response:</strong> AI analyzes and responds based on your data</div>
-          <div><strong>4. Sources:</strong> Shows which database entries were used</div>
+          <div><strong>1. Select Saved Research:</strong> Choose knowledge base items</div>
+          <div><strong>2. Ask Question:</strong> With optional jurisdiction/topic filters</div>
+          <div><strong>3. AI Response:</strong> Uses ONLY your saved research</div>
+          <div><strong>4. Evaluation:</strong> Tests if your research is comprehensive</div>
         </div>
       </div>
       
@@ -248,7 +253,7 @@ You are a database query tool, not a general compliance advisor.`
             className="text-xs"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Filter database search to specific jurisdiction
+            Optional - helps organize your query context
           </p>
         </div>
         
@@ -269,7 +274,7 @@ You are a database query tool, not a general compliance advisor.`
             className="text-xs"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Filter database search to specific topic
+            Optional - helps organize your query context
           </p>
         </div>
       </div>
@@ -399,7 +404,7 @@ Use this company information to answer compliance questions. For example:
           
           <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 flex items-start gap-2">
             <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-            <span><strong>Tip:</strong> Generate a test company, then ask questions like: &ldquo;Do we need sexual harassment training?&rdquo; or &ldquo;Which employees need training in California?&rdquo; The AI will use your database to answer based on the company context.</span>
+            <span><strong>Tip:</strong> Generate a test company, then ask questions like: &ldquo;Do we need sexual harassment training?&rdquo; or &ldquo;Which employees need training in California?&rdquo; The AI will use your saved research + company context to evaluate coverage.</span>
           </p>
         </div>
       </AccordionSection>
@@ -559,15 +564,18 @@ Use this company information to answer compliance questions. For example:
                   );
                 }
                 
-                // Database search info
+                // Saved research info
+                const hasResearch = chatState.selectedResearchIds && chatState.selectedResearchIds.length > 0;
                 parts.push(
-                  <div key="database" className="font-bold text-sm text-blue-700 mt-3">
-                    Database Search:
+                  <div key="research" className="font-bold text-sm text-blue-700 mt-3">
+                    Saved Research:
                   </div>
                 );
                 parts.push(
-                  <div key="db-info" className="text-xs italic text-zinc-500 ml-2">
-                    AI searches your internal compliance database with the filters above
+                  <div key="research-info" className="text-xs italic text-zinc-500 ml-2">
+                    {hasResearch 
+                      ? `Using ${chatState.selectedResearchIds?.length} saved research item(s) as knowledge base`
+                      : 'No saved research selected - AI will ask you to provide it'}
                   </div>
                 );
                 

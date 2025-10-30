@@ -32,15 +32,13 @@ export async function POST(req: NextRequest) {
     // Create system prompt
     let systemPrompt = baseSystemPrompt;
     
-    // Add context based on filters
-    if (jurisdiction || topic) {
-      const complianceContext = await getComplianceContext(jurisdiction, topic);
-      systemPrompt += `\n\nCONTEXT:\n${complianceContext}`;
-    }
-    
-    // Add additional context from user if provided
+    // Add context if user provided it (this is where saved research should be pasted)
     if (additionalContext && additionalContext.trim()) {
-      systemPrompt += `\n\nADDITIONAL CONTEXT PROVIDED BY USER:\n${additionalContext}\n\nUse this context when answering the user's question.`;
+      systemPrompt += `\n\nSAVED RESEARCH AND CONTEXT PROVIDED:\n${additionalContext}`;
+      console.log(`📄 Using ${additionalContext.length} characters of additional context`);
+    } else {
+      systemPrompt += `\n\nNO SAVED RESEARCH OR CONTEXT PROVIDED. You must say: "I don't have saved research about this topic. Please select saved research from the knowledge base to answer this question."`;
+      console.log(`⚠️ No additional context provided`);
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -74,11 +72,11 @@ export async function POST(req: NextRequest) {
         role: 'assistant', 
         content: text,
         title: displayTitle,
-        sources: [],
+        sources: [], // Sources come from additional context, not auto-searched
         settings: {
           systemPrompt: baseSystemPrompt,
           model: model || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp",
-          sourcesFound: 0,
+          sourcesFound: additionalContext ? 1 : 0,
           jurisdiction: jurisdiction || "All Jurisdictions",
           topic: topic || "All Topics",
         },
