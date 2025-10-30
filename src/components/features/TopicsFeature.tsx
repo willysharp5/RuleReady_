@@ -438,7 +438,6 @@ export default function TopicsFeature() {
                 id="category"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Select or type a category"
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
@@ -448,14 +447,8 @@ export default function TopicsFeature() {
                 ))}
               </Select>
               <p className="text-xs text-zinc-500">
-                Select existing category or type a new one below
+                Use "New Category" button in side panel to create new categories
               </p>
-              <Input
-                id="customCategory"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Or type custom category name..."
-              />
             </div>
             
             <div className="space-y-2">

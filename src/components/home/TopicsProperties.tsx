@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Layers, X, Edit2, Merge, Plus } from 'lucide-react'
+import { Layers, X, Edit2, Merge, Plus, Info } from 'lucide-react'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { TopicSelect } from '@/components/ui/topic-select'
@@ -140,15 +140,17 @@ export function TopicsProperties() {
         })
       }
       
+      // Close dialog and reset form
       setEditingCategory(null)
+      setCategoryDialogMode('rename')
       setNewCategoryName('')
       setMergeTargetCategory('')
       setNewTopicData({ name: '', description: '' })
     } catch (error: any) {
-      toast({
+      addToast({
         title: "Error",
         description: error.message || "Failed to update category",
-        variant: "destructive",
+        variant: "error",
       })
     }
   }
@@ -293,6 +295,15 @@ export function TopicsProperties() {
               New Category
             </Button>
           </div>
+          
+          {/* Helper Info */}
+          <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800 flex items-start gap-2">
+            <Info className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <div>
+              <strong>Tip:</strong> Use <strong>Merge</strong> to move topics and remove empty categories. Categories disappear when they have no topics.
+            </div>
+          </div>
+          
           <div className="space-y-1">
             {categories.sort().map((category: string) => {
               const count = topics.filter((t: any) => t.category === category).length
