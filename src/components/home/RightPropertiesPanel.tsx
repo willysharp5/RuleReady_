@@ -1,12 +1,13 @@
 import { ChevronLeft, ChevronRight, X, AlertCircle } from 'lucide-react'
 import { ChatProperties } from './ChatProperties'
 import { ResearchProperties } from './ResearchProperties'
+import { SavedResearchProperties } from './SavedResearchProperties'
 import { TemplatesProperties } from './TemplatesProperties'
 import { JurisdictionsProperties } from './JurisdictionsProperties'
 import { TopicsProperties } from './TopicsProperties'
 import { AIModelsProperties } from './AIModelsProperties'
 
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
+type FeatureType = 'chat' | 'research' | 'saved-research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
 interface RightPropertiesPanelProps {
   activeFeature: FeatureType
@@ -85,6 +86,7 @@ export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, research
               onDismissError={onDismissError}
             />
           )}
+          {activeFeature === 'saved-research' && <SavedResearchProperties />}
           {activeFeature === 'templates' && <TemplatesProperties />}
           {activeFeature === 'jurisdictions' && <JurisdictionsProperties />}
           {activeFeature === 'topics' && <TopicsProperties />}

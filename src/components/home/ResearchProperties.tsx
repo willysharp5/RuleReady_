@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 import { useToast } from '@/hooks/use-toast'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
+import { TopicSelect } from '@/components/ui/topic-select'
+import { TemplateSelect } from '@/components/ui/template-select'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -46,10 +48,21 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   
   // Template editor state
   const [showTemplateEditor, setShowTemplateEditor] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState<{
-    topicKey: string
-    topicName: string
-  } | null>(null)
+  
+  // Template selection state (for component)
+  const [selectedTemplateObj, setSelectedTemplateObj] = useState<any>(null)
+  
+  // Sync selected template object with researchState.selectedTemplate (templateId)
+  useEffect(() => {
+    if (researchState?.selectedTemplate && templates) {
+      const template = templates.find((t: any) => t.templateId === researchState.selectedTemplate)
+      if (template && template !== selectedTemplateObj) {
+        setSelectedTemplateObj(template)
+      }
+    } else if (!researchState?.selectedTemplate && selectedTemplateObj) {
+      setSelectedTemplateObj(null)
+    }
+  }, [researchState?.selectedTemplate, templates])
   
   // URL validation state
   const [urlValidation, setUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
@@ -287,31 +300,10 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <FileText className="h-3 w-3" />
             Template (Optional)
           </label>
-          <div className="text-xs text-zinc-600 mb-1">
-            {researchState?.selectedTemplate 
-              ? `Using: ${templates?.find((t: any) => t.templateId === researchState.selectedTemplate)?.title || 'Template'}`
-              : 'No template selected'}
-          </div>
-          <select
-            className="w-full px-2 py-1.5 border border-purple-300 bg-purple-50 text-purple-900 rounded-md text-xs font-medium"
-            value={researchState?.selectedTemplate || ''}
-            onChange={(e) => {
-              const selectedValue = e.target.value;
-              
-              if (selectedValue === 'view-all') {
-                window.location.href = '/home?feature=templates';
-                e.currentTarget.value = researchState?.selectedTemplate || '';
-                return;
-              } else if (selectedValue === 'new') {
-                // Open template editor modal
-                setEditingTemplate({
-                  topicKey: '',
-                  topicName: 'New Template'
-                });
-                setShowTemplateEditor(true);
-                e.currentTarget.value = researchState?.selectedTemplate || '';
-                return;
-              } else if (selectedValue === '') {
+          <TemplateSelect
+            value={selectedTemplateObj}
+            onChange={(template: any) => {
+              if (!template) {
                 // No template selected - use default prompt
                 const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
 
@@ -343,9 +335,7 @@ These appear AFTER "Based on these sources:" in your prompt.`;
                 }
               } else {
                 // Template selected - update system prompt with template structure
-                const template = templates?.find((t: any) => t.templateId === selectedValue);
-                if (template && template.markdownContent) {
-                  const enhancedPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
+                const enhancedPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
 
 Your role is to provide accurate, authoritative information about employment law based on the sources provided.
 
@@ -366,40 +356,31 @@ ${template.markdownContent}
 
 Follow the template sections but adapt based on the query. Not all sections may be relevant for every query.`;
                   
-                  if (setResearchState && researchState) {
-                    setResearchState({ ...researchState, selectedTemplate: selectedValue, systemPrompt: enhancedPrompt })
-                  }
-                  
-                  // Also update via settings if available
-                  if (updateResearchSettings) {
-                    updateResearchSettings({
-                      researchSystemPrompt: enhancedPrompt,
-                      researchModel: researchState?.model,
-                      researchFirecrawlConfig: researchState?.firecrawlConfig
-                    })
-                  }
-                  
-                  // Show success message
-                  addToast({
-                    variant: 'success',
-                    title: 'Template applied',
-                    description: `Using ${template.title} - check AI Settings to see the updated prompt`,
-                    duration: 3000
+                if (setResearchState && researchState) {
+                  setResearchState({ ...researchState, selectedTemplate: template.templateId, systemPrompt: enhancedPrompt })
+                }
+                
+                // Also update via settings if available
+                if (updateResearchSettings) {
+                  updateResearchSettings({
+                    researchSystemPrompt: enhancedPrompt,
+                    researchModel: researchState?.model,
+                    researchFirecrawlConfig: researchState?.firecrawlConfig
                   })
                 }
+                
+                // Show success message
+                addToast({
+                  variant: 'success',
+                  title: 'Template applied',
+                  description: `Using ${template.title} - check AI Settings to see the updated prompt`,
+                  duration: 3000
+                })
               }
             }}
-          >
-            <option value="">No Template</option>
-            <option value="view-all" className="font-semibold">View All Templates →</option>
-            <option value="new" className="font-semibold">Create New Template</option>
-            <option disabled>──────────</option>
-            {templates?.map((template: any) => (
-              <option key={template.templateId} value={template.templateId}>
-                {template.title} {template.isDefault ? '(Default)' : ''}
-              </option>
-            ))}
-          </select>
+            placeholder="No template selected"
+            className="bg-purple-50 border-purple-300 text-purple-900"
+          />
         </div>
         
         {/* Jurisdiction Filter */}
@@ -434,20 +415,16 @@ Follow the template sections but adapt based on the query. Not all sections may 
             <Tag className="h-3 w-3" />
             Topic (Optional)
           </label>
-          <select
-            className="w-full px-2 py-1.5 border border-zinc-200 rounded-md text-xs"
-            value={researchState?.topic || ''}
-            onChange={(e) => {
+          <TopicSelect
+            value={topics.find((t: any) => t.name === researchState?.topic) || null}
+            onChange={(topic: any) => {
               if (setResearchState && researchState) {
-                setResearchState({ ...researchState, topic: e.target.value })
+                setResearchState({ ...researchState, topic: topic?.name || '' })
               }
             }}
-          >
-            <option value="">All Topics</option>
-            {topics.map((t: any) => (
-              <option key={t.topicKey} value={t.name}>{t.name}</option>
-            ))}
-          </select>
+            placeholder="No topic selected"
+            className="text-xs"
+          />
         </div>
         
         {/* Additional URLs */}
@@ -593,9 +570,11 @@ Follow the template sections but adapt based on the query. Not all sections may 
               value={researchState?.model || 'gemini-2.0-flash-exp'}
               onChange={(e) => handleModelChange(e.target.value)}
             >
-              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental) - Default</option>
+              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest - Stable</option>
+              <option value="gemini-1.5-flash-8b-latest">Gemini 1.5 Flash 8B - Lightweight</option>
+              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest - Advanced</option>
+              <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking - Extended Reasoning</option>
             </select>
           </div>
           
@@ -854,15 +833,12 @@ Follow the template sections but adapt based on the query. Not all sections may 
       </AccordionSection>
       
       {/* Template Editor Modal */}
-      {showTemplateEditor && editingTemplate && (
+      {showTemplateEditor && (
         <ComplianceTemplateEditor
           isOpen={showTemplateEditor}
           onClose={() => {
             setShowTemplateEditor(false)
-            setEditingTemplate(null)
           }}
-          topicKey={editingTemplate.topicKey}
-          topicName={editingTemplate.topicName}
           onSave={async (templateData) => {
             try {
               await upsertTemplate(templateData)
@@ -873,10 +849,9 @@ Follow the template sections but adapt based on the query. Not all sections may 
                 duration: 3000
               })
               setShowTemplateEditor(false)
-              setEditingTemplate(null)
             } catch (error) {
               addToast({
-                variant: 'destructive',
+                variant: 'error',
                 title: 'Error saving template',
                 description: error instanceof Error ? error.message : 'Unknown error',
                 duration: 5000

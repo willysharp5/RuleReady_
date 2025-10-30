@@ -98,12 +98,12 @@ export function TemplateSelect({
   }
   
   return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
+    <div ref={dropdownRef} className="relative">
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2 text-sm border border-zinc-200 rounded-md hover:border-zinc-300 bg-white"
+        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md ${className || 'bg-white border border-zinc-200 hover:border-zinc-300'}`}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {value ? (

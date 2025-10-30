@@ -6,7 +6,7 @@ export async function GET() {
       {
         name: 'GEMINI_API_KEY',
         status: process.env.GEMINI_API_KEY ? 'set' : 'not_set',
-        provider: 'Google'
+        provider: 'Gemini'
       },
       {
         name: 'FIRECRAWL_API_KEY',

@@ -1,16 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Zap, Bot, Edit3, X, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Plus, Zap, Edit3, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 
 export default function AIModelsFeature() {
   // AI Models configuration state
@@ -28,26 +23,6 @@ export default function AIModelsFeature() {
   const [newModelBaseUrl, setNewModelBaseUrl] = useState('')
   const [newModelCapabilities, setNewModelCapabilities] = useState<string[]>([])
   const [newModelDescription, setNewModelDescription] = useState('')
-  
-  // Test state
-  const [testPopoverOpen, setTestPopoverOpen] = useState(false)
-  const [testLoading, setTestLoading] = useState(false)
-  const [selectedTestModel, setSelectedTestModel] = useState('gemini-2.0-flash-exp')
-  const [testResult, setTestResult] = useState<{
-    success: boolean
-    message: string
-    latency?: number
-    modelInfo?: string
-  } | null>(null)
-  
-  // Available Gemini models
-  const geminiModels = [
-    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)', description: 'Fast, efficient' },
-    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Stable, fast' },
-    { id: 'gemini-1.5-flash-8b', name: 'Gemini 1.5 Flash 8B', description: 'Lightweight' },
-    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Advanced reasoning' },
-    { id: 'gemini-exp-1206', name: 'Gemini Experimental 1206', description: 'Latest features' },
-  ]
 
   // Environment status state
   const [envStatus, setEnvStatus] = useState<Array<{
@@ -154,56 +129,6 @@ Next steps:
     setShowModelConfig(false)
   }
 
-  const handleTestModel = async (modelId?: string) => {
-    const modelToTest = modelId || selectedTestModel
-    setTestLoading(true)
-    setTestResult(null)
-    
-    try {
-      const startTime = Date.now()
-      
-      // Make a simple test API call to the chat endpoint
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Test: Reply with "OK" to confirm you are working.' }],
-          model: modelToTest,
-          test: true,
-        }),
-      })
-      
-      const latency = Date.now() - startTime
-      
-      if (response.ok) {
-        await response.json()
-        const modelName = geminiModels.find(m => m.id === modelToTest)?.name || modelToTest
-        setTestResult({
-          success: true,
-          message: 'Model is responding correctly',
-          latency,
-          modelInfo: modelName,
-        })
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        setTestResult({
-          success: false,
-          message: errorData.error || 'Model test failed',
-          latency,
-        })
-      }
-    } catch (error) {
-      setTestResult({
-        success: false,
-        message: error instanceof Error ? error.message : 'Network error',
-      })
-    } finally {
-      setTestLoading(false)
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -291,151 +216,6 @@ Next steps:
               Configure
             </Button>
           </div>
-        </div>
-      </div>
-      
-      {/* Available Models */}
-      <div>
-        <h3 className="text-lg font-medium mb-4">Available AI Models</h3>
-        <div className="space-y-3">
-          {/* Only show Google models since they're the only ones with API keys set */}
-          <div className="border border-green-200 bg-green-50 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Google Gemini 2.0 Flash</h4>
-                  <p className="text-sm text-gray-600">Fast, efficient model for chat and research</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Chat</span>
-                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Research</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-green-600 font-medium">✓ Active</span>
-                <Popover open={testPopoverOpen} onOpenChange={setTestPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setTestPopoverOpen(true)
-                        setTestResult(null)
-                      }}
-                    >
-                      Test
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-96" align="end">
-                    <div className="space-y-4">
-                      <h4 className="font-semibold text-sm">Test Gemini Model</h4>
-                      
-                      {/* Model Selector */}
-                      {!testLoading && !testResult && (
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-xs text-gray-600">Select Model to Test</Label>
-                            <select
-                              value={selectedTestModel}
-                              onChange={(e) => setSelectedTestModel(e.target.value)}
-                              className="w-full mt-1.5 px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                              {geminiModels.map(model => (
-                                <option key={model.id} value={model.id}>
-                                  {model.name} - {model.description}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          
-                          <Button 
-                            onClick={() => handleTestModel()}
-                            className="w-full bg-purple-500 hover:bg-purple-600"
-                            size="sm"
-                          >
-                            Run Test
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {/* Loading State */}
-                      {testLoading && (
-                        <div className="flex flex-col items-center justify-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-3" />
-                          <p className="text-sm text-gray-600">Testing {geminiModels.find(m => m.id === selectedTestModel)?.name}...</p>
-                        </div>
-                      )}
-                      
-                      {/* Test Results */}
-                      {!testLoading && testResult && (
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-2">
-                            {testResult.success ? (
-                              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                            ) : (
-                              <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium ${testResult.success ? 'text-green-900' : 'text-red-900'}`}>
-                                {testResult.success ? 'Success' : 'Failed'}
-                              </p>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {testResult.message}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {testResult.success && (
-                            <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
-                              {testResult.modelInfo && (
-                                <div>
-                                  <span className="font-medium text-gray-700">Model:</span>
-                                  <span className="text-gray-600 ml-2">{testResult.modelInfo}</span>
-                                </div>
-                              )}
-                              {testResult.latency !== undefined && (
-                                <div>
-                                  <span className="font-medium text-gray-700">Latency:</span>
-                                  <span className="text-gray-600 ml-2">{testResult.latency}ms</span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-medium text-gray-700">Status:</span>
-                                <span className="text-green-600 ml-2">✓ Operational</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setTestResult(null)
-                              }}
-                            >
-                              Test Another
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setTestPopoverOpen(false)}
-                            >
-                              Close
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
-          
         </div>
       </div>
       

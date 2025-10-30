@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Search, FileText, MapPin, Layers, Zap } from 'lucide-react'
+import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
 import ChatFeature from '@/components/features/ChatFeature'
 import ResearchFeature from '@/components/features/ResearchFeature'
+import SavedResearchFeature from '@/components/features/SavedResearchFeature'
 import TemplatesFeature from '@/components/features/TemplatesFeature'
 import JurisdictionsFeature from '@/components/features/JurisdictionsFeature'
 import TopicsFeature from '@/components/features/TopicsFeature'
@@ -14,7 +15,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useRouter, useSearchParams } from 'next/navigation'
 
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
+type FeatureType = 'chat' | 'research' | 'saved-research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
 interface NavItem {
   id: FeatureType
@@ -25,6 +26,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: MessageCircle },
   { id: 'research', label: 'Research', icon: Search },
+  { id: 'saved-research', label: 'Saved Research', icon: BookOpen },
   { id: 'templates', label: 'Templates', icon: FileText },
   { id: 'jurisdictions', label: 'Jurisdictions', icon: MapPin },
   { id: 'topics', label: 'Topics', icon: Layers },
@@ -112,6 +114,7 @@ export default function HomePage() {
             {activeFeature === 'research' && (
               <ResearchFeature researchState={researchState} setResearchState={setResearchState} />
             )}
+            {activeFeature === 'saved-research' && <SavedResearchFeature />}
             {activeFeature === 'templates' && <TemplatesFeature />}
             {activeFeature === 'jurisdictions' && <JurisdictionsFeature />}
             {activeFeature === 'topics' && <TopicsFeature />}

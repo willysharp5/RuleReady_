@@ -2870,6 +2870,888 @@ What are prevailing wage requirements for workers on government-funded construct
 *This template provides comprehensive prevailing wage compliance guidance for contractors on public works*`
       },
       
+      // 21. Record Retention Requirements
+      {
+        templateId: "record_retention_comprehensive",
+        title: "Employment Record Retention Requirements",
+        description: "Federal and state requirements for maintaining employment records and timesheets",
+        topicSlug: "record-retention-requirements",
+        markdownContent: `# Employment Record Retention Requirements
+
+## Quick Overview
+What employment records must be kept, and for how long?
+
+## Covered Employers
+- All employers (federal requirements)
+- State-specific additional requirements
+- Industry-specific requirements
+- Size determines some obligations (EEO-1 reporting)
+
+## Federal Retention Requirements
+### FLSA Records (Fair Labor Standards Act)
+**Retention: 3 years**
+- Employee personal information
+- Wage rates and hours worked
+- Total wages paid each pay period
+- Date of payment and pay period covered
+
+**Retention: 2 years** 
+- Time cards and piecework records
+- Wage rate tables
+- Work schedules
+- Records of additions/deductions from wages
+
+### Title VII / EEO Records
+**Retention: 1 year** from making record or personnel action
+- Employment applications (hired and not hired)
+- Resumes
+- Interview notes
+- Test results and scores
+- Promotion/transfer/termination records
+
+### FMLA Records (if applicable)
+**Retention: 3 years**
+- Leave requests and approvals
+- Dates of leave taken
+- Hours of leave
+- Medical certifications
+- Premium payments for benefits
+
+### I-9 Forms
+**Retention**: 3 years from hire OR 1 year from termination (whichever later)
+- Form I-9 for each employee
+- Supporting documentation if re-verification
+- Lists of acceptable documents
+
+### OSHA Records
+**Retention: 5 years**
+- OSHA 300 Log (Injury/Illness Log)
+- OSHA 301 Forms (Incident Reports)
+- Annual summary (300A)
+
+**Retention: 30 years**
+- Employee medical records
+- Exposure records (toxic substances)
+
+### ADA/Accommodation Records
+**Retention: 1 year** from action
+- Accommodation requests
+- Interactive process documentation
+- Medical documentation (separate/confidential)
+- Reasons for denial
+
+## State-Specific Requirements
+### Often Longer Than Federal
+- Personnel files: 3-7 years after termination
+- Payroll records: 4-6 years
+- Benefits records: Duration of plan + 6 years
+- Varies significantly by state
+
+## Types of Records to Maintain
+### Personnel Files
+- Job applications and resumes
+- Offer letters
+- Performance reviews
+- Disciplinary records
+- Training records
+- Promotion/transfer records
+- Termination documentation
+
+### Payroll Records
+- Time cards/sheets
+- Pay rate changes
+- Bonus/commission calculations
+- Deduction authorizations
+- Garnishment orders
+- Tax withholding forms (W-4)
+
+### Benefits Records
+- Enrollment forms
+- COBRA notices and elections
+- Retirement plan contributions
+- Health insurance records
+- Leave balances and usage
+
+### Safety and Health
+- Injury/illness logs
+- Safety training records
+- Exposure monitoring
+- Accident investigations
+- Workers' comp claims
+
+## Storage Requirements
+### Format
+- Paper or electronic acceptable
+- Must be readily accessible for inspection
+- Legible and complete
+- Organized for retrieval
+
+### Security
+- Confidential records separate (medical, I-9)
+- Limited access (need-to-know basis)
+- Protection from damage, loss, theft
+
+### Electronic Records
+- Same retention periods apply
+- Backup and disaster recovery
+- Access controls
+- Audit trails
+
+## Medical Records (Confidentiality)
+### Must Keep Separate From Personnel Files
+- ADA accommodation records
+- FMLA medical certifications
+- Workers' comp medical information
+- Drug test results
+- Genetic information (GINA)
+
+### Access Restrictions
+- Medical/HR personnel only
+- Employee access to own records
+- Government agencies with authority
+
+## Inspection and Audit Rights
+### Government Agency Access
+- DOL Wage & Hour: Payroll, time records
+- EEOC: Personnel, hiring, promotion records
+- OSHA: Injury logs, exposure records
+- ICE: I-9 forms (3-day notice)
+
+### Employee Access Rights
+- Own personnel file (state laws vary)
+- Copy requests
+- Dispute/correction procedures
+- Former employees (varies by state)
+
+## Destruction/Purging
+### When to Destroy
+- After retention period expires
+- No pending litigation or investigation
+- No reasonable anticipation of litigation
+
+### How to Destroy
+- Secure destruction (shredding, data wiping)
+- Certificate of destruction
+- Applies to both paper and electronic
+
+### Litigation Hold
+- Suspend routine destruction if lawsuit filed/threatened
+- Preserve all potentially relevant records
+- Spoliation sanctions for destruction
+
+## Common Mistakes
+- ❌ Destroying records too early
+- ❌ Not separating medical records
+- ❌ Incomplete I-9 forms
+- ❌ Missing time records
+- ❌ No documentation of employment actions
+- ❌ Destroying records during litigation
+- ❌ Not backing up electronic records
+
+## Best Practices
+1. Written record retention policy
+2. Consistent retention schedule by record type
+3. Calendar reminders for retention deadlines
+4. Secure storage (physical and electronic)
+5. Annual purging of expired records
+6. Litigation hold procedures
+7. Employee acknowledgment of file access policies
+
+## Penalties for Non-Compliance
+### FLSA
+- No direct penalty, but absence of records = presumption in employee's favor
+- Employer burden to disprove claims
+
+### I-9 Violations
+- $252-$2,507 per form (technical violations)
+- $606-$6,067 (substantive violations)
+
+### OSHA
+- $15,625 per violation for recordkeeping failures
+
+### Discovery Sanctions
+- Adverse inference
+- Monetary sanctions
+- Default judgment
+
+## Sources
+- 29 CFR 516 (FLSA records)
+- 29 CFR 1602 (EEO records)
+- 29 CFR 825 (FMLA records)
+- 8 CFR 274a.2 (I-9 records)
+- 29 CFR 1904 (OSHA records)
+- State record retention statutes
+
+---
+*This template helps AI provide specific record retention requirements for each type of employment record*`
+      },
+      
+      // 22. Unemployment Insurance
+      {
+        templateId: "unemployment_insurance_comprehensive",
+        title: "Unemployment Insurance Tax & Claims Compliance",
+        description: "Employer obligations for UI taxes, coverage, and responding to claims",
+        topicSlug: "unemployment-insurance",
+        markdownContent: `# Unemployment Insurance Tax & Claims Compliance
+
+## Quick Overview
+What are employer obligations for unemployment insurance taxes and responding to claims?
+
+## Covered Employers
+### Federal (FUTA)
+- Paid $1,500+ in wages in any quarter, OR
+- Had 1+ employees for 20+ weeks in year
+- Agricultural: Different thresholds
+
+### State (SUTA)
+- Varies by state (often lower thresholds than federal)
+- May cover smaller employers
+- First employee in some states
+
+### Exemptions
+- Some agricultural employers
+- Certain non-profits (501(c)(3) may elect reimbursement)
+- Family employment (parent-child, spouses)
+
+## Tax Rates and Calculations
+### FUTA (Federal)
+- Rate: 6.0% on first $7,000 per employee
+- Credit: Up to 5.4% for timely state tax payment
+- Effective rate: Often 0.6%
+- Annual Form 940 filing
+
+### SUTA (State)
+- Taxable wage base: $7,000-$52,000 (varies by state)
+- New employer rate: 2-4% (varies)
+- Experience-rated after 1-3 years
+- Rates: 0.05%-10%+ based on claims history
+
+### Experience Rating
+- Benefit charges against account
+- Claims ratio determines future rates
+- Reserve ratio or benefit ratio method
+- Reductions for fewer claims, increases for more
+
+## Employer Reporting Requirements
+### Quarterly Filings
+- Report all employees and wages
+- Contribution payments
+- Due dates: End of month following quarter
+- Electronic filing often required
+
+### Annual Reporting
+- Federal Form 940 (FUTA)
+- State annual reconciliation
+- W-2 wage reporting
+
+### New Hire Reporting
+- Within 20 days of hire
+- State Directory of New Hires
+- Name, SSN, address, start date
+- Child support enforcement purpose
+
+## Responding to Unemployment Claims
+### Notice of Claim
+- State sends notice when former employee files
+- Typically 10 days to respond
+- Must respond timely or lose right to contest
+
+### Information to Provide
+- Dates of employment
+- Reason for separation
+- Last day worked
+- Final wages paid
+- Any misconduct documentation
+- Witness information
+
+### Contesting Claims
+**Valid Reasons to Contest**:
+- Voluntary quit without good cause
+- Discharge for misconduct
+- Refused suitable work
+- Insufficient wages/hours
+- Not able/available for work
+
+**Documentation Needed**:
+- Written policies
+- Warning notices
+- Witness statements
+- Time records
+- Separation letter
+
+### Hearings
+- Telephonic or in-person
+- Present evidence and witnesses
+- Employee has same rights
+- Administrative Law Judge decision
+- Appeal rights (to Board, then courts)
+
+## Misconduct That Disqualifies
+### Disqualifying Misconduct
+- Deliberate violation of reasonable rules
+- Neglect of duties
+- Insubordination
+- Theft or dishonesty
+- Intoxication at work
+- Excessive unexcused absences
+
+### Must Be Connected to Work
+- Single incident may not be enough (depends on severity)
+- Progressive discipline helpful
+- Documented warnings important
+
+## Voluntary Quit Analysis
+### Good Cause (May Qualify for Benefits)
+- Domestic violence
+- Unsafe working conditions
+- Significant reduction in pay/hours
+- Employer violated law
+- Medical reasons
+
+### No Good Cause (Disqualified)
+- Personal reasons
+- Found better job
+- Didn't like supervisor
+- Dissatisfaction with job
+
+## Suitable Work Refusal
+- Claimant must accept suitable work
+- Factors: Skills, experience, commute, wage
+- Cannot refuse multiple suitable offers
+
+## Benefit Charging
+### Charges to Employer Account
+- Successful claims increase employer's rate
+- Proportional if multiple employers in base period
+- "Charging ratio" affects future taxes
+
+### Non-Charging Situations
+- Employee discharged for misconduct
+- Quit without good cause
+- Certain other separations
+
+## Reimbursement vs. Tax Method
+### Tax-Paying Employers (Most)
+- Pay quarterly taxes
+- Rate varies by experience
+- Claims charged to account
+
+### Reimbursing Employers
+- Non-profits, government entities
+- Pay dollar-for-dollar for benefits charged
+- No tax rate, direct cost
+
+## Penalties for Non-Compliance
+### Late Tax Payments
+- Interest on unpaid amounts
+- Late filing penalties
+- Liens on business property
+
+### Fraudulent Reporting
+- Underreporting wages: Additional taxes + penalties
+- Misclassifying employees: Back taxes
+- Criminal prosecution for willful evasion
+
+### Failure to Respond to Claims
+- Claim allowed by default
+- Charged to employer account
+- Lost right to contest
+
+## Common Mistakes
+- ❌ Not responding to claims timely
+- ❌ Insufficient documentation to contest
+- ❌ Not fighting fraudulent claims
+- ❌ Misclassifying workers to avoid taxes
+- ❌ Late quarterly tax payments
+- ❌ Inaccurate wage reporting
+- ❌ Not protesting improper benefit charges
+
+## Best Practices
+1. Maintain detailed separation documentation
+2. Document misconduct and progressive discipline
+3. Respond to every claim, every time
+4. Attend hearings when scheduled
+5. Monitor experience rating
+6. Protest charges when appropriate
+7. Stay current on tax payments
+8. Annual audit of unemployment account
+
+## Voluntary Quit Documentation
+- Resignation letter or email
+- Exit interview notes
+- Reason for leaving
+- Offer to continue employment
+- Any attempted retention
+
+## Discharge for Misconduct Documentation
+- Written policies employee violated
+- Warning notices (prior incidents)
+- Final incident documentation
+- Investigation notes
+- Witness statements
+- Termination letter stating reason
+
+## Sources
+- Federal Unemployment Tax Act (FUTA)
+- State Employment Security Acts
+- State unemployment insurance agencies
+- Benefit charging statements
+- Experience rating explanations
+
+---
+*This template provides comprehensive UI tax and claims response guidance*`
+      },
+      
+      // 23. Apprenticeship Programs
+      {
+        templateId: "apprenticeship_comprehensive",
+        title: "Registered Apprenticeship Program Requirements",
+        description: "Requirements for DOL-registered apprenticeship programs and wage provisions",
+        topicSlug: "apprenticeship-programs",
+        markdownContent: `# Registered Apprenticeship Program Requirements
+
+## Quick Overview
+What are the requirements for establishing and operating registered apprenticeship programs?
+
+## Covered Employers
+- Any employer can sponsor apprenticeship program
+- Industry-specific programs (construction, healthcare, IT, manufacturing)
+- Joint labor-management programs
+- Pre-apprenticeship programs (pathway to registered)
+
+## Federal Registration
+### Office of Apprenticeship (DOL)
+- Voluntary federal registration
+- State Apprenticeship Agencies (SAA) where recognized
+- Benefits of registration:
+  - DOL/state recognition
+  - Tax credits available
+  - Federal contract preferences
+  - Standardized training
+
+### Registration Requirements
+- Written apprenticeship standards
+- DOL approval of standards
+- Equal employment opportunity pledge
+- Ratio of apprentices to journeyworkers
+
+## Apprenticeship Standards Components
+### Required Elements
+1. **Employment and training**: Job title, term of apprenticeship
+2. **Wage schedule**: Progressive wage increases
+3. **On-the-job training**: Hours required (typically 2,000/year)
+4. **Related instruction**: Minimum 144 hours/year
+5. **Safety training**: OSHA and industry standards
+6. **EEO requirements**: Non-discrimination
+7. **Apprentice-to-journeyworker ratios**
+8. **Qualification requirements**: Age, education, physical fitness
+9. **Probationary period**: Typically first 90-180 days
+10. **Recognition of prior learning**: Credit for experience
+
+## Progressive Wage Schedule
+### Typical Structure
+- Year 1: 40-50% of journeyworker rate
+- Year 2: 50-60%
+- Year 3: 60-75%
+- Year 4: 75-90%
+- Year 5: 90-95%
+- Journey level upon completion
+
+### Requirements
+- Periodic wage increases (every 6-12 months)
+- Based on hours worked and school completion
+- Cannot pay below schedule
+- Overtime at 1.5x apprentice rate
+
+## Related Technical Instruction (RTI)
+- Minimum 144 hours per year classroom instruction
+- Trade theory and practical applications
+- Safety training included
+- Can be: Community college, trade school, online
+
+## On-the-Job Training
+- Supervised work experience
+- 2,000-10,000 hours total (depending on occupation)
+- Work process schedule
+- Competency-based progression
+- Mentor/journeyworker supervision
+
+## Ratios of Apprentices to Journeyworkers
+- Ensures adequate supervision
+- Typical ratios: 1:1, 1:2, 1:3 depending on trade
+- Cannot use apprentices to displace journeyworkers
+- Ratios specified in standards
+
+## Equal Employment Opportunity
+### Requirements
+- Written EEO policy
+- Outreach and recruitment of minorities and women
+- Selection procedures must be objective
+- Numerical goals for minority/women participation
+- Prohibition on discrimination
+
+### Affirmative Action
+- Good faith efforts to meet goals
+- Recruitment from diverse sources
+- Barrier removal
+- Annual compliance reviews
+
+## Apprentice Rights and Protections
+- Cannot be terminated without just cause after probation
+- Grievance procedures
+- Due process for disciplinary actions
+- Credit for military experience
+- Portability of hours to other programs (if standards compatible)
+
+## Employer Responsibilities
+1. Provide on-the-job training per standards
+2. Pay progressive wages on schedule
+3. Release time for related instruction
+4. Supervise and evaluate progress
+5. Maintain training records
+6. Report progress to registration agency
+7. Award certificate of completion
+
+## Tax Incentives and Benefits
+### Federal
+- Work Opportunity Tax Credit (WOTC)
+- Apprenticeship tax credits (varies)
+- R&D tax credits for training
+
+### State
+- Tax credits for hiring apprentices
+- Grants for program development
+- Training reimbursement programs
+
+## Pre-Apprenticeship Programs
+- Pathway to registered apprenticeship
+- No wage requirements (often unpaid)
+- Partner with registered programs
+- Skills training and preparation
+- Diversity pipeline
+
+## Recordkeeping
+**Must Maintain**:
+- Apprentice agreements
+- Training records (OJT and RTI hours)
+- Wage progression documentation
+- Performance evaluations
+- Attendance records
+- Completion certificates
+
+**Retention**: Duration of program + 5 years
+
+## Completion and Certification
+- Certificate of Completion from DOL/SAA
+- Recognized credential nationwide
+- Portable across employers
+- Journey-level status
+- May include college credit
+
+## Common Violations
+- ❌ Not paying progressive wage increases
+- ❌ Improper ratios (too many apprentices)
+- ❌ Insufficient supervision
+- ❌ Not providing related instruction
+- ❌ Discrimination in selection
+- ❌ Using apprentices to displace journeyworkers
+
+## Benefits of Registered Programs
+- Skilled workforce pipeline
+- Tax credits and incentives
+- Reduced turnover
+- Industry-recognized credentials
+- Federal contract preferences
+- Quality standards
+
+## Sources
+- National Apprenticeship Act
+- 29 CFR Part 29 (Apprenticeship regulations)
+- Office of Apprenticeship (apprenticeship.gov)
+- State Apprenticeship Agencies
+- Industry-specific apprenticeship standards
+
+---
+*This template provides comprehensive apprenticeship program requirements and benefits*`
+      },
+      
+      // 24. Paid Sick Leave (Comprehensive Replacement)
+      {
+        templateId: "paid_sick_leave_detailed",
+        title: "Paid Sick Leave Compliance Guide",
+        description: "Comprehensive state and local paid sick leave requirements",
+        topicSlug: "paid-sick-leave",
+        markdownContent: `# Paid Sick Leave Compliance Guide
+
+## Quick Overview
+What are the requirements for providing paid sick leave to employees?
+
+## Covered Employers
+### State/Local Laws (No Federal Requirement)
+- Size thresholds vary: 1+ to 50+ employees
+- Industry: Most cover all industries
+- Location: Physical work location determines applicability
+- Multiple jurisdictions may apply
+
+## Covered Employees
+- Full-time and part-time employees
+- Temporary and seasonal (if meet hour thresholds)
+- Exempt and non-exempt
+- **Exempt**: Independent contractors, some unionized workers
+
+## Accrual Requirements
+### Accrual Rates
+- **Typical**: 1 hour per 30 or 40 hours worked
+- **Annual amount**: 40-80 hours per year
+- **Begins**: First day of employment or after probation (90 days)
+
+### Accrual Methods
+- **Accrual method**: Earn over time (1hr per 30hrs worked)
+- **Front-loading**: Provide full bank at start of year
+- **Unlimited PTO**: May satisfy requirement if meets minimums
+
+### Accrual Caps
+- Can cap accrual at 40-80 hours (varies)
+- Cannot cap usage at less than amount employee accrued
+- Cap does not stop accrual while below cap
+
+### Carryover
+- **Unused hours**: Must carry over to next year
+- **Cap on carryover**: Can limit total bank (e.g., 80 hours)
+- **Frontloading exception**: No carryover if frontload full amount each year
+
+## Permissible Uses of Sick Leave
+### Employee's Own Health
+- Medical diagnosis, treatment, preventive care
+- Mental health and substance abuse treatment
+- Recovery from illness/injury
+
+### Family Member Care
+- Child, parent, spouse, domestic partner
+- Some states: Grandparent, grandchild, sibling
+- Medical diagnosis, treatment, preventive care
+
+### Safe Time (Domestic Violence/Sexual Assault)
+- Many laws include "safe time"
+- Victim services
+- Relocation
+- Legal proceedings
+- Safety planning
+
+## Notice and Documentation
+### Employee Notice to Employer
+- Foreseeable use: Reasonable advance notice (7 days typical)
+- Unforeseeable: As soon as practicable
+- Employer can have written policy on notice procedures
+
+### Employer Can Require Documentation
+- **Only if**: Consecutive days of leave (typically 3+ days)
+- Cannot require disclosure of health details
+- Note from healthcare provider sufficient
+- Cannot require specific form
+
+### Cannot Require Documentation For
+- Single day absences
+- Short-term illnesses
+- Must accept general note (not specific diagnosis)
+
+## Rate of Pay
+- Regular rate of pay OR minimum wage (whichever higher)
+- Same as regular wages
+- For tipped employees: May use cash wage + tips or minimum wage
+- Overtime not triggered by sick leave use
+
+## Increment of Use
+- Smallest increment: Employer's payroll system allows
+- Typically 1-4 hours minimum
+- Cannot require 8-hour increments if employee works shorter shifts
+
+## Relationship to Other Leave
+### Employer Policies
+- Can have more generous policy (more leave, faster accrual)
+- Cannot have less generous policy
+- Existing PTO may count if meets all requirements
+
+### Coordination
+- Paid sick leave separate from FMLA (but may run concurrent)
+- May run concurrent with state disability
+- Cannot require use of paid sick leave before FMLA
+
+## Payout at Termination
+- **Most states**: No payout required at termination
+- **Exceptions**: Some jurisdictions require if PTO
+- If employer pays out, treated as wages
+- Frontloaded amounts typically no payout
+
+## Retaliation Prohibition
+### Protected Activities
+- Using accrued sick leave
+- Requesting sick leave
+- Filing complaint about sick leave violations
+- Opposing employer violations
+
+### Prohibited Actions
+- Termination
+- Discipline
+- Reduction in hours
+- Denial of promotion
+- Hostile work environment
+
+## Posting and Notice Requirements
+- **Workplace poster**: Required in most jurisdictions
+- **Written notice to employees**: At hire and annually
+- **Paystub information**: Some require accrual balance on paystubs
+- **Languages**: English + other languages as required
+
+## Employer Policies
+### Required Policy Elements
+- Accrual rate and method
+- Permissible uses
+- Carryover provisions
+- Notice requirements
+- Documentation requirements (if any)
+- Anti-retaliation statement
+
+## Recordkeeping
+**Must Maintain (3 years typical)**:
+- Hours worked by each employee
+- Sick leave accrued
+- Sick leave used
+- Carryover amounts
+- Employee requests
+- Documentation provided
+
+## Common Violations
+- ❌ Not providing sick leave to eligible employees
+- ❌ Requiring doctor's note for single day
+- ❌ Retaliating for using sick leave
+- ❌ Not allowing carryover
+- ❌ Below minimum accrual rate
+- ❌ Counting sick leave as absence in attendance policy
+- ❌ Requiring specific tasks during leave (call in to clients)
+
+## Penalties
+- Back pay for unpaid sick leave
+- Civil penalties per employee per violation
+- Liquidated damages (some jurisdictions)
+- Attorney fees
+- Injunctive relief
+- Private right of action
+
+## Multi-State Employers
+- Must comply with law where employee works
+- Each location's requirements apply
+- Remote employees: Typically location-based
+- Traveling employees: Complex analysis
+
+## Best Practices
+1. Audit all applicable sick leave laws
+2. Implement compliant written policy
+3. Train managers on requirements
+4. Track accrual accurately
+5. Don't penalize for sick leave use
+6. Keep confidential medical information separate
+7. Post required notices
+8. Include in employee handbook
+
+## Sources
+- State paid sick leave statutes
+- City/county paid sick leave ordinances
+- Department of labor enforcement guidance
+- Model policies and posters
+
+---
+*This template provides comprehensive paid sick leave compliance guidance for multi-jurisdictional employers*`
+      },
+      
+      // 25. Harassment Training (Comprehensive)
+      {
+        templateId: "harassment_training_detailed",
+        title: "Sexual Harassment Prevention Training Compliance",
+        description: "Comprehensive guide to mandatory harassment training requirements",
+        topicSlug: "harassment-training",
+        markdownContent: `# Sexual Harassment Prevention Training Compliance
+
+## Quick Overview
+Who must provide sexual harassment prevention training, and what must it cover?
+
+## Covered Employers
+### State-Mandated Training
+- **California**: 5+ employees
+- **Connecticut**: 3+ employees  
+- **Delaware**: 50+ employees
+- **Illinois**: All employers
+- **Maine**: 15+ employees
+- **New York**: All employers
+- Check your state for specific requirements
+
+## Covered Employees
+- All employees (not just supervisors)
+- Supervisors/managers (enhanced training)
+- Part-time and temporary employees
+- Seasonal employees (in some states)
+- Interns and volunteers (some jurisdictions)
+
+## Training Frequency
+- Initial: Within 30-90 days of hire (varies by state)
+- Supervisors: Within 6 months of promotion
+- Refresher: Every 1-2 years (California: 2 years, NY: annually)
+
+## Minimum Duration
+- Non-supervisory: 1-2 hours minimum
+- Supervisory: 2+ hours minimum
+- Interactive component required
+
+## Required Content
+1. Sexual harassment definitions and examples
+2. Federal/state legal protections
+3. Internal complaint procedures
+4. Investigation process
+5. Remedies and consequences
+6. Retaliation prohibition
+7. Bystander intervention
+
+### Supervisor-Specific
+- Supervisor liability
+- Duty to report
+- Proper response to complaints
+- Creating respectful culture
+
+## Trainer Qualifications
+- Attorneys in employment law
+- HR professionals with certification
+- Qualified educators
+- Interactive training providers
+- State-specific requirements vary
+
+## Training Format
+- Must be interactive (Q&A, scenarios, discussion)
+- In-person, live webinar, or interactive e-learning
+- Cannot be pure video or click-through
+
+## Documentation Required
+- Employee names and dates
+- Training duration
+- Trainer qualifications
+- Materials used
+- Certificates of completion
+- Retention: 2-6 years
+
+## Penalties
+- $500-$2,000+ per employee
+- Loss of affirmative defense
+- Increased liability if harassment occurs
+- Corrective training orders
+
+## Sources
+- State harassment training statutes
+- EEOC guidance
+- State model curricula
+
+---
+*This template guides AI on harassment training compliance requirements*`
+      },
+      
     ];
 
     let createdCount = 0;
