@@ -43,6 +43,7 @@ export default function SavedResearchFeature() {
   // Filters
   const [filterJurisdiction, setFilterJurisdiction] = useState<any>(null)
   const [filterTopic, setFilterTopic] = useState<any>(null)
+  const [filterTemplate, setFilterTemplate] = useState<any>(null)
   
   const pageSize = 8 // 4 rows × 2 columns
   
@@ -94,8 +95,9 @@ export default function SavedResearchFeature() {
       item.jurisdiction === filterJurisdiction.displayName || 
       item.jurisdiction === filterJurisdiction.name
     const matchesTopic = !filterTopic || item.topic === filterTopic.name || item.topic === filterTopic.slug
+    const matchesTemplate = !filterTemplate || item.templateUsed === filterTemplate.templateId
     
-    return matchesSearch && matchesJurisdiction && matchesTopic
+    return matchesSearch && matchesJurisdiction && matchesTopic && matchesTemplate
   })
   
   // Paginate
@@ -352,6 +354,32 @@ export default function SavedResearchFeature() {
               placeholder="All Topics"
             />
           </div>
+          
+          {/* Template Filter */}
+          <div className="w-64">
+            <TemplateSelect
+              value={filterTemplate}
+              onChange={(template: any) => {
+                setFilterTemplate(template)
+                setCurrentPage(1)
+              }}
+              placeholder="All Templates"
+            />
+          </div>
+          
+          {(filterJurisdiction || filterTopic || filterTemplate) && (
+            <button
+              onClick={() => {
+                setFilterJurisdiction(null)
+                setFilterTopic(null)
+                setFilterTemplate(null)
+                setCurrentPage(1)
+              }}
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
       
