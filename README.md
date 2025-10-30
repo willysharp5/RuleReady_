@@ -1,6 +1,6 @@
 # RuleReady Compliance
 
-A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and Google Gemini.
+A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and advanced AI models.
 
 ## 🎯 Overview
 
@@ -10,7 +10,7 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 
 ### 🤖 AI Chat Assistant
 - Ask questions about employment law in natural language
-- Powered by Google Gemini 2.0 Flash
+- Powered by advanced AI models
 - Filter by jurisdiction and topic for focused answers
 - Configurable system prompts and model settings
 - Real-time responses with structured formatting
@@ -61,7 +61,7 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 - Cascading inactive logic (inactive states hide their cities)
 - Employment law coverage flags
 
-### 🏷️ Topics Management (Complete Redesign)
+### 🏷️ Topics Management
 - Employment law topics across categories:
   - **Wages & Hours** 
   - **Leave & Benefits** 
@@ -72,7 +72,16 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 - Category management (Rename, Merge, Create)
 - Searchable dropdown with category grouping
 - Active/Inactive status with visual indicators
+- Colorful topic breakdown
 
+### 🤖 AI Models Management
+- Configure and test AI model providers
+- Real-time environment variable status checking
+- Support for multiple AI models and providers
+- Test models with latency tracking and error reporting
+- Assign different models to Chat and Research tasks
+- Model configuration and settings per use case
+- Easy switching between model providers
 
 ### Reusable Components
 - **JurisdictionSelect** - Searchable jurisdiction dropdown with hierarchy
@@ -82,11 +91,13 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 - **ComplianceTemplateEditor** - Full template editing with Tiptap integration
 
 ### Color Themes
-- **Chat**: Default purple
+- **Chat**: Purple theme
 - **Research**: Purple accents
+- **Saved Research**: Purple theme
 - **Templates**: Amber/orange theme
 - **Jurisdictions**: Blue theme
 - **Topics**: Purple theme
+- **AI Models**: Purple theme
 
 ## 🗄️ Database Schema
 
@@ -119,34 +130,15 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 }
 ```
 
-#### `complianceRules`
+#### `savedResearch`
 ```typescript
 {
-  ruleId: string
-  jurisdiction: string
-  topicSlug: string         // Links to complianceTopics
-  topicName: string
-  sourceUrl: string
-  priority: "critical" | "high" | "medium" | "low"
-  monitoringStatus: "active" | "paused" | "error"
-  metadata: { ... }
-  createdAt: number
-  updatedAt: number
-}
-```
-
-#### `complianceEmbeddings`
-```typescript
-{
-  entityId: string
-  entityType: "rule" | "report"
-  content: string
-  embedding: number[]       // 1536-dimensional vector
-  metadata: {
-    jurisdiction?: string
-    topicSlug?: string     
-    contentLength?: number
-  }
+  title: string
+  content: string           // Markdown content
+  jurisdiction?: string
+  topic?: string
+  templateUsed?: string
+  sources?: array           // Source URLs and metadata
   createdAt: number
   updatedAt: number
 }
@@ -268,11 +260,8 @@ Visit [http://localhost:3000](http://localhost:3000)
    - **Jurisdiction**: Focus on specific location
    - **Topic**: Focus on specific compliance area
 2. Ask questions in natural language
-3. Get answers with:
-   - Source citations [1], [2], [3]
-   - Jurisdiction and topic badges
-   - Similarity scores
-   - Clickable source URLs
+3. Get AI-powered answers
+4. Configurable system prompts and model settings
 
 ### Using Research
 
@@ -281,9 +270,25 @@ Visit [http://localhost:3000](http://localhost:3000)
    - **Template**: Structure output format
    - **Jurisdiction**: Geographic focus
    - **Topic**: Subject matter focus
-   - **URLs**: Additional sources to scrape
+   - **URLs**: Additional sources to scrape (up to 5)
    - **Context**: Extra instructions for AI
-3. Get comprehensive research with all sources cited
+3. Get comprehensive research with:
+   - Web search results
+   - Scraped content from URLs
+   - News articles when relevant
+   - All sources properly cited with clickable links
+4. Save research results for later reference
+
+### Using Saved Research
+
+1. View all saved research in grid layout
+2. Search across titles, content, and metadata
+3. Filter by jurisdiction, topic, or template
+4. Edit research:
+   - **Content button**: Edit markdown content with TipTap editor
+   - **Info button**: Update title, jurisdiction, topic, template
+5. Create new research manually with "New Research" button
+6. Delete unwanted entries
 
 ## 🛠️ Advanced Features
 
@@ -328,10 +333,11 @@ Consistent across all tabs:
 
 ### Backend Stack
 - **Convex**: Serverless functions + real-time database
-- **Semantic Search**: Cosine similarity on embeddings
-- **RAG System**: Retrieval-augmented generation
 - **Firecrawl**: Web scraping and search
-- **Gemini 2.0 Flash**: AI model for chat and research
+- **AI Models**: Support for multiple AI providers
+  - Configurable model selection
+  - Currently using Google Gemini
+  - Extensible to OpenAI, Anthropic, and others
 
 
 ## 📖 Template Topics Covered
@@ -403,13 +409,10 @@ RuleReady_/
 │   ├── complianceTopics.ts          # Topics CRUD & category management
 │   ├── complianceTemplates.ts       # Templates CRUD
 │   ├── complianceQueries.ts         # Jurisdictions & data queries
-│   ├── complianceRAG.ts             # RAG & semantic search
-│   ├── embeddingManager.ts          # Embedding operations
-│   ├── generateEmbeddings.ts        # Embedding generation
-│   ├── seedAllTemplates.ts          # 25 comprehensive templates
+│   ├── savedResearch.ts             # Saved research CRUD
+│   ├── seedAllTemplates.ts          # 26 comprehensive templates
 │   ├── chatSettings.ts              # Chat configuration
-│   ├── researchSettings.ts          # Research configuration
-│   └── savedResearch.ts             # Research library
+│   └── researchSettings.ts          # Research configuration
 │
 ├── src/
 │   ├── app/
@@ -419,38 +422,46 @@ RuleReady_/
 │   │   │   └── page.tsx
 │   │   └── api/
 │   │       ├── compliance-chat/     # Chat API route
-│   │       └── compliance-research/ # Research API route
+│   │       ├── compliance-research/ # Research API route
+│   │       ├── env-status/          # Environment variable checking
+│   │       ├── test-model/          # AI model testing
+│   │       └── validate-url/        # URL validation
 │   │
 │   ├── components/
 │   │   ├── features/                # Main feature tabs
 │   │   │   ├── ChatFeature.tsx
 │   │   │   ├── ResearchFeature.tsx
-│   │   │   ├── TemplatesFeature.tsx     # Complete redesign
-│   │   │   ├── JurisdictionsFeature.tsx # Enhanced
-│   │   │   ├── TopicsFeature.tsx        # Complete redesign
+│   │   │   ├── SavedResearchFeature.tsx
+│   │   │   ├── TemplatesFeature.tsx
+│   │   │   ├── JurisdictionsFeature.tsx
+│   │   │   ├── TopicsFeature.tsx
 │   │   │   └── AIModelsFeature.tsx
 │   │   │
 │   │   ├── home/                    # Properties panels (right sidebar)
 │   │   │   ├── LeftNavigation.tsx
 │   │   │   ├── RightPropertiesPanel.tsx
 │   │   │   ├── ChatProperties.tsx
-│   │   │   ├── ResearchProperties.tsx   # Enhanced with TemplateSelect
-│   │   │   ├── TemplatesProperties.tsx  # New comprehensive panel
-│   │   │   ├── JurisdictionsProperties.tsx  # Enhanced stats
-│   │   │   ├── TopicsProperties.tsx     # New comprehensive panel
+│   │   │   ├── ResearchProperties.tsx
+│   │   │   ├── SavedResearchProperties.tsx
+│   │   │   ├── TemplatesProperties.tsx
+│   │   │   ├── JurisdictionsProperties.tsx
+│   │   │   ├── TopicsProperties.tsx
+│   │   │   ├── AIModelsProperties.tsx
 │   │   │   └── AccordionSection.tsx
 │   │   │
 │   │   ├── ui/                      # Reusable UI components
-│   │   │   ├── jurisdiction-select.tsx  # NEW - Searchable dropdown
-│   │   │   ├── topic-select.tsx         # NEW - Searchable dropdown
-│   │   │   ├── template-select.tsx      # NEW - Searchable dropdown
+│   │   │   ├── jurisdiction-select.tsx  # Searchable dropdown
+│   │   │   ├── topic-select.tsx         # Searchable dropdown with categories
+│   │   │   ├── template-select.tsx      # Searchable dropdown with topics
+│   │   │   ├── toast.tsx                # Toast notifications
+│   │   │   ├── popover.tsx              # Popover component
 │   │   │   ├── button.tsx
 │   │   │   ├── input.tsx
 │   │   │   ├── dialog.tsx
 │   │   │   └── ... (other shadcn components)
 │   │   │
-│   │   ├── ComplianceTemplateEditor.tsx # Redesigned with Tiptap
-│   │   └── TiptapEditorModal.tsx        # Rich text editor
+│   │   ├── ComplianceTemplateEditor.tsx # Template editing with Tiptap
+│   │   └── TiptapEditorModal.tsx        # Rich text editor modal
 │   │
 │   └── lib/
 │       └── utils.ts

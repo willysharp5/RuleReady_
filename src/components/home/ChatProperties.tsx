@@ -1,10 +1,13 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Settings, Info, Tag, Building2 } from 'lucide-react'
+import { Settings, Info, Tag, Building2, X, BookOpen } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
+import { SavedResearchSelect } from '@/components/ui/saved-research-select'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 
@@ -14,6 +17,7 @@ interface ChatState {
   jurisdiction: string
   topic: string
   additionalContext?: string
+  selectedResearchId?: string
   lastPromptSent?: string
 }
 
@@ -27,12 +31,15 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   // Query data
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
+  const savedResearchQuery = useQuery(api.savedResearch.getAllSavedResearch)
   
   const jurisdictions = jurisdictionsQuery || []
   const topics = topicsQuery || []
+  const savedResearch = savedResearchQuery || []
   
-  const selectedJurisdiction = jurisdictions.find(j => j.name === chatState?.jurisdiction) || null
-  const selectedTopic = topics.find(t => t.name === chatState?.topic) || null
+  const selectedJurisdiction = jurisdictions.find((j: { name: string }) => j.name === chatState?.jurisdiction) || null
+  const selectedTopic = topics.find((t: { name: string }) => t.name === chatState?.topic) || null
+  const selectedResearch = savedResearch.find((r: { _id: string }) => r._id === chatState?.selectedResearchId) || null
   
   const [systemPromptOpen, setSystemPromptOpen] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
@@ -145,6 +152,72 @@ You are a database query tool, not a general compliance advisor.`
         </div>
       </div>
       
+      {/* Select Saved Research - Most Important */}
+      <div className="space-y-2 bg-purple-50 border-2 border-purple-300 rounded-lg p-3">
+        <Label className="text-xs font-medium text-purple-900 flex items-center gap-1">
+          <BookOpen className="h-3.5 w-3.5" />
+          Select Saved Research (Knowledge Base)
+        </Label>
+        <SavedResearchSelect
+          value={selectedResearch}
+          onChange={(item) => {
+            if (setChatState && chatState) {
+              if (item) {
+                // Set research ID and auto-populate context with the content
+                setChatState({ 
+                  ...chatState, 
+                  selectedResearchId: item._id,
+                  additionalContext: `KNOWLEDGE BASE - ${item.title}\n\n${item.content}`
+                })
+              } else {
+                // Clear selection
+                setChatState({ 
+                  ...chatState, 
+                  selectedResearchId: undefined,
+                  additionalContext: ''
+                })
+              }
+            }
+          }}
+          items={savedResearch}
+          placeholder="Select saved research to use as knowledge base..."
+        />
+        {selectedResearch && (
+          <div className="flex gap-2">
+            <div className="text-xs text-purple-700 bg-white p-2 rounded border border-purple-200 flex-1">
+              <div className="font-semibold mb-1">Using as Knowledge Base:</div>
+              <div className="truncate">{selectedResearch.title}</div>
+              {selectedResearch.jurisdiction && (
+                <div className="text-purple-600 mt-1">📍 {selectedResearch.jurisdiction}</div>
+              )}
+              {selectedResearch.topic && (
+                <div className="text-purple-600">🏷️ {selectedResearch.topic}</div>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (setChatState && chatState) {
+                  setChatState({ 
+                    ...chatState, 
+                    selectedResearchId: undefined,
+                    additionalContext: ''
+                  })
+                }
+              }}
+              className="h-auto px-2"
+              title="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <p className="text-xs text-purple-700">
+          💡 <strong>How it works:</strong> Select a saved research item and the AI will use ONLY that content to answer your questions. Perfect for testing specific compliance documents!
+        </p>
+      </div>
+      
       {/* Filters - Jurisdiction & Topic */}
       <div className="space-y-2">
         {/* Jurisdiction Filter */}
@@ -163,7 +236,7 @@ You are a database query tool, not a general compliance advisor.`
             className="text-xs"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Filter chat to specific jurisdiction or leave empty for all
+            Filter database search to specific jurisdiction
           </p>
         </div>
         
@@ -184,7 +257,7 @@ You are a database query tool, not a general compliance advisor.`
             className="text-xs"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Filter chat to specific topic or leave empty for all
+            Filter database search to specific topic
           </p>
         </div>
       </div>

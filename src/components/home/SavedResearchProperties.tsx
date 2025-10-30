@@ -1,10 +1,15 @@
-import { BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import { BookOpen, Search } from 'lucide-react'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { SavedResearchSelect } from '@/components/ui/saved-research-select'
+import { Label } from '@/components/ui/label'
 
 export function SavedResearchProperties() {
   const savedResearchQuery = useQuery(api.savedResearch.getAllSavedResearch)
   const savedResearch = savedResearchQuery || []
+  
+  const [selectedResearch, setSelectedResearch] = useState<any>(null)
   
   // Stats
   const total = savedResearch.length
@@ -17,6 +22,25 @@ export function SavedResearchProperties() {
   
   return (
     <div className="space-y-2">
+      {/* Search Saved Research */}
+      <div className="space-y-2">
+        <Label className="text-xs font-medium text-zinc-700 flex items-center gap-1">
+          <Search className="h-3 w-3" />
+          Search Saved Research
+        </Label>
+        <SavedResearchSelect
+          value={selectedResearch}
+          onChange={setSelectedResearch}
+          items={savedResearch}
+          placeholder="Select saved research..."
+        />
+        {selectedResearch && (
+          <div className="text-xs text-zinc-600 bg-purple-50 p-2 rounded border border-purple-200">
+            <strong>Selected:</strong> {selectedResearch.title}
+          </div>
+        )}
+      </div>
+      
       {/* Info Box */}
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <h5 className="font-medium text-purple-900 mb-3">Saved Research</h5>
