@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, jurisdiction, topic } = body;
+    const { messages, model, jurisdiction, topic, systemPrompt: customSystemPrompt, additionalContext } = body;
 
     // Get user's custom system prompt and settings FIRST
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
@@ -19,36 +19,8 @@ export async function POST(req: NextRequest) {
 
     const lastUser = messages[messages.length - 1]?.content || "";
     console.log(`🔍 Chat API: Processing question "${lastUser}"`);
+    console.log(`⚙️ Jurisdiction: ${jurisdiction || 'ALL'}, Topic: ${topic || 'ALL'}`);
     console.log(`⚙️ Settings: compliance=${userChatSettings.enableComplianceContext}, semantic=${userChatSettings.enableSemanticSearch}`);
-    
-    // If no jurisdiction provided, return a clarification message immediately.
-    // Do NOT infer a state from embedding matches or sources.
-    if (!jurisdiction) {
-      const clarificationTitle = 'Clarification Needed – Jurisdiction';
-      const clarificationText = `To provide accurate information${topic ? ` about ${String(topic).replace(/_/g, ' ')}` : ''}, I need to know which jurisdiction you're asking about.\n\nPlease specify the state or territory (for example, California, Minnesota, District of Columbia) or say "Federal".`;
-      return new Response(
-        JSON.stringify({
-          role: 'assistant',
-          content: `# ${clarificationTitle}\n\n${clarificationText}`,
-          title: clarificationTitle,
-          sources: [],
-          settings: {
-            systemPrompt: userChatSettings.chatSystemPrompt || 'Compliance assistant prompt not set',
-            model: userChatSettings.chatModel || 'gemini-2.0-flash-exp',
-            complianceContext: userChatSettings.enableComplianceContext ?? true,
-            maxContextReports: userChatSettings.maxContextReports || 5,
-            semanticSearch: userChatSettings.enableSemanticSearch ?? true,
-            sourcesFound: 0,
-            jurisdiction: 'Unspecified',
-            topic: 'Insufficient',
-          },
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
     
     let sources: unknown[] = [];
     
@@ -129,15 +101,20 @@ export async function POST(req: NextRequest) {
       console.log('🚫 Compliance context disabled - using general knowledge only');
     }
     
-    // Use system prompt from database - NO DEFAULT FALLBACK
-    const baseSystemPrompt = (userChatSettings.chatSystemPrompt as string);
+    // Use custom system prompt from request if provided, otherwise use database prompt
+    const baseSystemPrompt = customSystemPrompt || (userChatSettings.chatSystemPrompt as string);
     if (!baseSystemPrompt) {
-      throw new Error("Chat system prompt not configured in database. Please set it in Settings.");
+      throw new Error("Chat system prompt not configured. Please set it in Settings.");
     }
-    console.log(`📝 Using system prompt from database: ${baseSystemPrompt.substring(0, 100)}...`);
+    console.log(`📝 Using ${customSystemPrompt ? 'custom' : 'database'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
     
     // Create system prompt based on settings
     let systemPrompt = baseSystemPrompt;
+    
+    // Add additional context from user if provided
+    if (additionalContext && additionalContext.trim()) {
+      systemPrompt += `\n\nADDITIONAL CONTEXT PROVIDED BY USER:\n${additionalContext}\n\nUse this context when answering the user's question.`;
+    }
     
     // ALWAYS add context about available data, even if no sources found
     if (userChatSettings.enableComplianceContext !== false || userChatSettings.enableSemanticSearch !== false) {
@@ -171,7 +148,7 @@ ${complianceContext}
 
 SOURCES (most relevant first):
 ${(typedSources || []).map((s: SourceObject, i: number) => {
-  let sourceText = `[#${i+1}] ${s.jurisdiction || ''} ${s.topicLabel || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`;
+  let sourceText = `[#${i+1}] ${s.jurisdiction || ''} ${s.topicName || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`;
   
   // Add extracted sections if available
   if (s.extractedSections) {
@@ -196,13 +173,12 @@ Provide accurate, actionable compliance guidance based on this structured data. 
 
 I searched the compliance database for ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : ''}information but did not find specific sources matching this query.
 
-You should:
-1. Provide general guidance based on your knowledge if applicable
-2. Clearly state "I don't have specific data for ${jurisdiction || 'this jurisdiction'} ${topic ? `about ${topic.replace(/_/g, ' ')}` : ''} in my database"
-3. Suggest alternative jurisdictions or topics that ARE available in the database
-4. Recommend consulting official sources or legal counsel for this specific area
+IMPORTANT: You MUST follow the CRITICAL RULES in your system prompt. If you are instructed to ONLY use database information and NOT use general knowledge, then:
+- State clearly: "I don't have information about ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : 'this topic'} in my database"
+- DO NOT provide general compliance advice
+- STOP there
 
-Be helpful and honest about the limitations.`;
+If your system prompt allows general knowledge, only then provide helpful guidance and suggest consulting official sources.`;
       }
     }
     
@@ -228,8 +204,8 @@ FORMAT THE ANSWER CLEARLY:
     
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash-exp",
+    const aiModel = genAI.getGenerativeModel({ 
+      model: model || "gemini-2.0-flash-exp",
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 4096,
@@ -241,7 +217,7 @@ FORMAT THE ANSWER CLEARLY:
     const prompt = systemPrompt + "\n\nUser: " + lastMessage.content + "\n\nAssistant:";
 
     // Generate response
-    const result = await model.generateContent(prompt);
+    const result = await aiModel.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     

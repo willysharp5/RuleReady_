@@ -15,11 +15,13 @@ interface RightPropertiesPanelProps {
   onToggle: () => void
   researchState?: any
   setResearchState?: (state: any) => void
+  chatState?: any
+  setChatState?: (state: any) => void
   updateResearchSettings?: any
   onDismissError?: () => void
 }
 
-export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState, updateResearchSettings, onDismissError }: RightPropertiesPanelProps) {
+export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState, chatState, setChatState, updateResearchSettings, onDismissError }: RightPropertiesPanelProps) {
   return (
     <>
       {/* Floating Config Error Popover */}
@@ -77,7 +79,12 @@ export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, research
       {/* Properties Content */}
       {isOpen && (
         <div className="p-4 h-full overflow-auto">
-          {activeFeature === 'chat' && <ChatProperties />}
+          {activeFeature === 'chat' && (
+            <ChatProperties 
+              chatState={chatState}
+              setChatState={setChatState}
+            />
+          )}
           {activeFeature === 'research' && (
             <ResearchProperties 
               researchState={researchState}

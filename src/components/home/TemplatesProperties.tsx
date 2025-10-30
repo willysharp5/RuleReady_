@@ -13,7 +13,7 @@ export function TemplatesProperties() {
   const templatesQuery = useQuery(api.complianceTemplates.getAllTemplates)
   const templates = templatesQuery || []
   
-  const topicsQuery = useQuery(api.complianceTopics.getTopics)
+  const topicsQuery = useQuery(api.complianceTopics.getTopics, {})
   const topics = topicsQuery || []
   
   // Stats
@@ -188,11 +188,11 @@ export function TemplatesProperties() {
             {topics
               .filter((topic: any) => templates.some((t: any) => t.topicSlug === topic.slug))
               .sort((a: any, b: any) => a.name.localeCompare(b.name))
-              .map((topic: any) => {
+              .map((topic: any, index: number) => {
                 const count = templates.filter((t: any) => t.topicSlug === topic.slug).length
                 return (
                   <div 
-                    key={topic.slug} 
+                    key={`template-topic-${topic.slug}-${index}`} 
                     className="flex items-center justify-between p-2 rounded bg-blue-50 border-blue-200 border"
                   >
                     <span className="text-xs text-zinc-700 truncate">{topic.name}</span>

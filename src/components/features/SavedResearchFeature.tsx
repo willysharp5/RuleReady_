@@ -1,16 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Calendar, Tag, MapPin, Edit3 } from 'lucide-react'
+import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Calendar, Tag, MapPin, Edit3, Plus, FileText, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useToast } from '@/hooks/use-toast'
+import { TiptapEditorModal } from '@/components/TiptapEditorModal'
+import { Label } from '@/components/ui/label'
+import { ResearchMetadataForm } from '@/components/ResearchMetadataForm'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
-import { TiptapEditorModal } from '@/components/TiptapEditorModal'
+import { TemplateSelect } from '@/components/ui/template-select'
 
 export default function SavedResearchFeature() {
   const { addToast } = useToast()
@@ -18,6 +21,24 @@ export default function SavedResearchFeature() {
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<any>(null)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [editTitle, setEditTitle] = useState('')
+  
+  // Edit metadata state
+  const [showEditMetadata, setShowEditMetadata] = useState(false)
+  const [editMetadataItem, setEditMetadataItem] = useState<any>(null)
+  const [editMetadataTitle, setEditMetadataTitle] = useState('')
+  const [editMetadataJurisdiction, setEditMetadataJurisdiction] = useState('')
+  const [editMetadataTopic, setEditMetadataTopic] = useState('')
+  const [editMetadataTemplate, setEditMetadataTemplate] = useState('')
+  
+  // New research state
+  const [showNewResearch, setShowNewResearch] = useState(false)
+  const [showNewContentEditor, setShowNewContentEditor] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newJurisdiction, setNewJurisdiction] = useState<any>(null)
+  const [newTopic, setNewTopic] = useState<any>(null)
+  const [newTemplate, setNewTemplate] = useState<any>(null)
+  const [newContent, setNewContent] = useState('')
   
   // Filters
   const [filterJurisdiction, setFilterJurisdiction] = useState<any>(null)
@@ -34,6 +55,7 @@ export default function SavedResearchFeature() {
   // Mutations
   const deleteSavedResearch = useMutation(api.savedResearch.deleteSavedResearch)
   const updateSavedResearch = useMutation(api.savedResearch.updateSavedResearch)
+  const saveResearch = useMutation(api.savedResearch.saveResearch)
   
   // Helper to get topic name from slug or name
   const getTopicName = (topicValue: string | undefined) => {
@@ -112,9 +134,20 @@ export default function SavedResearchFeature() {
   const handleSaveEdit = async (markdown: string) => {
     if (!editingItem) return
     
+    if (!editTitle.trim()) {
+      addToast({
+        title: 'Validation Error',
+        description: 'Title cannot be empty',
+        variant: 'error',
+        duration: 3000
+      })
+      return
+    }
+    
     try {
       await updateSavedResearch({
         id: editingItem._id,
+        title: editTitle.trim(),
         content: markdown,
       })
       addToast({
@@ -124,9 +157,103 @@ export default function SavedResearchFeature() {
         duration: 3000
       })
       setEditingItem(null)
+      setEditTitle('')
     } catch (error: any) {
       addToast({
         title: 'Failed to Save',
+        description: error.message,
+        variant: 'error',
+        duration: 5000
+      })
+    }
+  }
+  
+  // Save new research content from TipTap
+  const handleSaveNewContent = async (markdown: string) => {
+    setNewContent(markdown)
+    setShowNewContentEditor(false)
+    setShowNewResearch(true) // Return to main form
+  }
+  
+  // Create new research
+  const handleCreateNew = async () => {
+    if (!newTitle.trim()) {
+      addToast({
+        title: 'Validation Error',
+        description: 'Title is required',
+        variant: 'error',
+        duration: 3000
+      })
+      return
+    }
+    
+    if (!newContent.trim()) {
+      addToast({
+        title: 'Validation Error',
+        description: 'Content cannot be empty. Click "Edit Content" to add content.',
+        variant: 'error',
+        duration: 3000
+      })
+      return
+    }
+    
+    try {
+      await saveResearch({
+        title: newTitle.trim(),
+        content: newContent.trim(),
+        jurisdiction: newJurisdiction?.displayName || newJurisdiction?.name || undefined,
+        topic: newTopic?.name || undefined,
+        templateUsed: newTemplate?.title || undefined,
+      })
+      
+      addToast({
+        title: 'Research Saved',
+        description: `"${newTitle}" has been saved successfully.`,
+        variant: 'success',
+        duration: 3000
+      })
+      
+      // Reset form
+      setNewTitle('')
+      setNewJurisdiction(null)
+      setNewTopic(null)
+      setNewTemplate(null)
+      setNewContent('')
+      setShowNewResearch(false)
+    } catch (error: any) {
+      addToast({
+        title: 'Failed to Save',
+        description: error.message,
+        variant: 'error',
+        duration: 5000
+      })
+    }
+  }
+  
+  // Save metadata changes
+  const handleSaveMetadata = async () => {
+    if (!editMetadataItem) return
+    
+    try {
+      await updateSavedResearch({
+        id: editMetadataItem._id,
+        title: editMetadataTitle,
+        // Note: The mutation doesn't support updating jurisdiction, topic, template yet
+        // You would need to add those fields to the mutation in convex/savedResearch.ts
+      })
+      
+      addToast({
+        title: 'Metadata Updated',
+        description: 'Research metadata has been updated successfully',
+        variant: 'success',
+        duration: 3000
+      })
+      
+      setShowEditMetadata(false)
+      setEditMetadataItem(null)
+    } catch (error: any) {
+      addToast({
+        title: 'Failed to Update',
         description: error.message,
         variant: 'error',
         duration: 5000
@@ -158,6 +285,24 @@ export default function SavedResearchFeature() {
             View and manage your saved research results
           </p>
         </div>
+        <Button 
+          onClick={() => {
+            // Close any editing modals first
+            setEditingItem(null)
+            setEditTitle('')
+            // Reset new research form
+            setNewTitle('')
+            setNewJurisdiction(null)
+            setNewTopic(null)
+            setNewTemplate(null)
+            setNewContent('')
+            setShowNewResearch(true)
+          }} 
+          className="bg-purple-500 hover:bg-purple-600"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          New Research
+        </Button>
       </div>
       
       {/* Search and Filters */}
@@ -217,7 +362,7 @@ export default function SavedResearchFeature() {
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedItems.map((item: any) => (
-          <div key={item._id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+          <div key={item._id} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors flex flex-col h-full min-h-[280px]">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 truncate">{item.title}</h3>
@@ -257,20 +402,44 @@ export default function SavedResearchFeature() {
             </div>
             
             {/* Content Preview */}
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+            <p className="text-sm text-gray-600 line-clamp-2 mb-3 flex-1">
               {item.content.substring(0, 150)}...
             </p>
             
-            {/* Actions */}
-            <div className="flex items-center gap-2">
+            {/* Actions - Pinned to Bottom */}
+            <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-100">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setEditingItem(item)}
-                className="flex-1"
+                onClick={() => {
+                  // Close new research modal if open
+                  setShowNewResearch(false)
+                  setShowNewContentEditor(false)
+                  // Open edit content modal
+                  setEditingItem(item)
+                  setEditTitle(item.title)
+                }}
+                className="flex-1 text-xs"
               >
                 <Edit3 className="h-3 w-3 mr-1" />
-                Edit
+                Content
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Open edit metadata modal
+                  setEditMetadataItem(item)
+                  setEditMetadataTitle(item.title)
+                  setEditMetadataJurisdiction(item.jurisdiction || '')
+                  setEditMetadataTopic(item.topic || '')
+                  setEditMetadataTemplate(item.templateUsed || '')
+                  setShowEditMetadata(true)
+                }}
+                className="flex-1 text-xs"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Info
               </Button>
               <Button
                 variant="outline"
@@ -348,39 +517,156 @@ export default function SavedResearchFeature() {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Modal with TipTap */}
-      {editingItem && (
+      {/* New Research Modal */}
+      <Dialog open={showNewResearch} onOpenChange={setShowNewResearch}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>New Research</DialogTitle>
+            <DialogDescription>
+              Create a new research entry with optional metadata
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Title */}
+            <div>
+              <Label>Title *</Label>
+              <Input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter research title..."
+              />
+            </div>
+            
+            {/* Jurisdiction */}
+            <div>
+              <Label>Jurisdiction (Optional)</Label>
+              <JurisdictionSelect
+                value={newJurisdiction}
+                onChange={setNewJurisdiction}
+                placeholder="Select jurisdiction..."
+              />
+            </div>
+            
+            {/* Topic */}
+            <div>
+              <Label>Topic (Optional)</Label>
+              <TopicSelect
+                value={newTopic}
+                onChange={setNewTopic}
+                placeholder="Select topic..."
+              />
+            </div>
+            
+            {/* Template */}
+            <div>
+              <Label>Template (Optional)</Label>
+              <TemplateSelect
+                value={newTemplate}
+                onChange={setNewTemplate}
+                placeholder="Select template..."
+              />
+            </div>
+            
+            {/* Content Editor Button */}
+            <div>
+              <Label>Content *</Label>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowNewResearch(false)
+                  setShowNewContentEditor(true)
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {newContent ? 'Edit Content' : 'Add Content'}
+              </Button>
+              {newContent && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Content added ({newContent.length} characters)
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewResearch(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateNew}
+              className="bg-purple-500 hover:bg-purple-600"
+            >
+              Save Research
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* New Content Editor Modal */}
+      {showNewContentEditor && !editingItem && (
         <TiptapEditorModal
           isOpen={true}
-          onClose={() => setEditingItem(null)}
+          onClose={() => {
+            setShowNewContentEditor(false)
+            setShowNewResearch(true)
+          }}
+          initialContent={newContent || '# New Research\n\nStart writing your research here...'}
+          title="Edit Research Content"
+          onSave={handleSaveNewContent}
+          showSaveButton={true}
+        />
+      )}
+      
+      {/* Edit Modal with TipTap */}
+      {editingItem && !showNewContentEditor && (
+        <TiptapEditorModal
+          isOpen={true}
+          onClose={() => {
+            setEditingItem(null)
+            setEditTitle('')
+          }}
           initialContent={editingItem.content}
-          title={
-            <div className="space-y-2">
-              <div className="text-lg font-semibold text-gray-900">{editingItem.title}</div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  {formatDate(editingItem.createdAt)}
-                </span>
-                {editingItem.jurisdiction && (
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-blue-600" />
-                    {editingItem.jurisdiction}
-                  </span>
-                )}
-                {editingItem.topic && (
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="h-4 w-4 text-green-600" />
-                    {getTopicName(editingItem.topic)}
-                  </span>
-                )}
-              </div>
-            </div>
-          }
+          title={`Edit: ${editingItem.title}`}
           onSave={handleSaveEdit}
           showSaveButton={true}
         />
       )}
+      
+      {/* Edit Metadata Dialog */}
+      <Dialog open={showEditMetadata} onOpenChange={setShowEditMetadata}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Research Information</DialogTitle>
+            <DialogDescription>
+              Update the title, jurisdiction, topic, and template for this saved research
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <ResearchMetadataForm
+              title={editMetadataTitle}
+              onTitleChange={setEditMetadataTitle}
+              jurisdiction={editMetadataJurisdiction}
+              onJurisdictionChange={setEditMetadataJurisdiction}
+              topic={editMetadataTopic}
+              onTopicChange={setEditMetadataTopic}
+              template={editMetadataTemplate}
+              onTemplateChange={setEditMetadataTemplate}
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditMetadata(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveMetadata} className="bg-purple-500 hover:bg-purple-600">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -16,9 +16,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
-import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
-import { TopicSelect } from '@/components/ui/topic-select'
-import { TemplateSelect } from '@/components/ui/template-select'
+import { ResearchMetadataForm } from '@/components/ResearchMetadataForm'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -1026,48 +1024,16 @@ These appear AFTER "Based on these sources:" in your prompt.`
           <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-md p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Save to Library</h3>
             
-            <div className="space-y-4">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <Input
-                  value={saveTitle}
-                  onChange={(e) => setSaveTitle(e.target.value)}
-                  placeholder="Research title..."
-                  className="text-sm"
-                />
-              </div>
-              
-              {/* Jurisdiction */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jurisdiction</label>
-                <JurisdictionSelect
-                  value={jurisdictions?.find(j => j.name === saveJurisdiction) || null}
-                  onChange={(j) => setSaveJurisdiction(j?.name || '')}
-                  placeholder="None"
-                />
-              </div>
-              
-              {/* Topic */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
-                <TopicSelect
-                  value={topics?.find(t => t.name === saveTopic) || null}
-                  onChange={(t) => setSaveTopic(t?.name || '')}
-                  placeholder="None"
-                />
-              </div>
-              
-              {/* Template */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Template Used</label>
-                <TemplateSelect
-                  value={templates?.find(t => t.templateId === saveTemplate) || null}
-                  onChange={(t) => setSaveTemplate(t?.templateId || '')}
-                  placeholder="None"
-                />
-              </div>
-            </div>
+            <ResearchMetadataForm
+              title={saveTitle}
+              onTitleChange={setSaveTitle}
+              jurisdiction={saveJurisdiction}
+              onJurisdictionChange={setSaveJurisdiction}
+              topic={saveTopic}
+              onTopicChange={setSaveTopic}
+              template={saveTemplate}
+              onTemplateChange={setSaveTemplate}
+            />
             
             <div className="flex gap-2 justify-end mt-6">
               <Button

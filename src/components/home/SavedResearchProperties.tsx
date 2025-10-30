@@ -8,8 +8,6 @@ export function SavedResearchProperties() {
   
   // Stats
   const total = savedResearch.length
-  const withJurisdiction = savedResearch.filter((item: any) => item.jurisdiction)
-  const withTopic = savedResearch.filter((item: any) => item.topic)
   const withTemplate = savedResearch.filter((item: any) => item.templateUsed)
   const withSources = savedResearch.filter((item: any) => item.sources && item.sources.length > 0)
   
@@ -89,7 +87,7 @@ export function SavedResearchProperties() {
             {/* Group by topic */}
             {Array.from(uniqueTopics)
               .sort()
-              .map((topicValue: any) => {
+              .map((topicValue: any, index: number) => {
                 const count = savedResearch.filter((item: any) => item.topic === topicValue).length
                 // Get readable topic name
                 const topicName = topicValue.replace(/_/g, ' ').split(' ')
@@ -110,7 +108,7 @@ export function SavedResearchProperties() {
                 
                 return (
                   <div 
-                    key={topicValue} 
+                    key={`topic-${topicValue}-${index}`} 
                     className={`flex items-center justify-between p-2 rounded ${color.bg} ${color.border} border`}
                   >
                     <span className="text-xs text-zinc-700 truncate">{topicName}</span>

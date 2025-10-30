@@ -75,6 +75,38 @@ export default function HomePage() {
     lastPromptSent: '' // For debugging - shows what was sent to AI
   })
   
+  // Chat state - lifted to share between feature and properties
+  const [chatState, setChatState] = useState({
+    systemPrompt: `You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the compliance data in the internal database.
+
+CRITICAL RULES:
+1. ONLY use information that exists in the provided database sources
+2. DO NOT use your general knowledge or training data
+3. If the database has NO relevant information, say: "I don't have information about [topic] in the database" and STOP
+4. DO NOT attempt to answer questions when database sources are missing or insufficient
+5. DO NOT make assumptions or inferences beyond what the database explicitly states
+
+WHEN DATABASE HAS INFORMATION:
+- Cite which jurisdiction and topic the information comes from
+- Distinguish between federal and state requirements
+- Mention effective dates when relevant
+- Note penalties or deadlines when applicable
+- Be specific and detailed based on database content
+
+WHEN DATABASE LACKS INFORMATION:
+- Clearly state what information is missing
+- Do NOT provide general compliance advice
+- Do NOT suggest what "typically" or "usually" applies
+- Simply acknowledge the limitation and stop
+
+You are a database query tool, not a general compliance advisor.`,
+    model: 'gemini-2.0-flash-exp',
+    jurisdiction: '',
+    topic: '',
+    additionalContext: '',
+    lastPromptSent: '',
+  })
+  
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   
   // Load research settings from database on mount
@@ -110,7 +142,9 @@ export default function HomePage() {
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto bg-white">
           <div className="max-w-[800px] mx-auto p-6">
-            {activeFeature === 'chat' && <ChatFeature />}
+            {activeFeature === 'chat' && (
+              <ChatFeature chatState={chatState} setChatState={setChatState} />
+            )}
             {activeFeature === 'research' && (
               <ResearchFeature researchState={researchState} setResearchState={setResearchState} />
             )}
@@ -129,6 +163,8 @@ export default function HomePage() {
           onToggle={() => setPropertiesPanelOpen(!propertiesPanelOpen)}
           researchState={researchState}
           setResearchState={setResearchState}
+          chatState={chatState}
+          setChatState={setChatState}
           updateResearchSettings={updateResearchSettings}
           onDismissError={() => setResearchState(prev => ({ ...prev, configError: null }))}
         />

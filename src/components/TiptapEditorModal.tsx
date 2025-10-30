@@ -16,7 +16,7 @@ interface TiptapEditorModalProps {
   isOpen: boolean
   onClose: () => void
   initialContent: string // Markdown content
-  title?: string | React.ReactNode
+  title?: string
   onSave?: (markdown: string) => void | Promise<void>
   showSaveButton?: boolean
 }
@@ -181,9 +181,17 @@ export function TiptapEditorModal({
       
       {/* Modal content */}
       <div className="relative bg-white rounded-lg shadow-2xl w-[90vw] max-w-4xl h-[90vh] flex flex-col">
+        {/* Close button - Top Right Corner */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full p-1.5"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div className="p-4 pr-12 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">{title}</h3>
           <div className="flex items-center gap-2">
             {/* Copy Buttons */}
             <Button
@@ -222,12 +230,6 @@ export function TiptapEditorModal({
                 </>
               )}
             </Button>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
         
