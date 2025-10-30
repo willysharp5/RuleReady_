@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Settings, Info, Tag, Building2, X, BookOpen } from 'lucide-react'
+import { Settings, Info, Tag, Building2, X, BookOpen, AlertCircle } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
@@ -193,6 +193,14 @@ Be specific about what's missing and guide user to add it.`
           <div><strong>3. AI Response:</strong> Uses ONLY your saved research</div>
           <div><strong>4. Evaluation:</strong> Tests if your research is comprehensive</div>
         </div>
+        
+        <div className="mt-3 pt-3 border-t border-blue-300">
+          <div className="text-xs font-semibold text-blue-900 mb-1">⚠️ No Memory Between Questions</div>
+          <div className="text-xs text-blue-800">
+            Each question is evaluated independently. The AI does NOT remember previous questions. 
+            Make sure to select saved research and provide company context for EACH new question.
+          </div>
+        </div>
       </div>
       
       {/* Select Saved Research - Most Important */}
@@ -265,10 +273,16 @@ Be specific about what's missing and guide user to add it.`
             </Button>
           </div>
         )}
-        <p className="text-xs text-purple-700 flex items-start gap-1">
-          <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-          <span><strong>How it works:</strong> Select saved research items and the AI will use ONLY that content to answer your questions. Select multiple to combine knowledge bases!</span>
-        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-purple-700 flex items-start gap-1">
+            <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <span><strong>How it works:</strong> Select saved research items and the AI will use ONLY that content to answer your questions. Select multiple to combine knowledge bases!</span>
+          </p>
+          <p className="text-xs text-orange-700 bg-orange-50 px-2 py-1.5 rounded border border-orange-200 flex items-start gap-1">
+            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <span><strong>Important:</strong> Each question is independent - the AI does NOT remember previous questions. Reselect saved research for each new question.</span>
+          </p>
+        </div>
       </div>
       
       {/* Filters - Jurisdiction & Topic */}
@@ -345,25 +359,25 @@ Be specific about what's missing and guide user to add it.`
               type="button"
               className="text-xs px-3 py-2 border border-purple-300 rounded hover:bg-purple-50 text-purple-700 flex-1 font-medium flex items-center justify-center gap-1.5"
               onClick={() => {
-                const companyNames = ['TechCorp Solutions', 'Global Innovations Inc', 'Pacific Enterprises', 'Mountain View LLC', 'Coastal Industries', 'Midwest Manufacturing'];
+                const companyNames = ['TechCorp Solutions', 'Global Innovations Inc', 'Pacific Enterprises', 'Mountain View LLC', 'Coastal Industries', 'Midwest Manufacturing', 'Summit Consulting Group', 'Horizon Systems', 'Vertex Analytics', 'Nexus Solutions'];
                 const states = ['California', 'New York', 'Texas', 'Florida', 'Illinois', 'Massachusetts', 'Washington', 'Colorado'];
                 const cities: Record<string, string[]> = {
-                  'California': ['San Francisco', 'Los Angeles', 'San Diego', 'Sacramento'],
-                  'New York': ['New York City', 'Buffalo', 'Rochester', 'Albany'],
-                  'Texas': ['Houston', 'Austin', 'Dallas', 'San Antonio'],
-                  'Florida': ['Miami', 'Tampa', 'Orlando', 'Jacksonville'],
-                  'Illinois': ['Chicago', 'Springfield', 'Naperville'],
-                  'Massachusetts': ['Boston', 'Cambridge', 'Worcester'],
-                  'Washington': ['Seattle', 'Tacoma', 'Spokane'],
-                  'Colorado': ['Denver', 'Boulder', 'Colorado Springs']
+                  'California': ['San Francisco', 'Los Angeles', 'San Diego', 'Sacramento', 'San Jose', 'Oakland'],
+                  'New York': ['New York City', 'Buffalo', 'Rochester', 'Albany', 'Syracuse'],
+                  'Texas': ['Houston', 'Austin', 'Dallas', 'San Antonio', 'Fort Worth'],
+                  'Florida': ['Miami', 'Tampa', 'Orlando', 'Jacksonville', 'Fort Lauderdale'],
+                  'Illinois': ['Chicago', 'Springfield', 'Naperville', 'Aurora'],
+                  'Massachusetts': ['Boston', 'Cambridge', 'Worcester', 'Springfield'],
+                  'Washington': ['Seattle', 'Tacoma', 'Spokane', 'Bellevue'],
+                  'Colorado': ['Denver', 'Boulder', 'Colorado Springs', 'Aurora']
                 };
-                const firstNames = ['Sarah', 'Michael', 'Jennifer', 'David', 'Lisa', 'Robert', 'Emily', 'James', 'Maria', 'John', 'Jessica', 'William'];
-                const lastNames = ['Johnson', 'Smith', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Chen', 'Patel'];
+                const firstNames = ['Sarah', 'Michael', 'Jennifer', 'David', 'Lisa', 'Robert', 'Emily', 'James', 'Maria', 'John', 'Jessica', 'William', 'Ashley', 'Daniel', 'Amanda', 'Christopher', 'Melissa', 'Matthew', 'Michelle', 'Joshua', 'Stephanie', 'Andrew', 'Nicole', 'Ryan', 'Heather', 'Justin', 'Elizabeth', 'Brandon', 'Rebecca', 'Kevin'];
+                const lastNames = ['Johnson', 'Smith', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Chen', 'Patel', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Lee', 'Walker', 'Hall', 'Allen', 'Young', 'King', 'Wright', 'Lopez', 'Hill'];
                 
                 const companyName = companyNames[Math.floor(Math.random() * companyNames.length)];
                 const hqState = states[Math.floor(Math.random() * states.length)];
                 const hqCity = cities[hqState][Math.floor(Math.random() * cities[hqState].length)];
-                const totalEmployees = Math.floor(Math.random() * 200) + 10; // 10-210 employees
+                const totalEmployees = Math.floor(Math.random() * 150) + 15; // 15-165 employees
                 
                 // Generate employees across multiple states
                 const numStates = Math.floor(Math.random() * 3) + 2; // 2-4 states
@@ -375,23 +389,46 @@ Be specific about what's missing and guide user to add it.`
                   }
                 }
                 
-                const employees: Array<{name: string, state: string, city: string}> = [];
+                // Distribute employees across states
+                const stateDistribution: Record<string, number> = {};
                 let remainingEmployees = totalEmployees;
                 
                 employeeStates.forEach((state, idx) => {
-                  const isLast = idx === employeeStates.length - 1;
-                  const employeesInState = isLast 
-                    ? remainingEmployees 
-                    : Math.floor(Math.random() * (remainingEmployees - (employeeStates.length - idx - 1))) + 1;
-                  
-                  for (let i = 0; i < Math.min(5, employeesInState); i++) { // Show max 5 per state
-                    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-                    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-                    const city = cities[state][Math.floor(Math.random() * cities[state].length)];
-                    employees.push({ name: `${firstName} ${lastName}`, state, city });
+                  if (idx === employeeStates.length - 1) {
+                    // Last state gets remaining
+                    stateDistribution[state] = remainingEmployees;
+                  } else {
+                    // Random distribution, but ensure at least 3 per state
+                    const maxForState = remainingEmployees - (3 * (employeeStates.length - idx - 1));
+                    const minForState = 3;
+                    const count = Math.floor(Math.random() * (maxForState - minForState + 1)) + minForState;
+                    stateDistribution[state] = count;
+                    remainingEmployees -= count;
                   }
+                });
+                
+                // Generate ALL employee names for each state
+                const employeesByState: Record<string, Array<{name: string, city: string}>> = {};
+                const usedNames = new Set<string>();
+                
+                employeeStates.forEach(state => {
+                  const count = stateDistribution[state];
+                  employeesByState[state] = [];
                   
-                  remainingEmployees -= employeesInState;
+                  for (let i = 0; i < count; i++) {
+                    let name: string;
+                    let attempts = 0;
+                    do {
+                      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                      const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                      name = `${firstName} ${lastName}`;
+                      attempts++;
+                    } while (usedNames.has(name) && attempts < 50);
+                    
+                    usedNames.add(name);
+                    const city = cities[state][Math.floor(Math.random() * cities[state].length)];
+                    employeesByState[state].push({ name, city });
+                  }
                 });
                 
                 const companyContext = `COMPANY PROFILE:
@@ -402,19 +439,15 @@ Total Employees: ${totalEmployees}
 
 EMPLOYEE BREAKDOWN BY STATE:
 ${employeeStates.map(state => {
-  const count = Math.floor(totalEmployees / employeeStates.length);
-  const stateEmployees = employees.filter(e => e.state === state);
+  const count = stateDistribution[state];
+  const stateEmployees = employeesByState[state];
   return `
-${state}: ${count} employees
-Sample Employees:
-${stateEmployees.map(e => `  - ${e.name} (${e.city}, ${e.state})`).join('\n')}`;
+${state}: ${count} employee${count !== 1 ? 's' : ''}
+${stateEmployees.map(e => `  - ${e.name} (${e.city}, ${state})`).join('\n')}`;
 }).join('\n')}
 
 COMPLIANCE SCENARIO:
-Use this company information to answer compliance questions. For example:
-- "Do we need sexual harassment training in California?"
-- "Which employees need to complete harassment training?"
-- "What are our posting requirements for the New York office?"`;
+Use this company information to evaluate compliance requirements. The company has employees in ${employeeStates.length} state${employeeStates.length !== 1 ? 's' : ''}: ${employeeStates.join(', ')}.`;
 
                 if (setChatState && chatState) {
                   setChatState({ ...chatState, additionalContext: companyContext });
