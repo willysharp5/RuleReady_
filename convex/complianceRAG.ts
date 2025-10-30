@@ -44,15 +44,10 @@ export const queryComplianceKnowledge = action({
     const relevantRules = embeddingSources.sources || [];
     console.log(`📊 Found ${relevantRules.length} relevant sources via embeddings`);
     
-    // 2. Get user's chat system prompt from database - NO DEFAULT FALLBACK
-    const chatSettings = await ctx.runQuery(api.chatSettings.getChatSettings);
-    const userSystemPrompt = chatSettings.chatSystemPrompt;
+    // 2. Use default system prompt for RAG queries
+    const userSystemPrompt = `You are RuleReady Compliance AI. Answer questions based STRICTLY on the database sources provided.`;
     
-    if (!userSystemPrompt) {
-      throw new Error("Chat system prompt not configured. Please set it in Settings.");
-    }
-    
-    console.log(`💬 Using chat system prompt from database: ${userSystemPrompt.substring(0, 50)}...`);
+    console.log(`💬 Using default RAG system prompt`);
     
     // 3. If NO sources found, return clear message - DO NOT HALLUCINATE
     if (relevantRules.length === 0) {

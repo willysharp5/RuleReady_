@@ -8,59 +8,47 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, model, jurisdiction, topic, systemPrompt: customSystemPrompt, additionalContext } = body;
 
-    // Get user's custom system prompt and settings FIRST
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
-    let userChatSettings: Record<string, unknown> = {};
-    try {
-      userChatSettings = await convex.query(api.chatSettings.getChatSettings) || {};
-    } catch (e) {
-      console.log("Could not load chat settings, using defaults");
-    }
 
     const lastUser = messages[messages.length - 1]?.content || "";
     console.log(`🔍 Chat API: Processing question "${lastUser}"`);
     console.log(`⚙️ Jurisdiction: ${jurisdiction || 'ALL'}, Topic: ${topic || 'ALL'}`);
-    console.log(`⚙️ Settings: compliance=${userChatSettings.enableComplianceContext}, semantic=${userChatSettings.enableSemanticSearch}`);
     
     let sources: unknown[] = [];
     
-    // Do embedding search if semantic search is enabled OR if compliance context is enabled
-    if (userChatSettings.enableSemanticSearch !== false || userChatSettings.enableComplianceContext !== false) {
+    // Always do embedding search for chat
+    try {
+      console.log('📝 Calling embeddingTopKSources...');
+      const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
+        question: lastUser,
+        k: 5, // Always get top 5 sources
+        threshold: 0.3,
+        jurisdiction: jurisdiction || undefined,
+        topicSlug: topic || undefined,
+      });
+      sources = (res as { sources?: unknown[] })?.sources || [];
+      console.log(`📊 Chat API: Received ${sources.length} sources from embedding search`);
+    } catch (e) {
+      console.error("Embedding retrieval failed:", e);
+      sources = [];
+    }
+
+    // Fallback: much lower threshold if no sources were found
+    if (!sources.length) {
+      console.log('🔄 No sources found, trying with threshold 0.1...');
       try {
-        console.log('📝 Calling embeddingTopKSources...');
-        const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
+        const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
           question: lastUser,
-          k: (userChatSettings.maxContextReports as number) || 5,
-          threshold: 0.3,
+          k: 5,
+          threshold: 0.1,
           jurisdiction: jurisdiction || undefined,
           topicSlug: topic || undefined,
         });
-        sources = (res as { sources?: unknown[] })?.sources || [];
-        console.log(`📊 Chat API: Received ${sources.length} sources from embedding search`);
+        sources = (resLow as { sources?: unknown[] })?.sources || [];
+        console.log(`📊 Low threshold search returned ${sources.length} sources`);
       } catch (e) {
-        console.error("Embedding retrieval failed:", e);
-        sources = [];
+        console.error("Low threshold search failed:", e);
       }
-
-      // Fallback: much lower threshold if no sources were found
-      if (!sources.length) {
-        console.log('🔄 No sources found, trying with threshold 0.1...');
-        try {
-          const resLow: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
-            question: lastUser,
-            k: (userChatSettings.maxContextReports as number) || 5,
-            threshold: 0.1,
-            jurisdiction: jurisdiction || undefined,
-            topicSlug: topic || undefined,
-          });
-          sources = (resLow as { sources?: unknown[] })?.sources || [];
-          console.log(`📊 Low threshold search returned ${sources.length} sources`);
-        } catch (e) {
-          console.error("Low threshold search failed:", e);
-        }
-      }
-    } else {
-      console.log('🚫 Both semantic search AND compliance context disabled - skipping embedding search');
     }
     
     // If no sources found with threshold 0.3, try lower threshold before giving up
@@ -92,24 +80,18 @@ export async function POST(req: NextRequest) {
     
     const typedSources = sources as SourceObject[];
 
-    // Get relevant compliance data based on context (only if compliance context enabled)
-    let complianceContext = "";
-    if (userChatSettings.enableComplianceContext !== false) {
-      complianceContext = await getComplianceContext(jurisdiction, topic);
-      console.log(`📋 Using compliance context (${complianceContext.length} chars)`);
-    } else {
-      console.log('🚫 Compliance context disabled - using general knowledge only');
-    }
+    // Get compliance context
+    const complianceContext = await getComplianceContext(jurisdiction, topic);
+    console.log(`📋 Using compliance context (${complianceContext.length} chars)`);
     
-    // Use custom system prompt from request if provided, otherwise use database prompt
-    const baseSystemPrompt = customSystemPrompt || (userChatSettings.chatSystemPrompt as string);
-    if (!baseSystemPrompt) {
-      throw new Error("Chat system prompt not configured. Please set it in Settings.");
+    // Use custom system prompt from request (required)
+    if (!customSystemPrompt) {
+      throw new Error("Chat system prompt not provided in request.");
     }
-    console.log(`📝 Using ${customSystemPrompt ? 'custom' : 'database'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
+    console.log(`📝 Using custom system prompt: ${customSystemPrompt.substring(0, 100)}...`);
     
-    // Create system prompt based on settings
-    let systemPrompt = baseSystemPrompt;
+    // Create system prompt
+    let systemPrompt = customSystemPrompt;
     
     // Add additional context from user if provided
     if (additionalContext && additionalContext.trim()) {
@@ -117,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
     
     // ALWAYS add context about available data, even if no sources found
-    if (userChatSettings.enableComplianceContext !== false || userChatSettings.enableSemanticSearch !== false) {
+    if (true) {
       
       if (sources.length > 0) {
         // We have sources - provide them
@@ -262,11 +244,8 @@ FORMAT THE ANSWER CLEARLY:
           topicName: s.topicName,
         })),
         settings: {
-          systemPrompt: userChatSettings.chatSystemPrompt || "Default compliance assistant prompt",
-          model: userChatSettings.chatModel || "gemini-2.0-flash-exp",
-          complianceContext: userChatSettings.enableComplianceContext ?? true,
-          maxContextReports: userChatSettings.maxContextReports || 5,
-          semanticSearch: userChatSettings.enableSemanticSearch ?? true,
+          systemPrompt: customSystemPrompt || "Default compliance assistant prompt",
+          model: model || "gemini-2.0-flash-exp",
           sourcesFound: (typedSources || []).length,
           jurisdiction: jurisdiction || "All Jurisdictions",
           topic: topic || "All Topics",

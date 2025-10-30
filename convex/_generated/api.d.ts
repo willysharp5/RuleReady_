@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as chatSettings from "../chatSettings.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
@@ -40,7 +39,6 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  chatSettings: typeof chatSettings;
   complianceQueries: typeof complianceQueries;
   complianceRAG: typeof complianceRAG;
   complianceTemplates: typeof complianceTemplates;
