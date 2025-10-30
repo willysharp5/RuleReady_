@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Eye, Calendar, Tag, MapPin } from 'lucide-react'
+import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Eye, Calendar, Tag, MapPin, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -12,6 +12,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
+import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 
 export default function SavedResearchFeature() {
   const { addToast } = useToast()
@@ -19,6 +20,7 @@ export default function SavedResearchFeature() {
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<any>(null)
   const [viewingItem, setViewingItem] = useState<any>(null)
+  const [editingItem, setEditingItem] = useState<any>(null)
   
   // Filters
   const [filterJurisdiction, setFilterJurisdiction] = useState<any>(null)
@@ -32,6 +34,7 @@ export default function SavedResearchFeature() {
   
   // Mutations
   const deleteSavedResearch = useMutation(api.savedResearch.deleteSavedResearch)
+  const updateSavedResearch = useMutation(api.savedResearch.updateSavedResearch)
   
   // Filter saved research
   const filtered = savedResearch.filter((item: any) => {
@@ -74,6 +77,32 @@ export default function SavedResearchFeature() {
     } catch (error: any) {
       addToast({
         title: 'Cannot Delete Research',
+        description: error.message,
+        variant: 'error',
+        duration: 5000
+      })
+    }
+  }
+  
+  // Save edited content
+  const handleSaveEdit = async (markdown: string) => {
+    if (!editingItem) return
+    
+    try {
+      await updateSavedResearch({
+        id: editingItem._id,
+        content: markdown,
+      })
+      addToast({
+        title: 'Research Updated',
+        description: 'Your changes have been saved.',
+        variant: 'success',
+        duration: 3000
+      })
+      setEditingItem(null)
+    } catch (error: any) {
+      addToast({
+        title: 'Failed to Save',
         description: error.message,
         variant: 'error',
         duration: 5000
@@ -222,6 +251,13 @@ export default function SavedResearchFeature() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setEditingItem(item)}
+              >
+                <Edit3 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setDeleteConfirmItem(item)}
                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
               >
@@ -358,6 +394,18 @@ export default function SavedResearchFeature() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Edit Modal with TipTap */}
+      {editingItem && (
+        <TiptapEditorModal
+          isOpen={true}
+          onClose={() => setEditingItem(null)}
+          initialContent={editingItem.content}
+          title={`Edit: ${editingItem.title}`}
+          onSave={handleSaveEdit}
+          showSaveButton={true}
+        />
+      )}
     </div>
   )
 }
