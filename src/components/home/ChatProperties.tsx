@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Settings, Info, Tag, Building2 } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
@@ -20,9 +20,10 @@ interface ChatState {
 interface ChatPropertiesProps {
   chatState?: ChatState
   setChatState?: (state: ChatState) => void
+  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string }) => Promise<{ success: boolean }>
 }
 
-export function ChatProperties({ chatState, setChatState }: ChatPropertiesProps = {}) {
+export function ChatProperties({ chatState, setChatState, updateChatSettings }: ChatPropertiesProps = {}) {
   // Query data
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
@@ -37,6 +38,61 @@ export function ChatProperties({ chatState, setChatState }: ChatPropertiesProps 
   const [contextOpen, setContextOpen] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
+  
+  // Debounce timer refs
+  const promptSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  
+  // Saving indicators
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
+  const [promptSaved, setPromptSaved] = useState(false)
+  
+  // Cleanup timers
+  useEffect(() => {
+    return () => {
+      if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
+    }
+  }, [])
+  
+  const handleSystemPromptChange = (prompt: string) => {
+    // Update local state immediately
+    if (setChatState && chatState) {
+      setChatState({ ...chatState, systemPrompt: prompt })
+    }
+    
+    setPromptSaved(false)
+    setIsSavingPrompt(true)
+    
+    // Debounce database save
+    if (promptSaveTimerRef.current) {
+      clearTimeout(promptSaveTimerRef.current)
+    }
+    promptSaveTimerRef.current = setTimeout(async () => {
+      if (updateChatSettings) {
+        await updateChatSettings({
+          chatSystemPrompt: prompt,
+          chatModel: chatState?.model
+        })
+        setIsSavingPrompt(false)
+        setPromptSaved(true)
+        setTimeout(() => setPromptSaved(false), 2000)
+      }
+    }, 1000) // Save 1 second after user stops typing
+  }
+  
+  const handleModelChange = (model: string) => {
+    // Update local state immediately
+    if (setChatState && chatState) {
+      setChatState({ ...chatState, model })
+    }
+    
+    // Save to database immediately
+    if (updateChatSettings) {
+      updateChatSettings({
+        chatSystemPrompt: chatState?.systemPrompt,
+        chatModel: model
+      })
+    }
+  }
   
   const handleResetPrompt = () => {
     const defaultPrompt = `You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the compliance data in the internal database.
@@ -65,6 +121,14 @@ You are a database query tool, not a general compliance advisor.`
     
     if (setChatState && chatState) {
       setChatState({ ...chatState, systemPrompt: defaultPrompt })
+    }
+    
+    // Also save to database
+    if (updateChatSettings) {
+      updateChatSettings({
+        chatSystemPrompt: defaultPrompt,
+        chatModel: chatState?.model
+      })
     }
   }
 
@@ -267,11 +331,7 @@ Use this company information to answer compliance questions. For example:
             <select 
               className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
               value={chatState?.model || 'gemini-2.0-flash-exp'}
-              onChange={(e) => {
-                if (setChatState && chatState) {
-                  setChatState({ ...chatState, model: e.target.value })
-                }
-              }}
+              onChange={(e) => handleModelChange(e.target.value)}
             >
               <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental) - Default</option>
               <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest - Stable</option>
@@ -283,7 +343,15 @@ Use this company information to answer compliance questions. For example:
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+              <div className="flex items-center gap-2">
+                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+                {isSavingPrompt && (
+                  <span className="text-xs text-zinc-500">Saving...</span>
+                )}
+                {promptSaved && (
+                  <span className="text-xs text-green-600">✓ Saved</span>
+                )}
+              </div>
               <button
                 type="button"
                 className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
@@ -297,14 +365,10 @@ Use this company information to answer compliance questions. For example:
               placeholder="You are RuleReady Compliance Chat AI..."
               className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[120px] max-h-[400px]"
               value={chatState?.systemPrompt || ''}
-              onChange={(e) => {
-                if (setChatState && chatState) {
-                  setChatState({ ...chatState, systemPrompt: e.target.value })
-                }
-              }}
+              onChange={(e) => handleSystemPromptChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500 mt-1">
-              Customize how the AI responds to your questions
+              Auto-saves as you type.
             </p>
           </div>
         </div>

@@ -238,13 +238,14 @@ export default function SavedResearchFeature() {
       await updateSavedResearch({
         id: editMetadataItem._id,
         title: editMetadataTitle,
-        // Note: The mutation doesn't support updating jurisdiction, topic, template yet
-        // You would need to add those fields to the mutation in convex/savedResearch.ts
+        jurisdiction: editMetadataJurisdiction || undefined,
+        topic: editMetadataTopic || undefined,
+        templateUsed: editMetadataTemplate || undefined,
       })
       
       addToast({
-        title: 'Metadata Updated',
-        description: 'Research metadata has been updated successfully',
+        title: 'Info Updated',
+        description: 'Research information has been updated successfully',
         variant: 'success',
         duration: 3000
       })

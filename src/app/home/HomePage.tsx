@@ -61,6 +61,10 @@ export default function HomePage() {
   const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)
   const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
   
+  // Load chat settings from database
+  const chatSettingsQuery = useQuery(api.chatSettings.getChatSettings)
+  const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
+  
   // Research state - lifted to share between feature and properties
   const [researchState, setResearchState] = useState({
     systemPrompt: '',
@@ -108,6 +112,7 @@ You are a database query tool, not a general compliance advisor.`,
   })
   
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [chatSettingsLoaded, setChatSettingsLoaded] = useState(false)
   
   // Load research settings from database on mount
   useEffect(() => {
@@ -122,6 +127,18 @@ You are a database query tool, not a general compliance advisor.`,
       setSettingsLoaded(true)
     }
   }, [researchSettingsQuery, settingsLoaded])
+  
+  // Load chat settings from database on mount
+  useEffect(() => {
+    if (chatSettingsQuery && !chatSettingsLoaded) {
+      setChatState(prev => ({
+        ...prev,
+        systemPrompt: chatSettingsQuery.chatSystemPrompt,
+        model: chatSettingsQuery.chatModel,
+      }))
+      setChatSettingsLoaded(true)
+    }
+  }, [chatSettingsQuery, chatSettingsLoaded])
 
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -166,6 +183,7 @@ You are a database query tool, not a general compliance advisor.`,
           chatState={chatState}
           setChatState={setChatState}
           updateResearchSettings={updateResearchSettings}
+          updateChatSettings={updateChatSettings}
           onDismissError={() => setResearchState(prev => ({ ...prev, configError: null }))}
         />
       </div>

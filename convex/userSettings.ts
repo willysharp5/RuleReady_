@@ -106,9 +106,6 @@ export const cleanupOldFieldsNow = mutation({
     await ctx.db.replace(settings._id, {
       chatSystemPrompt: settings.chatSystemPrompt,
       chatModel: settings.chatModel,
-      enableComplianceContext: settings.enableComplianceContext,
-      maxContextReports: settings.maxContextReports,
-      enableSemanticSearch: settings.enableSemanticSearch,
       researchSystemPrompt: settings.researchSystemPrompt,
       researchModel: settings.researchModel,
       researchFirecrawlConfig: settings.researchFirecrawlConfig,

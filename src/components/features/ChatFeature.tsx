@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { MessageCircle, Plus, X, FileText, User, Copy, Check, ArrowUp, Square, ArrowDown, Bot, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { useQuery, useMutation } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 import { useToast } from '@/hooks/use-toast'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -24,26 +26,91 @@ interface ChatFeatureProps {
 export default function ChatFeature({ chatState, setChatState }: ChatFeatureProps = {}) {
   const { addToast } = useToast()
   
+  const saveConversation = useMutation(api.chatConversations.saveConversation)
+  const deleteConversation = useMutation(api.chatConversations.deleteConversation)
+  const updateConversationTitle = useMutation(api.chatConversations.updateConversationTitle)
+  const allConversationsQuery = useQuery(api.chatConversations.getAllConversations)
+  
+  // Query to load a specific conversation when tab is clicked
+  const [conversationToLoad, setConversationToLoad] = useState<string | null>(null)
+  const loadedConversation = useQuery(
+    api.chatConversations.getConversation,
+    conversationToLoad ? { conversationId: conversationToLoad as any } : 'skip'
+  )
   
   // Tab management
   const [tabs, setTabs] = useState<Array<{
     id: string
     title: string
+    conversationId: string | null
     messages: any[]
     hasUnsavedChanges: boolean
   }>>([{
     id: 'tab-1',
     title: 'Chat 1',
+    conversationId: null,
     messages: [],
     hasUnsavedChanges: false
   }])
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
+  const [tabsLoaded, setTabsLoaded] = useState(false)
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'up' | 'down' | null>>({})
+  
+  // Load saved conversations as tabs on mount
+  useEffect(() => {
+    if (allConversationsQuery && !tabsLoaded) {
+      const conversations = allConversationsQuery || []
+      
+      if (conversations.length > 0) {
+        // Create tabs from saved conversations
+        const loadedTabs = conversations.map((conv) => ({
+          id: conv._id,
+          title: conv.title,
+          conversationId: conv._id,
+          messages: [], // Will load when tab is activated
+          hasUnsavedChanges: false
+        }))
+        
+        setTabs(loadedTabs)
+        setActiveTabId(loadedTabs[0].id)
+        // Trigger loading of first conversation
+        setConversationToLoad(loadedTabs[0].conversationId)
+      }
+      
+      setTabsLoaded(true)
+    }
+  }, [allConversationsQuery, tabsLoaded])
+  
+  // Load conversation messages when tab changes or conversation loads
+  useEffect(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId)
+    if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
+      setIsLoadingConversation(true)
+      // Update tab with loaded messages
+      setTabs(prev => prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, messages: loadedConversation.messages || [] }
+          : tab
+      ))
+      // Give a moment for state to settle, then clear loading flag
+      setTimeout(() => setIsLoadingConversation(false), 100)
+    }
+  }, [loadedConversation, conversationToLoad, activeTabId])
+  
+  // When switching tabs, load that tab's conversation if not already loaded
+  useEffect(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId)
+    if (activeTab?.conversationId && activeTab.messages.length === 0) {
+      // Tab has conversationId but no messages loaded yet
+      setConversationToLoad(activeTab.conversationId)
+    }
+  }, [activeTabId, tabs])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
@@ -296,7 +363,36 @@ You are a database query tool, not a general compliance advisor.`)
   }
 
   const handleClearChat = async () => {
-    setChatMessages([])
+    // Clear messages in UI
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId 
+        ? { ...tab, messages: [] }
+        : tab
+    ))
+    
+    // Also update database to remove messages (keep conversation shell)
+    const currentTab = tabs.find(t => t.id === activeTabId)
+    if (currentTab?.conversationId) {
+      try {
+        await saveConversation({
+          conversationId: currentTab.conversationId as any,
+          title: currentTab.title,
+          messages: [], // Empty messages array
+          filters: {
+            jurisdiction: chatState?.jurisdiction || chatJurisdiction,
+            topic: chatState?.topic || chatTopic,
+          },
+          settingsSnapshot: {
+            systemPrompt: chatState?.systemPrompt,
+            model: chatState?.model,
+            additionalContext: chatState?.additionalContext,
+          }
+        })
+      } catch (error) {
+        console.error('Failed to clear conversation in database:', error)
+      }
+    }
+    
     setShowClearConfirm(false)
     
     // Reset to default system prompt
@@ -338,11 +434,65 @@ You are a database query tool, not a general compliance advisor.`
     }
   }
 
+  // Auto-save active tab conversation after messages update (debounced)
+  useEffect(() => {
+    // Only auto-save if we have at least one complete exchange (user + assistant)
+    const hasCompleteExchange = chatMessages.length >= 2 && 
+                                chatMessages.some(m => m.role === 'assistant');
+    
+    // Don't save if we're loading an existing conversation or actively chatting
+    if (!hasCompleteExchange || isChatting || isLoadingConversation) return;
+    
+    const autoSaveTimer = setTimeout(async () => {
+      try {
+        // Pass existing conversationId if tab already has one
+        const currentTab = tabs.find(t => t.id === activeTabId)
+        
+        const result = await saveConversation({
+          conversationId: currentTab?.conversationId as any || undefined,
+          title: currentTab?.title,
+          messages: chatMessages,
+          filters: {
+            jurisdiction: chatState?.jurisdiction || chatJurisdiction,
+            topic: chatState?.topic || chatTopic,
+          },
+          settingsSnapshot: {
+            systemPrompt: chatState?.systemPrompt,
+            model: chatState?.model,
+            additionalContext: chatState?.additionalContext,
+          }
+        })
+        
+        // Store conversation ID in the active tab (only if new)
+        if (result.conversationId && !result.isUpdate) {
+          setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
+              ? { ...tab, conversationId: result.conversationId as string, hasUnsavedChanges: false }
+              : tab
+          ))
+        } else if (result.isUpdate) {
+          // Just mark as saved
+          setTabs(prev => prev.map(tab => 
+            tab.id === activeTabId 
+              ? { ...tab, hasUnsavedChanges: false }
+              : tab
+          ))
+        }
+      } catch (error) {
+        // Silent failure for auto-save
+        console.error('Auto-save failed:', error)
+      }
+    }, 2000) // Auto-save 2 seconds after last message
+    
+    return () => clearTimeout(autoSaveTimer)
+  }, [chatMessages, isChatting, isLoadingConversation, activeTabId])
+
   const handleAddTab = () => {
     const newTabNumber = tabs.length + 1
     const newTab = {
       id: `tab-${Date.now()}`,
       title: `Chat ${newTabNumber}`,
+      conversationId: null,
       messages: [],
       hasUnsavedChanges: false
     }
@@ -352,6 +502,13 @@ You are a database query tool, not a general compliance advisor.`
   
   const handleCloseTab = async (tabId: string) => {
     if (tabs.length === 1) return
+    
+    const tabToClose = tabs.find(t => t.id === tabId)
+    
+    // Delete from database if it has a conversationId
+    if (tabToClose?.conversationId) {
+      await deleteConversation({ conversationId: tabToClose.conversationId as any })
+    }
     
     const newTabs = tabs.filter(t => t.id !== tabId)
     setTabs(newTabs)
@@ -367,6 +524,14 @@ You are a database query tool, not a general compliance advisor.`
     setTabs(prev => prev.map(tab => 
       tab.id === tabId ? { ...tab, title: newTitle } : tab
     ))
+    
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab?.conversationId) {
+      await updateConversationTitle({
+        conversationId: tab.conversationId as any,
+        title: newTitle
+      })
+    }
     
     setIsEditingTab(null)
   }

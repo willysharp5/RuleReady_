@@ -9,6 +9,14 @@ export async function POST(req: NextRequest) {
     const { messages, model, jurisdiction, topic, systemPrompt: customSystemPrompt, additionalContext } = body;
 
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
+    
+    // Get database settings as fallback
+    let dbSettings: Record<string, unknown> = {};
+    try {
+      dbSettings = await convex.query(api.chatSettings.getChatSettings) || {};
+    } catch (e) {
+      console.log("Could not load chat settings from database");
+    }
 
     const lastUser = messages[messages.length - 1]?.content || "";
     console.log(`🔍 Chat API: Processing question "${lastUser}"`);
@@ -84,14 +92,15 @@ export async function POST(req: NextRequest) {
     const complianceContext = await getComplianceContext(jurisdiction, topic);
     console.log(`📋 Using compliance context (${complianceContext.length} chars)`);
     
-    // Use custom system prompt from request (required)
-    if (!customSystemPrompt) {
-      throw new Error("Chat system prompt not provided in request.");
+    // Use custom system prompt from request, or fallback to database
+    const baseSystemPrompt = customSystemPrompt || (dbSettings.chatSystemPrompt as string);
+    if (!baseSystemPrompt) {
+      throw new Error("Chat system prompt not configured. Please set it in Settings.");
     }
-    console.log(`📝 Using custom system prompt: ${customSystemPrompt.substring(0, 100)}...`);
+    console.log(`📝 Using ${customSystemPrompt ? 'custom' : 'database'} system prompt: ${baseSystemPrompt.substring(0, 100)}...`);
     
     // Create system prompt
-    let systemPrompt = customSystemPrompt;
+    let systemPrompt = baseSystemPrompt;
     
     // Add additional context from user if provided
     if (additionalContext && additionalContext.trim()) {
@@ -244,8 +253,8 @@ FORMAT THE ANSWER CLEARLY:
           topicName: s.topicName,
         })),
         settings: {
-          systemPrompt: customSystemPrompt || "Default compliance assistant prompt",
-          model: model || "gemini-2.0-flash-exp",
+          systemPrompt: baseSystemPrompt,
+          model: model || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp",
           sourcesFound: (typedSources || []).length,
           jurisdiction: jurisdiction || "All Jurisdictions",
           topic: topic || "All Topics",

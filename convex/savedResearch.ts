@@ -55,14 +55,20 @@ export const updateSavedResearch = mutation({
     id: v.id("savedResearch"),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
+    jurisdiction: v.optional(v.string()),
+    topic: v.optional(v.string()),
+    templateUsed: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const updates: any = {
       updatedAt: Date.now(),
     };
     
-    if (args.title) updates.title = args.title;
-    if (args.content) updates.content = args.content;
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.content !== undefined) updates.content = args.content;
+    if (args.jurisdiction !== undefined) updates.jurisdiction = args.jurisdiction;
+    if (args.topic !== undefined) updates.topic = args.topic;
+    if (args.templateUsed !== undefined) updates.templateUsed = args.templateUsed;
     
     await ctx.db.patch(args.id, updates);
     
