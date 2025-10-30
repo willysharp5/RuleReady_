@@ -4,6 +4,55 @@
    - https://www.eeoc.gov/sexual-harassment
    - https://www.eeoc.gov/sites/default/files/migrated_files/youth/downloads/teacher_manual.pdf
 
+   What are California's harassment training requirements?
+   Do we need sexual harassment training for my company
+
+   COMPANY PROFILE:
+
+Company Name: Coastal Industries
+Headquarters: Boston, Massachusetts
+Total Employees: 56
+
+EMPLOYEE BREAKDOWN BY STATE:
+
+Massachusetts: 14 employees
+Sample Employees:
+  - Michael Rodriguez (Cambridge, Massachusetts)
+  - Sarah Jones (Boston, Massachusetts)
+  - Robert Chen (Boston, Massachusetts)
+  - Jennifer Miller (Boston, Massachusetts)
+  - James Jones (Boston, Massachusetts)
+
+Washington: 14 employees
+Sample Employees:
+  - Lisa Jones (Spokane, Washington)
+  - Jessica Brown (Spokane, Washington)
+  - Robert Chen (Seattle, Washington)
+
+California: 14 employees
+Sample Employees:
+  - Emily Martinez (San Francisco, California)
+  - John Williams (San Diego, California)
+  - William Brown (Sacramento, California)
+  - David Davis (Sacramento, California)
+  - Emily Garcia (San Francisco, California)
+
+Colorado: 14 employees
+Sample Employees:
+  - Jennifer Rodriguez (Colorado Springs, Colorado)
+  - Michael Johnson (Boulder, Colorado)
+  - James Rodriguez (Denver, Colorado)
+  - William Brown (Colorado Springs, Colorado)
+  - William Miller (Colorado Springs, Colorado)
+
+COMPLIANCE SCENARIO:
+Use this company information to answer compliance questions. For example:
+
+
+- "Do we need sexual harassment training in California?"
+- "Which employees need to complete harassment training?"
+- "What are our posting requirements for the New York office?"
+
 ## 📍 Test Case: California Sexual Harassment Training
 
 ### 🌐 URLs to Scrape:

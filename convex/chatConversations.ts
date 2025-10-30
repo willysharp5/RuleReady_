@@ -11,6 +11,7 @@ export const saveConversation = mutation({
       role: v.union(v.literal("user"), v.literal("assistant")),
       content: v.string(),
       internalSources: v.optional(v.array(v.any())),
+      savedResearchSources: v.optional(v.array(v.any())),
     })),
     filters: v.object({
       jurisdiction: v.optional(v.string()),
@@ -20,6 +21,7 @@ export const saveConversation = mutation({
       systemPrompt: v.optional(v.string()),
       model: v.optional(v.string()),
       additionalContext: v.optional(v.string()),
+      savedResearchContent: v.optional(v.string()),
     }),
   },
   handler: async (ctx, args) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, Plus, X, FileText, User, Copy, Check, ArrowUp, Square, ArrowDown, Bot, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { MessageCircle, Plus, X, FileText, User, Copy, Check, ArrowUp, Square, ArrowDown, Bot, ThumbsUp, ThumbsDown, BookOpen, MapPin, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useQuery, useMutation } from "convex/react"
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 
 interface ChatFeatureProps {
   chatState?: {
@@ -62,6 +63,7 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   const [showDeleteTabConfirm, setShowDeleteTabConfirm] = useState<string | null>(null)
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'up' | 'down' | null>>({})
+  const [viewingSavedResearch, setViewingSavedResearch] = useState<any>(null)
   
   // Load saved conversations as tabs on mount
   useEffect(() => {
@@ -234,10 +236,14 @@ You are a database query tool, not a general compliance advisor.`)
     let fullContent = message.content;
     
     // Add sources section in markdown format
-    if (message.internalSources && message.internalSources.length > 0) {
-      fullContent += '\n\n---\n\n## Sources - Your Database\n\n';
-      message.internalSources.forEach((s: any, idx: number) => {
-        fullContent += `${idx + 1}. **${s.title}**\n`;
+    if (message.savedResearchSources && message.savedResearchSources.length > 0) {
+      fullContent += '\n\n---\n\n## Sources - Saved Research\n\n';
+      message.savedResearchSources.forEach((s: any) => {
+        fullContent += `${s.id}. **${s.title}**`;
+        if (s.jurisdiction || s.topic) {
+          fullContent += ` (${[s.jurisdiction, s.topic].filter(Boolean).join(' • ')})`;
+        }
+        fullContent += '\n';
       });
     }
     
@@ -310,7 +316,9 @@ You are a database query tool, not a general compliance advisor.`)
           jurisdiction: chatState?.jurisdiction || chatJurisdiction || undefined,
           topic: chatState?.topic || chatTopic || undefined,
           systemPrompt: chatState?.systemPrompt || chatSystemPrompt,
+          savedResearchContent: chatState?.savedResearchContent || undefined,
           additionalContext: chatState?.additionalContext || undefined,
+          selectedResearchIds: chatState?.selectedResearchIds || undefined,
         }),
       })
 
@@ -326,7 +334,7 @@ You are a database query tool, not a general compliance advisor.`)
           ? {
               ...m,
               content: data.content,
-              internalSources: data.sources || []
+              savedResearchSources: data.savedResearchSources || []
             }
           : m
       ))
@@ -431,6 +439,8 @@ You are a database query tool, not a general compliance advisor.`
         jurisdiction: '',
         topic: '',
         additionalContext: '',
+        savedResearchContent: '',
+        selectedResearchIds: [],
       })
     }
   }
@@ -761,21 +771,52 @@ You are a database query tool, not a general compliance advisor.`
                             )}
                           </div>
                           
-                          {/* Sources - Internal Database */}
-                          {m.internalSources && m.internalSources.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-gray-300">
-                              <div className="text-xs font-medium text-purple-700 mb-2 flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
-                                Your Database ({m.internalSources.length})
+                          {/* Sources - Saved Research */}
+                          {m.savedResearchSources && m.savedResearchSources.length > 0 && (
+                            <div className="mt-4 pt-4 border-t-2 border-gray-200">
+                              <div className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                                <BookOpen className="h-4 w-4" />
+                                Saved Research ({m.savedResearchSources.length})
                               </div>
-                              <ul className="space-y-1">
-                                {m.internalSources.map((s: any, idx: number) => (
-                                  <li key={idx} className="text-xs text-purple-800">
-                                    <span className="font-mono mr-1">[{idx + 1}]</span>
-                                    <span className="font-medium">{s.title}</span>
-                                  </li>
+                              <div className="space-y-3">
+                                {m.savedResearchSources.map((s: any) => (
+                                  <div key={s._id} className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                    <button
+                                      onClick={() => setViewingSavedResearch(s)}
+                                      className="w-full text-left hover:bg-purple-100 -m-3 p-3 rounded-lg transition-colors"
+                                    >
+                                      <div className="flex items-start gap-2 mb-2">
+                                        <span className="font-mono text-sm font-bold text-purple-700 flex-shrink-0">[{s.id}]</span>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-semibold text-sm text-purple-900 mb-1">{s.title}</div>
+                                          {(s.jurisdiction || s.topic) && (
+                                            <div className="flex items-center gap-2 text-xs text-purple-600 mb-2">
+                                              {s.jurisdiction && (
+                                                <span className="flex items-center gap-1">
+                                                  <MapPin className="h-3 w-3" />
+                                                  {s.jurisdiction}
+                                                </span>
+                                              )}
+                                              {s.topic && (
+                                                <span className="flex items-center gap-1">
+                                                  <Tag className="h-3 w-3" />
+                                                  {s.topic}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                          <p className="text-xs text-gray-700 line-clamp-2">
+                                            {s.content.substring(0, 200)}...
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="text-xs text-purple-700 font-medium mt-2">
+                                        Click to view full content →
+                                      </div>
+                                    </button>
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
                           )}
                         </>
@@ -886,6 +927,35 @@ You are a database query tool, not a general compliance advisor.`
           )}
         </div>
       </form>
+      
+      {/* View Saved Research Modal */}
+      {viewingSavedResearch && (
+        <TiptapEditorModal
+          isOpen={true}
+          onClose={() => setViewingSavedResearch(null)}
+          initialContent={viewingSavedResearch.content}
+          title={
+            <div className="space-y-2">
+              <div className="text-lg font-semibold text-gray-900">{viewingSavedResearch.title}</div>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                {viewingSavedResearch.jurisdiction && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                    {viewingSavedResearch.jurisdiction}
+                  </span>
+                )}
+                {viewingSavedResearch.topic && (
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="h-4 w-4 text-green-600" />
+                    {viewingSavedResearch.topic}
+                  </span>
+                )}
+              </div>
+            </div>
+          }
+          showSaveButton={false}
+        />
+      )}
     </div>
   )
 }

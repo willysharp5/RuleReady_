@@ -17,6 +17,7 @@ interface ChatState {
   jurisdiction: string
   topic: string
   additionalContext?: string
+  savedResearchContent?: string
   selectedResearchIds?: string[]
   lastPromptSent?: string
 }
@@ -104,34 +105,69 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   }
   
   const handleResetPrompt = () => {
-    const defaultPrompt = `You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the saved research and additional context provided.
+    const defaultPrompt = `You are RuleReady Compliance Evaluation AI. Answer questions using ONLY the saved research provided.
 
 CRITICAL RULES:
-1. ONLY use information from the saved research results and additional context provided
-2. DO NOT use your general AI knowledge or training data
-3. If no relevant saved research is found, say: "I don't have saved research about [topic] for [jurisdiction]" and STOP
-4. DO NOT attempt to answer questions when saved research is missing or insufficient
-5. DO NOT make assumptions or inferences beyond what the saved research explicitly states
+1. ONLY use SAVED RESEARCH for legal info - NO AI knowledge
+2. Use ADDITIONAL CONTEXT for company details (company name, location, employee count)
+3. Cite saved research as [1], [2], [3]
 
-WHEN SAVED RESEARCH IS AVAILABLE:
-- Cite which saved research document the information comes from (use [1], [2], [3] format)
-- Reference the jurisdiction and topic from the saved research
-- Quote or paraphrase directly from the saved research content
-- Mention dates, deadlines, and penalties found in the saved research
-- Be specific and detailed based ONLY on what's in the saved research
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 
-WHEN NO SAVED RESEARCH IS FOUND:
-- Clearly state what information is missing
-- Do NOT provide general compliance advice
-- Do NOT use your AI knowledge to answer
-- Simply acknowledge the limitation and stop
+# [Clear Title Based on Question]
 
-ADDITIONAL CONTEXT:
-- If additional context is provided by the user, you MAY use it in your answer
-- Clearly indicate when you're using additional context vs saved research
-- Cite the source (saved research vs additional context)
+## Overview
 
-You are an evaluation tool to test if the saved research is comprehensive enough to answer customer questions.`
+Answer the question directly in 2-3 sentences. Mention **company name** if provided. Cite sources [1], [2].
+
+## Why This Applies
+
+Based on [1] and [2], explain applicability:
+
+- **Company location**: [from additional context]
+- **Number of employees**: [from additional context]
+- **Legal requirement**: [from saved research] [1]
+- **Threshold**: [cite number] employees [1]
+
+## Key Requirements
+
+List the main requirements with citations:
+
+- **Requirement 1**: Details from saved research [1]
+- **Training duration**: **X hours** for supervisors, **Y hours** for employees [2]
+- **Deadline**: Within **X months/days** [1]
+- **Frequency**: Every **X years** [2]
+
+## What You Need To Do
+
+Actionable steps:
+
+1. First action step
+2. Second action step
+3. Third action step
+
+## Penalties for Non-Compliance
+
+- **Fines**: $X to $Y per violation [1]
+- **Other consequences**: [from research] [2]
+
+(Or state: "Penalties not specified in provided research")
+
+FORMATTING:
+- Use ## for all section headers
+- Use **bold** for company names, numbers, deadlines, dollar amounts
+- Use [1], [2], [3] to cite saved research inline
+- Use bullet points for lists
+- Add blank line after each paragraph
+- Keep it scannable and professional
+
+DO NOT include meta-commentary like "Answer Structure:" or "Start with direct answer:". Just write the formatted response.
+
+IF NO SAVED RESEARCH:
+"I don't have any saved research selected. Please select saved research from the knowledge base to provide legal compliance information."
+
+IF MISSING INFO:
+Be specific about what's missing and guide user to add it.`
     
     if (setChatState && chatState) {
       setChatState({ ...chatState, systemPrompt: defaultPrompt })
@@ -170,22 +206,22 @@ You are an evaluation tool to test if the saved research is comprehensive enough
           onChange={(items) => {
             if (setChatState && chatState) {
               if (items.length > 0) {
-                // Set research IDs and auto-populate context with all content
+                // Set research IDs and content separately from additional context
                 const combinedContent = items.map(item => 
-                  `KNOWLEDGE BASE - ${item.title}\n\n${item.content}`
+                  `[SAVED RESEARCH] ${item.title}\n${item.jurisdiction ? `Jurisdiction: ${item.jurisdiction}\n` : ''}${item.topic ? `Topic: ${item.topic}\n` : ''}\n${item.content}`
                 ).join('\n\n---\n\n')
                 
                 setChatState({ 
                   ...chatState, 
                   selectedResearchIds: items.map(i => i._id),
-                  additionalContext: combinedContent
+                  savedResearchContent: combinedContent
                 })
               } else {
                 // Clear selection
                 setChatState({ 
                   ...chatState, 
                   selectedResearchIds: [],
-                  additionalContext: ''
+                  savedResearchContent: ''
                 })
               }
             }
@@ -478,6 +514,14 @@ Use this company information to answer compliance questions. For example:
           <div className="flex justify-between items-start gap-2">
             <span className="text-zinc-600 flex-shrink-0">Topic:</span>
             <span className="font-medium text-zinc-900 text-right">{chatState?.topic || 'None (all topics)'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-600">Saved Research:</span>
+            <span className="font-medium text-zinc-900">
+              {chatState?.selectedResearchIds && chatState.selectedResearchIds.length > 0
+                ? `${chatState.selectedResearchIds.length} item(s) selected` 
+                : 'None selected'}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-zinc-600">Additional Context:</span>

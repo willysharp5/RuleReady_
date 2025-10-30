@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, model, jurisdiction, topic, systemPrompt: customSystemPrompt, additionalContext } = body;
+    const { messages, model, jurisdiction, topic, systemPrompt: customSystemPrompt, savedResearchContent, additionalContext, selectedResearchIds } = body;
 
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
     
@@ -32,13 +32,19 @@ export async function POST(req: NextRequest) {
     // Create system prompt
     let systemPrompt = baseSystemPrompt;
     
-    // Add context if user provided it (this is where saved research should be pasted)
-    if (additionalContext && additionalContext.trim()) {
-      systemPrompt += `\n\nSAVED RESEARCH AND CONTEXT PROVIDED:\n${additionalContext}`;
-      console.log(`📄 Using ${additionalContext.length} characters of additional context`);
+    // Add saved research (legal compliance info)
+    if (savedResearchContent && savedResearchContent.trim()) {
+      systemPrompt += `\n\n=== SAVED RESEARCH (LEGAL COMPLIANCE INFORMATION) ===\n${savedResearchContent}`;
+      console.log(`📚 Using ${savedResearchContent.length} characters of saved research`);
     } else {
-      systemPrompt += `\n\nNO SAVED RESEARCH OR CONTEXT PROVIDED. You must say: "I don't have saved research about this topic. Please select saved research from the knowledge base to answer this question."`;
-      console.log(`⚠️ No additional context provided`);
+      systemPrompt += `\n\n=== NO SAVED RESEARCH SELECTED ===\nYou must say: "I don't have any saved research selected. Please select saved research from the knowledge base to provide legal compliance information."`;
+      console.log(`⚠️ No saved research provided`);
+    }
+    
+    // Add additional context (company info, scenarios, etc.)
+    if (additionalContext && additionalContext.trim()) {
+      systemPrompt += `\n\n=== ADDITIONAL CONTEXT (COMPANY/SCENARIO INFO) ===\n${additionalContext}`;
+      console.log(`📄 Using ${additionalContext.length} characters of additional context`);
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -67,16 +73,33 @@ export async function POST(req: NextRequest) {
     
     const displayTitle = (jurisdiction || 'Compliance') + ' – ' + (topic || 'Guidance');
 
+    // Get the actual saved research items to return
+    let savedResearchSources = [];
+    if (selectedResearchIds && selectedResearchIds.length > 0) {
+      const allSavedResearch = await convex.query(api.savedResearch.getAllSavedResearch);
+      savedResearchSources = (allSavedResearch || [])
+        .filter((r: any) => selectedResearchIds.includes(r._id))
+        .map((r: any, index: number) => ({
+          id: index + 1,
+          _id: r._id,
+          title: r.title,
+          jurisdiction: r.jurisdiction,
+          topic: r.topic,
+          content: r.content,
+          type: 'saved_research'
+        }));
+    }
+
     return new Response(
       JSON.stringify({ 
         role: 'assistant', 
         content: text,
         title: displayTitle,
-        sources: [], // Sources come from additional context, not auto-searched
+        savedResearchSources: savedResearchSources,
         settings: {
           systemPrompt: baseSystemPrompt,
           model: model || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp",
-          sourcesFound: additionalContext ? 1 : 0,
+          sourcesFound: savedResearchSources.length,
           jurisdiction: jurisdiction || "All Jurisdictions",
           topic: topic || "All Topics",
         },
