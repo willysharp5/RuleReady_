@@ -62,9 +62,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Convert messages to Gemini format
+    // Convert only the LAST message to avoid AI memory of previous saved research
+    // This ensures each question is evaluated fresh with current saved research context
     const lastMessage = messages[messages.length - 1];
-    const prompt = systemPrompt + "\n\nUser: " + lastMessage.content + "\n\nAssistant:";
+    const prompt = systemPrompt + "\n\nUser Question: " + lastMessage.content + "\n\nYour Response:";
 
     // Generate response
     const result = await aiModel.generateContent(prompt);
