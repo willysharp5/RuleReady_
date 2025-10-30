@@ -45,15 +45,15 @@ export const updateResearchSettings = mutation({
     const now = Date.now();
 
     if (existingSettings) {
-      // Update existing settings
-      await ctx.db.patch(existingSettings._id, {
-        researchSystemPrompt: args.researchSystemPrompt,
-        researchModel: args.researchModel,
-        researchTemperature: args.researchTemperature,
-        researchMaxTokens: args.researchMaxTokens,
-        researchFirecrawlConfig: args.researchFirecrawlConfig,
-        updatedAt: now,
-      });
+      // Only update fields that are provided (not undefined)
+      const updates: any = { updatedAt: now };
+      if (args.researchSystemPrompt !== undefined) updates.researchSystemPrompt = args.researchSystemPrompt;
+      if (args.researchModel !== undefined) updates.researchModel = args.researchModel;
+      if (args.researchTemperature !== undefined) updates.researchTemperature = args.researchTemperature;
+      if (args.researchMaxTokens !== undefined) updates.researchMaxTokens = args.researchMaxTokens;
+      if (args.researchFirecrawlConfig !== undefined) updates.researchFirecrawlConfig = args.researchFirecrawlConfig;
+      
+      await ctx.db.patch(existingSettings._id, updates);
     } else {
       // Create new settings
       await ctx.db.insert("appSettings", {

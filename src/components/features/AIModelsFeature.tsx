@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { useToast } from '@/hooks/use-toast'
 
@@ -14,6 +14,8 @@ export default function AIModelsFeature() {
   const { addToast } = useToast()
   const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
   const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
+  const chatSettings = useQuery(api.chatSettings.getChatSettings)
+  const researchSettings = useQuery(api.researchSettings.getResearchSettings)
   
   // AI Models configuration state
   const [showModelConfig, setShowModelConfig] = useState(false)
@@ -75,16 +77,13 @@ export default function AIModelsFeature() {
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
     
-    // Load prompts from existing settings
-    switch (purpose) {
-      case 'chat':
-        setConfigTemperature(0.7)
-        setConfigMaxTokens(8192)
-        break
-      case 'research':
-        setConfigTemperature(0.5)
-        setConfigMaxTokens(8192)
-        break
+    // Load settings from database
+    if (purpose === 'chat' && chatSettings) {
+      setConfigTemperature(chatSettings.chatTemperature ?? 0.7)
+      setConfigMaxTokens(chatSettings.chatMaxTokens ?? 8192)
+    } else if (purpose === 'research' && researchSettings) {
+      setConfigTemperature(researchSettings.researchTemperature ?? 0.5)
+      setConfigMaxTokens(researchSettings.researchMaxTokens ?? 8192)
     }
     
     setShowModelConfig(true)
@@ -407,7 +406,7 @@ Next steps:
                       max={65536}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Gemini 2.0 Flash: up to 8,192 tokens. Gemini 2.5: up to 65,536 tokens.
+                      Maximum output tokens (check your model&apos;s documentation for limits)
                     </p>
                   </div>
             </div>

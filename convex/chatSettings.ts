@@ -40,14 +40,14 @@ export const updateChatSettings = mutation({
     const now = Date.now();
 
     if (existingSettings) {
-      // Update existing settings
-      await ctx.db.patch(existingSettings._id, {
-        chatSystemPrompt: args.chatSystemPrompt,
-        chatModel: args.chatModel,
-        chatTemperature: args.chatTemperature,
-        chatMaxTokens: args.chatMaxTokens,
-        updatedAt: now,
-      });
+      // Only update fields that are provided (not undefined)
+      const updates: any = { updatedAt: now };
+      if (args.chatSystemPrompt !== undefined) updates.chatSystemPrompt = args.chatSystemPrompt;
+      if (args.chatModel !== undefined) updates.chatModel = args.chatModel;
+      if (args.chatTemperature !== undefined) updates.chatTemperature = args.chatTemperature;
+      if (args.chatMaxTokens !== undefined) updates.chatMaxTokens = args.chatMaxTokens;
+      
+      await ctx.db.patch(existingSettings._id, updates);
     } else {
       // Create new settings
       await ctx.db.insert("appSettings", {
