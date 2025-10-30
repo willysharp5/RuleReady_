@@ -17,11 +17,6 @@ export function SavedResearchProperties() {
   const uniqueJurisdictions = new Set(savedResearch.map((item: any) => item.jurisdiction).filter(Boolean))
   const uniqueTopics = new Set(savedResearch.map((item: any) => item.topic).filter(Boolean))
   
-  // Get most recent
-  const mostRecent = savedResearch.length > 0 
-    ? savedResearch[0] // Already sorted by createdAt desc
-    : null
-  
   return (
     <div className="space-y-2">
       {/* Info Box */}
@@ -74,41 +69,55 @@ export function SavedResearchProperties() {
         </div>
       </div>
       
-      {/* Most Recent */}
-      {mostRecent && (
-        <div className="border border-gray-200 rounded-lg p-3">
-          <h5 className="font-medium text-gray-900 mb-2 text-sm flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Most Recent
-          </h5>
-          <div className="space-y-2 text-xs">
-            <div className="font-medium text-gray-900 line-clamp-2">
-              {mostRecent.title}
-            </div>
-            <div className="text-gray-500">
-              {new Date(mostRecent.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
+      {/* Saved Research by Topic Breakdown */}
+      {savedResearch.length > 0 && (
+        <div>
+          <label className="text-xs font-medium text-zinc-700 mb-2 block">
+            Saved Research by Topic
+          </label>
+          <div className="space-y-1">
+            {/* Items without topic */}
+            {savedResearch.filter((item: any) => !item.topic).length > 0 && (
+              <div className="flex items-center justify-between p-2 rounded bg-gray-50 border-gray-200 border">
+                <span className="text-xs text-zinc-700">No Topic</span>
+                <span className="text-xs font-semibold text-gray-600">
+                  {savedResearch.filter((item: any) => !item.topic).length}
+                </span>
+              </div>
+            )}
+            
+            {/* Group by topic */}
+            {Array.from(uniqueTopics)
+              .sort()
+              .map((topicValue: any) => {
+                const count = savedResearch.filter((item: any) => item.topic === topicValue).length
+                // Get readable topic name
+                const topicName = topicValue.replace(/_/g, ' ').split(' ')
+                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')
+                
+                // Assign colors based on topic (cycling through colors)
+                const colors = [
+                  { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
+                  { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600' },
+                  { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' },
+                  { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
+                  { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600' },
+                  { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-600' },
+                ]
+                const colorIndex = Math.abs(topicValue.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % colors.length
+                const color = colors[colorIndex]
+                
+                return (
+                  <div 
+                    key={topicValue} 
+                    className={`flex items-center justify-between p-2 rounded ${color.bg} ${color.border} border`}
+                  >
+                    <span className="text-xs text-zinc-700 truncate">{topicName}</span>
+                    <span className={`text-xs font-semibold ${color.text}`}>{count}</span>
+                  </div>
+                )
               })}
-            </div>
-            {mostRecent.jurisdiction && (
-              <div className="text-gray-600">
-                <strong>Jurisdiction:</strong> {mostRecent.jurisdiction}
-              </div>
-            )}
-            {mostRecent.topic && (
-              <div className="text-gray-600">
-                <strong>Topic:</strong> {mostRecent.topic}
-              </div>
-            )}
-            {mostRecent.sources && mostRecent.sources.length > 0 && (
-              <div className="text-gray-600">
-                <strong>Sources:</strong> {mostRecent.sources.length}
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 # RuleReady Compliance
 
-A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and Google Gemini AI.
+A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and Ai Models.
 
 ## 🎯 Overview
 
@@ -10,8 +10,8 @@ RuleReady helps small businesses navigate complex employment law compliance requ
 
 ### 🤖 AI Chat Assistant
 - Ask questions about employment law in natural language
-- AI-powered answers with source citations from 1,298+ pre-loaded compliance rules
-- Semantic search across 2,759+ pre-computed embeddings
+- AI-powered answers with source citations from pre-loaded compliance rules
+- Semantic search across pre-computed embeddings
 - Filter by jurisdiction and topic for focused answers
 - Source attribution with jurisdiction badges and similarity scores
 
@@ -25,8 +25,8 @@ RuleReady helps small businesses navigate complex employment law compliance requ
 - Template-driven structured output
 - Proper attribution with clickable links
 
-### 📋 Template Management (NEW - 26 Professional Templates)
-- **25 topic-specific templates** created by legal compliance experts
+### 📋 Template Management
+- **Topic-specific templates** created by legal compliance experts
 - **1 general template** for cross-cutting issues
 - Each template includes:
   - Quick Overview
@@ -51,35 +51,19 @@ RuleReady helps small businesses navigate complex employment law compliance requ
 - Active/Inactive status management
 - Cascading inactive logic (inactive states hide their cities)
 - Employment law coverage flags
-- 2-column stats layout with status breakdowns
-- Searchable dropdown with filtering
-- Full CRUD operations
 
 ### 🏷️ Topics Management (Complete Redesign)
-- 25 employment law topics across 6 categories:
-  - **Wages & Hours** (6 topics)
-  - **Leave & Benefits** (4 topics)
-  - **Safety & Training** (3 topics)
-  - **Employment Practices** (6 topics)
-  - **Emerging Issues** (3 topics)
-  - **Regulatory Compliance** (3 topics)
+- Employment law topics across categories:
+  - **Wages & Hours** 
+  - **Leave & Benefits** 
+  - **Safety & Training**
+  - **Employment Practices**
+  - **Emerging Issues**
+  - **Regulatory Compliance**
 - Category management (Rename, Merge, Create)
 - Searchable dropdown with category grouping
 - Active/Inactive status with visual indicators
-- Full CRUD with validation
-- 2-column stats layout
 
-## 🎨 Design System
-
-### Consistent UI/UX Across All Tabs
-- **2-column grid layout** for main content (8 items per page)
-- **2-column stats panels** in side properties
-- **Active/Inactive pill badges** on all cards
-- **Clickable pagination** with page numbers
-- **Search with clear button** (X icon)
-- **Category/topic filters** with searchable dropdowns
-- **Modern icons** instead of emojis throughout
-- **Opacity effect** on inactive items (60%)
 
 ### Reusable Components
 - **JurisdictionSelect** - Searchable jurisdiction dropdown with hierarchy
@@ -96,12 +80,6 @@ RuleReady helps small businesses navigate complex employment law compliance requ
 - **Topics**: Purple theme
 
 ## 🗄️ Database Schema
-
-### Recent Major Changes
-- **Simplified Topics**: Removed `topicKey` and `keywords`, added `slug`, `isActive`, timestamps
-- **Updated Rules**: Changed `topicKey` → `topicSlug`, `topicLabel` → `topicName`
-- **Simplified Templates**: Removed `isDefault` field (all templates deletable)
-- **Updated Embeddings**: Metadata uses `topicSlug` instead of `topicKey`
 
 ### Core Tables
 
@@ -157,7 +135,7 @@ RuleReady helps small businesses navigate complex employment law compliance requ
   embedding: number[]       // 1536-dimensional vector
   metadata: {
     jurisdiction?: string
-    topicSlug?: string     // Updated from topicKey
+    topicSlug?: string     
     contentLength?: number
   }
   createdAt: number
@@ -184,7 +162,7 @@ RuleReady helps small businesses navigate complex employment law compliance requ
 
 ### Prerequisites
 - Node.js 18+ and npm
-- [Convex](https://convex.dev) account (free tier available)
+- [Convex](https://convex.dev) account 
 - [Firecrawl](https://firecrawl.dev) API key
 - [Google AI Studio](https://aistudio.google.com) API key
 
@@ -249,7 +227,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 ### Managing Templates
 
 **Templates Tab Features:**
-- **26 Comprehensive Templates** (25 topic-specific + 1 general)
+- **Comprehensive Templates** (topic-specific + 1 general)
 - **Add Template**: Rich text editor with Tiptap
 - **Edit Template**: Full markdown editing with toolbar
 - **Associate to Topic**: Link templates to specific topics (multiple allowed)
@@ -328,14 +306,6 @@ Consistent across all tabs:
 - **Clear Filters button**: Reset all filters at once
 - **Pagination reset**: Filters automatically reset to page 1
 
-## 📊 Data Statistics
-
-- **1,298+ Compliance Rules** across all jurisdictions
-- **25 Topics** organized into 6 categories
-- **26 Professional Templates** (legal counsel quality)
-- **50+ Jurisdictions** (Federal, States, Cities)
-- **2,759+ Embeddings** for semantic search
-- **Active Management**: Soft delete on all entities
 
 ## 🔧 Technical Architecture
 
@@ -354,12 +324,6 @@ Consistent across all tabs:
 - **Firecrawl**: Web scraping and search
 - **Gemini 2.0 Flash**: AI model for chat and research
 
-### Key Migrations Completed
-1. **Topics Schema**: `topicKey` → `slug`, removed `keywords`
-2. **Rules Schema**: `topicKey/Label` → `topicSlug/Name`
-3. **Templates Schema**: Removed `isDefault` field
-4. **Embeddings**: Updated metadata fields
-5. **Research Chat**: Updated all RAG and embedding functions
 
 ## 📖 Template Topics Covered
 
@@ -487,97 +451,7 @@ RuleReady_/
 └── scripts/                         # Utility scripts
 ```
 
-## 🎯 Key Improvements (Latest Release)
 
-### Topics Tab
-- ✅ Complete redesign matching Jurisdictions pattern
-- ✅ Removed redundant fields (topicKey, keywords)
-- ✅ Added slug auto-generation
-- ✅ Category management (Rename, Merge, Create)
-- ✅ Full CRUD with dialogs
-- ✅ Active/Inactive status
-- ✅ Searchable dropdown component
-- ✅ Filter by category and status
-- ✅ 2-column grid layout
-
-### Templates Tab
-- ✅ **25 comprehensive legal templates** created
-- ✅ General template for flexible use
-- ✅ Removed isDefault field (all deletable)
-- ✅ Topic association with visual badges
-- ✅ Tiptap editor integration
-- ✅ Searchable TemplateSelect component
-- ✅ Filter by topic and status
-- ✅ Multiple templates per topic explained
-
-### Jurisdictions Tab
-- ✅ Enhanced stats panel (2-column layout)
-- ✅ Active/Inactive pill badges
-- ✅ Has Laws status display
-- ✅ Cascading inactive (states → cities)
-- ✅ JurisdictionSelect component filters inactive
-- ✅ Toast notifications for all actions
-
-### Research Chat & Backend
-- ✅ Fixed all embedding functions for new schema
-- ✅ Updated RAG system (topicKey → topicSlug)
-- ✅ Fixed API routes
-- ✅ TemplateSelect component in Research panel
-- ✅ Purple theme maintained
-
-### Tiptap Editor
-- ✅ Fixed undo/redo functionality
-- ✅ Smart link editing (single popover with modes)
-- ✅ Click link → View mode (Open/Edit/Delete)
-- ✅ Edit mode → Inline editing, Update button
-- ✅ No extra dialogs, clean UX
-
-## 🔄 Migration Guide
-
-If updating from older version:
-
-```bash
-# 1. Delete all old topics data
-# 2. Delete all old templates data
-# 3. Let Convex schema update
-
-# 4. Reseed topics
-npx convex run complianceTopics:clearAllTopics
-npx convex run complianceQueries:seedTopics
-
-# 5. Reseed templates
-npx convex run seedAllTemplates:seedAllComplianceTemplates
-```
-
-## 📦 Deployment
-
-### Deploy to Vercel
-
-```bash
-vercel deploy --prod
-```
-
-### Deploy Convex
-
-```bash
-npx convex deploy
-
-# Set production environment variables
-npx convex env set FIRECRAWL_API_KEY "your_key" --prod
-npx convex env set GEMINI_API_KEY "your_key" --prod
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## 📄 License
-
-MIT License - See LICENSE file for details
 
 ## 🙏 Credits
 
@@ -591,11 +465,6 @@ Built with:
 - [TailwindCSS](https://tailwindcss.com) - Styling
 - [Lucide Icons](https://lucide.dev) - Icon system
 
-## 📞 Support
-
-- [GitHub Issues](https://github.com/willysharp5/RuleReady_/issues)
-- [Convex Docs](https://docs.convex.dev)
-- [Firecrawl Docs](https://docs.firecrawl.dev)
 
 ---
 

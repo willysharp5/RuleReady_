@@ -1,15 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Eye, Calendar, Tag, MapPin, Edit3 } from 'lucide-react'
+import { Trash2, BookOpen, Search, X, ChevronLeft, ChevronRight, Calendar, Tag, MapPin, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useToast } from '@/hooks/use-toast'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
@@ -19,7 +17,6 @@ export default function SavedResearchFeature() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<any>(null)
-  const [viewingItem, setViewingItem] = useState<any>(null)
   const [editingItem, setEditingItem] = useState<any>(null)
   
   // Filters
@@ -31,23 +28,50 @@ export default function SavedResearchFeature() {
   // Queries
   const allSavedResearch = useQuery(api.savedResearch.getAllSavedResearch)
   const savedResearch = allSavedResearch || []
+  const allTopics = useQuery(api.complianceTopics.getTopics, {}) || []
+  const allTemplates = useQuery(api.complianceTemplates.getAllTemplates) || []
   
   // Mutations
   const deleteSavedResearch = useMutation(api.savedResearch.deleteSavedResearch)
   const updateSavedResearch = useMutation(api.savedResearch.updateSavedResearch)
   
+  // Helper to get topic name from slug or name
+  const getTopicName = (topicValue: string | undefined) => {
+    if (!topicValue) return null
+    const topic = allTopics.find((t: any) => t.slug === topicValue || t.name === topicValue)
+    return topic ? topic.name : topicValue.replace(/_/g, ' ')
+  }
+  
+  // Helper to get template name from templateId or title
+  const getTemplateName = (templateValue: string | undefined) => {
+    if (!templateValue) return null
+    const template = allTemplates.find((t: any) => 
+      t.templateId === templateValue || 
+      t.title === templateValue ||
+      t.topicSlug === templateValue
+    )
+    return template ? template.title : templateValue.replace(/_/g, ' ')
+  }
+  
   // Filter saved research
   const filtered = savedResearch.filter((item: any) => {
+    // Get readable names for better search
+    const topicName = getTopicName(item.topic)
+    const templateName = getTemplateName(item.templateUsed)
+    
     const matchesSearch = 
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.content && item.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.jurisdiction && item.jurisdiction.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.topic && item.topic.toLowerCase().includes(searchQuery.toLowerCase()))
+      (item.topic && item.topic.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (topicName && topicName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.templateUsed && item.templateUsed.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (templateName && templateName.toLowerCase().includes(searchQuery.toLowerCase()))
     
     const matchesJurisdiction = !filterJurisdiction || 
       item.jurisdiction === filterJurisdiction.displayName || 
       item.jurisdiction === filterJurisdiction.name
-    const matchesTopic = !filterTopic || item.topic === filterTopic.name
+    const matchesTopic = !filterTopic || item.topic === filterTopic.name || item.topic === filterTopic.slug
     
     return matchesSearch && matchesJurisdiction && matchesTopic
   })
@@ -217,12 +241,12 @@ export default function SavedResearchFeature() {
               {item.topic && (
                 <div className="flex items-center gap-1.5 text-xs">
                   <Tag className="h-3 w-3 text-green-600" />
-                  <span className="text-gray-700">{item.topic}</span>
+                  <span className="text-gray-700">{getTopicName(item.topic)}</span>
                 </div>
               )}
               {item.templateUsed && (
                 <div className="text-xs text-gray-500">
-                  Template: {item.templateUsed}
+                  Template: {getTemplateName(item.templateUsed)}
                 </div>
               )}
               {item.sources && item.sources.length > 0 && (
@@ -242,18 +266,11 @@ export default function SavedResearchFeature() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setViewingItem(item)}
+                onClick={() => setEditingItem(item)}
                 className="flex-1"
               >
-                <Eye className="h-3 w-3 mr-1" />
-                View
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditingItem(item)}
-              >
-                <Edit3 className="h-3 w-3" />
+                <Edit3 className="h-3 w-3 mr-1" />
+                Edit
               </Button>
               <Button
                 variant="outline"
@@ -331,77 +348,35 @@ export default function SavedResearchFeature() {
         </DialogContent>
       </Dialog>
       
-      {/* View Dialog */}
-      <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{viewingItem?.title}</DialogTitle>
-            <DialogDescription>
-              <div className="flex items-center gap-4 mt-2 text-sm">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {viewingItem && formatDate(viewingItem.createdAt)}
-                </span>
-                {viewingItem?.jurisdiction && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {viewingItem.jurisdiction}
-                  </span>
-                )}
-                {viewingItem?.topic && (
-                  <span className="flex items-center gap-1">
-                    <Tag className="h-3 w-3" />
-                    {viewingItem.topic}
-                  </span>
-                )}
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {viewingItem?.content || ''}
-            </ReactMarkdown>
-          </div>
-          
-          {viewingItem?.sources && viewingItem.sources.length > 0 && (
-            <div className="mt-6 pt-6 border-t">
-              <h4 className="font-semibold text-sm mb-3">Sources ({viewingItem.sources.length})</h4>
-              <div className="space-y-2 text-xs">
-                {viewingItem.sources.map((source: any, idx: number) => (
-                  <div key={idx} className="p-2 bg-gray-50 rounded">
-                    {source.url && (
-                      <a 
-                        href={source.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline break-all"
-                      >
-                        {source.url}
-                      </a>
-                    )}
-                    {source.title && <div className="font-medium mt-1">{source.title}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewingItem(null)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       {/* Edit Modal with TipTap */}
       {editingItem && (
         <TiptapEditorModal
           isOpen={true}
           onClose={() => setEditingItem(null)}
           initialContent={editingItem.content}
-          title={`Edit: ${editingItem.title}`}
+          title={
+            <div className="space-y-2">
+              <div className="text-lg font-semibold text-gray-900">{editingItem.title}</div>
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  {formatDate(editingItem.createdAt)}
+                </span>
+                {editingItem.jurisdiction && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                    {editingItem.jurisdiction}
+                  </span>
+                )}
+                {editingItem.topic && (
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="h-4 w-4 text-green-600" />
+                    {getTopicName(editingItem.topic)}
+                  </span>
+                )}
+              </div>
+            </div>
+          }
           onSave={handleSaveEdit}
           showSaveButton={true}
         />

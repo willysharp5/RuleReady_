@@ -16,6 +16,9 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
+import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
+import { TopicSelect } from '@/components/ui/topic-select'
+import { TemplateSelect } from '@/components/ui/template-select'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -1038,46 +1041,31 @@ These appear AFTER "Based on these sources:" in your prompt.`
               {/* Jurisdiction */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jurisdiction</label>
-                <select
-                  value={saveJurisdiction}
-                  onChange={(e) => setSaveJurisdiction(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">None</option>
-                  {jurisdictions?.map(j => (
-                    <option key={j.code} value={j.name}>{j.name}</option>
-                  ))}
-                </select>
+                <JurisdictionSelect
+                  value={jurisdictions?.find(j => j.name === saveJurisdiction) || null}
+                  onChange={(j) => setSaveJurisdiction(j?.name || '')}
+                  placeholder="None"
+                />
               </div>
               
               {/* Topic */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
-                <select
-                  value={saveTopic}
-                  onChange={(e) => setSaveTopic(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">None</option>
-                  {topics?.map(t => (
-                    <option key={t.topicKey} value={t.topicKey}>{t.name}</option>
-                  ))}
-                </select>
+                <TopicSelect
+                  value={topics?.find(t => t.name === saveTopic) || null}
+                  onChange={(t) => setSaveTopic(t?.name || '')}
+                  placeholder="None"
+                />
               </div>
               
               {/* Template */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Template Used</label>
-                <select
-                  value={saveTemplate}
-                  onChange={(e) => setSaveTemplate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">None</option>
-                  {templates?.map(t => (
-                    <option key={t.templateId} value={t.templateId}>{t.title}</option>
-                  ))}
-                </select>
+                <TemplateSelect
+                  value={templates?.find(t => t.templateId === saveTemplate) || null}
+                  onChange={(t) => setSaveTemplate(t?.templateId || '')}
+                  placeholder="None"
+                />
               </div>
             </div>
             

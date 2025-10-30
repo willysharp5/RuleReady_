@@ -16,7 +16,7 @@ interface TiptapEditorModalProps {
   isOpen: boolean
   onClose: () => void
   initialContent: string // Markdown content
-  title?: string
+  title?: string | React.ReactNode
   onSave?: (markdown: string) => void | Promise<void>
   showSaveButton?: boolean
 }
@@ -34,6 +34,7 @@ export function TiptapEditorModal({
   const [copiedFormat, setCopiedFormat] = useState<'docs' | 'markdown' | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [linkPopover, setLinkPopover] = useState<{ x: number; y: number; url: string; isEditing: boolean } | null>(null)
+  const [editorKey, setEditorKey] = useState(0) // Force re-render
   
   // Turndown service for HTML to Markdown conversion
   const turndownService = useRef(new TurndownService({
@@ -119,8 +120,15 @@ export function TiptapEditorModal({
   useEffect(() => {
     if (isOpen && initialContent && editor) {
       markdownToHtml(initialContent).then(html => {
-        // Set content and start new history point
-        editor.chain().setContent(html).run()
+        // Set content and add to history by making a change
+        editor.commands.setContent(html)
+        // Make a dummy edit to create undo history and force re-render
+        setTimeout(() => {
+          const { from } = editor.state.selection
+          editor.chain().focus().insertContent(' ').deleteRange({ from, to: from + 1 }).run()
+          // Force component re-render to update button states
+          setEditorKey(prev => prev + 1)
+        }, 50)
       })
     }
   }, [isOpen, initialContent, editor])
@@ -227,10 +235,13 @@ export function TiptapEditorModal({
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toolbar - Always at Top */}
           {editor && (
-            <div className="flex-shrink-0 border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50">
+            <div key={editorKey} className="flex-shrink-0 border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50">
               {/* Undo/Redo */}
               <button
-                onClick={() => editor.chain().focus().undo().run()}
+                onClick={() => {
+                  editor.chain().focus().undo().run()
+                  setEditorKey(prev => prev + 1)
+                }}
                 className="p-2 rounded hover:bg-gray-200 disabled:opacity-30"
                 title="Undo"
                 disabled={!editor.can().undo()}
@@ -238,7 +249,10 @@ export function TiptapEditorModal({
                 <Undo className="w-4 h-4" />
               </button>
               <button
-                onClick={() => editor.chain().focus().redo().run()}
+                onClick={() => {
+                  editor.chain().focus().redo().run()
+                  setEditorKey(prev => prev + 1)
+                }}
                 className="p-2 rounded hover:bg-gray-200 disabled:opacity-30"
                 title="Redo"
                 disabled={!editor.can().redo()}
