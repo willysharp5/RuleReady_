@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen } from 'lucide-react'
+import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen, LogOut } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
 import ChatFeature from '@/components/features/ChatFeature'
@@ -140,12 +140,32 @@ You are a database query tool, not a general compliance advisor.`,
       setChatSettingsLoaded(true)
     }
   }, [chatSettingsQuery, chatSettingsLoaded])
+  
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      router.push('/')
+      router.refresh()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 h-16 border-b border-zinc-200 bg-white px-6 flex items-center">
+      <header className="sticky top-0 z-50 h-16 border-b border-zinc-200 bg-white px-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+          title="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </button>
       </header>
 
       {/* Main Layout */}

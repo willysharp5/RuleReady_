@@ -8,12 +8,15 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 
 ## ✨ Features
 
-### 🤖 AI Chat Assistant
-- Ask questions about employment law in natural language
-- Powered by advanced AI models
-- Filter by jurisdiction and topic for focused answers
-- Configurable system prompts and model settings
-- Real-time responses with structured formatting
+### 🤖 AI Chat Assistant (Evaluation Tool)
+- Evaluate if your saved research is comprehensive enough to answer customer questions
+- Uses ONLY your saved research and company context (no AI general knowledge)
+- Stateless evaluation - each question is independent
+- Select saved research items as knowledge base
+- Generate test company data to simulate real scenarios
+- Beautifully formatted responses with citations [1], [2], [3]
+- Click citations to view full saved research content in TipTap viewer
+- Configurable temperature and max tokens for AI models
 
 ### 🔬 Compliance Research
 - Deep research mode combining multiple data sources:
@@ -26,13 +29,16 @@ RuleReady helps businesses navigate complex employment law compliance requiremen
 - Proper attribution with clickable source links
 
 ### 📚 Saved Research
-- View and manage saved research results
-- Search across all saved content
-- Filter by jurisdiction, topic, and template
-- Edit research content with TipTap rich text editor
-- Edit research metadata (title, jurisdiction, topic)
-- Create new research entries manually
-- Colorful topic breakdown in side panel
+- Central library for all research results
+- Grid view with search and multiple filters (jurisdiction, topic, template)
+- Each card shows title, metadata, content preview, and source count
+- Two edit modes:
+  - **Content button**: Edit markdown content with TipTap rich text editor
+  - **Info button**: Update title, jurisdiction, topic, template metadata
+- Create new research entries manually with full TipTap editor
+- Delete with confirmation dialog
+- Colorful topic breakdown in side panel shows research distribution
+- Used as knowledge base in Chat for evaluation
 
 ### 📋 Template Management
 - **Topic-specific templates** created by legal compliance experts

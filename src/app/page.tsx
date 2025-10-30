@@ -8,16 +8,34 @@ export default function LandingPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    setError('')
     
-    // Simple string match - if password is "gusto", let them in
-    if (password === 'gusto') {
-      router.push('/home')
-        } else {
-      setError('Incorrect password')
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        router.push('/home')
+        router.refresh()
+      } else {
+        setError('Incorrect password')
+        setPassword('')
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.')
       setPassword('')
+    } finally {
+      setIsLoading(false)
     }
   }
   
@@ -57,10 +75,10 @@ export default function LandingPage() {
             
                             <button
               type="submit"
-              disabled={!password}
+              disabled={!password || isLoading}
               className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
                             >
-              Continue
+              {isLoading ? 'Logging in...' : 'Continue'}
                             </button>
                 </form>
               </div>
