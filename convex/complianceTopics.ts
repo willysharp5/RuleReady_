@@ -175,18 +175,10 @@ export const deleteTopic = mutation({
     id: v.id("complianceTopics"),
   },
   handler: async (ctx, args) => {
-    // Check if topic is referenced by any compliance rules
-    const rulesUsingTopic = await ctx.db.query("complianceRules").collect();
     const topic = await ctx.db.get(args.id);
     
     if (!topic) {
       throw new Error("Topic not found");
-    }
-    
-    const referencedRules = rulesUsingTopic.filter(r => r.topicSlug === topic.slug);
-    
-    if (referencedRules.length > 0) {
-      throw new Error(`Cannot delete topic "${topic.name}" because it is referenced by ${referencedRules.length} compliance rule(s). Please reassign or delete those rules first.`);
     }
     
     // Check if topic is referenced by any templates

@@ -11,7 +11,6 @@
 import type * as chatConversations from "../chatConversations.js";
 import type * as chatSettings from "../chatSettings.js";
 import type * as complianceQueries from "../complianceQueries.js";
-import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
 import type * as complianceTopics from "../complianceTopics.js";
 import type * as embeddingManager from "../embeddingManager.js";
@@ -45,7 +44,6 @@ declare const fullApi: ApiFromModules<{
   chatConversations: typeof chatConversations;
   chatSettings: typeof chatSettings;
   complianceQueries: typeof complianceQueries;
-  complianceRAG: typeof complianceRAG;
   complianceTemplates: typeof complianceTemplates;
   complianceTopics: typeof complianceTopics;
   embeddingManager: typeof embeddingManager;

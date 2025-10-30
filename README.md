@@ -1,29 +1,38 @@
 # RuleReady Compliance
 
-A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and Ai Models.
+A comprehensive AI-powered compliance management system for employment law. Built with Next.js, Convex, Firecrawl, and Google Gemini.
 
 ## 🎯 Overview
 
-RuleReady helps small businesses navigate complex employment law compliance requirements across federal, state, and local jurisdictions. The platform combines AI-powered research, semantic search, and structured templates to deliver accurate, actionable compliance guidance.
+RuleReady helps businesses navigate complex employment law compliance requirements across federal, state, and local jurisdictions. The platform combines AI-powered chat, web research capabilities, and structured templates to deliver actionable compliance guidance.
 
 ## ✨ Features
 
 ### 🤖 AI Chat Assistant
 - Ask questions about employment law in natural language
-- AI-powered answers with source citations from pre-loaded compliance rules
-- Semantic search across pre-computed embeddings
+- Powered by Google Gemini 2.0 Flash
 - Filter by jurisdiction and topic for focused answers
-- Source attribution with jurisdiction badges and similarity scores
+- Configurable system prompts and model settings
+- Real-time responses with structured formatting
 
 ### 🔬 Compliance Research
 - Deep research mode combining multiple data sources:
-  - Internal compliance database (semantic search)
   - Web search results (Firecrawl Search API)
   - User-provided URL scraping (supports PDFs)
-  - News articles (when relevant)
+  - News articles integration
 - AI synthesizes comprehensive answers from all sources
 - Template-driven structured output
-- Proper attribution with clickable links
+- Save research results for later reference
+- Proper attribution with clickable source links
+
+### 📚 Saved Research
+- View and manage saved research results
+- Search across all saved content
+- Filter by jurisdiction, topic, and template
+- Edit research content with TipTap rich text editor
+- Edit research metadata (title, jurisdiction, topic)
+- Create new research entries manually
+- Colorful topic breakdown in side panel
 
 ### 📋 Template Management
 - **Topic-specific templates** created by legal compliance experts

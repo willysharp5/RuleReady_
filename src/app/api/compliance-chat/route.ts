@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       console.log('📝 Calling embeddingTopKSources...');
       const res: unknown = await convex.action(api.embeddingManager.embeddingTopKSources, {
         question: lastUser,
-        k: 5, // Always get top 5 sources
+        k: 5,
         threshold: 0.3,
         jurisdiction: jurisdiction || undefined,
         topicSlug: topic || undefined,
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       sources = [];
     }
 
-    // Fallback: much lower threshold if no sources were found
+    // Fallback: lower threshold if no sources found
     if (!sources.length) {
       console.log('🔄 No sources found, trying with threshold 0.1...');
       try {
@@ -59,14 +59,6 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // If no sources found with threshold 0.3, try lower threshold before giving up
-    // This prevents false negatives when user has selected specific jurisdiction/topic
-    if (!sources.length) {
-      console.log('⚠️ No sources at threshold 0.3, but continue anyway - let Gemini use general knowledge or explain limitations');
-      // DO NOT return insufficient context here - let the LLM handle it
-      // The LLM will be told in the system prompt that no specific sources were found
-    }
-
     // Type guard for source objects
     type SourceObject = {
       jurisdiction?: string;
@@ -77,20 +69,11 @@ export async function POST(req: NextRequest) {
       extractedSections?: {
         overview?: string;
         coveredEmployers?: string;
-        coveredEmployees?: string;
-        employerResponsibilities?: string;
-        trainingRequirements?: string;
-        postingRequirements?: string;
         penalties?: string;
-        sources?: string;
       };
     };
     
     const typedSources = sources as SourceObject[];
-
-    // Get compliance context
-    const complianceContext = await getComplianceContext(jurisdiction, topic);
-    console.log(`📋 Using compliance context (${complianceContext.length} chars)`);
     
     // Use custom system prompt from request, or fallback to database
     const baseSystemPrompt = customSystemPrompt || (dbSettings.chatSystemPrompt as string);
@@ -107,86 +90,27 @@ export async function POST(req: NextRequest) {
       systemPrompt += `\n\nADDITIONAL CONTEXT PROVIDED BY USER:\n${additionalContext}\n\nUse this context when answering the user's question.`;
     }
     
-    // ALWAYS add context about available data, even if no sources found
-    if (true) {
+    // Add database sources context
+    if (sources.length > 0) {
+      const complianceContext = await getComplianceContext(jurisdiction, topic);
+      systemPrompt += `\n\nCONTEXT:\n${complianceContext}`;
       
-      if (sources.length > 0) {
-        // We have sources - provide them
-        systemPrompt += `
-
-You have access to comprehensive compliance data from 1,175 reports across all US jurisdictions, structured according to this template:
-
-COMPLIANCE TEMPLATE STRUCTURE:
-- Overview: Brief description of the law/requirement
-- Covered Employers: Who must comply with this requirement
-- Covered Employees: Which employees are covered/protected
-- What Should Employers Do: Specific actions employers must take
-- Training Requirements: Training content, duration, format requirements
-- Training Deadlines: Timing requirements for different employee types
-- Qualified Trainers: Who can provide the training/services
-- Special Requirements: Special cases, exceptions, industry-specific requirements
-- Coverage Election: Optional coverage choices or rejection options
-- Reciprocity/Extraterritorial Coverage: Cross-state/jurisdiction coverage rules
-- Employer Responsibilities & Deadlines: Ongoing obligations, renewal requirements
-- Employer Notification Requirements: Required notifications to employees
-- Posting Requirements: Required workplace postings, notices
-- Recordkeeping Requirements: Records to maintain, retention periods
-- Penalties for Non-Compliance: Fines, penalties, consequences
-- Sources: Relevant statutes, regulations, agency websites
-
-CURRENT CONTEXT:
-${complianceContext}
-
-SOURCES (most relevant first):
-${(typedSources || []).map((s: SourceObject, i: number) => {
-  let sourceText = `[#${i+1}] ${s.jurisdiction || ''} ${s.topicName || ''} (${((s.similarity||0)*100).toFixed(1)}%)\nURL: ${s.sourceUrl || 'N/A'}`;
-  
-  // Add extracted sections if available
-  if (s.extractedSections) {
-    if (s.extractedSections.overview) {
-      sourceText += `\nOverview: ${s.extractedSections.overview.slice(0, 300)}`;
+      systemPrompt += `\n\nDATABASE SOURCES (most relevant first):\n`;
+      systemPrompt += typedSources.map((s: SourceObject, i: number) => {
+        let sourceText = `[${i+1}] ${s.jurisdiction || ''} - ${s.topicName || ''} (${((s.similarity||0)*100).toFixed(1)}% match)\nURL: ${s.sourceUrl || 'N/A'}`;
+        
+        if (s.extractedSections?.overview) {
+          sourceText += `\nOverview: ${s.extractedSections.overview.slice(0, 200)}...`;
+        }
+        if (s.extractedSections?.penalties) {
+          sourceText += `\nPenalties: ${s.extractedSections.penalties.slice(0, 150)}...`;
+        }
+        
+        return sourceText;
+      }).join('\n\n');
+    } else {
+      systemPrompt += `\n\nNo database sources found for this query. Follow your CRITICAL RULES about handling missing information.`;
     }
-    if (s.extractedSections.coveredEmployers) {
-      sourceText += `\nCovered Employers: ${s.extractedSections.coveredEmployers.slice(0, 200)}`;
-    }
-    if (s.extractedSections.penalties) {
-      sourceText += `\nPenalties: ${s.extractedSections.penalties.slice(0, 200)}`;
-    }
-  }
-  
-  return sourceText;
-}).join('\n\n')}
-
-Provide accurate, actionable compliance guidance based on this structured data. Always cite specific jurisdictions and include practical implementation steps. Be professional but conversational.`;
-      } else {
-        // No sources found - explain clearly without blocking
-        systemPrompt += `
-
-I searched the compliance database for ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : ''}information but did not find specific sources matching this query.
-
-IMPORTANT: You MUST follow the CRITICAL RULES in your system prompt. If you are instructed to ONLY use database information and NOT use general knowledge, then:
-- State clearly: "I don't have information about ${jurisdiction ? `${jurisdiction} ` : ''}${topic ? `${topic.replace(/_/g, ' ')} ` : 'this topic'} in my database"
-- DO NOT provide general compliance advice
-- STOP there
-
-If your system prompt allows general knowledge, only then provide helpful guidance and suggest consulting official sources.`;
-      }
-    }
-    
-    // Add formatting instructions
-    systemPrompt += `
-
-FORMAT THE ANSWER CLEARLY:
-- Do NOT include a title or heading at the start - the title will be added separately
-- Use clear section headings: ## Overview, ## Key Requirements, ## Deadlines, ## Penalties, ## Recommendations
-- Add a blank line after each paragraph for proper spacing
-- Use bullet lists (- item) and numbered lists (1. item) where appropriate
-- Use **bold text** for important terms, dollar amounts, dates, and requirements
-- Do NOT include inline citations like [#1], [#2] - sources will be shown separately
-- Do NOT include a "Sources" section - sources are handled separately
-- Write each major point as a separate paragraph with blank lines between
-- Start directly with the first section (## Overview)
-- End each section with a blank line before the next section header`;
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -212,37 +136,12 @@ FORMAT THE ANSWER CLEARLY:
     const response = await result.response;
     const text = response.text();
     
-    // Compose a display title from filters or top source
     const displayTitle = (jurisdiction || 'Compliance') + ' – ' + (topic || 'Guidance');
-
-    // Clean text to remove title duplication and improve formatting
-    let cleanText = text
-      .replace(/^#.*$/m, '')  // Remove any title lines
-      .replace(/^\*\*.*\*\*$/m, '')  // Remove any bold title lines
-      .replace(/## Sources[\s\S]*$/m, '') // Remove any sources section from content
-      .replace(/---[\s\S]*Sources[\s\S]*$/m, '') // Remove sources blocks
-      .replace(/\[#\d+\]/g, '') // Remove inline citations like [#1], [#2]
-      .trim();
-
-    // Improve formatting with moderate spacing
-    cleanText = cleanText
-      .replace(/##\s*/g, '\n\n## ') // Add spacing before headers
-      .replace(/^## /m, '## ') // Ensure first header doesn't have extra spacing
-      .replace(/\n- /g, '\n- ') // Keep bullet points close to previous content
-      .replace(/\n\* /g, '\n* ') // Keep bullet points close to previous content
-      .replace(/\n(\d+\.)/g, '\n$1') // Keep numbered lists close
-      .replace(/\n{3,}/g, '\n\n') // Normalize multiple line breaks to max 2
-      .replace(/\.\s+([A-Z][^#])/g, '.\n\n$1') // Add line break only between distinct paragraphs
-      .trim();
-    
-    const contentMarkdown = `# ${displayTitle}\n\n${cleanText}`;
-    
-    // Don't include sources in the markdown content - they'll be shown separately in UI
 
     return new Response(
       JSON.stringify({ 
         role: 'assistant', 
-        content: contentMarkdown,
+        content: text,
         title: displayTitle,
         sources: (typedSources || []).map((s: SourceObject, i: number) => ({
           id: i + 1,
@@ -250,7 +149,7 @@ FORMAT THE ANSWER CLEARLY:
           url: s.sourceUrl,
           jurisdiction: s.jurisdiction,
           topicSlug: s.topicSlug,
-          topicName: s.topicName,
+          title: `${s.jurisdiction || ''} - ${s.topicName || ''}`,
         })),
         settings: {
           systemPrompt: baseSystemPrompt,
@@ -277,20 +176,11 @@ FORMAT THE ANSWER CLEARLY:
 
 // Get compliance context for chat
 async function getComplianceContext(jurisdiction?: string, topic?: string) {
-  // This would query your compliance reports and embeddings
-  // For now, return structured context based on your existing data
-  let context = `
-Available compliance data:
-- 1,175 detailed compliance reports
-- Coverage across all 52 US jurisdictions
-- 25 topic categories including wages, leave, safety, training
-- Structured according to compliance template
-- Real-time monitoring and change detection
-- Professional analysis using Gemini 2.0 Flash`;
+  let context = `You are a compliance assistant providing guidance on US employment law.`;
 
   if (jurisdiction) {
     context += `\n\nFOCUSED ON JURISDICTION: ${jurisdiction}`;
-    context += `\nSpecialized knowledge of ${jurisdiction} employment law requirements`;
+    context += `\nProvide information specific to ${jurisdiction} employment law requirements.`;
   }
 
   if (topic) {
@@ -302,6 +192,7 @@ Available compliance data:
       posting_requirements: "Mandatory workplace posters, employee notification requirements, and display standards",
       workers_comp: "Workers compensation insurance requirements, coverage levels, and exemptions",
       background_checks: "Employment screening requirements, ban-the-box regulations, and fair chance hiring",
+      pay_frequency: "Pay frequency requirements, payment schedules, and timing regulations",
     };
     
     const description = topicDescriptions[topic as keyof typeof topicDescriptions] || topic.replace(/_/g, ' ');
