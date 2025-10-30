@@ -17,7 +17,7 @@ interface ChatState {
   jurisdiction: string
   topic: string
   additionalContext?: string
-  selectedResearchId?: string
+  selectedResearchIds?: string[]
   lastPromptSent?: string
 }
 
@@ -39,7 +39,9 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   
   const selectedJurisdiction = jurisdictions.find((j: { name: string }) => j.name === chatState?.jurisdiction) || null
   const selectedTopic = topics.find((t: { name: string }) => t.name === chatState?.topic) || null
-  const selectedResearch = savedResearch.find((r: { _id: string }) => r._id === chatState?.selectedResearchId) || null
+  const selectedResearchItems = savedResearch.filter((r: { _id: string }) => 
+    chatState?.selectedResearchIds?.includes(r._id)
+  ) || []
   
   const [systemPromptOpen, setSystemPromptOpen] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
@@ -159,21 +161,25 @@ You are a database query tool, not a general compliance advisor.`
           Select Saved Research (Knowledge Base)
         </Label>
         <SavedResearchSelect
-          value={selectedResearch}
-          onChange={(item) => {
+          value={selectedResearchItems}
+          onChange={(items) => {
             if (setChatState && chatState) {
-              if (item) {
-                // Set research ID and auto-populate context with the content
+              if (items.length > 0) {
+                // Set research IDs and auto-populate context with all content
+                const combinedContent = items.map(item => 
+                  `KNOWLEDGE BASE - ${item.title}\n\n${item.content}`
+                ).join('\n\n---\n\n')
+                
                 setChatState({ 
                   ...chatState, 
-                  selectedResearchId: item._id,
-                  additionalContext: `KNOWLEDGE BASE - ${item.title}\n\n${item.content}`
+                  selectedResearchIds: items.map(i => i._id),
+                  additionalContext: combinedContent
                 })
               } else {
                 // Clear selection
                 setChatState({ 
                   ...chatState, 
-                  selectedResearchId: undefined,
+                  selectedResearchIds: [],
                   additionalContext: ''
                 })
               }
@@ -182,17 +188,22 @@ You are a database query tool, not a general compliance advisor.`
           items={savedResearch}
           placeholder="Select saved research to use as knowledge base..."
         />
-        {selectedResearch && (
+        {selectedResearchItems.length > 0 && (
           <div className="flex gap-2">
             <div className="text-xs text-purple-700 bg-white p-2 rounded border border-purple-200 flex-1">
               <div className="font-semibold mb-1">Using as Knowledge Base:</div>
-              <div className="truncate">{selectedResearch.title}</div>
-              {selectedResearch.jurisdiction && (
-                <div className="text-purple-600 mt-1">📍 {selectedResearch.jurisdiction}</div>
-              )}
-              {selectedResearch.topic && (
-                <div className="text-purple-600">🏷️ {selectedResearch.topic}</div>
-              )}
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {selectedResearchItems.map((item: { _id: string; title: string; jurisdiction?: string; topic?: string }) => (
+                  <div key={item._id} className="pb-1 border-b border-purple-100 last:border-b-0">
+                    <div className="font-medium truncate">{item.title}</div>
+                    {(item.jurisdiction || item.topic) && (
+                      <div className="text-purple-600 text-[10px]">
+                        {[item.jurisdiction, item.topic].filter(Boolean).join(' • ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -201,20 +212,21 @@ You are a database query tool, not a general compliance advisor.`
                 if (setChatState && chatState) {
                   setChatState({ 
                     ...chatState, 
-                    selectedResearchId: undefined,
+                    selectedResearchIds: [],
                     additionalContext: ''
                   })
                 }
               }}
               className="h-auto px-2"
-              title="Clear selection"
+              title="Clear all"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         )}
-        <p className="text-xs text-purple-700">
-          💡 <strong>How it works:</strong> Select a saved research item and the AI will use ONLY that content to answer your questions. Perfect for testing specific compliance documents!
+        <p className="text-xs text-purple-700 flex items-start gap-1">
+          <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+          <span><strong>How it works:</strong> Select saved research items and the AI will use ONLY that content to answer your questions. Select multiple to combine knowledge bases!</span>
         </p>
       </div>
       

@@ -13,8 +13,8 @@ interface SavedResearchItem {
 }
 
 interface SavedResearchSelectProps {
-  value: SavedResearchItem | null
-  onChange: (item: SavedResearchItem | null) => void
+  value: SavedResearchItem[]
+  onChange: (items: SavedResearchItem[]) => void
   items: SavedResearchItem[]
   placeholder?: string
   className?: string
@@ -31,6 +31,8 @@ export function SavedResearchSelect({
   const [search, setSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   
+  const selectedIds = new Set(value.map(v => v._id))
+  
   // Filter items by search
   const filteredItems = items.filter((item: SavedResearchItem) => 
     !search || 
@@ -38,6 +40,24 @@ export function SavedResearchSelect({
     item.jurisdiction?.toLowerCase().includes(search.toLowerCase()) ||
     item.topic?.toLowerCase().includes(search.toLowerCase())
   )
+  
+  const toggleItem = (item: SavedResearchItem) => {
+    if (selectedIds.has(item._id)) {
+      // Remove from selection
+      onChange(value.filter(v => v._id !== item._id))
+    } else {
+      // Add to selection
+      onChange([...value, item])
+    }
+  }
+  
+  const selectAll = () => {
+    onChange(items)
+  }
+  
+  const clearAll = () => {
+    onChange([])
+  }
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -61,12 +81,14 @@ export function SavedResearchSelect({
       >
         <div className="flex items-center gap-2 overflow-hidden flex-1">
           <BookOpen className="h-4 w-4 text-purple-600 flex-shrink-0" />
-          {value ? (
-            <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-sm font-medium text-zinc-900">{value.title}</span>
-              {(value.jurisdiction || value.topic) && (
+          {value.length > 0 ? (
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className="text-sm font-medium text-zinc-900">
+                {value.length} selected
+              </span>
+              {value.length === 1 && (
                 <span className="text-xs text-zinc-500 truncate">
-                  {[value.jurisdiction, value.topic].filter(Boolean).join(' • ')}
+                  {value[0].title}
                 </span>
               )}
             </div>
@@ -110,55 +132,58 @@ export function SavedResearchSelect({
               </div>
             ) : (
               <>
-                {/* Clear selection option */}
-                {value && (
+                {/* Select All / Clear All buttons */}
+                <div className="sticky top-0 bg-white border-b border-zinc-200 p-2 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      onChange(null)
-                      setIsOpen(false)
-                      setSearch('')
-                    }}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 border-b border-zinc-100 text-red-600"
+                    onClick={selectAll}
+                    className="flex-1 text-xs px-2 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded font-medium"
                   >
-                    Clear selection
+                    Select All ({items.length})
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="flex-1 text-xs px-2 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
                 
-                {filteredItems.map((item) => (
-                  <button
-                    key={item._id}
-                    type="button"
-                    onClick={() => {
-                      onChange(item)
-                      setIsOpen(false)
-                      setSearch('')
-                    }}
-                    className={`w-full px-3 py-2 text-left hover:bg-purple-50 flex items-start gap-2 border-b border-zinc-100 last:border-b-0 ${
-                      value?._id === item._id ? 'bg-purple-50' : ''
-                    }`}
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      {value?._id === item._id && (
-                        <Check className="h-3.5 w-3.5 text-purple-600" />
-                      )}
-                      {value?._id !== item._id && (
-                        <div className="h-3.5 w-3.5" />
-                      )}
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="text-sm font-medium text-zinc-900 truncate">{item.title}</div>
-                      {(item.jurisdiction || item.topic) && (
-                        <div className="text-xs text-zinc-500 truncate mt-0.5">
-                          {[item.jurisdiction, item.topic].filter(Boolean).join(' • ')}
+                {filteredItems.map((item) => {
+                  const isSelected = selectedIds.has(item._id)
+                  return (
+                    <button
+                      key={item._id}
+                      type="button"
+                      onClick={() => toggleItem(item)}
+                      className={`w-full px-3 py-2 text-left hover:bg-purple-50 flex items-start gap-2 border-b border-zinc-100 last:border-b-0 ${
+                        isSelected ? 'bg-purple-50' : ''
+                      }`}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className={`h-4 w-4 border-2 rounded flex items-center justify-center ${
+                          isSelected ? 'bg-purple-600 border-purple-600' : 'border-zinc-300'
+                        }`}>
+                          {isSelected && (
+                            <Check className="h-3 w-3 text-white" />
+                          )}
                         </div>
-                      )}
-                      <div className="text-xs text-zinc-400 mt-0.5">
-                        {new Date(item.createdAt).toLocaleDateString()}
                       </div>
-                    </div>
-                  </button>
-                ))}
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-sm font-medium text-zinc-900 truncate">{item.title}</div>
+                        {(item.jurisdiction || item.topic) && (
+                          <div className="text-xs text-zinc-500 truncate mt-0.5">
+                            {[item.jurisdiction, item.topic].filter(Boolean).join(' • ')}
+                          </div>
+                        )}
+                        <div className="text-xs text-zinc-400 mt-0.5">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </>
             )}
           </div>

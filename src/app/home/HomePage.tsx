@@ -108,7 +108,7 @@ You are a database query tool, not a general compliance advisor.`,
     jurisdiction: '',
     topic: '',
     additionalContext: '',
-    selectedResearchId: undefined,
+    selectedResearchIds: [],
     lastPromptSent: '',
   })
   

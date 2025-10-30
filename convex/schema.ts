@@ -14,9 +14,13 @@ const schema = defineSchema({
     // Chat settings
     chatSystemPrompt: v.optional(v.string()),
     chatModel: v.optional(v.string()),
+    chatTemperature: v.optional(v.number()),
+    chatMaxTokens: v.optional(v.number()),
     // Research settings
     researchSystemPrompt: v.optional(v.string()),
     researchModel: v.optional(v.string()),
+    researchTemperature: v.optional(v.number()),
+    researchMaxTokens: v.optional(v.number()),
     researchFirecrawlConfig: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

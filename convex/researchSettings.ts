@@ -34,6 +34,8 @@ export const updateResearchSettings = mutation({
   args: {
     researchSystemPrompt: v.optional(v.string()),
     researchModel: v.optional(v.string()),
+    researchTemperature: v.optional(v.number()),
+    researchMaxTokens: v.optional(v.number()),
     researchFirecrawlConfig: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -47,6 +49,8 @@ export const updateResearchSettings = mutation({
       await ctx.db.patch(existingSettings._id, {
         researchSystemPrompt: args.researchSystemPrompt,
         researchModel: args.researchModel,
+        researchTemperature: args.researchTemperature,
+        researchMaxTokens: args.researchMaxTokens,
         researchFirecrawlConfig: args.researchFirecrawlConfig,
         updatedAt: now,
       });
@@ -55,6 +59,8 @@ export const updateResearchSettings = mutation({
       await ctx.db.insert("appSettings", {
         researchSystemPrompt: args.researchSystemPrompt,
         researchModel: args.researchModel,
+        researchTemperature: args.researchTemperature,
+        researchMaxTokens: args.researchMaxTokens,
         researchFirecrawlConfig: args.researchFirecrawlConfig,
         createdAt: now,
         updatedAt: now,
@@ -76,6 +82,8 @@ export const getResearchSettings = query({
       return {
         researchSystemPrompt: DEFAULT_RESEARCH_SYSTEM_PROMPT,
         researchModel: "gemini-2.0-flash-exp",
+        researchTemperature: 0.5,
+        researchMaxTokens: 8192,
         researchFirecrawlConfig: DEFAULT_FIRECRAWL_CONFIG,
       };
     }
@@ -84,6 +92,8 @@ export const getResearchSettings = query({
     return {
       researchSystemPrompt: settings.researchSystemPrompt ?? DEFAULT_RESEARCH_SYSTEM_PROMPT,
       researchModel: settings.researchModel ?? "gemini-2.0-flash-exp",
+      researchTemperature: settings.researchTemperature ?? 0.5,
+      researchMaxTokens: settings.researchMaxTokens ?? 8192,
       researchFirecrawlConfig: settings.researchFirecrawlConfig ?? DEFAULT_FIRECRAWL_CONFIG,
     };
   },

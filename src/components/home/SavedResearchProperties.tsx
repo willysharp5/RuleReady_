@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Search } from 'lucide-react'
+import { BookOpen, Info } from 'lucide-react'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { SavedResearchSelect } from '@/components/ui/saved-research-select'
@@ -9,7 +9,8 @@ export function SavedResearchProperties() {
   const savedResearchQuery = useQuery(api.savedResearch.getAllSavedResearch)
   const savedResearch = savedResearchQuery || []
   
-  const [selectedResearch, setSelectedResearch] = useState<any>(null)
+  const [selectedResearch, setSelectedResearch] = useState<Array<{ _id: string; title: string; jurisdiction?: string; topic?: string; content: string; createdAt: number }>>([])
+
   
   // Stats
   const total = savedResearch.length
@@ -25,7 +26,7 @@ export function SavedResearchProperties() {
       {/* Search Saved Research */}
       <div className="space-y-2">
         <Label className="text-xs font-medium text-zinc-700 flex items-center gap-1">
-          <Search className="h-3 w-3" />
+          <BookOpen className="h-3 w-3" />
           Search Saved Research
         </Label>
         <SavedResearchSelect
@@ -34,11 +35,22 @@ export function SavedResearchProperties() {
           items={savedResearch}
           placeholder="Select saved research..."
         />
-        {selectedResearch && (
+        {selectedResearch.length > 0 && (
           <div className="text-xs text-zinc-600 bg-purple-50 p-2 rounded border border-purple-200">
-            <strong>Selected:</strong> {selectedResearch.title}
+            <div className="font-semibold mb-1">Selected: {selectedResearch.length} item(s)</div>
+            <div className="space-y-0.5 max-h-24 overflow-y-auto">
+              {selectedResearch.map((item) => (
+                <div key={item._id} className="text-[10px] truncate">
+                  • {item.title}
+                </div>
+              ))}
+            </div>
           </div>
         )}
+        <p className="text-xs text-purple-700 flex items-start gap-1">
+          <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+          <span>Select multiple research items to view or filter. Use Select All to choose everything!</span>
+        </p>
       </div>
       
       {/* Info Box */}

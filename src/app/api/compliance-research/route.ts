@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
 
 export async function POST(request: Request) {
   const requestId = Math.random().toString(36).substring(7);
@@ -230,9 +232,24 @@ export async function POST(request: Request) {
       })
       .join('\n\n---\n\n');
 
+    // Get research settings from database
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
+    let researchSettings: Record<string, unknown> = {};
+    try {
+      researchSettings = await convex.query(api.researchSettings.getResearchSettings) || {};
+    } catch {
+      console.log("Could not load research settings from database");
+    }
+    
     // Step 3: Generate AI response with Gemini (streaming)
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ 
+      model: (researchSettings.researchModel as string) || 'gemini-2.0-flash-exp',
+      generationConfig: {
+        temperature: (researchSettings.researchTemperature as number) ?? 0.5,
+        maxOutputTokens: (researchSettings.researchMaxTokens as number) ?? 8192,
+      }
+    });
 
     // Use custom system prompt if provided, otherwise use default
     const defaultSystemPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.

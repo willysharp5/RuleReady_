@@ -6,13 +6,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { useMutation } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
+import { useToast } from '@/hooks/use-toast'
 
 export default function AIModelsFeature() {
+  const { addToast } = useToast()
+  const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
+  const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
+  
   // AI Models configuration state
   const [showModelConfig, setShowModelConfig] = useState(false)
   const [configPurpose, setConfigPurpose] = useState('')
   const [configTemperature, setConfigTemperature] = useState(0.7)
-  const [configMaxTokens, setConfigMaxTokens] = useState(4096)
+  const [configMaxTokens, setConfigMaxTokens] = useState(8192)
   
   // Add model state
   const [showAddModel, setShowAddModel] = useState(false)
@@ -72,7 +79,7 @@ export default function AIModelsFeature() {
     switch (purpose) {
       case 'chat':
         setConfigTemperature(0.7)
-        setConfigMaxTokens(4096)
+        setConfigMaxTokens(8192)
         break
       case 'research':
         setConfigTemperature(0.5)
@@ -125,8 +132,34 @@ Next steps:
   }
 
   const handleSaveModelConfig = async () => {
-    alert('Configuration noted. System prompts are managed in their respective sections for per-use customization.')
-    setShowModelConfig(false)
+    try {
+      if (configPurpose === 'chat') {
+        await updateChatSettings({
+          chatTemperature: configTemperature,
+          chatMaxTokens: configMaxTokens,
+        })
+      } else if (configPurpose === 'research') {
+        await updateResearchSettings({
+          researchTemperature: configTemperature,
+          researchMaxTokens: configMaxTokens,
+        })
+      }
+      
+      addToast({
+        title: 'Settings Saved',
+        description: `${configPurpose === 'chat' ? 'Chat' : 'Research'} model configuration has been updated.`,
+        variant: 'success',
+        duration: 3000
+      })
+      setShowModelConfig(false)
+    } catch (error: any) {
+      addToast({
+        title: 'Failed to Save',
+        description: error.message || 'Could not save configuration',
+        variant: 'error',
+        duration: 5000
+      })
+    }
   }
 
   return (
@@ -364,14 +397,19 @@ Next steps:
                 </div>
               </div>
               
-              <div>
-                <Label>Max Tokens</Label>
-                <Input
-                  type="number"
-                  value={configMaxTokens}
-                  onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
-                />
-              </div>
+                  <div>
+                    <Label>Max Tokens</Label>
+                    <Input
+                      type="number"
+                      value={configMaxTokens}
+                      onChange={(e) => setConfigMaxTokens(parseInt(e.target.value))}
+                      min={100}
+                      max={65536}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Gemini 2.0 Flash: up to 8,192 tokens. Gemini 2.5: up to 65,536 tokens.
+                    </p>
+                  </div>
             </div>
             
             <div className="flex gap-3 p-6 border-t">

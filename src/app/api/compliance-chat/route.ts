@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(apiKey);
     const aiModel = genAI.getGenerativeModel({ 
-      model: model || "gemini-2.0-flash-exp",
+      model: model || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp",
       generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 4096,
+        temperature: (dbSettings.chatTemperature as number) ?? 0.7,
+        maxOutputTokens: (dbSettings.chatMaxTokens as number) ?? 8192,
       },
     });
 

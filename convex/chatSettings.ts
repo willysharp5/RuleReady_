@@ -30,6 +30,8 @@ export const updateChatSettings = mutation({
   args: {
     chatSystemPrompt: v.optional(v.string()),
     chatModel: v.optional(v.string()),
+    chatTemperature: v.optional(v.number()),
+    chatMaxTokens: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Single-user mode: get the first (and only) settings record
@@ -42,6 +44,8 @@ export const updateChatSettings = mutation({
       await ctx.db.patch(existingSettings._id, {
         chatSystemPrompt: args.chatSystemPrompt,
         chatModel: args.chatModel,
+        chatTemperature: args.chatTemperature,
+        chatMaxTokens: args.chatMaxTokens,
         updatedAt: now,
       });
     } else {
@@ -49,6 +53,8 @@ export const updateChatSettings = mutation({
       await ctx.db.insert("appSettings", {
         chatSystemPrompt: args.chatSystemPrompt,
         chatModel: args.chatModel,
+        chatTemperature: args.chatTemperature,
+        chatMaxTokens: args.chatMaxTokens,
         createdAt: now,
         updatedAt: now,
       });
@@ -69,6 +75,8 @@ export const getChatSettings = query({
       return {
         chatSystemPrompt: DEFAULT_CHAT_SYSTEM_PROMPT,
         chatModel: "gemini-2.0-flash-exp",
+        chatTemperature: 0.7,
+        chatMaxTokens: 8192,
       };
     }
 
@@ -76,6 +84,8 @@ export const getChatSettings = query({
     return {
       chatSystemPrompt: settings.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT,
       chatModel: settings.chatModel ?? "gemini-2.0-flash-exp",
+      chatTemperature: settings.chatTemperature ?? 0.7,
+      chatMaxTokens: settings.chatMaxTokens ?? 8192,
     };
   },
 });

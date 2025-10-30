@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       model: model || 'gemini-2.0-flash-exp',
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 100,
+        maxOutputTokens: 200,
       },
     });
 

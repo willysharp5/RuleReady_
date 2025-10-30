@@ -18,7 +18,7 @@ interface ChatFeatureProps {
     jurisdiction: string
     topic: string
     additionalContext?: string
-    selectedResearchId?: string
+    selectedResearchIds?: string[]
     lastPromptSent?: string
   }
   setChatState?: (state: any) => void
