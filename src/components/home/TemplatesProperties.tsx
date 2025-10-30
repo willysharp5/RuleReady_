@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { FileText, X } from 'lucide-react'
+import { FileText, X, Plus } from 'lucide-react'
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { TemplateSelect } from '@/components/ui/template-select'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
 export function TemplatesProperties() {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
+  const router = useRouter()
   
   const templatesQuery = useQuery(api.complianceTemplates.getAllTemplates)
   const templates = templatesQuery || []
@@ -157,9 +160,21 @@ export function TemplatesProperties() {
       {/* Templates by Topic Breakdown */}
       {topics.length > 0 && (
         <div className="mt-4">
-          <label className="block text-xs font-medium text-zinc-700 mb-2">
-            Templates by Topic
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-zinc-700">
+              Templates by Topic
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push('/home?tab=topics')}
+              className="h-6 px-2 text-xs flex items-center gap-1"
+              title="Go to Topics tab to add topics"
+            >
+              <Plus className="w-3 h-3" />
+              Add Topic
+            </Button>
+          </div>
           <div className="space-y-1">
             {/* General Templates */}
             {general.length > 0 && (

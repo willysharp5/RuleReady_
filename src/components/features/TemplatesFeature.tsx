@@ -9,6 +9,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useToast } from '@/hooks/use-toast'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
+import { TopicSelect } from '@/components/ui/topic-select'
 
 export default function TemplatesFeature() {
   const { addToast } = useToast()
@@ -19,7 +20,7 @@ export default function TemplatesFeature() {
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   
   // Filters
-  const [filterTopic, setFilterTopic] = useState<string>('')
+  const [filterTopic, setFilterTopic] = useState<any>(null) // Topic object
   const [filterActive, setFilterActive] = useState<string>('')
   
   const pageSize = 8 // 4 rows × 2 columns
@@ -42,9 +43,8 @@ export default function TemplatesFeature() {
       (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (t.topicSlug && t.topicSlug.toLowerCase().includes(searchQuery.toLowerCase()))
     
-    // Handle "no topic" filter
-    const matchesTopic = !filterTopic || 
-      (filterTopic === '__none__' ? !t.topicSlug : t.topicSlug === filterTopic)
+    // Handle topic filter - filterTopic is now a topic object or null
+    const matchesTopic = !filterTopic || t.topicSlug === filterTopic.slug
     
     const matchesActive = !filterActive || String(t.isActive) === filterActive
     
@@ -179,22 +179,16 @@ export default function TemplatesFeature() {
         
         {/* Filter Row */}
         <div className="flex items-center gap-2">
-          <select
-            value={filterTopic}
-            onChange={(e) => {
-              setFilterTopic(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="px-3 py-1.5 text-sm border border-zinc-200 rounded-md"
-          >
-            <option value="">All Topics</option>
-            <option value="__none__">General (No Topic)</option>
-            {topics.map((topic: any) => (
-              <option key={topic.slug} value={topic.slug}>
-                {topic.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-64">
+            <TopicSelect
+              value={filterTopic}
+              onChange={(topic) => {
+                setFilterTopic(topic)
+                setCurrentPage(1)
+              }}
+              placeholder="All Topics"
+            />
+          </div>
           
           <select
             value={filterActive}
@@ -212,7 +206,7 @@ export default function TemplatesFeature() {
           {(filterTopic || filterActive) && (
             <button
               onClick={() => {
-                setFilterTopic('')
+                setFilterTopic(null)
                 setFilterActive('')
                 setCurrentPage(1)
               }}
@@ -390,7 +384,6 @@ export default function TemplatesFeature() {
           }}
           templateId={editingTemplate?.templateId}
           initialTemplate={editingTemplate}
-          topics={topics}
           onSave={async (templateData) => {
             try {
               await upsertTemplate(templateData)

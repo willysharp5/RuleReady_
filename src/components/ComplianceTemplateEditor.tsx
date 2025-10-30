@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { X, FileText, Edit3, Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { TiptapEditorModal } from './TiptapEditorModal'
+import { TopicSelect } from './ui/topic-select'
 
 interface ComplianceTemplateEditorProps {
   isOpen: boolean
@@ -18,7 +21,6 @@ interface ComplianceTemplateEditorProps {
     markdownContent: string
     topicSlug?: string
   }
-  topics?: any[] // Available topics for dropdown
   onSave: (template: {
     templateId?: string
     title: string
@@ -34,7 +36,6 @@ export function ComplianceTemplateEditor({
   onClose,
   templateId,
   initialTemplate,
-  topics = [],
   onSave
 }: ComplianceTemplateEditorProps) {
   const { addToast } = useToast()
@@ -45,22 +46,32 @@ export function ComplianceTemplateEditor({
   const [title, setTitle] = React.useState(initialTemplate?.title || '')
   const [description, setDescription] = React.useState(initialTemplate?.description || '')
   const [markdownContent, setMarkdownContent] = React.useState(initialTemplate?.markdownContent || getDefaultMarkdownTemplate())
-  const [topicSlug, setTopicSlug] = React.useState(initialTemplate?.topicSlug || '')
+  const [selectedTopic, setSelectedTopic] = React.useState<any>(null)
 
+  // Get topics from API
+  const topicsQuery = useQuery(api.complianceTopics.getTopics)
+  const topics = topicsQuery || []
+  
   // Reset form when template changes
   React.useEffect(() => {
     if (initialTemplate) {
       setTitle(initialTemplate.title)
       setDescription(initialTemplate.description || '')
       setMarkdownContent(initialTemplate.markdownContent)
-      setTopicSlug(initialTemplate.topicSlug || '')
+      // Find and set the topic object from slug
+      if (initialTemplate.topicSlug) {
+        const topic = topics.find((t: any) => t.slug === initialTemplate.topicSlug)
+        setSelectedTopic(topic || null)
+      } else {
+        setSelectedTopic(null)
+      }
     } else {
       setTitle('')
       setDescription('')
       setMarkdownContent(getDefaultMarkdownTemplate())
-      setTopicSlug('')
+      setSelectedTopic(null)
     }
-  }, [initialTemplate, templateId])
+  }, [initialTemplate, templateId, topics])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -90,7 +101,7 @@ export function ComplianceTemplateEditor({
         title: title.trim(),
         description: description.trim() || undefined,
         markdownContent: markdownContent.trim(),
-        topicSlug: topicSlug.trim() || undefined,
+        topicSlug: selectedTopic?.slug || undefined,
         isActive: true
       })
 
@@ -162,22 +173,14 @@ export function ComplianceTemplateEditor({
             
             {/* Topic Association */}
             <div>
-              <Label htmlFor="topic-slug" className="text-sm font-medium">
+              <Label className="text-sm font-medium mb-2 block">
                 Associate with Topic (Optional)
               </Label>
-              <select
-                id="topic-slug"
-                value={topicSlug}
-                onChange={(e) => setTopicSlug(e.target.value)}
-                className="mt-1 flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
-              >
-                <option value="">General (All Topics)</option>
-                {topics.map((topic: any) => (
-                  <option key={topic.slug} value={topic.slug}>
-                    {topic.name}
-                  </option>
-                ))}
-              </select>
+              <TopicSelect
+                value={selectedTopic}
+                onChange={setSelectedTopic}
+                placeholder="General (All Topics)"
+              />
               <p className="text-xs text-zinc-500 mt-1">
                 Link to a specific topic or leave general. You can create multiple templates per topic.
               </p>

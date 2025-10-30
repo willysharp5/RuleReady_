@@ -22,6 +22,7 @@ import type * as lib_sanitize from "../lib/sanitize.js";
 import type * as researchConversations from "../researchConversations.js";
 import type * as researchSettings from "../researchSettings.js";
 import type * as savedResearch from "../savedResearch.js";
+import type * as seedAllTemplates from "../seedAllTemplates.js";
 import type * as userSettings from "../userSettings.js";
 
 import type {
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   researchConversations: typeof researchConversations;
   researchSettings: typeof researchSettings;
   savedResearch: typeof savedResearch;
+  seedAllTemplates: typeof seedAllTemplates;
   userSettings: typeof userSettings;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

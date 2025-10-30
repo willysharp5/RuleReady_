@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Copy, Check, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link as LinkIcon, Undo, Redo, Underline as UnderlineIcon, Code, Strikethrough } from 'lucide-react'
+import { X, Copy, Check, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link as LinkIcon, Undo, Redo, Underline as UnderlineIcon, Code, Strikethrough, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -33,6 +33,7 @@ export function TiptapEditorModal({
   const [linkUrl, setLinkUrl] = useState('')
   const [copiedFormat, setCopiedFormat] = useState<'docs' | 'markdown' | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [linkPopover, setLinkPopover] = useState<{ x: number; y: number; url: string; isEditing: boolean } | null>(null)
   
   // Turndown service for HTML to Markdown conversion
   const turndownService = useRef(new TurndownService({
@@ -54,7 +55,7 @@ export function TiptapEditorModal({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 hover:underline',
+          class: 'text-blue-600 hover:underline cursor-pointer',
         },
       }),
       Underline,
@@ -63,6 +64,45 @@ export function TiptapEditorModal({
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4',
+      },
+      handleClick(view, pos, event) {
+        const target = event.target as HTMLElement
+        if (target.tagName === 'A') {
+          event.preventDefault()
+          const href = target.getAttribute('href')
+          if (href) {
+            // Show link popover at click position
+            const rect = target.getBoundingClientRect()
+            setLinkPopover({
+              x: rect.left + rect.width / 2,
+              y: rect.bottom + 5,
+              url: href,
+              isEditing: false
+            })
+            // Set the link URL and select the link
+            setLinkUrl(href)
+            // Position cursor in the link
+            const { from, to } = view.state.selection
+            const linkMark = view.state.doc.resolve(pos).marks().find(m => m.type.name === 'link')
+            if (linkMark) {
+              // Find the range of the link
+              let linkFrom = pos
+              let linkTo = pos
+              view.state.doc.nodesBetween(pos - 10, pos + 10, (node, nodePos) => {
+                if (node.marks.some(m => m === linkMark)) {
+                  if (nodePos < linkFrom) linkFrom = nodePos
+                  if (nodePos + node.nodeSize > linkTo) linkTo = nodePos + node.nodeSize
+                }
+              })
+              // Select the link text
+              view.dispatch(view.state.tr.setSelection(
+                view.state.tr.selection.constructor.create(view.state.doc, linkFrom, linkTo)
+              ))
+            }
+          }
+          return true
+        }
+        return false
       },
     },
   }, [])
@@ -381,8 +421,126 @@ export function TiptapEditorModal({
           )}
           
           {/* Editor Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
+          <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg relative">
             <EditorContent editor={editor} />
+            
+            {/* Link Edit Popover */}
+            {linkPopover && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setLinkPopover(null)}
+                />
+                <div 
+                  className="fixed z-20 bg-white border border-gray-300 rounded-lg shadow-xl p-3 w-80"
+                  style={{
+                    left: `${linkPopover.x}px`,
+                    top: `${linkPopover.y}px`,
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-700">Link Options</span>
+                    <button
+                      onClick={() => setLinkPopover(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {/* URL Display or Edit Input */}
+                    {linkPopover.isEditing ? (
+                      <Input
+                        type="url"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        className="text-xs h-8"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (linkUrl && linkUrl !== linkPopover.url) {
+                              editor?.chain().focus().setLink({ href: linkUrl }).run()
+                            }
+                            setLinkPopover(null)
+                            setLinkUrl('')
+                          }
+                          if (e.key === 'Escape') {
+                            setLinkPopover({ ...linkPopover, isEditing: false })
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-600 truncate bg-gray-50 p-2 rounded">
+                        {linkPopover.url}
+                      </div>
+                    )}
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      {!linkPopover.isEditing && (
+                        <Button
+                          onClick={() => {
+                            window.open(linkPopover.url, '_blank')
+                            setLinkPopover(null)
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Open
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => {
+                          if (linkPopover.isEditing) {
+                            // Update the link
+                            if (linkUrl && linkUrl !== linkPopover.url) {
+                              editor?.chain().focus().setLink({ href: linkUrl }).run()
+                            }
+                            setLinkPopover(null)
+                            setLinkUrl('')
+                          } else {
+                            // Switch to edit mode
+                            setLinkUrl(linkPopover.url)
+                            setLinkPopover({ ...linkPopover, isEditing: true })
+                          }
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs"
+                      >
+                        {linkPopover.isEditing ? (
+                          <>
+                            <Check className="w-3 h-3 mr-1" />
+                            Update
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="w-3 h-3 mr-1" />
+                            Edit
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          editor?.chain().focus().unsetLink().run()
+                          setLinkPopover(null)
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           <style jsx global>{`
