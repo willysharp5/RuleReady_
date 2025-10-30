@@ -3,32 +3,10 @@
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { 
-  Save, 
-  X, 
-  FileText, 
-  Eye, 
-  Edit3, 
-  AlertCircle,
-  CheckCircle,
-  Loader2,
-  Info,
-  BookOpen,
-  Copy,
-  Download
-} from 'lucide-react'
+import { X, FileText, Edit3, Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { TiptapEditorModal } from './TiptapEditorModal'
 
 interface ComplianceTemplateEditorProps {
   isOpen: boolean
@@ -38,16 +16,15 @@ interface ComplianceTemplateEditorProps {
     title: string
     description?: string
     markdownContent: string
-    topicKey?: string
-    isDefault?: boolean
+    topicSlug?: string
   }
+  topics?: any[] // Available topics for dropdown
   onSave: (template: {
     templateId?: string
     title: string
     description?: string
     markdownContent: string
-    topicKey?: string
-    isDefault?: boolean
+    topicSlug?: string
     isActive?: boolean
   }) => Promise<void>
 }
@@ -57,17 +34,18 @@ export function ComplianceTemplateEditor({
   onClose,
   templateId,
   initialTemplate,
+  topics = [],
   onSave
 }: ComplianceTemplateEditorProps) {
   const { addToast } = useToast()
-  const [isPreviewMode, setIsPreviewMode] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
+  const [showContentEditor, setShowContentEditor] = React.useState(false)
   
   // Form state
   const [title, setTitle] = React.useState(initialTemplate?.title || '')
   const [description, setDescription] = React.useState(initialTemplate?.description || '')
   const [markdownContent, setMarkdownContent] = React.useState(initialTemplate?.markdownContent || getDefaultMarkdownTemplate())
-  const [topicKey, setTopicKey] = React.useState(initialTemplate?.topicKey || '')
+  const [topicSlug, setTopicSlug] = React.useState(initialTemplate?.topicSlug || '')
 
   // Reset form when template changes
   React.useEffect(() => {
@@ -75,28 +53,32 @@ export function ComplianceTemplateEditor({
       setTitle(initialTemplate.title)
       setDescription(initialTemplate.description || '')
       setMarkdownContent(initialTemplate.markdownContent)
-      setTopicKey(initialTemplate.topicKey || '')
+      setTopicSlug(initialTemplate.topicSlug || '')
     } else {
       setTitle('')
       setDescription('')
       setMarkdownContent(getDefaultMarkdownTemplate())
-      setTopicKey('')
+      setTopicSlug('')
     }
   }, [initialTemplate, templateId])
 
   const handleSave = async () => {
     if (!title.trim()) {
       addToast({
-        title: "Title Required",
-        description: "Please enter a title for the template"
+        title: "Validation Error",
+        description: "Template title is required",
+        variant: "error",
+        duration: 3000
       })
       return
     }
 
     if (!markdownContent.trim()) {
       addToast({
-        title: "Content Required", 
-        description: "Please enter template content"
+        title: "Validation Error",
+        description: "Template content cannot be empty",
+        variant: "error",
+        duration: 3000
       })
       return
     }
@@ -108,252 +90,188 @@ export function ComplianceTemplateEditor({
         title: title.trim(),
         description: description.trim() || undefined,
         markdownContent: markdownContent.trim(),
-        topicKey: topicKey.trim() || undefined,
-        isDefault: initialTemplate?.isDefault,
+        topicSlug: topicSlug.trim() || undefined,
         isActive: true
       })
 
       addToast({
         title: "Template Saved",
-        description: `${title} template has been saved successfully`
+        description: `Template "${title}" has been saved successfully`,
+        variant: "success",
+        duration: 3000
       })
-      
+
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       addToast({
-        title: "Save Failed",
-        description: "Failed to save template. Please try again."
+        title: "Error Saving Template",
+        description: error.message || "Failed to save template",
+        variant: "error",
+        duration: 5000
       })
     } finally {
       setIsSaving(false)
     }
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      addToast({
-        title: "Copied",
-        description: "Template content copied to clipboard"
-      })
-    } catch (error) {
-      addToast({
-        title: "Copy Failed",
-        description: "Failed to copy to clipboard"
-      })
-    }
-  }
-
-  const downloadTemplate = () => {
-    const blob = new Blob([markdownContent], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_template.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+  if (!isOpen) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl h-[95vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl font-semibold">
-                {templateId ? 'Edit Template' : 'Create New Template'}
-              </DialogTitle>
-              <DialogDescription className="mt-1">
-                Create or edit markdown templates that guide AI parsing of compliance information
-              </DialogDescription>
-            </div>
+    <>
+      {/* Main Form Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Dark backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/60"
+          onClick={onClose}
+        />
+        
+        {/* Modal content */}
+        <div className="relative bg-white rounded-lg shadow-2xl w-[90vw] max-w-3xl max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyToClipboard(markdownContent)}
-                className="gap-2"
-              >
-                <Copy className="h-4 w-4" />
-                Copy
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadTemplate}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsPreviewMode(!isPreviewMode)}
-                className="gap-2"
-              >
-                {isPreviewMode ? (
-                  <>
-                    <Edit3 className="h-4 w-4" />
-                    Edit
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    Preview
-                  </>
-                )}
-              </Button>
+              <FileText className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                {initialTemplate ? 'Edit Template' : 'Create Template'}
+              </h3>
             </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-        </DialogHeader>
-
-        {/* Template Metadata */}
-        <div className="flex-shrink-0 space-y-4 p-4 bg-gray-50 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Form Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Title */}
             <div>
-              <Label htmlFor="template-title" className="text-sm font-medium">
+              <Label htmlFor="title" className="text-sm font-medium">
                 Template Title *
               </Label>
               <Input
-                id="template-title"
+                id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Minimum Wage Compliance Template"
                 className="mt-1"
               />
             </div>
+            
+            {/* Topic Association */}
             <div>
-              <Label htmlFor="topic-key" className="text-sm font-medium">
-                Topic Key (Optional)
+              <Label htmlFor="topic-slug" className="text-sm font-medium">
+                Associate with Topic (Optional)
+              </Label>
+              <select
+                id="topic-slug"
+                value={topicSlug}
+                onChange={(e) => setTopicSlug(e.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">General (All Topics)</option>
+                {topics.map((topic: any) => (
+                  <option key={topic.slug} value={topic.slug}>
+                    {topic.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-zinc-500 mt-1">
+                Link to a specific topic or leave general. You can create multiple templates per topic.
+              </p>
+            </div>
+            
+            {/* Description */}
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium">
+                Description (Optional)
               </Label>
               <Input
-                id="topic-key"
-                value={topicKey}
-                onChange={(e) => setTopicKey(e.target.value)}
-                placeholder="e.g., minimum_wage"
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of this template"
                 className="mt-1"
               />
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="description" className="text-sm font-medium">
-              Description (Optional)
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of what this template is for and how it should be used..."
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-hidden flex gap-6">
-          {!isPreviewMode ? (
-            // Edit Mode - Markdown Editor
-            <div className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">
-                  Template Content (Markdown)
-                </Label>
-                <div className="text-xs text-gray-500">
-                  {markdownContent.length} characters
-                </div>
-              </div>
-              <Textarea
-                value={markdownContent}
-                onChange={(e) => setMarkdownContent(e.target.value)}
-                placeholder="Enter your compliance template in markdown format..."
-                className="flex-1 font-mono text-sm resize-none"
-              />
-              <div className="mt-2 text-xs text-gray-500">
-                <p>💡 <strong>Tip:</strong> Use markdown formatting (# headers, ** bold **, * lists) to structure your template.</p>
-                <p>This template will guide AI parsing of compliance websites to extract structured information.</p>
-              </div>
-            </div>
-          ) : (
-            // Preview Mode
-            <div className="flex-1 overflow-y-auto">
-              <div className="prose prose-sm max-w-none">
-                <div className="bg-white border rounded-lg p-6">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      h1: ({children}) => <h1 className="text-2xl font-bold mb-4 text-gray-900 border-b pb-2">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-xl font-semibold mt-6 mb-3 text-gray-800">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-lg font-medium mt-4 mb-2 text-gray-800">{children}</h3>,
-                      p: ({children}) => <p className="mb-3 leading-relaxed text-gray-700">{children}</p>,
-                      ul: ({children}) => <ul className="mb-3 space-y-1 ml-4 list-disc">{children}</ul>,
-                      ol: ({children}) => <ol className="mb-3 space-y-1 ml-4 list-decimal">{children}</ol>,
-                      li: ({children}) => <li className="leading-relaxed text-gray-700">{children}</li>,
-                      strong: ({children}) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                      em: ({children}) => <em className="italic text-gray-800">{children}</em>,
-                      code: ({children}) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
-                      blockquote: ({children}) => <blockquote className="border-l-4 border-purple-200 pl-4 italic text-gray-600 my-4">{children}</blockquote>,
-                    }}
+            
+            {/* Markdown Content */}
+            <div>
+              <Label className="text-sm font-medium">
+                Template Content (Markdown) *
+              </Label>
+              <div className="mt-1 border border-zinc-200 rounded-lg p-4 bg-zinc-50 min-h-[200px]">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-zinc-600">
+                    {markdownContent.length} characters
+                  </p>
+                  <Button
+                    onClick={() => setShowContentEditor(true)}
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
                   >
-                    {markdownContent}
-                  </ReactMarkdown>
+                    <Edit3 className="w-3 h-3 mr-2" />
+                    Edit Content
+                  </Button>
+                </div>
+                <div className="text-xs text-zinc-500 font-mono max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  {markdownContent.substring(0, 500)}{markdownContent.length > 500 && '...'}
                 </div>
               </div>
+              <p className="text-xs text-zinc-500 mt-1">
+                Click "Edit Content" to open the rich text editor
+              </p>
             </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 border-t pt-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600">
-              {title ? `Template: ${title}` : 'New Template'}
-            </div>
-            {!title.trim() && (
-              <div className="flex items-center gap-2 text-sm text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                Title is required
-              </div>
-            )}
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
             <Button
-              variant="outline"
               onClick={onClose}
-              disabled={isSaving}
+              variant="outline"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isSaving || !title.trim() || !markdownContent.trim()}
-              className="gap-2"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={isSaving}
             >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save Template
-                </>
-              )}
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : initialTemplate ? 'Update Template' : 'Create Template'}
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+      
+      {/* Tiptap Content Editor */}
+      {showContentEditor && (
+        <TiptapEditorModal
+          isOpen={showContentEditor}
+          onClose={() => setShowContentEditor(false)}
+          initialContent={markdownContent}
+          title="Edit Template Content"
+          onSave={(markdown) => {
+            setMarkdownContent(markdown)
+            setShowContentEditor(false)
+            addToast({
+              title: "Content Updated",
+              description: "Template content has been updated. Click 'Save' to save the template.",
+              variant: "success",
+              duration: 3000
+            })
+          }}
+          showSaveButton={true}
+        />
+      )}
+    </>
   )
 }
 
-// Default markdown template structure
-function getDefaultMarkdownTemplate(): string {
+function getDefaultMarkdownTemplate() {
   return `# Compliance Template
 
 ## Overview
@@ -367,36 +285,6 @@ Which employees are covered/protected - employment types, locations, exemptions
 
 ## What Should Employers Do?
 Specific actions employers must take to comply
-
-## Training Requirements
-If applicable - training content, duration, format requirements
-
-## Training Deadlines
-If applicable - timing requirements for different employee types
-
-## Qualified Trainers
-If applicable - who can provide the training/services
-
-## Special Requirements
-Any special cases, exceptions, industry-specific requirements, or additional obligations
-
-## Coverage Election
-If applicable - optional coverage choices or rejection options
-
-## Reciprocity/Extraterritorial Coverage
-If applicable - cross-state/jurisdiction coverage rules
-
-## Employer Responsibilities & Deadlines
-Ongoing obligations, verification processes, renewal requirements, key deadlines
-
-## Employer Notification Requirements
-Required notifications to employees about rights, processes, or programs
-
-## Posting Requirements
-Required workplace postings, notices, and display requirements
-
-## Recordkeeping Requirements
-What records must be maintained, retention periods, required documentation
 
 ## Penalties for Non-Compliance
 Fines, penalties, consequences, and enforcement actions

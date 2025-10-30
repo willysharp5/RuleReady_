@@ -45,7 +45,12 @@ export function TiptapEditorModal({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        history: {
+          depth: 100,
+          newGroupDelay: 500,
+        },
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -74,7 +79,8 @@ export function TiptapEditorModal({
   useEffect(() => {
     if (isOpen && initialContent && editor) {
       markdownToHtml(initialContent).then(html => {
-        editor.commands.setContent(html)
+        // Set content and start new history point
+        editor.chain().setContent(html).run()
       })
     }
   }, [isOpen, initialContent, editor])

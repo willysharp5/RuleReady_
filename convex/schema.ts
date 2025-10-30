@@ -154,7 +154,6 @@ const schema = defineSchema({
     description: v.optional(v.string()),
     markdownContent: v.string(),
     topicSlug: v.optional(v.string()),
-    isDefault: v.boolean(),
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -51,7 +51,6 @@ export const upsertTemplate = mutation({
     description: v.optional(v.string()),
     markdownContent: v.string(),
     topicSlug: v.optional(v.string()),
-    isDefault: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -71,7 +70,6 @@ export const upsertTemplate = mutation({
         description: args.description,
         markdownContent: args.markdownContent,
         topicSlug: args.topicSlug,
-        isDefault: args.isDefault ?? existing.isDefault,
         isActive: args.isActive ?? existing.isActive,
         updatedAt: now,
       });
@@ -84,7 +82,6 @@ export const upsertTemplate = mutation({
         description: args.description,
         markdownContent: args.markdownContent,
         topicSlug: args.topicSlug,
-        isDefault: args.isDefault ?? false,
         isActive: args.isActive ?? true,
         createdAt: now,
         updatedAt: now,
@@ -404,7 +401,6 @@ Relevant statutes, regulations, agency websites, and official resources
           description: template.description,
           markdownContent: template.markdownContent,
           topicSlug: template.topicSlug,
-          isDefault: true,
           isActive: true,
         });
         

@@ -17,7 +17,7 @@ export const storeEmbedding = internalMutation({
     embeddingDimensions: v.number(),
     metadata: v.object({
       jurisdiction: v.optional(v.string()),
-      topicKey: v.optional(v.string()),
+      topicSlug: v.optional(v.string()),
       contentLength: v.optional(v.number()),
       processingMethod: v.optional(v.string()),
     }),
@@ -80,7 +80,7 @@ export const getEmbeddingsLimited = query({
   args: {
     entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
     jurisdiction: v.optional(v.string()),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
@@ -95,7 +95,7 @@ export const getEmbeddingsLimited = query({
     const batch = await base.take(safeLimit);
     console.log(`🔍 getEmbeddingsLimited: Retrieved ${batch.length} embeddings from database`);
     
-    if (!args.jurisdiction && !args.topicKey) {
+    if (!args.jurisdiction && !args.topicSlug) {
       console.log(`📋 No filters applied, returning all ${batch.length} embeddings`);
       return batch;
     }
@@ -110,11 +110,11 @@ export const getEmbeddingsLimited = query({
     const filtered = batch.filter((emb: any) => {
       const embJurisdiction = normalizeJurisdiction(emb.metadata?.jurisdiction);
       const matchesJurisdiction = !wantJurisdiction || embJurisdiction === wantJurisdiction;
-      const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
+      const matchesTopic = !args.topicSlug || emb.metadata?.topicSlug === args.topicSlug;
       return matchesJurisdiction && matchesTopic;
     });
     
-    console.log(`🎯 Applied filters: ${filtered.length}/${batch.length} embeddings match (jurisdiction=${args.jurisdiction}, topic=${args.topicKey})`);
+    console.log(`🎯 Applied filters: ${filtered.length}/${batch.length} embeddings match (jurisdiction=${args.jurisdiction}, topic=${args.topicSlug})`);
     return filtered;
   },
 });
@@ -130,7 +130,7 @@ export const importExistingEmbeddings = internalAction({
       contentHash: v.optional(v.string()),
       metadata: v.optional(v.object({
         jurisdiction: v.optional(v.string()),
-        topicKey: v.optional(v.string()),
+        topicSlug: v.optional(v.string()),
       })),
     })),
     batchSize: v.optional(v.number()),
@@ -162,7 +162,7 @@ export const importExistingEmbeddings = internalAction({
             embeddingDimensions: 1536,
             metadata: {
               jurisdiction: embedding.metadata?.jurisdiction,
-              topicKey: embedding.metadata?.topicKey,
+              topicSlug: embedding.metadata?.topicSlug,
               contentLength: embedding.content.length,
               processingMethod: "imported_from_existing",
             },
@@ -192,7 +192,7 @@ export const searchSimilarEmbeddings = internalAction({
     queryEmbedding: v.array(v.number()),
     entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
     jurisdiction: v.optional(v.string()),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     limit: v.optional(v.number()),
     threshold: v.optional(v.number()),
   },
@@ -201,20 +201,20 @@ export const searchSimilarEmbeddings = internalAction({
     const threshold = args.threshold || 0.7;
 
     // Read-limited embeddings to stay under Convex read limits
-    const scanLimit = args.jurisdiction || args.topicKey ? 200 : 100;
-    console.log(`📊 Querying embeddings with entityType=${args.entityType || "report"}, jurisdiction=${args.jurisdiction}, topicKey=${args.topicKey}, limit=${scanLimit}`);
+    const scanLimit = args.jurisdiction || args.topicSlug ? 200 : 100;
+    console.log(`📊 Querying embeddings with entityType=${args.entityType || "report"}, jurisdiction=${args.jurisdiction}, topicSlug=${args.topicSlug}, limit=${scanLimit}`);
     
     const allEmbeddings: any[] = await ctx.runQuery(api.embeddingManager.getEmbeddingsLimited, {
       entityType: args.entityType || "report",
       jurisdiction: args.jurisdiction,
-      topicKey: args.topicKey,
+      topicSlug: args.topicSlug,
       limit: scanLimit,
     });
     console.log(`📋 Retrieved ${allEmbeddings.length} embeddings from database`);
 
     // Filter by metadata if specified
     let filteredEmbeddings: any[] = allEmbeddings;
-    if (args.jurisdiction || args.topicKey) {
+    if (args.jurisdiction || args.topicSlug) {
       const normalizeJurisdiction = (j?: string) => (j || '').trim().toLowerCase()
         .replace(/^us federal$|^u\.s\. federal$|^federal government$|^federal$/, 'federal')
         .replace(/^dc$|^d\.c\.$|^district of columbia$/, 'district of columbia');
@@ -223,7 +223,7 @@ export const searchSimilarEmbeddings = internalAction({
       filteredEmbeddings = allEmbeddings.filter((emb: any) => {
         const embJurisdiction = normalizeJurisdiction(emb.metadata?.jurisdiction);
         const matchesJurisdiction = !wantJurisdiction || embJurisdiction === wantJurisdiction;
-        const matchesTopic = !args.topicKey || emb.metadata?.topicKey === args.topicKey;
+        const matchesTopic = !args.topicSlug || emb.metadata?.topicSlug === args.topicSlug;
         return matchesJurisdiction && matchesTopic;
       });
       console.log(`🎯 After metadata filtering: ${filteredEmbeddings.length}/${allEmbeddings.length} embeddings remain`);
@@ -322,14 +322,14 @@ export const embeddingTopKSources = action({
     k: v.optional(v.number()),
     threshold: v.optional(v.number()),
     jurisdiction: v.optional(v.string()),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     entityType: v.optional(v.union(v.literal("rule"), v.literal("report"))),
   },
   handler: async (ctx, args) => {
     const k = args.k || 5;
     const threshold = args.threshold || 0.65;
 
-    console.log(`🔍 embeddingTopKSources called with: question="${args.question}", k=${k}, threshold=${threshold}, jurisdiction=${args.jurisdiction}, topicKey=${args.topicKey}`);
+    console.log(`🔍 embeddingTopKSources called with: question="${args.question}", k=${k}, threshold=${threshold}, jurisdiction=${args.jurisdiction}, topicSlug=${args.topicSlug}`);
 
     let matches: any[] = [];
     
@@ -347,7 +347,7 @@ export const embeddingTopKSources = action({
         queryEmbedding: gen.embedding,
         entityType: args.entityType,
         jurisdiction: args.jurisdiction,
-        topicKey: args.topicKey,
+        topicSlug: args.topicSlug,
         limit: k,
         threshold,
       });
@@ -365,8 +365,8 @@ export const embeddingTopKSources = action({
       console.log(`🔍 Hydrating ${entityType} with entityId: ${m.entityId}`);
       let sourceUrl: string | undefined;
       let jurisdiction: string | undefined;
-      let topicKey: string | undefined;
-      let topicLabel: string | undefined;
+      let topicSlug: string | undefined;
+      let topicName: string | undefined;
       let reportId: string | undefined;
       let ruleId: string | undefined;
       let reportData: any = null;
@@ -381,8 +381,8 @@ export const embeddingTopKSources = action({
           if (rule) {
             sourceUrl = rule.sourceUrl;
             jurisdiction = rule.jurisdiction;
-            topicKey = rule.topicSlug;
-            topicLabel = rule.topicName;
+            topicSlug = rule.topicSlug;
+            topicName = rule.topicName;
           }
         }
       } else {
@@ -391,8 +391,8 @@ export const embeddingTopKSources = action({
           ruleId = rule.ruleId;
           sourceUrl = rule.sourceUrl;
           jurisdiction = rule.jurisdiction;
-          topicKey = rule.topicSlug;
-          topicLabel = rule.topicName;
+          topicSlug = rule.topicSlug;
+          topicName = rule.topicName;
         }
       }
 
@@ -400,18 +400,19 @@ export const embeddingTopKSources = action({
       if (!jurisdiction && m.metadata?.jurisdiction) {
         jurisdiction = m.metadata.jurisdiction;
       }
-      if (!topicKey && m.metadata?.topicKey) {
-        topicKey = m.metadata.topicKey;
+      if (!topicSlug && m.metadata?.topicSlug) {
+        topicSlug = m.metadata.topicSlug;
       }
-      if (!topicLabel && topicKey) {
-        topicLabel = topicKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      if (!topicName && topicSlug) {
+        // Try to get topic name from slug
+        topicName = topicSlug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       }
       if (!sourceUrl && jurisdiction) {
         // Generate a reasonable source URL if we don't have one
         sourceUrl = `https://www.${jurisdiction.toLowerCase().replace(/\s+/g, '')}.gov/labor`;
       }
 
-      console.log(`✅ Hydrated source: ${jurisdiction} - ${topicLabel} (${sourceUrl ? 'has URL' : 'no URL'})`);
+      console.log(`✅ Hydrated source: ${jurisdiction} - ${topicName} (${sourceUrl ? 'has URL' : 'no URL'})`);
 
       // Create richer snippet from extracted sections if available
       let snippet = (m.content || "").slice(0, 500);
@@ -426,8 +427,8 @@ export const embeddingTopKSources = action({
         snippet,
         sourceUrl,
         jurisdiction,
-        topicKey,
-        topicLabel,
+        topicSlug,
+        topicName,
         reportId,
         ruleId,
         extractedSections: reportData?.extractedSections,

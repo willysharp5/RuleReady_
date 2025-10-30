@@ -7,7 +7,7 @@ export const queryComplianceKnowledge = action({
   args: {
     query: v.string(),
     jurisdiction: v.optional(v.string()),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     includeChanges: v.optional(v.boolean()),
     maxSources: v.optional(v.number()),
     threshold: v.optional(v.number()),
@@ -30,7 +30,7 @@ export const queryComplianceKnowledge = action({
       suggestions: string[];
     };
   }> => {
-    console.log(`🔍 RAG Query: "${args.query}" (${args.jurisdiction || 'all jurisdictions'}, ${args.topicKey || 'all topics'})`);
+    console.log(`🔍 RAG Query: "${args.query}" (${args.jurisdiction || 'all jurisdictions'}, ${args.topicSlug || 'all topics'})`);
     
     // 1. FIRST: Search for relevant content in database
     const embeddingSources = await ctx.runAction(api.embeddingManager.embeddingTopKSources, {
@@ -38,7 +38,7 @@ export const queryComplianceKnowledge = action({
       k: args.maxSources || 10,
       threshold: args.threshold || 0.7,
       jurisdiction: args.jurisdiction,
-      topicKey: args.topicKey,
+      topicSlug: args.topicSlug,
     });
     
     const relevantRules = embeddingSources.sources || [];
@@ -59,8 +59,8 @@ export const queryComplianceKnowledge = action({
       const jurisdictionMsg = args.jurisdiction && args.jurisdiction !== "All" 
         ? ` for ${args.jurisdiction}` 
         : "";
-      const topicMsg = args.topicKey && args.topicKey !== "All"
-        ? ` about ${args.topicKey}`
+      const topicMsg = args.topicSlug && args.topicSlug !== "All"
+        ? ` about ${args.topicSlug}`
         : "";
       
       return {
@@ -97,7 +97,7 @@ export const queryComplianceKnowledge = action({
       recentChanges,
       userSystemPrompt, // Use user's configurable prompt
       jurisdiction: args.jurisdiction,
-      topicKey: args.topicKey,
+      topicSlug: args.topicSlug,
     });
     
     return {
@@ -155,7 +155,7 @@ export const semanticComplianceSearch = action({
         threshold: 0.6,
         entityType: "rule",
         jurisdiction: args.filters?.jurisdictions?.[0],
-        topicKey: args.filters?.topics?.[0],
+        topicSlug: args.filters?.topics?.[0],
       });
       results.rules = ruleResults.sources || [];
     }
@@ -168,7 +168,7 @@ export const semanticComplianceSearch = action({
         threshold: 0.6,
         entityType: "report",
         jurisdiction: args.filters?.jurisdictions?.[0],
-        topicKey: args.filters?.topics?.[0],
+        topicSlug: args.filters?.topics?.[0],
       });
       results.reports = reportResults.sources || [];
     }
@@ -215,7 +215,7 @@ async function getAvailableJurisdictionsAndTopics(ctx: any): Promise<string> {
     const topics = await ctx.runQuery(api.complianceQueries.getTopics);
     
     const jurisdictionList = jurisdictions?.slice(0, 5).map((j: any) => j.name || j.code).join(', ') || "Loading...";
-    const topicList = topics?.slice(0, 5).map((t: any) => t.name || t.topicKey).join(', ') || "Loading...";
+    const topicList = topics?.slice(0, 5).map((t: any) => t.name || t.slug).join(', ') || "Loading...";
     
     return `Jurisdictions: ${jurisdictionList}, Topics: ${topicList}`;
   } catch (e) {
@@ -230,12 +230,12 @@ async function generateComplianceResponse(ctx: any, params: {
   recentChanges: any[];
   userSystemPrompt: string; // User-configurable from chat settings
   jurisdiction?: string;
-  topicKey?: string;
+  topicSlug?: string;
 }) {
   try {
     // Build source list for citation
     const sourcesList = params.relevantRules.map((rule: any, i: number) => 
-      `[${i+1}] ${rule.jurisdiction || 'Unknown'} - ${rule.topicLabel || rule.topicKey || 'Unknown Topic'}\n` +
+      `[${i+1}] ${rule.jurisdiction || 'Unknown'} - ${rule.topicName || rule.topicSlug || 'Unknown Topic'}\n` +
       `    URL: ${rule.sourceUrl || 'No URL'}\n` +
       `    ${(rule.snippet || rule.content || 'No content').substring(0, 200)}...`
     ).join('\n\n');
@@ -253,8 +253,8 @@ async function generateComplianceResponse(ctx: any, params: {
       ? `\n🎯 USER SELECTED FILTER: ${params.jurisdiction} jurisdiction ONLY. Do NOT include other jurisdictions.`
       : `\n🌍 USER SELECTED: ALL JURISDICTIONS. You have sources from ${jurisdictionsInSources.length} jurisdiction(s): ${jurisdictionsInSources.join(', ')}. Include information from ALL of them, not just one.`;
     
-    const topicContext = params.topicKey && params.topicKey !== "All"
-      ? `\n🎯 USER SELECTED FILTER: ${params.topicKey} topic ONLY. Do NOT discuss other topics.`
+    const topicContext = params.topicSlug && params.topicSlug !== "All"
+      ? `\n🎯 USER SELECTED FILTER: ${params.topicSlug} topic ONLY. Do NOT discuss other topics.`
       : `\n📋 USER SELECTED: ALL TOPICS. Cover all relevant topics found in the sources.`;
     
     // USER'S CUSTOM SYSTEM PROMPT (editable in settings) + STRICT SOURCE-ONLY RULES
@@ -279,8 +279,8 @@ ${params.jurisdiction && params.jurisdiction !== "All"
   ? `✅ Filter is ON: Answer ONLY for ${params.jurisdiction}. Ignore other jurisdictions in the sources.`
   : `✅ Filter is OFF: Give COMPREHENSIVE answer covering ALL ${jurisdictionsInSources.length} jurisdiction(s): ${jurisdictionsInSources.join(', ')}. DO NOT just pick the first state - include information from ALL of them.`}
 
-${params.topicKey && params.topicKey !== "All"
-  ? `✅ Topic filter is ON: Discuss ONLY ${params.topicKey}. Ignore other topics.`
+${params.topicSlug && params.topicSlug !== "All"
+  ? `✅ Topic filter is ON: Discuss ONLY ${params.topicSlug}. Ignore other topics.`
   : `✅ Topic filter is OFF: Address all relevant topics found in the sources.`}
 
 FORMAT:
@@ -310,7 +310,7 @@ Answer the query now:`;
     
     // Extract actual jurisdictions and topics from sources (not hallucinated)
     const actualJurisdictions = [...new Set(params.relevantRules.map((r: any) => r.jurisdiction).filter(Boolean))];
-    const actualTopics = [...new Set(params.relevantRules.map((r: any) => r.topicKey || r.topicLabel).filter(Boolean))];
+    const actualTopics = [...new Set(params.relevantRules.map((r: any) => r.topicSlug || r.topicName).filter(Boolean))];
     
     // Build a proper answer from the actual sources
     const answer = buildAnswerFromSources(params.relevantRules, params.query);
@@ -344,7 +344,7 @@ function buildAnswerFromSources(sources: any[], query: string): string {
   }
   
   const jurisdictions = [...new Set(sources.map((s: any) => s.jurisdiction).filter(Boolean))];
-  const topics = [...new Set(sources.map((s: any) => s.topicLabel || s.topicKey).filter(Boolean))];
+  const topics = [...new Set(sources.map((s: any) => s.topicName || s.topicSlug).filter(Boolean))];
   
   // Build comprehensive answer covering ALL jurisdictions
   let answer = `## Answer for: "${query}"\n\n`;
@@ -367,7 +367,7 @@ function buildAnswerFromSources(sources: any[], query: string): string {
       const snippet = source.snippet || source.content || '';
       const url = source.sourceUrl || 'No URL available';
       
-      answer += `**[${sourceNum}] ${source.topicLabel || source.topicKey}**\n`;
+      answer += `**[${sourceNum}] ${source.topicName || source.topicSlug}**\n`;
       answer += `${snippet.substring(0, 250)}...\n`;
       answer += `📎 [View Source](${url})\n`;
       answer += `Relevance: ${((source.similarity || 0) * 100).toFixed(1)}%\n\n`;
@@ -413,7 +413,7 @@ function applyFilters(results: any[], filters: any) {
   // Topic filter
   if (filters.topics && filters.topics.length > 0) {
     filtered = filtered.filter((r: any) => 
-      filters.topics.includes(r.topicKey)
+      filters.topics.includes(r.topicSlug)
     );
   }
   

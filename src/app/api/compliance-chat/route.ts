@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
           k: (userChatSettings.maxContextReports as number) || 5,
           threshold: 0.3,
           jurisdiction: jurisdiction || undefined,
-          topicKey: topic || undefined,
+          topicSlug: topic || undefined,
         });
         sources = (res as { sources?: unknown[] })?.sources || [];
         console.log(`📊 Chat API: Received ${sources.length} sources from embedding search`);
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             k: (userChatSettings.maxContextReports as number) || 5,
             threshold: 0.1,
             jurisdiction: jurisdiction || undefined,
-            topicKey: topic || undefined,
+            topicSlug: topic || undefined,
           });
           sources = (resLow as { sources?: unknown[] })?.sources || [];
           console.log(`📊 Low threshold search returned ${sources.length} sources`);
@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
     // Type guard for source objects
     type SourceObject = {
       jurisdiction?: string;
-      topicLabel?: string;
-      topicKey?: string;
+      topicName?: string;
+      topicSlug?: string;
       similarity?: number;
       sourceUrl?: string;
       extractedSections?: {
@@ -282,8 +282,8 @@ FORMAT THE ANSWER CLEARLY:
           similarity: s.similarity,
           url: s.sourceUrl,
           jurisdiction: s.jurisdiction,
-          topicKey: s.topicKey,
-          topicLabel: s.topicLabel,
+          topicSlug: s.topicSlug,
+          topicName: s.topicName,
         })),
         settings: {
           systemPrompt: userChatSettings.chatSystemPrompt || "Default compliance assistant prompt",

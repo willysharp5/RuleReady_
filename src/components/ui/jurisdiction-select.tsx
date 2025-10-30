@@ -10,15 +10,44 @@ interface JurisdictionSelectProps {
   onChange: (jurisdiction: any) => void
   placeholder?: string
   className?: string
+  includeInactive?: boolean
 }
 
-export function JurisdictionSelect({ value, onChange, placeholder = "No jurisdiction selected", className = "" }: JurisdictionSelectProps) {
+export function JurisdictionSelect({ 
+  value, 
+  onChange, 
+  placeholder = "No jurisdiction selected", 
+  className = "",
+  includeInactive = false 
+}: JurisdictionSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
   
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
-  const jurisdictions = jurisdictionsQuery || []
+  const allJurisdictions = jurisdictionsQuery || []
+  
+  // Filter out inactive jurisdictions unless includeInactive is true
+  // Also cascade: if a state is inactive, hide its cities too
+  const jurisdictions = includeInactive 
+    ? allJurisdictions 
+    : allJurisdictions.filter((j: any) => {
+        // Always show if active
+        if (j.isActive !== false) return true
+        
+        // Hide if inactive
+        return false
+      }).filter((j: any) => {
+        // If this is a city, check if its parent state is active
+        if (j.level === 'city' && j.stateCode) {
+          const parentState = allJurisdictions.find((s: any) => s.code === j.stateCode)
+          // Hide city if parent state is inactive
+          if (parentState && parentState.isActive === false) {
+            return false
+          }
+        }
+        return true
+      })
   
   // Filter jurisdictions by search
   const filtered = search
