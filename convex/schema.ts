@@ -27,10 +27,10 @@ const schema = defineSchema({
 
   // COMPLIANCE-FOCUSED TABLES
   complianceRules: defineTable({
-    ruleId: v.string(), // Composite key: jurisdiction_topickey
+    ruleId: v.string(), // Composite key: jurisdiction_topicslug
     jurisdiction: v.string(), // "Federal", "California", etc.
-    topicKey: v.string(), // "minimum_wage", "overtime", etc.
-    topicLabel: v.string(), // "Minimum Wage", "Overtime & Hours"
+    topicSlug: v.string(), // "minimum-wage", "overtime-hours", etc.
+    topicName: v.string(), // "Minimum Wage", "Overtime & Hours"
     sourceUrl: v.string(),
     notes: v.optional(v.string()),
     priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low"), v.literal("testing")),
@@ -55,7 +55,7 @@ const schema = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_jurisdiction", ["jurisdiction"])
-    .index("by_topic", ["topicKey"])
+    .index("by_topic", ["topicSlug"])
     .index("by_priority", ["priority"])
     .index("by_status", ["monitoringStatus"])
     .index("by_rule_id", ["ruleId"]),
@@ -102,7 +102,7 @@ const schema = defineSchema({
     embeddingDimensions: v.number(), // 1536
     metadata: v.object({
       jurisdiction: v.optional(v.string()),
-      topicKey: v.optional(v.string()),
+      topicSlug: v.optional(v.string()),
       contentLength: v.optional(v.number()),
       processingMethod: v.optional(v.string()),
     }),
@@ -135,14 +135,17 @@ const schema = defineSchema({
     .index("by_parent", ["parentCode"]),
 
   complianceTopics: defineTable({
-    topicKey: v.string(), // "minimum_wage", "overtime"
-    name: v.string(), // "Minimum Wage", "Overtime & Hours"
+    name: v.string(), // "Minimum Wage", "Overtime & Hours" - Primary display name
+    slug: v.string(), // "minimum-wage", "overtime-hours" - Auto-generated URL-friendly version
     category: v.string(), // "Wages & Hours", "Leave & Benefits"
-    description: v.string(),
-    keywords: v.array(v.string()), // For AI-powered change detection
+    description: v.string(), // For UI tooltips and AI context
+    isActive: v.optional(v.boolean()), // Allow hiding topics without deleting
+    createdAt: v.number(),
+    updatedAt: v.number(),
   })
     .index("by_category", ["category"])
-    .index("by_topic_key", ["topicKey"]),
+    .index("by_slug", ["slug"])
+    .index("by_active", ["isActive"]),
 
   // Compliance templates
   complianceTemplates: defineTable({
@@ -150,14 +153,14 @@ const schema = defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     markdownContent: v.string(),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     isDefault: v.boolean(),
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_template_id", ["templateId"])
-    .index("by_topic", ["topicKey"])
+    .index("by_topic", ["topicSlug"])
     .index("by_active", ["isActive"]),
 
   // Saved research results (from Compliance Research feature)

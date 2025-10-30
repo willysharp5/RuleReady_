@@ -32,13 +32,13 @@ export const getTemplateById = query({
   },
 });
 
-// Get template by topic key
+// Get template by topic slug
 export const getTemplateByTopic = query({
-  args: { topicKey: v.string() },
+  args: { topicSlug: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("complianceTemplates")
-      .withIndex("by_topic", (q) => q.eq("topicKey", args.topicKey))
+      .withIndex("by_topic", (q) => q.eq("topicSlug", args.topicSlug))
       .first();
   },
 });
@@ -50,7 +50,7 @@ export const upsertTemplate = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     markdownContent: v.string(),
-    topicKey: v.optional(v.string()),
+    topicSlug: v.optional(v.string()),
     isDefault: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
@@ -70,7 +70,7 @@ export const upsertTemplate = mutation({
         title: args.title,
         description: args.description,
         markdownContent: args.markdownContent,
-        topicKey: args.topicKey,
+        topicSlug: args.topicSlug,
         isDefault: args.isDefault ?? existing.isDefault,
         isActive: args.isActive ?? existing.isActive,
         updatedAt: now,
@@ -83,7 +83,7 @@ export const upsertTemplate = mutation({
         title: args.title,
         description: args.description,
         markdownContent: args.markdownContent,
-        topicKey: args.topicKey,
+        topicSlug: args.topicSlug,
         isDefault: args.isDefault ?? false,
         isActive: args.isActive ?? true,
         createdAt: now,
@@ -121,7 +121,7 @@ export const initializeDefaultTemplates = action({
         templateId: "minimum_wage_template",
         title: "Minimum Wage Compliance Template",
         description: "Template for monitoring minimum wage law changes and requirements",
-        topicKey: "minimum_wage",
+        topicSlug: "minimum-wage",
         markdownContent: `# Minimum Wage Compliance Template
 
 ## Overview
@@ -166,7 +166,7 @@ Relevant statutes, regulations, agency websites, and official resources
         templateId: "harassment_training_template", 
         title: "Harassment Training Compliance Template",
         description: "Template for monitoring harassment training requirements and deadlines",
-        topicKey: "harassment_training",
+        topicSlug: "harassment-training",
         markdownContent: `# Harassment Training Compliance Template
 
 ## Overview
@@ -219,7 +219,7 @@ Relevant statutes, regulations, approved training providers, and official resour
         templateId: "workplace_safety_template",
         title: "Workplace Safety Requirements Template", 
         description: "Template for monitoring OSHA and state workplace safety requirements",
-        topicKey: "workplace_safety",
+        topicSlug: "workplace-safety",
         markdownContent: `# Workplace Safety Requirements Template
 
 ## Overview
@@ -275,7 +275,7 @@ OSHA standards, state safety agencies, industry guidelines, and official resourc
         templateId: "paid_sick_leave_template",
         title: "Paid Sick Leave Compliance Template",
         description: "Template for monitoring paid sick leave laws and requirements", 
-        topicKey: "paid_sick_leave",
+        topicSlug: "paid-sick-leave",
         markdownContent: `# Paid Sick Leave Compliance Template
 
 ## Overview
@@ -403,7 +403,7 @@ Relevant statutes, regulations, agency websites, and official resources
           title: template.title,
           description: template.description,
           markdownContent: template.markdownContent,
-          topicKey: template.topicKey,
+          topicSlug: template.topicSlug,
           isDefault: true,
           isActive: true,
         });

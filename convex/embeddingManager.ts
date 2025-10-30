@@ -381,8 +381,8 @@ export const embeddingTopKSources = action({
           if (rule) {
             sourceUrl = rule.sourceUrl;
             jurisdiction = rule.jurisdiction;
-            topicKey = rule.topicKey;
-            topicLabel = rule.topicLabel;
+            topicKey = rule.topicSlug;
+            topicLabel = rule.topicName;
           }
         }
       } else {
@@ -391,8 +391,8 @@ export const embeddingTopKSources = action({
           ruleId = rule.ruleId;
           sourceUrl = rule.sourceUrl;
           jurisdiction = rule.jurisdiction;
-          topicKey = rule.topicKey;
-          topicLabel = rule.topicLabel;
+          topicKey = rule.topicSlug;
+          topicLabel = rule.topicName;
         }
       }
 

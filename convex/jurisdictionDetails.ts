@@ -17,7 +17,7 @@ export const getJurisdictionDetails = query({
     
     // Apply topic filter if specified
     if (args.topicFilter) {
-      rules = rules.filter(rule => rule.topicKey === args.topicFilter);
+      rules = rules.filter(rule => rule.topicSlug === args.topicFilter);
     }
     
     // Apply priority filter if specified
@@ -44,10 +44,10 @@ export const getJurisdictionDetails = query({
     
     // Group rules by topic for better organization
     const rulesByTopic = rules.reduce((acc, rule) => {
-      if (!acc[rule.topicKey]) {
-        acc[rule.topicKey] = [];
+      if (!acc[rule.topicSlug]) {
+        acc[rule.topicSlug] = [];
       }
-      acc[rule.topicKey].push(rule);
+      acc[rule.topicSlug].push(rule);
       return acc;
     }, {} as Record<string, any[]>);
     

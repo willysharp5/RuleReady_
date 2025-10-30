@@ -12,6 +12,7 @@ import type * as chatSettings from "../chatSettings.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceRAG from "../complianceRAG.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
+import type * as complianceTopics from "../complianceTopics.js";
 import type * as embeddingManager from "../embeddingManager.js";
 import type * as generateEmbeddings from "../generateEmbeddings.js";
 import type * as helpers from "../helpers.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   complianceQueries: typeof complianceQueries;
   complianceRAG: typeof complianceRAG;
   complianceTemplates: typeof complianceTemplates;
+  complianceTopics: typeof complianceTopics;
   embeddingManager: typeof embeddingManager;
   generateEmbeddings: typeof generateEmbeddings;
   helpers: typeof helpers;

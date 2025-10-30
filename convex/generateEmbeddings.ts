@@ -92,7 +92,7 @@ export const generateEmbeddingsForReports = action({
           embeddingDimensions: dimensions,
           metadata: {
             jurisdiction: extractJurisdiction(report.ruleId),
-            topicKey: extractTopicKey(report.ruleId),
+            topicSlug: extractTopicSlug(report.ruleId),
             contentLength: embeddingContent.length,
             processingMethod: "gemini_generated",
           },
@@ -144,7 +144,7 @@ export const storeEmbedding = internalMutation({
     embeddingDimensions: v.number(),
     metadata: v.object({
       jurisdiction: v.optional(v.string()),
-      topicKey: v.optional(v.string()),
+      topicSlug: v.optional(v.string()),
       contentLength: v.optional(v.number()),
       processingMethod: v.optional(v.string()),
     }),
@@ -260,8 +260,8 @@ function extractJurisdiction(ruleId: string): string {
   return parts[0] || 'unknown';
 }
 
-function extractTopicKey(ruleId: string): string {
-  // Extract topic from ruleId like "california_minimum_wage"
+function extractTopicSlug(ruleId: string): string {
+  // Extract topic slug from ruleId like "california_minimum-wage"
   const parts = ruleId.split('_');
   return parts.slice(1).join('_') || 'unknown';
 }

@@ -10,18 +10,84 @@ export function JurisdictionsProperties() {
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const jurisdictions = jurisdictionsQuery || []
   
+  const federal = jurisdictions.filter((j: any) => j.level === 'federal')
   const states = jurisdictions.filter((j: any) => j.level === 'state')
   const cities = jurisdictions.filter((j: any) => j.level === 'city')
+  
+  const active = jurisdictions.filter((j: any) => j.isActive !== false)
+  const inactive = jurisdictions.filter((j: any) => j.isActive === false)
+  
+  const hasLaws = jurisdictions.filter((j: any) => j.hasEmploymentLaws !== false)
+  const noLaws = jurisdictions.filter((j: any) => j.hasEmploymentLaws === false)
   
   return (
     <div className="space-y-2">
       {/* Info Box */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h5 className="font-medium text-blue-900 mb-2">Jurisdictions</h5>
-        <div className="text-xs text-blue-800 space-y-1">
-          <div><strong>Total:</strong> {jurisdictions.length} jurisdictions</div>
-          <div><strong>States:</strong> {states.length}</div>
-          <div><strong>Cities:</strong> {jurisdictions.filter((j: any) => j.level === 'city').length}</div>
+        <h5 className="font-medium text-blue-900 mb-3">Jurisdictions</h5>
+        
+        {/* Overall */}
+        <div className="mb-3 pb-3 border-b border-blue-200">
+          <div className="text-xs text-blue-800">
+            <strong>Total:</strong> {jurisdictions.length} jurisdictions
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3 text-xs text-blue-800">
+          {/* Left Column */}
+          <div className="space-y-2">
+            {/* By Level */}
+            <div>
+              <div className="font-semibold mb-1.5 text-blue-900">By Level</div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Federal:</span>
+                  <span className="font-medium">{federal.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>States:</span>
+                  <span className="font-medium">{states.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cities:</span>
+                  <span className="font-medium">{cities.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right Column */}
+          <div className="space-y-2">
+            {/* By Status */}
+            <div>
+              <div className="font-semibold mb-1.5 text-blue-900">By Status</div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Active:</span>
+                  <span className="font-medium">{active.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Inactive:</span>
+                  <span className="font-medium">{inactive.length}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* By Laws */}
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <div className="font-semibold mb-1.5 text-blue-900">Has Laws</div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Yes:</span>
+                  <span className="font-medium">{hasLaws.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>No:</span>
+                  <span className="font-medium">{noLaws.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       

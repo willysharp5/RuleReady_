@@ -100,9 +100,9 @@ export default function JurisdictionsFeature() {
     // Basic validation
     if (!formCode || !formName) {
       addToast({
-        variant: 'destructive',
         title: 'Validation Error',
         description: 'Code and Name are required',
+        variant: 'error',
         duration: 3000
       })
       return
@@ -112,7 +112,7 @@ export default function JurisdictionsFeature() {
     if (formLevel === 'federal') {
       if (formCode !== 'US') {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Invalid Code',
           description: 'Federal code must be "US"',
           duration: 3000
@@ -123,7 +123,7 @@ export default function JurisdictionsFeature() {
       // State code must be exactly 2 uppercase letters
       if (!/^[A-Z]{2}$/.test(formCode)) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Invalid State Code',
           description: 'State code must be exactly 2 uppercase letters (e.g., CA, NY, WV)',
           duration: 3000
@@ -134,7 +134,7 @@ export default function JurisdictionsFeature() {
       // City code must be STATE-CITY format (e.g., CA-SF)
       if (!/^[A-Z]{2}-[A-Z]+$/.test(formCode)) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Invalid City Code',
           description: 'City code must be STATE-CITY format (e.g., CA-SF, NY-NYC)',
           duration: 3000
@@ -145,7 +145,7 @@ export default function JurisdictionsFeature() {
       // State code is required for cities
       if (!formStateCode || !/^[A-Z]{2}$/.test(formStateCode)) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Invalid State Code',
           description: 'Cities must have a valid 2-letter state code (e.g., CA)',
           duration: 3000
@@ -156,7 +156,7 @@ export default function JurisdictionsFeature() {
       // Parent code required for cities
       if (!formParentCode) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Missing Parent Code',
           description: 'Cities must have a parent code (state code)',
           duration: 3000
@@ -167,7 +167,7 @@ export default function JurisdictionsFeature() {
       // Display name required for cities
       if (!formDisplayName) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Missing Display Name',
           description: 'Cities should have a display name (e.g., "San Francisco, CA")',
           duration: 3000
@@ -181,7 +181,7 @@ export default function JurisdictionsFeature() {
       const exists = jurisdictions.find((j: any) => j.code === formCode)
       if (exists) {
         addToast({
-          variant: 'destructive',
+          variant: 'error',
           title: 'Duplicate Code',
           description: `A jurisdiction with code "${formCode}" already exists`,
           duration: 3000
@@ -214,16 +214,16 @@ export default function JurisdictionsFeature() {
       })
       
       addToast({
-        variant: 'success',
         title: editingJurisdiction ? 'Jurisdiction Updated' : 'Jurisdiction Created',
         description: `${formName} has been ${editingJurisdiction ? 'updated' : 'created'} successfully`,
+        variant: 'success',
         duration: 3000
       })
       
       setShowModal(false)
     } catch (error) {
       addToast({
-        variant: 'destructive',
+        variant: 'error',
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to save jurisdiction',
         duration: 5000
@@ -236,14 +236,14 @@ export default function JurisdictionsFeature() {
     try {
       await deleteJurisdiction({ id })
       addToast({
-        variant: 'success',
         title: 'Jurisdiction Deleted',
         description: 'Jurisdiction has been deleted successfully',
+        variant: 'success',
         duration: 3000
       })
     } catch (error) {
       addToast({
-        variant: 'destructive',
+        variant: 'error',
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to delete jurisdiction',
         duration: 5000
@@ -353,16 +353,31 @@ export default function JurisdictionsFeature() {
         {paginatedJurisdictions.map((jurisdiction: any) => (
           <div
             key={jurisdiction._id}
-            className="border border-zinc-200 rounded-lg p-4 bg-white hover:border-purple-300 hover:shadow-sm transition-all"
+            className={`border border-zinc-200 rounded-lg p-4 bg-white hover:border-purple-300 hover:shadow-sm transition-all ${
+              jurisdiction.isActive === false ? 'opacity-60' : ''
+            }`}
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-start gap-3 flex-1">
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-5 h-5 text-purple-600" />
+                {jurisdiction.level === 'federal' && <Landmark className="w-5 h-5 text-blue-600" />}
+                {jurisdiction.level === 'state' && <MapPin className="w-5 h-5 text-green-600" />}
+                {jurisdiction.level === 'city' && <Building2 className="w-5 h-5 text-orange-600" />}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-zinc-900">{jurisdiction.name}</h3>
-                  <p className="text-xs text-zinc-500 mt-0.5 uppercase">{jurisdiction.code}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-zinc-900">{jurisdiction.name}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5 uppercase">{jurisdiction.code}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded flex-shrink-0 ${
+                    jurisdiction.isActive === false 
+                      ? 'bg-red-100 text-red-700' 
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    {jurisdiction.isActive === false ? 'Inactive' : 'Active'}
+                  </span>
+                </div>
                 <span className={`
                   inline-block mt-2 px-2 py-0.5 text-xs font-medium rounded-full
                     ${jurisdiction.level === 'federal' 
@@ -374,6 +389,16 @@ export default function JurisdictionsFeature() {
                 `}>
                     {jurisdiction.level}
                 </span>
+                
+                {/* Status Info */}
+                <div className="mt-3 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-600">Has Laws:</span>
+                    <span className={`font-medium ${jurisdiction.hasEmploymentLaws !== false ? 'text-green-600' : 'text-gray-500'}`}>
+                      {jurisdiction.hasEmploymentLaws !== false ? '✓ Yes' : '✗ No'}
+                    </span>
+                  </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -438,9 +463,22 @@ export default function JurisdictionsFeature() {
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            <span className="text-sm text-gray-600 px-2">
-              Page {currentPage} of {totalPages}
-            </span>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="h-8 w-8 p-0"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            
             <Button
               variant="outline"
               size="sm"

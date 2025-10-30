@@ -58,191 +58,167 @@ export const deleteJurisdiction = mutation({
   },
 });
 
-// Seed topics data
+// Helper to generate slug
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Seed topics data (migrated to new schema)
 export const seedTopics = mutation({
   handler: async (ctx) => {
     const topics = [
       {
-        topicKey: "minimum_wage",
         name: "Minimum Wage",
         category: "Wages & Hours",
-        description: "Employment law topic: Minimum Wage",
-        keywords: ["minimum wage", "hourly rate", "wage floor", "pay rate"],
+        description: "State and federal minimum wage rates for hourly employees, including exemptions and special categories.",
       },
       {
-        topicKey: "overtime",
         name: "Overtime & Hours",
         category: "Wages & Hours",
-        description: "Employment law topic: Overtime & Hours",
-        keywords: ["overtime", "time and a half", "40 hours", "overtime pay"],
+        description: "Overtime pay requirements, maximum working hours, and time-and-a-half calculations for non-exempt employees.",
       },
       {
-        topicKey: "paid_sick_leave",
         name: "Paid Sick Leave",
         category: "Leave & Benefits",
-        description: "Employment law topic: Paid Sick Leave",
-        keywords: ["paid sick leave"],
+        description: "Employer requirements for providing paid sick leave, accrual rates, and employee usage rights.",
       },
       {
-        topicKey: "family_medical_leave",
         name: "Paid Family / Medical Leave (PFML)",
         category: "Leave & Benefits",
-        description: "Employment law topic: Paid Family / Medical Leave (PFML)",
-        keywords: ["family medical leave"],
+        description: "State and federal family and medical leave programs, including parental leave and disability coverage.",
       },
       {
-        topicKey: "final_pay",
         name: "Final Pay / Vacation Payout",
         category: "Wages & Hours",
-        description: "Employment law topic: Final Pay / Vacation Payout",
-        keywords: ["final pay"],
+        description: "Requirements for final paycheck timing and vacation/PTO payout upon employee termination.",
       },
       {
-        topicKey: "pay_frequency",
         name: "Pay Frequency & Payday Timing",
         category: "Wages & Hours",
-        description: "Employment law topic: Pay Frequency & Payday Timing",
-        keywords: ["pay frequency"],
+        description: "Legal requirements for how often employees must be paid and acceptable pay period schedules.",
       },
       {
-        topicKey: "harassment_training",
         name: "Harassment Training",
         category: "Safety & Training",
-        description: "Employment law topic: Harassment Training",
-        keywords: ["sexual harassment", "workplace harassment", "training", "prevention"],
+        description: "Mandatory sexual harassment and workplace discrimination prevention training requirements for employers.",
       },
       {
-        topicKey: "posting_requirements",
         name: "Posting Requirements",
         category: "Employment Practices",
-        description: "Employment law topic: Posting Requirements",
-        keywords: ["workplace poster", "notice", "employee rights", "posting"],
+        description: "Required workplace posters and notices that must be displayed for employee awareness of rights.",
       },
       {
-        topicKey: "pregnancy_accommodation",
         name: "Pregnancy / Disability / ADA Accommodations",
         category: "Emerging Issues",
-        description: "Employment law topic: Pregnancy / Disability / ADA Accommodations",
-        keywords: ["pregnancy accommodation"],
+        description: "Employer obligations to provide reasonable accommodations for pregnancy, disabilities, and ADA compliance.",
       },
       {
-        topicKey: "meal_rest_breaks",
         name: "Meal & Rest Breaks",
         category: "Wages & Hours",
-        description: "Employment law topic: Meal & Rest Breaks",
-        keywords: ["meal rest breaks"],
+        description: "Required meal periods and rest breaks based on hours worked and state regulations.",
       },
       {
-        topicKey: "workers_comp",
         name: "Workers' Compensation",
         category: "Safety & Training",
-        description: "Employment law topic: Workers' Compensation",
-        keywords: ["workers compensation", "workplace injury", "insurance"],
+        description: "Employer requirements for workers' compensation insurance and reporting workplace injuries.",
       },
       {
-        topicKey: "child_labor",
         name: "Child Labor",
         category: "Employment Practices",
-        description: "Employment law topic: Child Labor",
-        keywords: ["child labor", "minors", "youth employment"],
+        description: "Restrictions on employing minors, including permitted hours, occupations, and age requirements.",
       },
       {
-        topicKey: "background_checks",
         name: "Background Checks",
         category: "Employment Practices",
-        description: "Employment law topic: Background Checks",
-        keywords: ["background check", "screening", "criminal history"],
+        description: "Legal requirements and restrictions for conducting criminal background checks on job applicants.",
       },
       {
-        topicKey: "tip_credit",
         name: "Tip Credit / Tipped Employees",
         category: "Wages & Hours",
-        description: "Employment law topic: Tip Credit / Tipped Employees",
-        keywords: ["tip credit", "tipped employees"],
+        description: "Rules for tip credits, minimum cash wages, and tip pooling for restaurant and service workers.",
       },
       {
-        topicKey: "jury_duty_leave",
         name: "Jury Duty Leave",
         category: "Leave & Benefits",
-        description: "Employment law topic: Jury Duty Leave",
-        keywords: ["jury duty"],
+        description: "Employee rights and employer obligations for time off to serve on jury duty.",
       },
       {
-        topicKey: "voting_leave",
         name: "Voting Leave",
         category: "Leave & Benefits",
-        description: "Employment law topic: Voting Leave",
-        keywords: ["voting leave", "time off to vote"],
+        description: "State requirements for providing paid or unpaid time off for employees to vote in elections.",
       },
       {
-        topicKey: "e_verify",
         name: "E-Verify",
         category: "Employment Practices",
-        description: "Employment law topic: E-Verify",
-        keywords: ["e-verify", "employment verification"],
+        description: "Federal and state requirements for electronic employment eligibility verification through E-Verify.",
       },
       {
-        topicKey: "drug_testing",
         name: "Drug Testing",
         category: "Safety & Training",
-        description: "Employment law topic: Drug Testing",
-        keywords: ["drug testing", "substance abuse"],
+        description: "Legal parameters for pre-employment, random, and post-accident drug and alcohol testing programs.",
       },
       {
-        topicKey: "predictive_scheduling",
         name: "Predictive Scheduling",
         category: "Emerging Issues",
-        description: "Employment law topic: Predictive Scheduling",
-        keywords: ["predictive scheduling", "fair workweek"],
+        description: "Fair workweek laws requiring advance notice of work schedules and predictability pay for changes.",
       },
       {
-        topicKey: "pay_equity",
         name: "Pay Equity / Salary History Bans",
         category: "Emerging Issues",
-        description: "Employment law topic: Pay Equity / Salary History Bans",
-        keywords: ["pay equity", "salary history ban"],
+        description: "Laws prohibiting salary history inquiries and requiring equal pay for substantially similar work.",
       },
       {
-        topicKey: "independent_contractor",
         name: "Independent Contractor Classification",
         category: "Employment Practices",
-        description: "Employment law topic: Independent Contractor Classification",
-        keywords: ["independent contractor", "1099", "classification"],
+        description: "Legal tests and requirements for properly classifying workers as independent contractors vs. employees.",
       },
       {
-        topicKey: "apprenticeship",
         name: "Apprenticeship Programs",
         category: "Employment Practices",
-        description: "Employment law topic: Apprenticeship Programs",
-        keywords: ["apprenticeship", "training program"],
+        description: "Requirements for registered apprenticeship programs and special wage/training provisions.",
       },
       {
-        topicKey: "prevailing_wage",
         name: "Prevailing Wage Laws (public contracts)",
         category: "Regulatory Compliance",
-        description: "Employment law topic: Prevailing Wage Laws (public contracts)",
-        keywords: ["prevailing wage"],
+        description: "Davis-Bacon and state prevailing wage requirements for workers on government-funded projects.",
       },
       {
-        topicKey: "record_retention",
         name: "Record Retention Requirements",
         category: "Regulatory Compliance",
-        description: "Employment law topic: Record Retention Requirements",
-        keywords: ["record retention", "recordkeeping"],
+        description: "Federal and state requirements for maintaining employment records, timesheets, and personnel files.",
       },
       {
-        topicKey: "unemployment_insurance",
         name: "Unemployment Insurance",
         category: "Regulatory Compliance",
-        description: "Employment law topic: Unemployment Insurance",
-        keywords: ["unemployment insurance", "UI"],
+        description: "Employer obligations for unemployment insurance taxes, coverage, and responding to claims.",
       },
     ];
 
+    const now = Date.now();
     let count = 0;
+    
     for (const topic of topics) {
-      await ctx.db.insert("complianceTopics", topic);
-      count++;
+      const slug = generateSlug(topic.name);
+      
+      // Check if already exists
+      const existing = await ctx.db
+        .query("complianceTopics")
+        .withIndex("by_slug", (q) => q.eq("slug", slug))
+        .first();
+      
+      if (!existing) {
+        await ctx.db.insert("complianceTopics", {
+          ...topic,
+          slug,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+        count++;
+      }
     }
 
     return { inserted: count };
