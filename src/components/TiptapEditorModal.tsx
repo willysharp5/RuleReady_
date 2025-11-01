@@ -292,9 +292,9 @@ export function TiptapEditorModal({
     setAiGeneratedPosition(null)
   }
   
-  // Try again - clear generated text and keep menu open
+  // Try again - regenerate (will be handled by menu component passing last prompt)
   const handleAiTryAgain = () => {
-    setAiGeneratedText('')
+    // This is handled by the menu component now - it stores and resends the last prompt
   }
   
   // Track selection changes (but don't auto-show menu)

@@ -34,13 +34,14 @@ export function AiFloatingMenu({
 }: AiFloatingMenuProps) {
   const [showInput, setShowInput] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
+  const [lastPrompt, setLastPrompt] = useState('')
 
   if (!isVisible || !selectedText) return null
 
   const handleSubmit = () => {
     if (customPrompt.trim()) {
+      setLastPrompt(customPrompt)
       onGenerate(customPrompt)
-      setCustomPrompt('')
     }
   }
 
@@ -148,18 +149,19 @@ export function AiFloatingMenu({
                   Discard
                 </Button>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => {
-                      onTryAgain()
-                      setShowInput(true)
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-600"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Try Again
-                  </Button>
+                <Button
+                  onClick={() => {
+                    if (lastPrompt) {
+                      onGenerate(lastPrompt)
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-600"
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Try Again
+                </Button>
                   <Button
                     onClick={() => {
                       onApply()
