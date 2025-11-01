@@ -22,6 +22,10 @@ const schema = defineSchema({
     researchTemperature: v.optional(v.number()),
     researchMaxTokens: v.optional(v.number()),
     researchFirecrawlConfig: v.optional(v.string()),
+    // Editor/Notes AI settings
+    editorModel: v.optional(v.string()),
+    editorTemperature: v.optional(v.number()),
+    editorMaxTokens: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),

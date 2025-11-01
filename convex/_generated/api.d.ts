@@ -13,6 +13,7 @@ import type * as chatSettings from "../chatSettings.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
 import type * as complianceTopics from "../complianceTopics.js";
+import type * as editorSettings from "../editorSettings.js";
 import type * as helpers from "../helpers.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   complianceQueries: typeof complianceQueries;
   complianceTemplates: typeof complianceTemplates;
   complianceTopics: typeof complianceTopics;
+  editorSettings: typeof editorSettings;
   helpers: typeof helpers;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;

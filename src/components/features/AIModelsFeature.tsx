@@ -14,8 +14,10 @@ export default function AIModelsFeature() {
   const { addToast } = useToast()
   const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
   const updateResearchSettings = useMutation(api.researchSettings.updateResearchSettings)
+  const updateEditorSettings = useMutation(api.editorSettings.updateEditorSettings)
   const chatSettings = useQuery(api.chatSettings.getChatSettings)
   const researchSettings = useQuery(api.researchSettings.getResearchSettings)
+  const editorSettings = useQuery(api.editorSettings.getEditorSettings)
   
   // AI Models configuration state
   const [showModelConfig, setShowModelConfig] = useState(false)
@@ -77,13 +79,16 @@ export default function AIModelsFeature() {
   const handleConfigureModel = (purpose: string) => {
     setConfigPurpose(purpose)
     
-    // Load settings from database
+    // Load settings from database based on purpose
     if (purpose === 'chat' && chatSettings) {
       setConfigTemperature(chatSettings.chatTemperature ?? 0.7)
       setConfigMaxTokens(chatSettings.chatMaxTokens ?? 8192)
     } else if (purpose === 'research' && researchSettings) {
       setConfigTemperature(researchSettings.researchTemperature ?? 0.5)
       setConfigMaxTokens(researchSettings.researchMaxTokens ?? 8192)
+    } else if (purpose === 'editor' && editorSettings) {
+      setConfigTemperature(editorSettings.editorTemperature ?? 0.3)
+      setConfigMaxTokens(editorSettings.editorMaxTokens ?? 2048)
     }
     
     setShowModelConfig(true)
@@ -142,11 +147,17 @@ Next steps:
           researchTemperature: configTemperature,
           researchMaxTokens: configMaxTokens,
         })
+      } else if (configPurpose === 'editor') {
+        await updateEditorSettings({
+          editorTemperature: configTemperature,
+          editorMaxTokens: configMaxTokens,
+        })
       }
       
+      const purposeLabel = configPurpose === 'chat' ? 'Chat' : configPurpose === 'research' ? 'Research' : 'Editor';
       addToast({
         title: 'Settings Saved',
-        description: `${configPurpose === 'chat' ? 'Chat' : 'Research'} model configuration has been updated.`,
+        description: `${purposeLabel} model configuration has been updated.`,
         variant: 'success',
         duration: 3000
       })
@@ -243,6 +254,27 @@ Next steps:
               size="sm" 
               className="mt-3"
               onClick={() => handleConfigureModel('research')}
+            >
+              <Edit3 className="h-3 w-3 mr-1" />
+              Configure
+            </Button>
+          </div>
+          
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-gray-900">Editor / Notes</h4>
+              <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Active</span>
+            </div>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p><strong>Model:</strong> Google Gemini 2.0 Flash</p>
+              <p><strong>Provider:</strong> Google</p>
+              <p><strong>Purpose:</strong> AI text editing and improvements</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => handleConfigureModel('editor')}
             >
               <Edit3 className="h-3 w-3 mr-1" />
               Configure

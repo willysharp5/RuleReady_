@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Copy, Check, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link as LinkIcon, Undo, Redo, Underline as UnderlineIcon, Code, Strikethrough, ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { X, Copy, Check, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, Link as LinkIcon, Undo, Redo, Underline as UnderlineIcon, Code, Strikethrough, ExternalLink, Pencil, Trash2, Sparkles, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -11,6 +11,7 @@ import Underline from '@tiptap/extension-underline'
 import TurndownService from 'turndown'
 import { remark } from 'remark'
 import remarkHtml from 'remark-html'
+import { AiFloatingMenu } from '@/components/ui/ai-floating-menu'
 
 interface TiptapEditorModalProps {
   isOpen: boolean
@@ -35,6 +36,15 @@ export function TiptapEditorModal({
   const [isSaving, setIsSaving] = useState(false)
   const [linkPopover, setLinkPopover] = useState<{ x: number; y: number; url: string; isEditing: boolean } | null>(null)
   const [editorKey, setEditorKey] = useState(0) // Force re-render
+  
+  // AI Menu state
+  const [showAiMenu, setShowAiMenu] = useState(false)
+  const [aiMenuPosition, setAiMenuPosition] = useState({ top: 0, left: 0 })
+  const [selectedText, setSelectedText] = useState('')
+  const [selectionRange, setSelectionRange] = useState<{ from: number; to: number } | null>(null)
+  const [isAiProcessing, setIsAiProcessing] = useState(false)
+  const [aiGeneratedText, setAiGeneratedText] = useState('')
+  const [aiGeneratedPosition, setAiGeneratedPosition] = useState<number | null>(null)
   
   // Turndown service for HTML to Markdown conversion
   const turndownService = useRef(new TurndownService({
@@ -128,6 +138,13 @@ export function TiptapEditorModal({
           editor.chain().focus().insertContent(' ').deleteRange({ from, to: from + 1 }).run()
           // Force component re-render to update button states
           setEditorKey(prev => prev + 1)
+          
+          // Scroll to top and position cursor at start
+          editor.commands.focus('start')
+          const editorElement = editor.view.dom
+          if (editorElement) {
+            editorElement.scrollTop = 0
+          }
         }, 50)
       })
     }
@@ -168,6 +185,142 @@ export function TiptapEditorModal({
       setIsSaving(false)
     }
   }
+  
+  // Generate AI text (shows in popover only)
+  const handleAiGenerate = async (prompt: string) => {
+    if (!editor || !selectionRange) return
+    
+    const { from, to } = selectionRange
+    const text = editor.state.doc.textBetween(from, to, ' ')
+    
+    if (!text.trim()) return
+    
+    setIsAiProcessing(true)
+    setAiGeneratedText('')
+    
+    try {
+      const response = await fetch('/api/ai-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          action: 'custom',
+          customPrompt: prompt,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('AI edit failed')
+      }
+      
+      // Stream the response
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullResult = ''
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) break
+          
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n').filter(line => line.trim())
+          
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line)
+              
+              if (data.chunk) {
+                fullResult += data.chunk
+                setAiGeneratedText(fullResult)
+              }
+              
+              if (data.done && data.result) {
+                setAiGeneratedText(data.result)
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error)
+      setAiGeneratedText('')
+      alert('AI generation failed. Please try again.')
+    } finally {
+      setIsAiProcessing(false)
+    }
+  }
+  
+  // Apply AI generated text to editor (convert markdown to HTML first)
+  const handleAiApply = async () => {
+    if (!editor || !selectionRange || !aiGeneratedText) return
+    
+    const { from, to } = selectionRange
+    
+    // Convert markdown to HTML before inserting
+    try {
+      const html = await markdownToHtml(aiGeneratedText)
+      
+      // Replace selected text with formatted AI text
+      editor.chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContentAt(from, html)
+        .run()
+    } catch (error) {
+      // Fallback: insert as plain text if conversion fails
+      editor.chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContentAt(from, aiGeneratedText)
+        .run()
+    }
+    
+    // Clear AI state
+    setAiGeneratedText('')
+    setAiGeneratedPosition(null)
+    setSelectedText('')
+    setSelectionRange(null)
+  }
+  
+  // Discard AI generated text
+  const handleAiDiscard = () => {
+    setAiGeneratedText('')
+    setAiGeneratedPosition(null)
+  }
+  
+  // Try again - clear generated text and keep menu open
+  const handleAiTryAgain = () => {
+    setAiGeneratedText('')
+  }
+  
+  // Track selection changes (but don't auto-show menu)
+  useEffect(() => {
+    if (!editor) return
+    
+    const handleSelectionUpdate = () => {
+      const { from, to } = editor.state.selection
+      const text = editor.state.doc.textBetween(from, to, ' ')
+      
+      if (text.trim().length > 0 && from !== to) {
+        setSelectedText(text)
+        setSelectionRange({ from, to })
+      } else {
+        setSelectedText('')
+        setSelectionRange(null)
+        setShowAiMenu(false)
+      }
+    }
+    
+    editor.on('selectionUpdate', handleSelectionUpdate)
+    
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate)
+    }
+  }, [editor])
   
   if (!isOpen) return null
   
@@ -433,6 +586,32 @@ export function TiptapEditorModal({
                   </div>
                 )}
               </div>
+              
+              <div className="w-px h-6 bg-gray-300 mx-1" />
+              
+              {/* AI Button - Always purple */}
+              <button
+                onClick={() => {
+                  if (selectedText && selectionRange) {
+                    // Position menu at bottom center of selection
+                    const selection = window.getSelection()
+                    if (selection && selection.rangeCount > 0) {
+                      const range = selection.getRangeAt(0)
+                      const rect = range.getBoundingClientRect()
+                      setAiMenuPosition({
+                        top: rect.bottom + 8,
+                        left: rect.left + (rect.width / 2) - 50
+                      })
+                      setShowAiMenu(true)
+                    }
+                  }
+                }}
+                className="p-2 rounded text-purple-600 hover:bg-purple-100 disabled:opacity-30"
+                title="Ask AI (select text first)"
+                disabled={!selectedText}
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
             </div>
           )}
           
@@ -637,6 +816,20 @@ export function TiptapEditorModal({
               border-top: 2px solid #d1d5db;
               margin: 1.5rem 0;
             }
+            
+            /* Hide AI markers from display */
+            .tiptap:has-text('[AI_GENERATED_START]') {
+              white-space: pre-wrap;
+            }
+          `}</style>
+          
+          {/* Custom styling to make AI generated text blue */}
+          <style jsx global>{`
+            /* Find text between markers and style it */
+            .ProseMirror {
+              white-space: pre-wrap;
+            }
+            /* This is a hack - we'll need to use a proper TipTap mark/node for production */
           `}</style>
         </div>
         
@@ -664,6 +857,23 @@ export function TiptapEditorModal({
           </div>
         </div>
       </div>
+      
+      {/* AI Floating Menu */}
+      <AiFloatingMenu
+        isVisible={showAiMenu}
+        position={aiMenuPosition}
+        selectedText={selectedText}
+        onGenerate={handleAiGenerate}
+        onApply={handleAiApply}
+        onDiscard={handleAiDiscard}
+        onTryAgain={handleAiTryAgain}
+        isProcessing={isAiProcessing}
+        generatedText={aiGeneratedText}
+        onClose={() => {
+          setShowAiMenu(false)
+          setAiGeneratedText('')
+        }}
+      />
     </div>
   )
 }
