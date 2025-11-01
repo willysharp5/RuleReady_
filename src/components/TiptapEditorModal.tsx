@@ -188,24 +188,29 @@ export function TiptapEditorModal({
   
   // Generate AI text (shows in popover only)
   const handleAiGenerate = async (prompt: string) => {
-    if (!editor || !selectionRange) return
+    if (!editor) return
     
-    const { from, to } = selectionRange
-    const text = editor.state.doc.textBetween(from, to, ' ')
-    
-    if (!text.trim()) return
+    // Get selected text if any
+    const text = selectionRange 
+      ? editor.state.doc.textBetween(selectionRange.from, selectionRange.to, ' ')
+      : ''
     
     setIsAiProcessing(true)
     setAiGeneratedText('')
+    
+    // Build context-aware prompt
+    const contextualPrompt = text.trim()
+      ? `Selected text: "${text}"\n\nInstruction: ${prompt}`
+      : prompt
     
     try {
       const response = await fetch('/api/ai-edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text,
+          text: text || '',
           action: 'custom',
-          customPrompt: prompt,
+          customPrompt: contextualPrompt,
         }),
       })
       
@@ -589,11 +594,11 @@ export function TiptapEditorModal({
               
               <div className="w-px h-6 bg-gray-300 mx-1" />
               
-              {/* AI Button - Always purple */}
+              {/* AI Button - Always clickable */}
               <button
-                onClick={() => {
+                onClick={(e) => {
                   if (selectedText && selectionRange) {
-                    // Position menu at bottom center of selection
+                    // Has selection: position menu at bottom center of selection
                     const selection = window.getSelection()
                     if (selection && selection.rangeCount > 0) {
                       const range = selection.getRangeAt(0)
@@ -602,13 +607,19 @@ export function TiptapEditorModal({
                         top: rect.bottom + 8,
                         left: rect.left + (rect.width / 2) - 50
                       })
-                      setShowAiMenu(true)
                     }
+                  } else {
+                    // No selection: position menu below Sparkles button in toolbar
+                    const buttonRect = (e.target as HTMLElement).getBoundingClientRect()
+                    setAiMenuPosition({
+                      top: buttonRect.bottom + 8,
+                      left: buttonRect.left - 50
+                    })
                   }
+                  setShowAiMenu(true)
                 }}
-                className="p-2 rounded text-purple-600 hover:bg-purple-100 disabled:opacity-30"
-                title="Ask AI (select text first)"
-                disabled={!selectedText}
+                className="p-2 rounded text-purple-600 hover:bg-purple-100"
+                title="Ask AI"
               >
                 <Sparkles className="w-4 h-4" />
               </button>
@@ -869,6 +880,7 @@ export function TiptapEditorModal({
         onTryAgain={handleAiTryAgain}
         isProcessing={isAiProcessing}
         generatedText={aiGeneratedText}
+        hasSelection={!!selectedText}
         onClose={() => {
           setShowAiMenu(false)
           setAiGeneratedText('')

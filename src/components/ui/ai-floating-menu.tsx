@@ -18,6 +18,7 @@ interface AiFloatingMenuProps {
   isProcessing: boolean
   generatedText: string
   onClose: () => void
+  hasSelection?: boolean
 }
 
 export function AiFloatingMenu({ 
@@ -30,13 +31,14 @@ export function AiFloatingMenu({
   onTryAgain,
   isProcessing, 
   generatedText,
-  onClose 
+  onClose,
+  hasSelection = false
 }: AiFloatingMenuProps) {
   const [showInput, setShowInput] = useState(false)
   const [customPrompt, setCustomPrompt] = useState('')
   const [lastPrompt, setLastPrompt] = useState('')
 
-  if (!isVisible || !selectedText) return null
+  if (!isVisible) return null
 
   const handleSubmit = () => {
     if (customPrompt.trim()) {

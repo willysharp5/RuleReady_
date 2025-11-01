@@ -8,12 +8,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { text, action, customPrompt, tone } = body;
 
-    if (!text) {
-      return NextResponse.json(
-        { error: 'Text is required' },
-        { status: 400 }
-      );
-    }
+    // Text can be empty if user is generating fresh content
+    // if (!text && !customPrompt) {
+    //   return NextResponse.json(
+    //     { error: 'Either text or customPrompt is required' },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Get editor settings from database
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
