@@ -362,38 +362,35 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
   
-  // Convert citation numbers to clickable links
+  // Convert citation numeric markers to clickable links
   const makeSourceLinksClickable = (content: string, message: any) => {
     if (!content) return content
     
-    // Build source URL map
+    // Build source URL map in the order shown to the user
     const sourceUrls: { [key: number]: string } = {}
     let currentIndex = 1
     
-    // Scraped URLs first
     if (message.scrapedUrlSources) {
       message.scrapedUrlSources.forEach((s: any) => {
-        sourceUrls[currentIndex++] = s.url
+        if (s?.url) sourceUrls[currentIndex++] = s.url
       })
     }
-    
-    // Internal sources (no URLs, skip)
     if (message.internalSources) {
+      // internal sources have no URLs; advance index to keep numbering aligned
       currentIndex += message.internalSources.length
     }
-    
-    // Web sources
     if (message.webSources) {
       message.webSources.forEach((s: any) => {
-        sourceUrls[currentIndex++] = s.url
+        if (s?.url) sourceUrls[currentIndex++] = s.url
       })
     }
     
-    // Replace [1], [2], [3] with clickable markdown links
-    let processedContent = content
-    Object.entries(sourceUrls).forEach(([num, url]) => {
-      const citationPattern = new RegExp(`\\[${num}\\]`, 'g')
-      processedContent = processedContent.replace(citationPattern, `[[${num}]](${url})`)
+    // Single pass: replace [1] or (1) (with optional spaces) with links
+    const citationRegex = /(\[|\()\s*(\d+)\s*(\]|\))/g
+    const processedContent = content.replace(citationRegex, (match, _open, numStr, _close) => {
+      const num = Number(numStr)
+      const url = sourceUrls[num]
+      return url ? `[[${num}]](${url})` : match
     })
     
     return processedContent
@@ -1289,6 +1286,9 @@ These appear AFTER "Based on these sources:" in your prompt.`
                                     <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline font-medium">
                                       {s.title}
                                     </a>
+                                    {s.url && (
+                                      <span className="text-gray-500 ml-1">({(() => { try { return new URL(s.url).hostname } catch { return '' } })()})</span>
+                                    )}
                                   </li>
                                 ))}
                               </ul>
@@ -1327,7 +1327,9 @@ These appear AFTER "Based on these sources:" in your prompt.`
                                     <a href={s.url} target="_blank" rel="noreferrer" className="hover:underline">
                                       {s.title}
                                     </a>
-                                    <span className="text-gray-500 ml-1">({s.siteName})</span>
+                                    {s.url && (
+                                      <span className="text-gray-500 ml-1">({s.siteName || (() => { try { return new URL(s.url).hostname } catch { return '' } })()})</span>
+                                    )}
                                   </li>
                                 ))}
                               </ul>
@@ -1347,6 +1349,9 @@ These appear AFTER "Based on these sources:" in your prompt.`
                                     <a href={n.url} target="_blank" rel="noreferrer" className="hover:underline">
                                       {n.title}
                                     </a>
+                                    {n.url && (
+                                      <span className="text-gray-500 ml-1">({(() => { try { return new URL(n.url).hostname } catch { return '' } })()})</span>
+                                    )}
                                     {n.publishedDate && <span className="text-gray-500 ml-1">({n.publishedDate})</span>}
                                   </li>
                                 ))}
