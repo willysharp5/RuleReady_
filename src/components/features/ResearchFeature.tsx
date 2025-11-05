@@ -145,8 +145,16 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       // Restore settings from this conversation's settingsSnapshot
       if (loadedConversation.settingsSnapshot && setResearchState) {
         const snapshot = loadedConversation.settingsSnapshot
+        
+        // Clean up system prompt - remove any template content that was baked in (old behavior)
+        let cleanSystemPrompt = snapshot.systemPrompt || '';
+        if (cleanSystemPrompt.includes('IMPORTANT: Structure your response using this template format:')) {
+          // Remove everything from "IMPORTANT: Structure..." to the end
+          cleanSystemPrompt = cleanSystemPrompt.split('IMPORTANT: Structure your response using this template format:')[0].trim();
+        }
+        
         setResearchState({
-          systemPrompt: snapshot.systemPrompt || '',
+          systemPrompt: cleanSystemPrompt,
           firecrawlConfig: snapshot.firecrawlConfig || '',
           model: snapshot.model,
           jurisdiction: snapshot.jurisdiction || '',

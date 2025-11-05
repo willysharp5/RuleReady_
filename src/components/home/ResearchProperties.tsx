@@ -134,9 +134,23 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const [configSaved, setConfigSaved] = useState(false)
 
   const handleSystemPromptChange = (prompt: string) => {
+    // Clean up - remove any template content that may have been pasted
+    let cleanPrompt = prompt;
+    if (cleanPrompt.includes('IMPORTANT: Structure your response using this template format:')) {
+      cleanPrompt = cleanPrompt.split('IMPORTANT: Structure your response using this template format:')[0].trim();
+      
+      // Show warning that template content was removed
+      addToast({
+        variant: 'default',
+        title: 'Template content removed',
+        description: 'Template content is applied automatically in the backend. Keep system prompt clean.',
+        duration: 3000
+      })
+    }
+    
     // Update local state immediately
     if (setResearchState && researchState) {
-      setResearchState({ ...researchState, systemPrompt: prompt })
+      setResearchState({ ...researchState, systemPrompt: cleanPrompt })
     }
     
     setPromptSaved(false)
@@ -149,7 +163,7 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
     promptSaveTimerRef.current = setTimeout(async () => {
       if (updateResearchSettings) {
         await updateResearchSettings({
-          researchSystemPrompt: prompt,
+          researchSystemPrompt: cleanPrompt,
           researchModel: researchState?.model,
           researchFirecrawlConfig: researchState?.firecrawlConfig
         })

@@ -160,9 +160,16 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
   // Load research settings from database on mount
   useEffect(() => {
     if (researchSettingsQuery && !settingsLoaded) {
+      // Clean up system prompt - remove any template content that was baked in (old behavior)
+      let cleanSystemPrompt = researchSettingsQuery.researchSystemPrompt || '';
+      if (cleanSystemPrompt.includes('IMPORTANT: Structure your response using this template format:')) {
+        // Remove everything from "IMPORTANT: Structure..." to the end
+        cleanSystemPrompt = cleanSystemPrompt.split('IMPORTANT: Structure your response using this template format:')[0].trim();
+      }
+      
       setResearchState(prev => ({
         ...prev,
-        systemPrompt: researchSettingsQuery.researchSystemPrompt,
+        systemPrompt: cleanSystemPrompt,
         firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
         model: researchSettingsQuery.researchModel,
         selectedTemplate: researchSettingsQuery.researchSelectedTemplateId || '', // Load template ID
