@@ -19,7 +19,8 @@ export async function POST(request: Request) {
       urls, // Array of URLs to scrape
       isRefinement, // Is this a refinement request?
       currentAnswer, // The answer being refined
-      currentSources // Sources from original answer
+      currentSources, // Sources from original answer
+      selectedTemplateId // Template ID (will fetch content dynamically)
     } = body;
     
     if (!query) {
@@ -256,13 +257,27 @@ export async function POST(request: Request) {
       })
       .join('\n\n---\n\n');
 
-    // Get research settings from database
+    // Get research settings and template from database
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL || "https://friendly-octopus-467.convex.cloud");
     let researchSettings: Record<string, unknown> = {};
+    let templateContent = '';
+    
     try {
       researchSettings = await convex.query(api.researchSettings.getResearchSettings) || {};
     } catch {
-      console.log("Could not load research settings from database");
+      // Silent failure
+    }
+    
+    // Fetch template content if template ID is provided
+    if (selectedTemplateId) {
+      try {
+        const template = await convex.query(api.complianceTemplates.getTemplateById, { templateId: selectedTemplateId });
+        if (template?.markdownContent) {
+          templateContent = `\n\nSELECTED TEMPLATE GUIDANCE:\n${template.markdownContent}`;
+        }
+      } catch {
+        // Template not found or error - continue without it
+      }
     }
     
     // Step 3: Generate AI response with Gemini (streaming)
@@ -301,7 +316,7 @@ FORMAT:
 - Structure longer responses with headers and bullet points
 - Always mention jurisdiction (federal vs state) when relevant`;
 
-    const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
+    const finalSystemPrompt = (systemPrompt || defaultSystemPrompt) + templateContent;
 
     let userPrompt;
     

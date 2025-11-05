@@ -22,6 +22,7 @@ interface ResearchFeatureProps {
   researchState?: {
     systemPrompt: string
     firecrawlConfig: string
+    model?: string
     selectedTemplate: string
     jurisdiction: string
     topic: string
@@ -526,6 +527,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
           firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
           additionalContext: researchState?.additionalContext || undefined,
+          selectedTemplateId: researchState?.selectedTemplate || selectedResearchTemplate || undefined,
           urls: (researchState?.urls || researchUrls).filter((url: string) => url.trim()).length > 0 
             ? (researchState?.urls || researchUrls).filter((url: string) => url.trim()).map((url: string) => url.trim())
             : undefined,

@@ -303,76 +303,35 @@ These appear AFTER "Based on these sources:" in your prompt.`
             value={selectedTemplateObj}
             onChange={(template: any) => {
               if (!template) {
-                // No template selected - use default prompt
-                const defaultPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
-
-Your role is to provide accurate, authoritative information about employment law based on the sources provided.
-
-- Cite sources using inline [1], [2], [3] format
-- Distinguish between federal and state requirements
-- Mention effective dates when relevant
-- Note penalties or deadlines when applicable
-- Be specific and detailed in your responses
-
-If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
-
-Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
-"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
-These appear AFTER "Based on these sources:" in your prompt.`;
-                
+                // No template selected - clear template ID only
                 if (setResearchState && researchState) {
-                  setResearchState({ ...researchState, selectedTemplate: '', systemPrompt: defaultPrompt })
+                  setResearchState({ ...researchState, selectedTemplate: '' })
                 }
                 
-                // Also update via settings if available
+                // Save cleared template ID to database
                 if (updateResearchSettings) {
                   updateResearchSettings({
-                    researchSystemPrompt: defaultPrompt,
-                    researchModel: researchState?.model,
-                    researchFirecrawlConfig: researchState?.firecrawlConfig
+                    researchSelectedTemplateId: ''
                   })
                 }
               } else {
-                // Template selected - update system prompt with template structure
-                const enhancedPrompt = `You are RuleReady Research AI, an expert assistant for US employment law compliance research.
-
-Your role is to provide accurate, authoritative information about employment law based on the sources provided.
-
-- Cite sources using inline [1], [2], [3] format
-- Distinguish between federal and state requirements
-- Mention effective dates when relevant
-- Note penalties or deadlines when applicable
-- Be specific and detailed in your responses
-
-If the user's question is extremely vague (like just "hello" or single word with no context), politely ask which jurisdiction and topic they're interested in. Otherwise, do your best to answer based on the sources and context available.
-
-Note: If jurisdiction/topic filters are selected, you will receive additional instructions like:
-"Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
-These appear AFTER "Based on these sources:" in your prompt.
-
-IMPORTANT: Structure your response using this template format:
-${template.markdownContent}
-
-Follow the template sections but adapt based on the query. Not all sections may be relevant for every query.`;
-                  
+                // Template selected - save only the template ID
                 if (setResearchState && researchState) {
-                  setResearchState({ ...researchState, selectedTemplate: template.templateId, systemPrompt: enhancedPrompt })
+                  setResearchState({ ...researchState, selectedTemplate: template.templateId })
                 }
                 
-                // Also update via settings if available
+                // Save template ID to database (API will fetch template content dynamically)
                 if (updateResearchSettings) {
                   updateResearchSettings({
-                    researchSystemPrompt: enhancedPrompt,
-                    researchModel: researchState?.model,
-                    researchFirecrawlConfig: researchState?.firecrawlConfig
+                    researchSelectedTemplateId: template.templateId
                   })
                 }
                 
                 // Show success message
                 addToast({
                   variant: 'success',
-                  title: 'Template applied',
-                  description: `Using ${template.title} - check AI Settings to see the updated prompt`,
+                  title: 'Template selected',
+                  description: `Using ${template.title} - template will be applied automatically in research queries`,
                   duration: 3000
                 })
               }

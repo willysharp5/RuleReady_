@@ -165,6 +165,7 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
         systemPrompt: researchSettingsQuery.researchSystemPrompt,
         firecrawlConfig: researchSettingsQuery.researchFirecrawlConfig,
         model: researchSettingsQuery.researchModel,
+        selectedTemplate: researchSettingsQuery.researchSelectedTemplateId || '', // Load template ID
         additionalContext: ''
       }))
       setSettingsLoaded(true)
