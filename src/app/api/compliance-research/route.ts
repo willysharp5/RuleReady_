@@ -163,6 +163,7 @@ export async function POST(request: Request) {
       if (!searchResponse.ok) {
         let errorMsg = searchResponse.statusText;
         let userFriendlyMsg = '';
+        let errorTitle = 'Firecrawl API Error';
         
         try {
           const responseText = await searchResponse.text();
@@ -179,14 +180,50 @@ export async function POST(request: Request) {
         
         // Provide user-friendly messages for common errors
         if (errorMsg.includes('Insufficient credits') || errorMsg.includes('credits')) {
-          userFriendlyMsg = 'Firecrawl API credits exhausted. Please add credits at firecrawl.dev/pricing or reduce the search limit in Research settings.';
+          errorTitle = '🔥 Firecrawl Credits Exhausted';
+          userFriendlyMsg = 'Your Firecrawl API has run out of credits.\n\n' +
+            '✅ Quick fix: Add credits at firecrawl.dev/pricing\n' +
+            '⚙️ Alternative: Reduce the search limit in Research → AI Settings → Search Configuration (JSON)';
         } else if (errorMsg.includes('rate limit') || errorMsg.includes('Too Many Requests')) {
-          userFriendlyMsg = 'Firecrawl rate limit reached. Please wait a moment and try again.';
+          errorTitle = '⏱️ Firecrawl Rate Limit';
+          userFriendlyMsg = 'Too many requests to Firecrawl API.\n\nPlease wait 30-60 seconds and try again.';
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('network')) {
+          errorTitle = '🌐 Firecrawl Connection Error';
+          userFriendlyMsg = 'Could not connect to Firecrawl API.\n\n' +
+            '• Check your internet connection\n' +
+            '• Firecrawl service may be temporarily down\n' +
+            '• Try again in a few moments';
         } else {
+          errorTitle = '❌ Firecrawl Error';
           userFriendlyMsg = `Research unavailable: ${errorMsg}`;
         }
         
-        throw new Error(userFriendlyMsg);
+        // Return error as SSE event instead of throwing
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          start(controller) {
+            // Send error event
+            const errorEvent = `data: ${JSON.stringify({ 
+              type: 'firecrawl_error', 
+              title: errorTitle,
+              message: userFriendlyMsg,
+              technical: errorMsg 
+            })}\n\n`;
+            controller.enqueue(encoder.encode(errorEvent));
+            
+            // Send done
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+          }
+        });
+        
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
       }
 
       const searchResult = await searchResponse.json();

@@ -17,6 +17,7 @@ import rehypeHighlight from 'rehype-highlight'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
 import { ResearchMetadataForm } from '@/components/ResearchMetadataForm'
+import { ErrorPopover } from '@/components/ui/error-popover'
 
 interface ResearchFeatureProps {
   researchState?: {
@@ -241,6 +242,20 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [researchAbortController, setResearchAbortController] = useState<AbortController | null>(null)
   const [showScrollButton, setShowScrollButton] = useState(false)
   const MAX_RESEARCH_URLS = 5
+  
+  // Error popover state
+  const [errorPopover, setErrorPopover] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: 'error' | 'warning' | 'info'
+    actions?: Array<{ label: string; onClick: () => void; variant?: 'primary' | 'secondary' }>
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'error'
+  })
   
   // Research configuration state
   const [researchSystemPrompt, setResearchSystemPrompt] = useState(`You are RuleReady Research AI, an expert assistant for US employment law compliance research.
@@ -572,7 +587,21 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                 
                 if (!parsed || !parsed.type) continue
                 
-                if (parsed.type === 'warning') {
+                if (parsed.type === 'firecrawl_error') {
+                  // Show error popover for Firecrawl errors (credits, rate limits, etc.)
+                  setErrorPopover({
+                    isOpen: true,
+                    title: parsed.title || 'Firecrawl API Error',
+                    message: parsed.message || 'An error occurred with the Firecrawl API',
+                    variant: 'error'
+                  })
+                  
+                  // Also remove the empty assistant message since research failed
+                  setResearchMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+                  
+                  // Stop processing - no point continuing
+                  break;
+                } else if (parsed.type === 'warning') {
                   // Set config error state to show in right panel
                   let warningDetails;
                   try {
@@ -718,7 +747,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
             additionalContext: researchState?.additionalContext,
           },
-          followUpQuestions: currentTab?.followUpQuestions || []
+          followUpQuestions: currentTab?.followUpQuestions || [],
+          truncateSources: false, // Don't auto-truncate
         })
         
         // Store conversation ID in the active tab (only if new)
@@ -736,9 +766,63 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               : tab
           ))
         }
-      } catch (error) {
-        // Silent failure for auto-save
-        console.error('Auto-save failed:', error)
+      } catch (error: any) {
+        // Check if error is "Document too large"
+        if (error.message && error.message.includes('Document too large')) {
+          // Show error popover asking if user wants to truncate
+          setErrorPopover({
+            isOpen: true,
+            variant: 'warning',
+            title: '⚠️ Conversation Too Large',
+            message: `${error.message}\n\nSource content will be truncated to reduce size (keeping titles, URLs, and first 500 chars of each source).`,
+            actions: [
+              {
+                label: 'Truncate & Save',
+                variant: 'primary',
+                onClick: async () => {
+                  // Retry save with truncation enabled
+                  try {
+                    const currentTab = tabs.find(t => t.id === activeTabId)
+                    await saveConversation({
+                      conversationId: currentTab?.conversationId as any || undefined,
+                      title: currentTab?.title,
+                      messages: researchMessages,
+                      filters: {
+                        jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+                        topic: researchState?.topic || researchTopic,
+                        templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
+                      },
+                      settingsSnapshot: {
+                        systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
+                        firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+                        additionalContext: researchState?.additionalContext,
+                      },
+                      followUpQuestions: currentTab?.followUpQuestions || [],
+                      truncateSources: true, // Enable truncation
+                    })
+                    
+                    addToast({
+                      variant: 'success',
+                      title: 'Saved with truncation',
+                      description: 'Conversation saved successfully with truncated sources',
+                      duration: 3000
+                    })
+                  } catch (retryError) {
+                    setErrorPopover({
+                      isOpen: true,
+                      variant: 'error',
+                      title: 'Save Failed',
+                      message: retryError instanceof Error ? retryError.message : 'Could not save conversation even after truncation. Please clear some messages.'
+                    })
+                  }
+                }
+              }
+            ]
+          })
+        } else {
+          // Silent failure for other auto-save errors
+          console.error('Auto-save failed:', error)
+        }
       }
     }, 2000) // Auto-save 2 seconds after last message
     
@@ -1028,6 +1112,16 @@ These appear AFTER "Based on these sources:" in your prompt.`
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Error Popover */}
+      <ErrorPopover
+        isOpen={errorPopover.isOpen}
+        onClose={() => setErrorPopover({ ...errorPopover, isOpen: false })}
+        title={errorPopover.title}
+        message={errorPopover.message}
+        variant={errorPopover.variant}
+        actions={errorPopover.actions}
+      />
+      
       {/* Save Metadata Popover - First Step */}
       {showSaveMetadataPopover && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center">
