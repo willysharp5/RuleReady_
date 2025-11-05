@@ -54,6 +54,11 @@ export const saveConversation = mutation({
     settingsSnapshot: v.object({
       systemPrompt: v.optional(v.string()),
       firecrawlConfig: v.optional(v.string()),
+      model: v.optional(v.string()),
+      jurisdiction: v.optional(v.string()),
+      topic: v.optional(v.string()),
+      selectedTemplate: v.optional(v.string()),
+      urls: v.optional(v.array(v.string())),
       additionalContext: v.optional(v.string()),
     }),
     followUpQuestions: v.optional(v.array(v.string())),

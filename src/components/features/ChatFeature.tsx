@@ -119,6 +119,26 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
       const shouldScroll = hasScrolledForConversation.current !== convId
       
       setIsLoadingConversation(true)
+      
+      // Restore settings from this conversation's settingsSnapshot
+      if (loadedConversation.settingsSnapshot && setChatState) {
+        const snapshot = loadedConversation.settingsSnapshot
+        setChatState({
+          systemPrompt: snapshot.systemPrompt || '',
+          model: snapshot.model,
+          jurisdiction: snapshot.jurisdiction || '',
+          topic: snapshot.topic || '',
+          additionalContext: snapshot.additionalContext || '',
+          selectedResearchIds: snapshot.selectedResearchIds || [],
+          savedResearchContent: snapshot.savedResearchContent || '',
+          lastPromptSent: ''
+        })
+        
+        // Also update local state
+        setChatJurisdiction(snapshot.jurisdiction || '')
+        setChatTopic(snapshot.topic || '')
+      }
+      
       // Update tab with loaded messages and follow-up questions
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId 
@@ -134,7 +154,7 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
         }
       }, 100)
     }
-  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
+  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setChatState])
   
   // When switching tabs, load that tab's conversation if not already loaded
   useEffect(() => {
@@ -406,7 +426,11 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
           settingsSnapshot: {
             systemPrompt: chatState?.systemPrompt,
             model: chatState?.model,
+            jurisdiction: chatState?.jurisdiction || chatJurisdiction,
+            topic: chatState?.topic || chatTopic,
             additionalContext: chatState?.additionalContext,
+            selectedResearchIds: chatState?.selectedResearchIds,
+            savedResearchContent: (chatState as any)?.savedResearchContent,
           }
         })
       } catch (error) {
@@ -482,7 +506,11 @@ You are a database query tool, not a general compliance advisor.`
           settingsSnapshot: {
             systemPrompt: chatState?.systemPrompt,
             model: chatState?.model,
+            jurisdiction: chatState?.jurisdiction || chatJurisdiction,
+            topic: chatState?.topic || chatTopic,
             additionalContext: chatState?.additionalContext,
+            selectedResearchIds: chatState?.selectedResearchIds,
+            savedResearchContent: (chatState as any)?.savedResearchContent,
           },
           followUpQuestions: currentTab?.followUpQuestions || []
         })

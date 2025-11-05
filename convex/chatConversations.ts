@@ -20,7 +20,10 @@ export const saveConversation = mutation({
     settingsSnapshot: v.object({
       systemPrompt: v.optional(v.string()),
       model: v.optional(v.string()),
+      jurisdiction: v.optional(v.string()),
+      topic: v.optional(v.string()),
       additionalContext: v.optional(v.string()),
+      selectedResearchIds: v.optional(v.array(v.string())),
       savedResearchContent: v.optional(v.string()),
     }),
     followUpQuestions: v.optional(v.array(v.string())),

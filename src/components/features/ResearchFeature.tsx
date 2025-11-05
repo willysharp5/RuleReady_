@@ -141,6 +141,29 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       const shouldScroll = hasScrolledForResearchConversation.current !== convId
       
       setIsLoadingConversation(true)
+      
+      // Restore settings from this conversation's settingsSnapshot
+      if (loadedConversation.settingsSnapshot && setResearchState) {
+        const snapshot = loadedConversation.settingsSnapshot
+        setResearchState({
+          systemPrompt: snapshot.systemPrompt || '',
+          firecrawlConfig: snapshot.firecrawlConfig || '',
+          model: snapshot.model,
+          jurisdiction: snapshot.jurisdiction || '',
+          topic: snapshot.topic || '',
+          selectedTemplate: snapshot.selectedTemplate || '',
+          urls: snapshot.urls || [''],
+          additionalContext: snapshot.additionalContext || '',
+          configError: null,
+          lastPromptSent: ''
+        })
+        
+        // Also update local state
+        setResearchJurisdiction(snapshot.jurisdiction || '')
+        setResearchTopic(snapshot.topic || '')
+        setSelectedResearchTemplate(snapshot.selectedTemplate || '')
+      }
+      
       // Update tab with loaded messages and follow-up questions
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId 
@@ -156,7 +179,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
         }
       }, 100)
     }
-  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
+  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setResearchState])
   
   // When switching tabs, load that tab's conversation if not already loaded
   useEffect(() => {
@@ -738,6 +761,11 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           settingsSnapshot: {
             systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
             firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+            model: researchState?.model,
+            jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+            topic: researchState?.topic || researchTopic,
+            selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
+            urls: researchState?.urls || [],
             additionalContext: researchState?.additionalContext,
           },
           followUpQuestions: currentTab?.followUpQuestions || [],
@@ -793,6 +821,11 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                       settingsSnapshot: {
                         systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
                         firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+                        model: researchState?.model,
+                        jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+                        topic: researchState?.topic || researchTopic,
+                        selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
+                        urls: researchState?.urls || [],
                         additionalContext: researchState?.additionalContext,
                       },
                       followUpQuestions: currentTab?.followUpQuestions || [],
@@ -857,6 +890,11 @@ These appear AFTER "Based on these sources:" in your prompt.`)
           settingsSnapshot: {
             systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
             firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
+            model: researchState?.model,
+            jurisdiction: researchState?.jurisdiction || researchJurisdiction,
+            topic: researchState?.topic || researchTopic,
+            selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
+            urls: researchState?.urls || [],
             additionalContext: researchState?.additionalContext,
           },
           followUpQuestions: []
