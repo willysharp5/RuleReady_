@@ -211,10 +211,11 @@ Be specific about what's missing and guide user to add it.`
         </div>
         
         <div className="mt-3 pt-3 border-t border-blue-300">
-          <div className="text-xs font-semibold text-blue-900 mb-1">⚠️ No Memory Between Questions</div>
+          <div className="text-xs font-semibold text-blue-900 mb-1">💡 How Context Works</div>
           <div className="text-xs text-blue-800">
-            Each question is evaluated independently. The AI does NOT remember previous questions. 
-            Make sure to select saved research and provide company context for EACH new question.
+            Each question uses your currently selected saved research and additional context. 
+            Your additional context persists across questions (no need to re-enter). 
+            Saved research selection applies to all questions until you change it.
           </div>
         </div>
       </div>
@@ -294,9 +295,9 @@ Be specific about what's missing and guide user to add it.`
             <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
             <span><strong>How it works:</strong> Select saved research items and the AI will use ONLY that content to answer your questions. Select multiple to combine knowledge bases!</span>
           </p>
-          <p className="text-xs text-orange-700 bg-orange-50 px-2 py-1.5 rounded border border-orange-200 flex items-start gap-1">
-            <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-            <span><strong>Important:</strong> Each question is independent - the AI does NOT remember previous questions. Reselect saved research for each new question.</span>
+          <p className="text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded border border-green-200 flex items-start gap-1">
+            <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <span><strong>Tip:</strong> Your saved research and additional context stay active across all questions in this chat. Change them anytime in this panel.</span>
           </p>
         </div>
       </div>
