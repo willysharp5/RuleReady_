@@ -249,6 +249,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     title: string
     message: string
     variant: 'error' | 'warning' | 'info'
+    icon?: 'flame' | 'clock' | 'wifi' | 'database' | 'alert' | 'x-circle'
     actions?: Array<{ label: string; onClick: () => void; variant?: 'primary' | 'secondary' }>
   }>({
     isOpen: false,
@@ -593,7 +594,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     isOpen: true,
                     title: parsed.title || 'Firecrawl API Error',
                     message: parsed.message || 'An error occurred with the Firecrawl API',
-                    variant: 'error'
+                    variant: 'error',
+                    icon: parsed.icon || 'alert'
                   })
                   
                   // Also remove the empty assistant message since research failed
@@ -769,12 +771,17 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       } catch (error: any) {
         // Check if error is "Document too large"
         if (error.message && error.message.includes('Document too large')) {
+          // Extract size from error message if available
+          const sizeMatch = error.message.match(/(\d+)KB/)
+          const sizeKB = sizeMatch ? sizeMatch[1] : 'unknown'
+          
           // Show error popover asking if user wants to truncate
           setErrorPopover({
             isOpen: true,
             variant: 'warning',
-            title: '⚠️ Conversation Too Large',
-            message: `${error.message}\n\nSource content will be truncated to reduce size (keeping titles, URLs, and first 500 chars of each source).`,
+            icon: 'database',
+            title: 'Conversation Too Large to Save',
+            message: `This conversation (${sizeKB}KB) exceeds the database limit (900KB).\n\nWhat happens next:\n• Source content will be shortened to 500 characters each\n• Titles, URLs, and your questions stay intact\n• Your AI answers remain complete\n\nClick "Truncate & Save" to proceed or X to cancel (conversation won't be saved).`,
             actions: [
               {
                 label: 'Truncate & Save',
@@ -811,8 +818,14 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     setErrorPopover({
                       isOpen: true,
                       variant: 'error',
-                      title: 'Save Failed',
-                      message: retryError instanceof Error ? retryError.message : 'Could not save conversation even after truncation. Please clear some messages.'
+                      icon: 'database',
+                      title: 'Still Too Large',
+                      message: 'Even with truncated sources, this conversation is too large to save.\n\n' +
+                        'Options:\n\n' +
+                        '• Click "Clear Chat" to start fresh\n' +
+                        '• Delete some messages manually\n' +
+                        '• Save individual research results instead\n\n' +
+                        'Conversations with many research queries can grow very large.'
                     })
                   }
                 }
@@ -1119,6 +1132,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
         title={errorPopover.title}
         message={errorPopover.message}
         variant={errorPopover.variant}
+        icon={errorPopover.icon}
         actions={errorPopover.actions}
       />
       
@@ -1225,25 +1239,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
           </div>
           <div className="flex items-center gap-2 relative">
-            <Button
-              onClick={() => {
-                // TODO: Implement template generation
-                addToast({
-                  variant: 'success',
-                  title: 'Generate Template',
-                  description: 'Template generation coming soon!',
-                  duration: 3000
-                })
-              }}
-              variant="outline"
-              size="sm"
-              className="text-purple-600 border-purple-300 hover:bg-purple-50"
-              disabled={researchMessages.length === 0}
-            >
-              <FileText className="w-4 h-4 mr-1" />
-              Generate Template
-            </Button>
-            
             <Button
               onClick={() => setShowClearConfirm(true)}
               variant="outline"

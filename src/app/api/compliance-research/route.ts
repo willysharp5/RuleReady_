@@ -179,23 +179,42 @@ export async function POST(request: Request) {
         }
         
         // Provide user-friendly messages for common errors
+        let errorIcon = 'alert';
         if (errorMsg.includes('Insufficient credits') || errorMsg.includes('credits')) {
-          errorTitle = '🔥 Firecrawl Credits Exhausted';
-          userFriendlyMsg = 'Your Firecrawl API has run out of credits.\n\n' +
-            '✅ Quick fix: Add credits at firecrawl.dev/pricing\n' +
-            '⚙️ Alternative: Reduce the search limit in Research → AI Settings → Search Configuration (JSON)';
+          errorTitle = 'Out of Search Credits';
+          errorIcon = 'flame';
+          userFriendlyMsg = 'Your Firecrawl API has run out of credits and cannot perform web searches.\n\n' +
+            'Solutions:\n\n' +
+            '1. Add more credits:\n' +
+            '   Visit firecrawl.dev/pricing to top up your account\n\n' +
+            '2. Reduce search volume:\n' +
+            '   Go to Research → AI Settings → Search Configuration\n' +
+            '   Lower the "limit" value (currently using your config)\n\n' +
+            'Research will work again once credits are added or limits reduced.';
         } else if (errorMsg.includes('rate limit') || errorMsg.includes('Too Many Requests')) {
-          errorTitle = '⏱️ Firecrawl Rate Limit';
-          userFriendlyMsg = 'Too many requests to Firecrawl API.\n\nPlease wait 30-60 seconds and try again.';
+          errorTitle = 'Too Many Requests';
+          errorIcon = 'clock';
+          userFriendlyMsg = 'You\'ve sent too many requests to Firecrawl in a short time.\n\n' +
+            'What to do:\n\n' +
+            '• Wait 30-60 seconds before trying again\n' +
+            '• Rate limits reset automatically\n' +
+            '• Consider reducing search frequency\n\n' +
+            'This protects the API from overload and will clear shortly.';
         } else if (errorMsg.includes('timeout') || errorMsg.includes('ECONNREFUSED') || errorMsg.includes('network')) {
-          errorTitle = '🌐 Firecrawl Connection Error';
-          userFriendlyMsg = 'Could not connect to Firecrawl API.\n\n' +
-            '• Check your internet connection\n' +
-            '• Firecrawl service may be temporarily down\n' +
-            '• Try again in a few moments';
+          errorTitle = 'Connection Failed';
+          errorIcon = 'wifi';
+          userFriendlyMsg = 'Could not connect to Firecrawl search service.\n\n' +
+            'Check these:\n\n' +
+            '• Your internet connection is working\n' +
+            '• Firecrawl.dev is online (not experiencing downtime)\n' +
+            '• No firewall blocking api.firecrawl.dev\n\n' +
+            'Try again in a few moments. If the issue persists, Firecrawl may be temporarily down.';
         } else {
-          errorTitle = '❌ Firecrawl Error';
-          userFriendlyMsg = `Research unavailable: ${errorMsg}`;
+          errorTitle = 'Search Service Error';
+          errorIcon = 'x-circle';
+          userFriendlyMsg = `The research service encountered an error and couldn't complete your request.\n\n` +
+            `Technical details:\n${errorMsg}\n\n` +
+            `Try again or contact support if this persists.`;
         }
         
         // Return error as SSE event instead of throwing
@@ -207,6 +226,7 @@ export async function POST(request: Request) {
               type: 'firecrawl_error', 
               title: errorTitle,
               message: userFriendlyMsg,
+              icon: errorIcon,
               technical: errorMsg 
             })}\n\n`;
             controller.enqueue(encoder.encode(errorEvent));

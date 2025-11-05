@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { X } from 'lucide-react'
+import { X, AlertCircle, AlertTriangle, Info, Flame, Clock, Wifi, Database, XCircle } from 'lucide-react'
 import { Button } from './button'
 
 export interface ErrorPopoverAction {
@@ -8,12 +8,15 @@ export interface ErrorPopoverAction {
   variant?: 'primary' | 'secondary'
 }
 
+export type ErrorPopoverIcon = 'flame' | 'clock' | 'wifi' | 'database' | 'alert' | 'x-circle'
+
 interface ErrorPopoverProps {
   isOpen: boolean
   onClose: () => void
   title: string
   message: string
   variant?: 'error' | 'warning' | 'info'
+  icon?: ErrorPopoverIcon
   actions?: ErrorPopoverAction[]
 }
 
@@ -23,6 +26,7 @@ export function ErrorPopover({
   title, 
   message, 
   variant = 'error',
+  icon,
   actions 
 }: ErrorPopoverProps) {
   if (!isOpen) return null
@@ -32,23 +36,37 @@ export function ErrorPopover({
       bg: 'bg-red-50',
       border: 'border-red-300',
       title: 'text-red-900',
-      text: 'text-red-800'
+      text: 'text-red-800',
+      iconColor: 'text-red-600'
     },
     warning: {
       bg: 'bg-yellow-50',
       border: 'border-yellow-300',
       title: 'text-yellow-900',
-      text: 'text-yellow-800'
+      text: 'text-yellow-800',
+      iconColor: 'text-yellow-600'
     },
     info: {
       bg: 'bg-blue-50',
       border: 'border-blue-300',
       title: 'text-blue-900',
-      text: 'text-blue-800'
+      text: 'text-blue-800',
+      iconColor: 'text-blue-600'
     }
   }
 
   const styles = variantStyles[variant]
+  
+  const iconMap = {
+    flame: Flame,
+    clock: Clock,
+    wifi: Wifi,
+    database: Database,
+    alert: AlertTriangle,
+    'x-circle': XCircle,
+  }
+  
+  const IconComponent = icon ? iconMap[icon] : (variant === 'warning' ? AlertTriangle : AlertCircle)
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
@@ -68,19 +86,24 @@ export function ErrorPopover({
           <X className="h-5 w-5 text-gray-600" />
         </button>
         
-        {/* Title */}
-        <h3 className={`text-lg font-semibold ${styles.title} mb-3 pr-8`}>
-          {title}
-        </h3>
+        {/* Icon and Title */}
+        <div className="flex items-start gap-3 mb-3 pr-8">
+          <IconComponent className={`h-6 w-6 flex-shrink-0 mt-0.5 ${styles.iconColor}`} />
+          <h3 className={`text-lg font-semibold ${styles.title} flex-1`}>
+            {title}
+          </h3>
+        </div>
         
-        {/* Message */}
-        <p className={`text-sm ${styles.text} whitespace-pre-wrap leading-relaxed`}>
-          {message}
-        </p>
+        {/* Message - aligned with title */}
+        <div className="ml-9">
+          <p className={`text-sm ${styles.text} whitespace-pre-wrap leading-relaxed`}>
+            {message}
+          </p>
+        </div>
         
-        {/* Actions */}
+        {/* Actions - aligned with message */}
         {actions && actions.length > 0 && (
-          <div className="flex gap-2 mt-6">
+          <div className="flex gap-2 mt-6 ml-9">
             {actions.map((action, idx) => (
               <Button
                 key={idx}
