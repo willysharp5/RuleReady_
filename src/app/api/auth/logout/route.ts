@@ -12,6 +12,15 @@ export async function POST() {
     path: '/',
   })
   
+  // Clear role cookie
+  response.cookies.set('ruleready-role', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  })
+  
   return response
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen, LogOut } from 'lucide-react'
+import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen, LogOut, Shield } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
 import ChatFeature from '@/components/features/ChatFeature'
@@ -14,6 +14,7 @@ import AIModelsFeature from '@/components/features/AIModelsFeature'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
 type FeatureType = 'chat' | 'research' | 'saved-research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
@@ -38,6 +39,7 @@ export default function HomePage() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as FeatureType | null
   const featureParam = searchParams.get('feature') as FeatureType | null
+  const { isAdmin, isLoading } = useAuth()
   
   const initialFeature = featureParam || tabParam || 'chat'
   const [activeFeature, setActiveFeature] = useState<FeatureType>(initialFeature)
@@ -55,7 +57,7 @@ export default function HomePage() {
     if (urlFeature && urlFeature !== activeFeature) {
       setActiveFeature(urlFeature)
     }
-  }, [tabParam, featureParam])
+  }, [tabParam, featureParam, activeFeature])
   
   // Load research settings from database
   const researchSettingsQuery = useQuery(api.researchSettings.getResearchSettings)
@@ -145,19 +147,36 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
     }
   }, [researchSettingsQuery, settingsLoaded])
   
+  // Query all saved research to rebuild content from IDs
+  const allSavedResearchQuery = useQuery(api.savedResearch.getAllSavedResearch)
+  
   // Load chat settings from database on mount
   useEffect(() => {
     if (chatSettingsQuery && !chatSettingsLoaded) {
+      const loadedIds = chatSettingsQuery.chatSelectedResearchIds || [];
+      
+       // Rebuild savedResearchContent from IDs if we have research data
+       let rebuiltContent = '';
+       if (loadedIds.length > 0 && allSavedResearchQuery) {
+         const selectedItems = (allSavedResearchQuery || []).filter((r) => loadedIds.includes(r._id));
+         if (selectedItems.length > 0) {
+           rebuiltContent = selectedItems.map((item) => 
+             `[SAVED RESEARCH] ${item.title}\n${item.jurisdiction ? `Jurisdiction: ${item.jurisdiction}\n` : ''}${item.topic ? `Topic: ${item.topic}\n` : ''}\n${item.content}`
+           ).join('\n\n---\n\n');
+         }
+       }
+      
       setChatState(prev => ({
         ...prev,
         systemPrompt: chatSettingsQuery.chatSystemPrompt,
         model: chatSettingsQuery.chatModel,
         additionalContext: chatSettingsQuery.chatAdditionalContext || '',
-        selectedResearchIds: chatSettingsQuery.chatSelectedResearchIds || []
+        selectedResearchIds: loadedIds,
+        savedResearchContent: rebuiltContent
       }))
       setChatSettingsLoaded(true)
     }
-  }, [chatSettingsQuery, chatSettingsLoaded])
+  }, [chatSettingsQuery, chatSettingsLoaded, allSavedResearchQuery])
   
   const handleLogout = async () => {
     try {
@@ -171,11 +190,27 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-50 h-16 border-b border-zinc-200 bg-white px-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
+          {isAdmin && (
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+              <Shield className="h-3 w-3" />
+              Admin
+            </div>
+          )}
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"

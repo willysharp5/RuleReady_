@@ -1,4 +1,4 @@
-type FeatureType = 'chat' | 'research' | 'templates' | 'jurisdictions' | 'topics'
+type FeatureType = 'chat' | 'research' | 'saved-research' | 'templates' | 'jurisdictions' | 'topics' | 'ai-models'
 
 interface NavItem {
   id: FeatureType

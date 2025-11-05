@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { AdminOnly } from '@/components/AdminOnly'
 
 interface ChatState {
   systemPrompt: string

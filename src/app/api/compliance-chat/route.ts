@@ -15,19 +15,16 @@ export async function POST(req: NextRequest) {
     try {
       dbSettings = await convex.query(api.chatSettings.getChatSettings) || {};
     } catch {
-      console.log("Could not load chat settings from database");
+      // Silent failure - will use empty defaults
     }
 
     const lastUser = messages[messages.length - 1]?.content || "";
-    console.log(`🔍 Chat API: Processing question "${lastUser}"`);
-    console.log(`⚙️ Jurisdiction: ${jurisdiction || 'ALL'}, Topic: ${topic || 'ALL'}`);
     
     // Use custom system prompt from request, or fallback to database
     const baseSystemPrompt = customSystemPrompt || (dbSettings.chatSystemPrompt as string);
     if (!baseSystemPrompt) {
       throw new Error("Chat system prompt not configured. Please set it in Settings.");
     }
-    console.log(`📝 Using ${customSystemPrompt ? 'custom' : 'database'} system prompt`);
     
     // Initialize Gemini (needed for AI-based extraction and chat)
     const apiKey = process.env.GEMINI_API_KEY;
@@ -102,7 +99,6 @@ ${additionalContext}`;
           // 2. Recalculate total from actual names
           const actualTotal = Object.values(actualCounts).reduce((sum, count) => sum + count, 0);
           if (actualTotal > 0 && totalEmployees !== actualTotal) {
-            console.log(`[CHAT VALIDATION] Total mismatch: stated ${totalEmployees}, actual ${actualTotal}. Using actual.`);
             totalEmployees = actualTotal;
           }
           
@@ -110,7 +106,7 @@ ${additionalContext}`;
           companyEmployeeStates = companyEmployeeStates.filter(s => (actualCounts[s] || 0) > 0);
         }
       } catch (e) {
-        console.log('AI extraction failed:', (e as Error).message);
+        // Silent failure - will use empty arrays
       }
     }
 
@@ -154,16 +150,13 @@ Never include meta-commentary about the mode. Output only the answer.`;
     // Add saved research (legal compliance info)
     if (savedResearchContent && savedResearchContent.trim()) {
       systemPrompt += `\n\n=== SAVED RESEARCH (LEGAL COMPLIANCE INFORMATION) ===\n${savedResearchContent}`;
-      console.log(`📚 Using ${savedResearchContent.length} characters of saved research`);
     } else {
       systemPrompt += `\n\n=== NO SAVED RESEARCH SELECTED ===\nYou must say: "I don't have any saved research selected. Please select saved research from the knowledge base to provide legal compliance information."`;
-      console.log(`⚠️ No saved research provided`);
     }
     
     // Add additional context (company info, scenarios, etc.)
     if (additionalContext && additionalContext.trim()) {
       systemPrompt += `\n\n=== ADDITIONAL CONTEXT (COMPANY/SCENARIO INFO) ===\n${additionalContext}`;
-      console.log(`📄 Using ${additionalContext.length} characters of additional context`);
     }
 
     if (companyEmployeeStates.length > 0) {
@@ -242,7 +235,7 @@ ${lastUser}`;
           thresholdCheckResult = JSON.parse(cleaned);
         }
       } catch (e) {
-        console.log('Threshold check failed:', (e as Error).message);
+        // Silent failure - threshold check will be null
       }
     }
 
@@ -285,7 +278,7 @@ Your formatted markdown answer:`;
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
       } catch (e) {
-        console.log('Content-only answer failed:', (e as Error).message);
+        // Silent failure - will fall through to general handler
       }
     }
 
@@ -363,7 +356,9 @@ RULES:
 Questions:`;
           const fRes = await genAI.getGenerativeModel({ model: modelName }).generateContent({ contents: [{ role: 'user', parts: [{ text: followUpPrompt }] }] });
           followUpQuestions = fRes.response.text().split('\n').map(q => q.trim().replace(/^[-•\d\.]+\s*/, '')).filter(q => q.length > 0 && q.length < 150).slice(0, 3);
-        } catch {}
+        } catch (e) {
+          // Silent failure for follow-ups
+        }
 
         return new Response(
           JSON.stringify({ 
@@ -382,8 +377,8 @@ Questions:`;
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
-      } catch (e) {
-        console.log('Conversational answer failed, using structured:', (e as Error).message);
+        } catch (e) {
+        // Fallback if conversational answer fails
         // Fallback to structured
         let content: string;
         if (questionIntent === 'who-needs') {
@@ -468,7 +463,7 @@ Questions:`;
         conversationContext += '\n=== END HISTORY ===\n';
       }
     } catch (historyError) {
-      console.log('Failed to build conversation history:', historyError);
+      // Silent failure - continue without history
     }
 
     const lastMessage = messages[messages.length - 1];
@@ -514,7 +509,7 @@ Generate 3 questions:`;
         .filter(q => q.length > 0 && q.length < 150)
         .slice(0, 3);
     } catch (e) {
-      console.log('Follow-up generation failed:', (e as Error).message);
+      // Silent failure for follow-ups
     }
 
     return new Response(
@@ -539,7 +534,6 @@ Generate 3 questions:`;
     );
     
   } catch (error) {
-    console.error('Compliance chat error:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to process compliance chat request', details: (error as Error).message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
