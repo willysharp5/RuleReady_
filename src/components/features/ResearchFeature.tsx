@@ -1128,7 +1128,26 @@ These appear AFTER "Based on these sources:" in your prompt.`
             <h2 className="text-2xl font-semibold text-gray-900">Compliance Research</h2>
             <p className="text-sm text-gray-600 mt-1">Search employment laws, regulations, and news with AI-powered insights</p>
           </div>
-          <div className="relative">
+          <div className="flex items-center gap-2 relative">
+            <Button
+              onClick={() => {
+                // TODO: Implement template generation
+                addToast({
+                  variant: 'success',
+                  title: 'Generate Template',
+                  description: 'Template generation coming soon!',
+                  duration: 3000
+                })
+              }}
+              variant="outline"
+              size="sm"
+              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+              disabled={researchMessages.length === 0}
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              Generate Template
+            </Button>
+            
             <Button
               onClick={() => setShowClearConfirm(true)}
               variant="outline"

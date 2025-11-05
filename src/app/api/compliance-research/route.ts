@@ -161,6 +161,8 @@ export async function POST(request: Request) {
 
       if (!searchResponse.ok) {
         let errorMsg = searchResponse.statusText;
+        let userFriendlyMsg = '';
+        
         try {
           const responseText = await searchResponse.text();
           try {
@@ -173,7 +175,17 @@ export async function POST(request: Request) {
         } catch {
           // Couldn't read response at all
         }
-        throw new Error(`Firecrawl API error: ${errorMsg}`);
+        
+        // Provide user-friendly messages for common errors
+        if (errorMsg.includes('Insufficient credits') || errorMsg.includes('credits')) {
+          userFriendlyMsg = 'Firecrawl API credits exhausted. Please add credits at firecrawl.dev/pricing or reduce the search limit in Research settings.';
+        } else if (errorMsg.includes('rate limit') || errorMsg.includes('Too Many Requests')) {
+          userFriendlyMsg = 'Firecrawl rate limit reached. Please wait a moment and try again.';
+        } else {
+          userFriendlyMsg = `Research unavailable: ${errorMsg}`;
+        }
+        
+        throw new Error(userFriendlyMsg);
       }
 
       const searchResult = await searchResponse.json();
