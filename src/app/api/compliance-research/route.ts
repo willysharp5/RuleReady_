@@ -160,8 +160,20 @@ export async function POST(request: Request) {
       });
 
       if (!searchResponse.ok) {
-        const errorData = await searchResponse.json();
-        throw new Error(`Firecrawl API error: ${errorData.error || searchResponse.statusText}`);
+        let errorMsg = searchResponse.statusText;
+        try {
+          const responseText = await searchResponse.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData.error || errorMsg;
+          } catch {
+            // Not JSON, use the text directly
+            errorMsg = responseText.substring(0, 200) || errorMsg;
+          }
+        } catch {
+          // Couldn't read response at all
+        }
+        throw new Error(`Firecrawl API error: ${errorMsg}`);
       }
 
       const searchResult = await searchResponse.json();

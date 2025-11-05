@@ -47,12 +47,14 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     conversationId: string | null
     messages: any[]
     hasUnsavedChanges: boolean
+    followUpQuestions: string[]
   }>>([{
     id: 'tab-1',
     title: 'Chat 1',
     conversationId: null,
     messages: [],
-    hasUnsavedChanges: false
+    hasUnsavedChanges: false,
+    followUpQuestions: []
   }])
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
@@ -94,7 +96,8 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
           title: conv.title,
           conversationId: conv._id,
           messages: [], // Will load when tab is activated
-          hasUnsavedChanges: false
+          hasUnsavedChanges: false,
+          followUpQuestions: []
         }))
         
         setTabs(loadedTabs)
@@ -116,10 +119,10 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
       const shouldScroll = hasScrolledForConversation.current !== convId
       
       setIsLoadingConversation(true)
-      // Update tab with loaded messages
+      // Update tab with loaded messages and follow-up questions
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId 
-          ? { ...tab, messages: loadedConversation.messages || [] }
+          ? { ...tab, messages: loadedConversation.messages || [], followUpQuestions: loadedConversation.followUpQuestions || [] }
           : tab
       ))
       // Give a moment for state to settle, then clear loading flag and scroll to bottom once
@@ -178,7 +181,14 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [chatAbortController, setChatAbortController] = useState<AbortController | null>(null)
   const [showScrollButton, setShowScrollButton] = useState(false)
-  const [chatFollowUpQuestions, setChatFollowUpQuestions] = useState<string[]>([])
+  
+  // Get follow-up questions from active tab
+  const chatFollowUpQuestions = activeTab?.followUpQuestions || []
+  const setChatFollowUpQuestions = (questions: string[]) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId ? { ...tab, followUpQuestions: questions } : tab
+    ))
+  }
   
   // Chat configuration state (loaded from DB, this is just initial fallback)
   const [chatSystemPrompt, setChatSystemPrompt] = useState(`You are RuleReady Compliance Chat AI - a smart, conversational assistant.
@@ -473,7 +483,8 @@ You are a database query tool, not a general compliance advisor.`
             systemPrompt: chatState?.systemPrompt,
             model: chatState?.model,
             additionalContext: chatState?.additionalContext,
-          }
+          },
+          followUpQuestions: currentTab?.followUpQuestions || []
         })
         
         // Store conversation ID in the active tab (only if new)
@@ -507,7 +518,8 @@ You are a database query tool, not a general compliance advisor.`
       title: `Chat ${newTabNumber}`,
       conversationId: null,
       messages: [],
-      hasUnsavedChanges: false
+      hasUnsavedChanges: false,
+      followUpQuestions: []
     }
     setTabs(prev => [...prev, newTab])
     setActiveTabId(newTab.id)

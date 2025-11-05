@@ -11,7 +11,6 @@
 import type * as appAuth from "../appAuth.js";
 import type * as chatConversations from "../chatConversations.js";
 import type * as chatSettings from "../chatSettings.js";
-import type * as cleanup from "../cleanup.js";
 import type * as complianceQueries from "../complianceQueries.js";
 import type * as complianceTemplates from "../complianceTemplates.js";
 import type * as complianceTopics from "../complianceTopics.js";
@@ -44,7 +43,6 @@ declare const fullApi: ApiFromModules<{
   appAuth: typeof appAuth;
   chatConversations: typeof chatConversations;
   chatSettings: typeof chatSettings;
-  cleanup: typeof cleanup;
   complianceQueries: typeof complianceQueries;
   complianceTemplates: typeof complianceTemplates;
   complianceTopics: typeof complianceTopics;

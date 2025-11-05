@@ -25,6 +25,7 @@ export const saveConversation = mutation({
       firecrawlConfig: v.optional(v.string()),
       additionalContext: v.optional(v.string()),
     }),
+    followUpQuestions: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -44,6 +45,7 @@ export const saveConversation = mutation({
         messages: args.messages,
         filters: args.filters,
         settingsSnapshot: args.settingsSnapshot,
+        followUpQuestions: args.followUpQuestions,
         messageCount: args.messages.length,
         updatedAt: now,
       });
@@ -61,6 +63,7 @@ export const saveConversation = mutation({
         messages: args.messages,
         filters: args.filters,
         settingsSnapshot: args.settingsSnapshot,
+        followUpQuestions: args.followUpQuestions,
         messageCount: args.messages.length,
         savedAt: now,
         updatedAt: now,

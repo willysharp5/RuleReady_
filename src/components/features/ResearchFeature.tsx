@@ -65,12 +65,14 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     conversationId: string | null
     messages: any[]
     hasUnsavedChanges: boolean
+    followUpQuestions: string[]
   }>>([{
     id: 'tab-1',
     title: 'Chat 1',
     conversationId: null,
     messages: [],
-    hasUnsavedChanges: false
+    hasUnsavedChanges: false,
+    followUpQuestions: []
   }])
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
@@ -118,7 +120,8 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           title: conv.title,
           conversationId: conv._id,
           messages: [], // Will load when tab is activated
-          hasUnsavedChanges: false
+          hasUnsavedChanges: false,
+          followUpQuestions: []
         }))
         
         setTabs(loadedTabs)
@@ -138,10 +141,10 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       const shouldScroll = hasScrolledForResearchConversation.current !== convId
       
       setIsLoadingConversation(true)
-      // Update tab with loaded messages
+      // Update tab with loaded messages and follow-up questions
       setTabs(prev => prev.map(tab => 
         tab.id === activeTabId 
-          ? { ...tab, messages: loadedConversation.messages || [] }
+          ? { ...tab, messages: loadedConversation.messages || [], followUpQuestions: loadedConversation.followUpQuestions || [] }
           : tab
       ))
       // Give a moment for state to settle, then clear loading flag and scroll to bottom once
@@ -178,7 +181,14 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     ))
   }
   
-  const [researchFollowUpQuestions, setResearchFollowUpQuestions] = useState<string[]>([])
+  // Get follow-up questions from active tab
+  const researchFollowUpQuestions = activeTab?.followUpQuestions || []
+  const setResearchFollowUpQuestions = (questions: string[]) => {
+    setTabs(prev => prev.map(tab => 
+      tab.id === activeTabId ? { ...tab, followUpQuestions: questions } : tab
+    ))
+  }
+  
   const [isResearching, setIsResearching] = useState(false)
   const [researchJurisdiction, setResearchJurisdiction] = useState('')
   const [researchTopic, setResearchTopic] = useState('')
@@ -459,15 +469,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
   const handleResearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!researchQuery.trim()) {
-      addToast({
-        variant: 'error',
-        title: 'Empty query',
-        description: 'Please enter a research question',
-        duration: 3000
-      })
-      return
-    }
+    // Allow empty queries for template generation and follow-ups with memory
 
     // Add user message to chat
     const userMessageId = Date.now().toString()
@@ -713,7 +715,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
             firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
             additionalContext: researchState?.additionalContext,
-          }
+          },
+          followUpQuestions: currentTab?.followUpQuestions || []
         })
         
         // Store conversation ID in the active tab (only if new)
@@ -765,7 +768,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
             firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
             additionalContext: researchState?.additionalContext,
-          }
+          },
+          followUpQuestions: []
         })
       } catch (error) {
         console.error('Failed to clear conversation in database:', error)
@@ -839,7 +843,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
       title: `Chat ${newTabNumber}`,
       conversationId: null,
       messages: [],
-      hasUnsavedChanges: false
+      hasUnsavedChanges: false,
+      followUpQuestions: []
     }
     setTabs(prev => [...prev, newTab])
     setActiveTabId(newTab.id)
@@ -1452,22 +1457,18 @@ These appear AFTER "Based on these sources:" in your prompt.`
         {researchFollowUpQuestions.length > 0 && (
           <div className="max-w-3xl mx-auto flex flex-wrap items-center gap-2 py-3 mb-2">
             {researchFollowUpQuestions.map((q, idx) => (
-              <Button
+              <button
                 key={idx}
-                variant="outline"
-                size="sm"
-                className="h-auto py-1.5 px-3 text-xs leading-relaxed"
                 type="button"
                 onClick={() => {
                   setResearchQuery(q)
-                  setTimeout(() => {
-                    handleResearchSubmit(new Event('submit') as any)
-                  }, 0)
+                  setResearchFollowUpQuestions([])
                 }}
                 disabled={isResearching}
+                className="text-xs px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full transition-colors"
               >
                 {q}
-              </Button>
+              </button>
             ))}
           </div>
         )}

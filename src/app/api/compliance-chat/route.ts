@@ -109,7 +109,7 @@ ${additionalContext}`;
         // Silent failure - will use empty arrays
       }
     }
-
+    
     // Create system prompt
     let systemPrompt = baseSystemPrompt;
     
@@ -174,14 +174,14 @@ Never include meta-commentary about the mode. Output only the answer.`;
       const allSavedResearch = await convex.query(api.savedResearch.getAllSavedResearch);
       const selected = (allSavedResearch || []).filter((r: any) => selectedResearchIds.includes(r._id));
       savedResearchSources = selected.map((r: any, index: number) => ({
-        id: index + 1,
-        _id: r._id,
-        title: r.title,
-        jurisdiction: r.jurisdiction,
-        topic: r.topic,
-        content: r.content,
-        type: 'saved_research'
-      }));
+          id: index + 1,
+          _id: r._id,
+          title: r.title,
+          jurisdiction: r.jurisdiction,
+          topic: r.topic,
+          content: r.content,
+          type: 'saved_research'
+        }));
       selectedResearchJurisdictions = Array.from(new Set(selected.map((r: any) => (r.jurisdiction || '').toString()).filter(Boolean)));
     }
 
