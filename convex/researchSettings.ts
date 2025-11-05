@@ -43,6 +43,7 @@ export const updateResearchSettings = mutation({
     researchTemperature: v.optional(v.number()),
     researchMaxTokens: v.optional(v.number()),
     researchFirecrawlConfig: v.optional(v.string()),
+    researchSelectedTemplateId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Single-user mode: get the first (and only) settings record
@@ -58,6 +59,7 @@ export const updateResearchSettings = mutation({
       if (args.researchTemperature !== undefined) updates.researchTemperature = args.researchTemperature;
       if (args.researchMaxTokens !== undefined) updates.researchMaxTokens = args.researchMaxTokens;
       if (args.researchFirecrawlConfig !== undefined) updates.researchFirecrawlConfig = args.researchFirecrawlConfig;
+      if (args.researchSelectedTemplateId !== undefined) updates.researchSelectedTemplateId = args.researchSelectedTemplateId;
       
       await ctx.db.patch(existingSettings._id, updates);
     } else {
@@ -68,6 +70,7 @@ export const updateResearchSettings = mutation({
         researchTemperature: args.researchTemperature,
         researchMaxTokens: args.researchMaxTokens,
         researchFirecrawlConfig: args.researchFirecrawlConfig,
+        researchSelectedTemplateId: args.researchSelectedTemplateId,
         createdAt: now,
         updatedAt: now,
       });
@@ -91,16 +94,18 @@ export const getResearchSettings = query({
         researchTemperature: 0.5,
         researchMaxTokens: 1048576,
         researchFirecrawlConfig: DEFAULT_FIRECRAWL_CONFIG,
+        researchSelectedTemplateId: "",
       };
     }
 
     // Return database values with defaults for any missing fields
     return {
       researchSystemPrompt: settings.researchSystemPrompt ?? DEFAULT_RESEARCH_SYSTEM_PROMPT,
-      researchModel: settings.researchModel ?? "gemini-1.5-flash-latest",
+      researchModel: settings.researchModel ?? "gemini-2.5-flash-lite",
       researchTemperature: settings.researchTemperature ?? 0.5,
       researchMaxTokens: settings.researchMaxTokens ?? 1048576,
       researchFirecrawlConfig: settings.researchFirecrawlConfig ?? DEFAULT_FIRECRAWL_CONFIG,
+      researchSelectedTemplateId: settings.researchSelectedTemplateId ?? "",
     };
   },
 });
