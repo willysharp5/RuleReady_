@@ -2,12 +2,14 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // App authentication (single record)
-  app: defineTable({
-    password: v.string(), // Simple password for access control
+  // App authentication - role-based passwords
+  appAuth: defineTable({
+    role: v.union(v.literal("admin"), v.literal("user")),
+    password: v.string(), // Plain text password (simple auth)
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_role", ["role"]),
 
   // App settings (single-user mode - global app configuration)
   appSettings: defineTable({

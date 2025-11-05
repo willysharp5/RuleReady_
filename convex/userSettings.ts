@@ -1,14 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get app password
-export const getAppPassword = query({
-  handler: async (ctx) => {
-    const app = await ctx.db.query("app").first();
-    return app;
-  },
-});
-
 // Get app settings (single-user mode)
 export const getUserSettings = query({
   handler: async (ctx) => {
@@ -34,31 +26,6 @@ export const getAppSettings = query({
   handler: async (ctx) => {
     const settings = await ctx.db.query("appSettings").first();
     return settings;
-  },
-});
-
-// Set password
-export const setPassword = mutation({
-  args: {
-    password: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const existingApp = await ctx.db.query("app").first();
-    
-    if (existingApp) {
-      await ctx.db.patch(existingApp._id, {
-        password: args.password,
-        updatedAt: Date.now(),
-      });
-    } else {
-      await ctx.db.insert("app", {
-        password: args.password,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-    }
-    
-    return { success: true };
   },
 });
 

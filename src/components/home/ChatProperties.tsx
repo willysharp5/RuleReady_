@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Settings, Info, Tag, Building2, X, BookOpen, AlertCircle } from 'lucide-react'
+import { Settings, Info, Tag, Building2, X, BookOpen } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
@@ -485,199 +485,201 @@ Use this company information to evaluate compliance requirements. The company ha
         </div>
       </AccordionSection>
 
-      <AccordionSection
-        title="AI Settings"
-        icon={Settings}
-        isOpen={systemPromptOpen}
-        onToggle={() => setSystemPromptOpen(!systemPromptOpen)}
-      >
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
-            <select 
-              className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
-              value={chatState?.model || 'gemini-2.5-flash-lite'}
-              onChange={(e) => handleModelChange(e.target.value)}
-            >
+      <AdminOnly>
+        <AccordionSection
+          title="AI Settings"
+          icon={Settings}
+          isOpen={systemPromptOpen}
+          onToggle={() => setSystemPromptOpen(!systemPromptOpen)}
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
+              <select 
+                className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
+                value={chatState?.model || 'gemini-2.5-flash-lite'}
+                onChange={(e) => handleModelChange(e.target.value)}
+              >
               <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Default (Best Quota)</option>
               <option value="gemini-2.5-flash">Gemini 2.5 Flash - Latest Stable</option>
               <option value="gemini-2.5-pro">Gemini 2.5 Pro - Most Capable</option>
               <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
               <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</option>
             </select>
-          </div>
-          
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
-                {isSavingPrompt && (
-                  <span className="text-xs text-zinc-500">Saving...</span>
-                )}
-                {promptSaved && (
-                  <span className="text-xs text-green-600">✓ Saved</span>
-                )}
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+                  {isSavingPrompt && (
+                    <span className="text-xs text-zinc-500">Saving...</span>
+                  )}
+                  {promptSaved && (
+                    <span className="text-xs text-green-600">✓ Saved</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
+                  onClick={handleResetPrompt}
+                >
+                  Reset to Default
+                </button>
               </div>
-              <button
-                type="button"
-                className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
-                onClick={handleResetPrompt}
-              >
-                Reset to Default
-              </button>
+              <textarea
+                rows={8}
+                placeholder="You are RuleReady Compliance Chat AI..."
+                className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[120px] max-h-[400px]"
+                value={chatState?.systemPrompt || ''}
+                onChange={(e) => handleSystemPromptChange(e.target.value)}
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                Auto-saves as you type.
+              </p>
             </div>
-            <textarea
-              rows={8}
-              placeholder="You are RuleReady Compliance Chat AI..."
-              className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[120px] max-h-[400px]"
-              value={chatState?.systemPrompt || ''}
-              onChange={(e) => handleSystemPromptChange(e.target.value)}
-            />
-            <p className="text-xs text-zinc-500 mt-1">
-              Auto-saves as you type.
-            </p>
           </div>
-        </div>
-      </AccordionSection>
+        </AccordionSection>
 
-      <AccordionSection
-        title="Current Configuration"
-        icon={Info}
-        isOpen={configOpen}
-        onToggle={() => setConfigOpen(!configOpen)}
-      >
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-zinc-600">Jurisdiction:</span>
-            <span className="font-medium text-zinc-900">{chatState?.jurisdiction || 'None (all jurisdictions)'}</span>
+        <AccordionSection
+          title="Current Configuration"
+          icon={Info}
+          isOpen={configOpen}
+          onToggle={() => setConfigOpen(!configOpen)}
+        >
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Jurisdiction:</span>
+              <span className="font-medium text-zinc-900">{chatState?.jurisdiction || 'None (all jurisdictions)'}</span>
+            </div>
+            <div className="flex justify-between items-start gap-2">
+              <span className="text-zinc-600 flex-shrink-0">Topic:</span>
+              <span className="font-medium text-zinc-900 text-right">{chatState?.topic || 'None (all topics)'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Saved Research:</span>
+              <span className="font-medium text-zinc-900">
+                {chatState?.selectedResearchIds && chatState.selectedResearchIds.length > 0
+                  ? `${chatState.selectedResearchIds.length} item(s) selected` 
+                  : 'None selected'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Additional Context:</span>
+              <span className="font-medium text-zinc-900">
+                {chatState?.additionalContext && chatState.additionalContext.trim() 
+                  ? `${chatState.additionalContext.length} characters` 
+                  : 'None'}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-zinc-200">
+              <span className="text-zinc-500 text-[10px]">Updates when you change filters above</span>
+            </div>
           </div>
-          <div className="flex justify-between items-start gap-2">
-            <span className="text-zinc-600 flex-shrink-0">Topic:</span>
-            <span className="font-medium text-zinc-900 text-right">{chatState?.topic || 'None (all topics)'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-600">Saved Research:</span>
-            <span className="font-medium text-zinc-900">
-              {chatState?.selectedResearchIds && chatState.selectedResearchIds.length > 0
-                ? `${chatState.selectedResearchIds.length} item(s) selected` 
-                : 'None selected'}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-600">Additional Context:</span>
-            <span className="font-medium text-zinc-900">
-              {chatState?.additionalContext && chatState.additionalContext.trim() 
-                ? `${chatState.additionalContext.length} characters` 
-                : 'None'}
-            </span>
-          </div>
-          <div className="pt-2 border-t border-zinc-200">
-            <span className="text-zinc-500 text-[10px]">Updates when you change filters above</span>
-          </div>
-        </div>
-      </AccordionSection>
+        </AccordionSection>
 
-      <AccordionSection
-        title="Final Prompt Preview"
-        icon={Info}
-        isOpen={promptPreviewOpen}
-        onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
-      >
-        <div className="space-y-2">
-          <p className="text-xs text-zinc-600 mb-2">Shows what gets sent to the AI (simplified view)</p>
-          {chatState?.lastPromptSent ? (
-            <div className="p-3 bg-zinc-100 border border-zinc-200 rounded overflow-auto max-h-96 space-y-2 text-xs">
-              {(() => {
-                const prompt = chatState.lastPromptSent;
-                const parts: React.ReactElement[] = [];
-                
-                // Extract the user's actual query
-                const queryMatch = prompt.match(/User:\s*(.+?)(?=\n\nAssistant:|$)/);
-                
-                // Check for jurisdiction/topic in context
-                const hasJurisdiction = chatState.jurisdiction && chatState.jurisdiction.trim();
-                const hasTopic = chatState.topic && chatState.topic.trim();
-                const hasContext = chatState.additionalContext && chatState.additionalContext.trim();
-                
-                // Show user query
-                if (queryMatch) {
-                  parts.push(
-                    <div key="query" className="flex items-baseline gap-1 flex-wrap">
-                      <span className="font-bold text-sm text-purple-700">User Query:</span>
-                      <span className="text-xs italic text-zinc-500">&ldquo;{queryMatch[1]?.trim()}&rdquo;</span>
-                    </div>
-                  );
-                }
-                
-                // Show filters if applied
-                if (hasJurisdiction || hasTopic) {
-                  parts.push(
-                    <div key="filters-header" className="font-bold text-sm text-purple-700 mt-2">
-                      Active Filters:
-                    </div>
-                  );
+        <AccordionSection
+          title="Final Prompt Preview"
+          icon={Info}
+          isOpen={promptPreviewOpen}
+          onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
+        >
+          <div className="space-y-2">
+            <p className="text-xs text-zinc-600 mb-2">Shows what gets sent to the AI (simplified view)</p>
+            {chatState?.lastPromptSent ? (
+              <div className="p-3 bg-zinc-100 border border-zinc-200 rounded overflow-auto max-h-96 space-y-2 text-xs">
+                {(() => {
+                  const prompt = chatState.lastPromptSent;
+                  const parts: React.ReactElement[] = [];
                   
-                  if (hasJurisdiction) {
+                  // Extract the user's actual query
+                  const queryMatch = prompt.match(/User:\s*(.+?)(?=\n\nAssistant:|$)/);
+                  
+                  // Check for jurisdiction/topic in context
+                  const hasJurisdiction = chatState.jurisdiction && chatState.jurisdiction.trim();
+                  const hasTopic = chatState.topic && chatState.topic.trim();
+                  const hasContext = chatState.additionalContext && chatState.additionalContext.trim();
+                  
+                  // Show user query
+                  if (queryMatch) {
                     parts.push(
-                      <div key="jurisdiction" className="flex items-baseline gap-1 ml-2">
-                        <span className="text-xs text-zinc-600">•</span>
-                        <span className="font-bold text-xs text-purple-700">Jurisdiction:</span>
-                        <span className="text-xs italic text-zinc-500">{chatState.jurisdiction}</span>
+                      <div key="query" className="flex items-baseline gap-1 flex-wrap">
+                        <span className="font-bold text-sm text-purple-700">User Query:</span>
+                        <span className="text-xs italic text-zinc-500">&ldquo;{queryMatch[1]?.trim()}&rdquo;</span>
                       </div>
                     );
                   }
                   
-                  if (hasTopic) {
+                  // Show filters if applied
+                  if (hasJurisdiction || hasTopic) {
                     parts.push(
-                      <div key="topic" className="flex items-baseline gap-1 ml-2">
-                        <span className="text-xs text-zinc-600">•</span>
-                        <span className="font-bold text-xs text-purple-700">Topic:</span>
-                        <span className="text-xs italic text-zinc-500">{chatState.topic}</span>
+                      <div key="filters-header" className="font-bold text-sm text-purple-700 mt-2">
+                        Active Filters:
+                      </div>
+                    );
+                    
+                    if (hasJurisdiction) {
+                      parts.push(
+                        <div key="jurisdiction" className="flex items-baseline gap-1 ml-2">
+                          <span className="text-xs text-zinc-600">•</span>
+                          <span className="font-bold text-xs text-purple-700">Jurisdiction:</span>
+                          <span className="text-xs italic text-zinc-500">{chatState.jurisdiction}</span>
+                        </div>
+                      );
+                    }
+                    
+                    if (hasTopic) {
+                      parts.push(
+                        <div key="topic" className="flex items-baseline gap-1 ml-2">
+                          <span className="text-xs text-zinc-600">•</span>
+                          <span className="font-bold text-xs text-purple-700">Topic:</span>
+                          <span className="text-xs italic text-zinc-500">{chatState.topic}</span>
+                        </div>
+                      );
+                    }
+                  }
+                  
+                  // Additional context summary
+                  if (hasContext) {
+                    parts.push(
+                      <div key="context" className="flex items-baseline gap-1 mt-2">
+                        <span className="font-bold text-sm text-purple-700">Additional Context:</span>
+                        <span className="text-xs italic text-zinc-500">{chatState.additionalContext?.length || 0} characters</span>
                       </div>
                     );
                   }
-                }
-                
-                // Additional context summary
-                if (hasContext) {
+                  
+                  // Saved research info
+                  const hasResearch = chatState.selectedResearchIds && chatState.selectedResearchIds.length > 0;
                   parts.push(
-                    <div key="context" className="flex items-baseline gap-1 mt-2">
-                      <span className="font-bold text-sm text-purple-700">Additional Context:</span>
-                      <span className="text-xs italic text-zinc-500">{chatState.additionalContext?.length || 0} characters</span>
+                    <div key="research" className="font-bold text-sm text-blue-700 mt-3">
+                      Saved Research:
                     </div>
                   );
-                }
-                
-                // Saved research info
-                const hasResearch = chatState.selectedResearchIds && chatState.selectedResearchIds.length > 0;
-                parts.push(
-                  <div key="research" className="font-bold text-sm text-blue-700 mt-3">
-                    Saved Research:
-                  </div>
-                );
-                parts.push(
-                  <div key="research-info" className="text-xs italic text-zinc-500 ml-2">
-                    {hasResearch 
-                      ? `Using ${chatState.selectedResearchIds?.length} saved research item(s) as knowledge base`
-                      : 'No saved research selected - AI will ask you to provide it'}
-                  </div>
-                );
-                
-                // System instructions summary
-                parts.push(
-                  <div key="system-summary" className="font-bold text-sm text-blue-700 mt-3">
-                    System Instructions: [View in AI Settings accordion above]
-                  </div>
-                );
-                
-                return <>{parts}</>;
-              })()}
-            </div>
-          ) : (
-            <p className="text-xs text-zinc-500 italic">No chat query sent yet</p>
-          )}
-        </div>
-      </AccordionSection>
+                  parts.push(
+                    <div key="research-info" className="text-xs italic text-zinc-500 ml-2">
+                      {hasResearch 
+                        ? `Using ${chatState.selectedResearchIds?.length} saved research item(s) as knowledge base`
+                        : 'No saved research selected - AI will ask you to provide it'}
+                    </div>
+                  );
+                  
+                  // System instructions summary
+                  parts.push(
+                    <div key="system-summary" className="font-bold text-sm text-blue-700 mt-3">
+                      System Instructions: [View in AI Settings accordion above]
+                    </div>
+                  );
+                  
+                  return <>{parts}</>;
+                })()}
+              </div>
+            ) : (
+              <p className="text-xs text-zinc-500 italic">No chat query sent yet</p>
+            )}
+          </div>
+        </AccordionSection>
+      </AdminOnly>
     </div>
   )
 }

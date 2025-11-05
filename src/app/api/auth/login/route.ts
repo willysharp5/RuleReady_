@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../../../../../convex/_generated/api'
 
-const ADMIN_PASSWORD = 'gustoadmin'
-const USER_PASSWORD = 'gusto'
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json()
     
-    let role: 'admin' | 'user' | null = null
+    // Verify password against Convex database
+    const result = await convex.query(api.appAuth.verifyPassword, { password })
     
-    if (password === ADMIN_PASSWORD) {
-      role = 'admin'
-    } else if (password === USER_PASSWORD) {
-      role = 'user'
-    }
-    
-    if (role) {
+    if (result.valid && result.role) {
       const response = NextResponse.json({ 
         success: true, 
-        role 
+        role: result.role 
       })
       
       // Set authentication cookie
@@ -31,7 +27,7 @@ export async function POST(request: NextRequest) {
       })
       
       // Set role cookie
-      response.cookies.set('ruleready-role', role, {
+      response.cookies.set('ruleready-role', result.role, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: 'Invalid request' },
       { status: 400 }

@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, Zap, Info, ExternalLink, X, AlertCircle, Globe, Plus, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
+import { Settings, Zap, Info, ExternalLink, X, Globe, Plus, Tag, FileText, Loader2, CheckCircle2 } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ComplianceTemplateEditor } from '@/components/ComplianceTemplateEditor'
@@ -12,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
 import { TopicSelect } from '@/components/ui/topic-select'
 import { TemplateSelect } from '@/components/ui/template-select'
+import { AdminOnly } from '@/components/AdminOnly'
 
 interface ResearchPropertiesProps {
   researchState?: {
@@ -556,159 +555,160 @@ Follow the template sections but adapt based on the query. Not all sections may 
         </div>
       </AccordionSection>
 
-      <AccordionSection
-        title="AI Settings"
-        icon={Settings}
-        isOpen={systemPromptOpen}
-        onToggle={() => setSystemPromptOpen(!systemPromptOpen)}
-      >
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
-            <select 
-              className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
-              value={researchState?.model || 'gemini-2.5-flash-lite'}
-              onChange={(e) => handleModelChange(e.target.value)}
-            >
-              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Default (Best Quota)</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash - Latest Stable</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro - Most Capable</option>
-              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
-              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</option>
-            </select>
+      <AdminOnly>
+        <AccordionSection
+          title="AI Settings"
+          icon={Settings}
+          isOpen={systemPromptOpen}
+          onToggle={() => setSystemPromptOpen(!systemPromptOpen)}
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
+              <select 
+                className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
+                value={researchState?.model || 'gemini-2.5-flash-lite'}
+                onChange={(e) => handleModelChange(e.target.value)}
+              >
+                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Default (Best Quota)</option>
+                <option value="gemini-2.5-flash">Gemini 2.5 Flash - Latest Stable</option>
+                <option value="gemini-2.5-pro">Gemini 2.5 Pro - Most Capable</option>
+                <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+                <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</option>
+              </select>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+                  {isSavingPrompt && (
+                    <span className="text-xs text-zinc-500">Saving...</span>
+                  )}
+                  {promptSaved && (
+                    <span className="text-xs text-green-600">✓ Saved</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
+                  onClick={handleResetPrompt}
+                >
+                  Reset to Default
+                </button>
+              </div>
+              <textarea
+                rows={8}
+                placeholder="You are RuleReady Research AI..."
+                className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[120px] max-h-[400px]"
+                value={researchState?.systemPrompt || ''}
+                onChange={(e) => handleSystemPromptChange(e.target.value)}
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                Auto-saves as you type. Template selection auto-updates this prompt.
+              </p>
+            </div>
           </div>
-          
-          <div>
-            <div className="flex items-center justify-between mb-1">
+        </AccordionSection>
+
+        <AccordionSection
+          title="Search Configuration (JSON)"
+          icon={Zap}
+          isOpen={firecrawlOpen}
+          onToggle={() => setFirecrawlOpen(!firecrawlOpen)}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
-                {isSavingPrompt && (
+                <span className="text-xs font-medium text-zinc-600">Firecrawl API</span>
+                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">v2</span>
+                {isSavingConfig && (
                   <span className="text-xs text-zinc-500">Saving...</span>
                 )}
-                {promptSaved && (
+                {configSaved && (
                   <span className="text-xs text-green-600">✓ Saved</span>
                 )}
               </div>
-              <button
-                type="button"
-                className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
-                onClick={handleResetPrompt}
-              >
-                Reset to Default
-              </button>
+              <div className="flex gap-2">
+                <a
+                  href="https://docs.firecrawl.dev/api-reference/endpoint/search"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-purple-600 hover:text-purple-800 underline flex items-center gap-1"
+                  title="API Documentation"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Docs
+                </a>
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
+                  onClick={handleResetFirecrawlConfig}
+                >
+                  Reset to Default
+                </button>
+              </div>
             </div>
             <textarea
-              rows={8}
-              placeholder="You are RuleReady Research AI..."
-              className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[120px] max-h-[400px]"
-              value={researchState?.systemPrompt || ''}
-              onChange={(e) => handleSystemPromptChange(e.target.value)}
+              rows={12}
+              placeholder='{"sources": ["web", "news"], "limit": 8}'
+              className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[180px] max-h-[500px]"
+              value={researchState?.firecrawlConfig || ''}
+              onChange={(e) => handleFirecrawlConfigChange(e.target.value)}
             />
-            <p className="text-xs text-zinc-500 mt-1">
-              Auto-saves as you type. Template selection auto-updates this prompt.
+            <p className="text-xs text-zinc-500">
+              Auto-saves as you type. Changes apply to your next research query.
             </p>
           </div>
-        </div>
-      </AccordionSection>
+        </AccordionSection>
 
-      <AccordionSection
-        title="Search Configuration (JSON)"
-        icon={Zap}
-        isOpen={firecrawlOpen}
-        onToggle={() => setFirecrawlOpen(!firecrawlOpen)}
-      >
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-zinc-600">Firecrawl API</span>
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">v2</span>
-              {isSavingConfig && (
-                <span className="text-xs text-zinc-500">Saving...</span>
-              )}
-              {configSaved && (
-                <span className="text-xs text-green-600">✓ Saved</span>
-              )}
+        <AccordionSection
+          title="Current Configuration"
+          icon={Info}
+          isOpen={configOpen}
+          onToggle={() => setConfigOpen(!configOpen)}
+        >
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between items-start gap-2">
+              <span className="text-zinc-600 flex-shrink-0">Template:</span>
+              <span className="font-medium text-zinc-900 text-right">{templateName || 'None (default prompt)'}</span>
             </div>
-            <div className="flex gap-2">
-              <a
-                href="https://docs.firecrawl.dev/api-reference/endpoint/search"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-purple-600 hover:text-purple-800 underline flex items-center gap-1"
-                title="API Documentation"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Docs
-              </a>
-              <button
-                type="button"
-                className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
-                onClick={handleResetFirecrawlConfig}
-              >
-                Reset to Default
-              </button>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Jurisdiction:</span>
+              <span className="font-medium text-zinc-900">{researchState?.jurisdiction || 'None (searches all)'}</span>
+            </div>
+            <div className="flex justify-between items-start gap-2">
+              <span className="text-zinc-600 flex-shrink-0">Topic:</span>
+              <span className="font-medium text-zinc-900 text-right">{topicName || 'None (searches all)'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">URLs to Scrape:</span>
+              <span className="font-medium text-zinc-900">
+                {(researchState?.urls?.filter((url: string) => url.trim()).length || 0) > 0 
+                  ? `${researchState?.urls?.filter((url: string) => url.trim()).length} URL(s)` 
+                  : 'None (web search only)'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Additional Context:</span>
+              <span className="font-medium text-zinc-900">
+                {researchState?.additionalContext && researchState.additionalContext.trim() 
+                  ? `${researchState.additionalContext.length} characters` 
+                  : 'None'}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-zinc-200">
+              <span className="text-zinc-500 text-[10px]">Updates when you change filters in the research composer</span>
             </div>
           </div>
-          <textarea
-            rows={12}
-            placeholder='{"sources": ["web", "news"], "limit": 8}'
-            className="w-full px-3 py-2 text-xs font-mono border border-zinc-200 rounded-md resize-y min-h-[180px] max-h-[500px]"
-            value={researchState?.firecrawlConfig || ''}
-            onChange={(e) => handleFirecrawlConfigChange(e.target.value)}
-          />
-          <p className="text-xs text-zinc-500">
-            Auto-saves as you type. Changes apply to your next research query.
-          </p>
-        </div>
-      </AccordionSection>
+        </AccordionSection>
 
-      <AccordionSection
-        title="Current Configuration"
-        icon={Info}
-        isOpen={configOpen}
-        onToggle={() => setConfigOpen(!configOpen)}
-      >
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between items-start gap-2">
-            <span className="text-zinc-600 flex-shrink-0">Template:</span>
-            <span className="font-medium text-zinc-900 text-right">{templateName || 'None (default prompt)'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-600">Jurisdiction:</span>
-            <span className="font-medium text-zinc-900">{researchState?.jurisdiction || 'None (searches all)'}</span>
-          </div>
-          <div className="flex justify-between items-start gap-2">
-            <span className="text-zinc-600 flex-shrink-0">Topic:</span>
-            <span className="font-medium text-zinc-900 text-right">{topicName || 'None (searches all)'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-600">URLs to Scrape:</span>
-            <span className="font-medium text-zinc-900">
-              {(researchState?.urls?.filter((url: string) => url.trim()).length || 0) > 0 
-                ? `${researchState?.urls?.filter((url: string) => url.trim()).length} URL(s)` 
-                : 'None (web search only)'}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-600">Additional Context:</span>
-            <span className="font-medium text-zinc-900">
-              {researchState?.additionalContext && researchState.additionalContext.trim() 
-                ? `${researchState.additionalContext.length} characters` 
-                : 'None'}
-            </span>
-          </div>
-          <div className="pt-2 border-t border-zinc-200">
-            <span className="text-zinc-500 text-[10px]">Updates when you change filters in the research composer</span>
-          </div>
-        </div>
-      </AccordionSection>
-
-      <AccordionSection
-        title="Final Prompt Preview"
-        icon={Info}
-        isOpen={promptPreviewOpen}
-        onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
-      >
+        <AccordionSection
+          title="Final Prompt Preview"
+          icon={Info}
+          isOpen={promptPreviewOpen}
+          onToggle={() => setPromptPreviewOpen(!promptPreviewOpen)}
+        >
         <div className="space-y-2">
           <p className="text-xs text-zinc-600 mb-2">Shows the prompt structure (data summarized for clarity)</p>
           {researchState?.lastPromptSent ? (
@@ -831,6 +831,7 @@ Follow the template sections but adapt based on the query. Not all sections may 
           )}
         </div>
       </AccordionSection>
+      </AdminOnly>
       
       {/* Template Editor Modal */}
       {showTemplateEditor && (

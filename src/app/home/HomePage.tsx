@@ -24,7 +24,7 @@ interface NavItem {
   icon: React.ElementType
 }
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: MessageCircle },
   { id: 'research', label: 'Research', icon: Search },
   { id: 'saved-research', label: 'Saved Research', icon: BookOpen },
@@ -34,6 +34,9 @@ const navItems: NavItem[] = [
   { id: 'ai-models', label: 'AI Models', icon: Zap },
 ]
 
+// Admin-only features
+const adminOnlyFeatures: FeatureType[] = ['ai-models']
+
 export default function HomePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -41,7 +44,20 @@ export default function HomePage() {
   const featureParam = searchParams.get('feature') as FeatureType | null
   const { isAdmin, isLoading } = useAuth()
   
-  const initialFeature = featureParam || tabParam || 'chat'
+  // Filter navigation items based on user role
+  const navItems = isAdmin 
+    ? allNavItems 
+    : allNavItems.filter(item => !adminOnlyFeatures.includes(item.id))
+  
+  // Validate initial feature - if user tries to access admin-only feature without permission, redirect to chat
+  const validateFeature = (feature: FeatureType): FeatureType => {
+    if (!isAdmin && adminOnlyFeatures.includes(feature)) {
+      return 'chat'
+    }
+    return feature
+  }
+  
+  const initialFeature = validateFeature(featureParam || tabParam || 'chat')
   const [activeFeature, setActiveFeature] = useState<FeatureType>(initialFeature)
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true)
   
@@ -50,6 +66,14 @@ export default function HomePage() {
     setActiveFeature(feature)
     router.push(`/home?tab=${feature}`)
   }
+  
+  // Validate and redirect if user loses admin access or tries to access admin feature
+  useEffect(() => {
+    if (!isLoading && !isAdmin && adminOnlyFeatures.includes(activeFeature)) {
+      setActiveFeature('chat')
+      router.push('/home?tab=chat')
+    }
+  }, [isAdmin, isLoading, activeFeature, router])
   
   // Sync with URL parameter
   useEffect(() => {
