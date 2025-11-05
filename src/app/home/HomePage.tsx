@@ -116,7 +116,10 @@ APPLICABILITY INTELLIGENCE:
 IF NO SAVED RESEARCH:
 "I don't have any saved research selected. Please select saved research from the knowledge base."
 
-Remember: You're chatting with your user's data. Be smart, conversational, and well-formatted.`,
+IF INFORMATION IS IN SAVED RESEARCH:
+Always check the saved research content carefully. If penalties, deadlines, or other details are mentioned anywhere in the research (even briefly), provide that information. Only say "not specified" if it's truly absent.
+
+Remember: You're chatting with your user's data. Be smart, conversational, and well-formatted. Use ALL available information from the saved research.`,
     model: 'gemini-2.5-flash-lite',
     jurisdiction: '',
     topic: '',
