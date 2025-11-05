@@ -217,6 +217,25 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [researchTopic, setResearchTopic] = useState('')
   const [selectedResearchTemplate, setSelectedResearchTemplate] = useState<string>('')
   
+  // Sync parent state TO local state when parent changes (e.g., from conversation restore)
+  useEffect(() => {
+    if (researchState) {
+      if (researchState.jurisdiction !== researchJurisdiction) {
+        setResearchJurisdiction(researchState.jurisdiction || '')
+      }
+      if (researchState.topic !== researchTopic) {
+        setResearchTopic(researchState.topic || '')
+      }
+      if (researchState.selectedTemplate !== selectedResearchTemplate) {
+        setSelectedResearchTemplate(researchState.selectedTemplate || '')
+      }
+      // Sync URLs - check if arrays are different
+      if (researchState.urls && JSON.stringify(researchState.urls) !== JSON.stringify(researchUrls)) {
+        setResearchUrls(researchState.urls.length > 0 ? researchState.urls : [''])
+      }
+    }
+  }, [researchState?.jurisdiction, researchState?.topic, researchState?.selectedTemplate, researchState?.urls])
+  
   // Sync local state changes back to parent
   const updateJurisdiction = (value: string) => {
     setResearchJurisdiction(value)
