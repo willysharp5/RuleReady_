@@ -567,14 +567,14 @@ Follow the template sections but adapt based on the query. Not all sections may 
             <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
             <select 
               className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
-              value={researchState?.model || 'gemini-2.0-flash-exp'}
+              value={researchState?.model || 'gemini-2.5-flash-lite'}
               onChange={(e) => handleModelChange(e.target.value)}
             >
-              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental) - Default</option>
-              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest - Stable</option>
-              <option value="gemini-1.5-flash-8b-latest">Gemini 1.5 Flash 8B - Lightweight</option>
-              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest - Advanced</option>
-              <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking - Extended Reasoning</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Default (Best Quota)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash - Latest Stable</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro - Most Capable</option>
+              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</option>
             </select>
           </div>
           

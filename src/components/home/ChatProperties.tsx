@@ -25,7 +25,7 @@ interface ChatState {
 interface ChatPropertiesProps {
   chatState?: ChatState
   setChatState?: (state: ChatState) => void
-  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string; chatAdditionalContext?: string }) => Promise<{ success: boolean }>
+  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string; chatAdditionalContext?: string; chatSelectedResearchIds?: string[] }) => Promise<{ success: boolean }>
 }
 
 export function ChatProperties({ chatState, setChatState, updateChatSettings }: ChatPropertiesProps = {}) {
@@ -121,69 +121,33 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   }
   
   const handleResetPrompt = () => {
-    const defaultPrompt = `You are RuleReady Compliance Evaluation AI. Answer questions using ONLY the saved research provided.
+    const defaultPrompt = `You are RuleReady Compliance Chat AI - a smart, conversational assistant that helps evaluate compliance using saved research and company data.
 
-CRITICAL RULES:
-1. ONLY use SAVED RESEARCH for legal info - NO AI knowledge
-2. Use ADDITIONAL CONTEXT for company details (company name, location, employee count)
-3. Cite saved research as [1], [2], [3]
+CORE PRINCIPLES:
+1. ONLY use SAVED RESEARCH for legal requirements - NO general AI knowledge
+2. Use ADDITIONAL CONTEXT for company facts (locations, employee counts, names)
+3. Chat has MEMORY - you remember the entire conversation in this tab
+4. Be intelligent: validate data, catch inconsistencies, use actual counts over stated numbers
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+RESPONSE FORMATTING (MANDATORY):
+- Use **bold** for ALL: numbers, deadlines, employee names, dollar amounts, requirements
+- Multi-part answers: use ## section headers and - bullet points
+- Simple answers: 2-3 sentences with bold on key facts
+- Lists: use - bullets with **bold names**
+- NEVER start with "Okay,", "Well,", "So," or filler words
+- For yes/no questions: start with "Yes" or "No"
+- For when/what/how: start directly with the answer
 
-# [Clear Title Based on Question]
-
-## Overview
-
-Answer the question directly in 2-3 sentences. Mention **company name** if provided. Cite sources [1], [2].
-
-## Why This Applies
-
-Based on [1] and [2], explain applicability:
-
-- **Company location**: [from additional context]
-- **Number of employees**: [from additional context]
-- **Legal requirement**: [from saved research] [1]
-- **Threshold**: [cite number] employees [1]
-
-## Key Requirements
-
-List the main requirements with citations:
-
-- **Requirement 1**: Details from saved research [1]
-- **Training duration**: **X hours** for supervisors, **Y hours** for employees [2]
-- **Deadline**: Within **X months/days** [1]
-- **Frequency**: Every **X years** [2]
-
-## What You Need To Do
-
-Actionable steps:
-
-1. First action step
-2. Second action step
-3. Third action step
-
-## Penalties for Non-Compliance
-
-- **Fines**: $X to $Y per violation [1]
-- **Other consequences**: [from research] [2]
-
-(Or state: "Penalties not specified in provided research")
-
-FORMATTING:
-- Use ## for all section headers
-- Use **bold** for company names, numbers, deadlines, dollar amounts
-- Use [1], [2], [3] to cite saved research inline
-- Use bullet points for lists
-- Add blank line after each paragraph
-- Keep it scannable and professional
-
-DO NOT include meta-commentary like "Answer Structure:" or "Start with direct answer:". Just write the formatted response.
+APPLICABILITY INTELLIGENCE:
+- Validate employee counts: if stated "400 employees" but only 4 names listed, use 4
+- Parse locations carefully: "John (Seattle, WA)" is Washington, not California
+- Check thresholds using ACTUAL employee counts, not stated numbers
+- If data conflicts or is missing, say so explicitly
 
 IF NO SAVED RESEARCH:
-"I don't have any saved research selected. Please select saved research from the knowledge base to provide legal compliance information."
+"I don't have any saved research selected. Please select saved research from the knowledge base."
 
-IF MISSING INFO:
-Be specific about what's missing and guide user to add it.`
+Remember: You're chatting with your user's data. Be smart, conversational, and well-formatted.`
     
     if (setChatState && chatState) {
       setChatState({ ...chatState, systemPrompt: defaultPrompt })
@@ -211,11 +175,11 @@ Be specific about what's missing and guide user to add it.`
         </div>
         
         <div className="mt-3 pt-3 border-t border-blue-300">
-          <div className="text-xs font-semibold text-blue-900 mb-1">💡 How Context Works</div>
+          <div className="text-xs font-semibold text-blue-900 mb-1">💡 Chat Memory & Context</div>
           <div className="text-xs text-blue-800">
-            Each question uses your currently selected saved research and additional context. 
-            Your additional context persists across questions (no need to re-enter). 
-            Saved research selection applies to all questions until you change it.
+            The AI remembers your entire conversation within each chat tab. Ask follow-up questions naturally—it knows what you discussed earlier. 
+            Your saved research and additional context stay active across all questions until you change them. 
+            Each tab maintains its own separate conversation history.
           </div>
         </div>
       </div>
@@ -230,6 +194,7 @@ Be specific about what's missing and guide user to add it.`
           value={selectedResearchItems}
           onChange={(items) => {
             if (setChatState && chatState) {
+              const researchIds = items.map(i => i._id);
               if (items.length > 0) {
                 // Set research IDs and content separately from additional context
                 const combinedContent = items.map(item => 
@@ -238,7 +203,7 @@ Be specific about what's missing and guide user to add it.`
                 
                 setChatState({ 
                   ...chatState, 
-                  selectedResearchIds: items.map(i => i._id),
+                  selectedResearchIds: researchIds,
                   savedResearchContent: combinedContent
                 })
               } else {
@@ -247,6 +212,16 @@ Be specific about what's missing and guide user to add it.`
                   ...chatState, 
                   selectedResearchIds: [],
                   savedResearchContent: ''
+                })
+              }
+              
+              // Persist to database
+              if (updateChatSettings) {
+                updateChatSettings({
+                  chatSystemPrompt: chatState.systemPrompt,
+                  chatModel: chatState.model,
+                  chatAdditionalContext: chatState.additionalContext,
+                  chatSelectedResearchIds: researchIds
                 })
               }
             }
@@ -279,7 +254,15 @@ Be specific about what's missing and guide user to add it.`
                   setChatState({ 
                     ...chatState, 
                     selectedResearchIds: [],
-                    additionalContext: ''
+                    savedResearchContent: ''
+                  })
+                }
+                if (updateChatSettings) {
+                  updateChatSettings({
+                    chatSystemPrompt: chatState?.systemPrompt,
+                    chatModel: chatState?.model,
+                    chatAdditionalContext: chatState?.additionalContext,
+                    chatSelectedResearchIds: []
                   })
                 }
               }}
@@ -509,14 +492,14 @@ Use this company information to evaluate compliance requirements. The company ha
             <label className="block text-xs font-medium text-zinc-700 mb-1">Model</label>
             <select 
               className="w-full px-3 py-1.5 border border-zinc-200 rounded-md text-sm"
-              value={chatState?.model || 'gemini-2.0-flash-exp'}
+              value={chatState?.model || 'gemini-2.5-flash-lite'}
               onChange={(e) => handleModelChange(e.target.value)}
             >
-              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental) - Default</option>
-              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest - Stable</option>
-              <option value="gemini-1.5-flash-8b-latest">Gemini 1.5 Flash 8B - Lightweight</option>
-              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest - Advanced</option>
-              <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking - Extended Reasoning</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite - Default (Best Quota)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash - Latest Stable</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro - Most Capable</option>
+              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest</option>
+              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro Latest</option>
             </select>
           </div>
           

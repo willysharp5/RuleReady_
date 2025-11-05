@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
       throw new Error("GEMINI_API_KEY environment variable not set");
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName = (model as string) || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp";
+    const modelName = (model as string) || (dbSettings.chatModel as string) || "gemini-2.5-flash-lite";
 
     // AI-powered extraction: parse company context, question intent, and applicability
     let companyEmployeeStates: string[] = [];
     let employeesByState: Record<string, string[]> = {};
     let totalEmployees: number | null = null;
-    let questionIntent: 'who-needs' | 'yes-no' | 'explain' | 'general' = 'general';
+    let questionIntent: 'who-needs' | 'yes-no' | 'explain' | 'content-only' | 'general' = 'general';
     
     if (additionalContext && additionalContext.trim()) {
       try {
@@ -52,18 +52,24 @@ export async function POST(req: NextRequest) {
   "companyStates": string[],
   "employeesByState": { [state: string]: string[] },
   "totalEmployees": number | null,
-  "questionIntent": "who-needs" | "yes-no" | "explain" | "general"
+  "questionIntent": "who-needs" | "yes-no" | "explain" | "content-only" | "general"
 }
 
 Rules:
-- companyStates: US states (or District of Columbia) where the company has employees. Use full state names.
-- employeesByState: for each state, array of employee names if listed.
-- totalEmployees: total employee count if mentioned.
-- questionIntent:
-  - "who-needs": if question asks who/which employees need to do something
-  - "yes-no": if question asks do/does/is/are/must/should (expecting yes/no)
-  - "explain": if question asks explain/why/how/overview
-  - "general": otherwise
+- companyStates: US states (or District of Columbia) where the company has employees. Use full state names. CRITICAL: Parse employee location from (City, State) format carefully. "John (Seattle, Washington)" is Washington, NOT any other state.
+- employeesByState: for each state, array of employee names if listed. Group by the state shown in parentheses after each name. If name shows "(Los Angeles, CA)" put that person in California.
+- totalEmployees: total employee count if mentioned, but ALWAYS validate against actual names listed.
+- questionIntent: classify the question naturally:
+  - "who-needs": asking for a list of specific people/employees
+  - "yes-no": wants a direct yes/no or brief factual answer (includes: do/does/is/must/should/when/deadline questions)
+  - "explain": wants detailed explanation, reasoning, or comprehensive overview
+  - "content-only": asking to read/summarize the law itself without applicability (e.g., "tell me the law", "what does the research say", "summarize the requirements")
+  - "general": other
+
+Use common sense:
+- "when should X" or "what's the deadline" → yes-no (brief fact)
+- "explain how X works" or "why does Y apply" → explain (detailed)
+- "tell me the entire law" or "what does the research say" → content-only (show research, no applicability)
 
 QUESTION:
 ${lastUser}
@@ -85,6 +91,23 @@ ${additionalContext}`;
           if (parsed.employeesByState && typeof parsed.employeesByState === 'object') employeesByState = parsed.employeesByState;
           if (typeof parsed.totalEmployees === 'number') totalEmployees = parsed.totalEmployees;
           if (parsed.questionIntent) questionIntent = parsed.questionIntent;
+          
+          // CRITICAL VALIDATION: verify extracted data for inconsistencies
+          // 1. Check if stated employee counts match actual names listed
+          const actualCounts: Record<string, number> = {};
+          Object.entries(employeesByState).forEach(([state, names]) => {
+            if (Array.isArray(names)) actualCounts[state] = names.length;
+          });
+          
+          // 2. Recalculate total from actual names
+          const actualTotal = Object.values(actualCounts).reduce((sum, count) => sum + count, 0);
+          if (actualTotal > 0 && totalEmployees !== actualTotal) {
+            console.log(`[CHAT VALIDATION] Total mismatch: stated ${totalEmployees}, actual ${actualTotal}. Using actual.`);
+            totalEmployees = actualTotal;
+          }
+          
+          // 3. Remove states with zero actual employees
+          companyEmployeeStates = companyEmployeeStates.filter(s => (actualCounts[s] || 0) > 0);
         }
       } catch (e) {
         console.log('AI extraction failed:', (e as Error).message);
@@ -144,8 +167,9 @@ Never include meta-commentary about the mode. Output only the answer.`;
     }
 
     if (companyEmployeeStates.length > 0) {
-      systemPrompt += `\n\n=== COMPANY EMPLOYEE STATES (DERIVED) ===\n${companyEmployeeStates.join(', ')}`;
-      systemPrompt += `\n=== EMPLOYEE COUNTS PER STATE ===\n${Object.entries(employeesByState).map(([s, names]) => `${s}: ${names.length}`).join(', ')}`;
+      systemPrompt += `\n\n=== COMPANY EMPLOYEE STATES (VALIDATED) ===\n${companyEmployeeStates.join(', ')}`;
+      systemPrompt += `\n=== ACTUAL EMPLOYEE COUNTS (BASED ON NAMES PROVIDED) ===\n${Object.entries(employeesByState).map(([s, names]) => `${s}: ${names.length} actual employees listed`).join(', ')}`;
+      systemPrompt += `\n\nIMPORTANT: Use the ACTUAL counts shown above, not any stated numbers in the additional context. The actual count is what matters for compliance thresholds.`;
     }
     
     const displayTitle = (jurisdiction || 'Compliance') + ' – ' + (topic || 'Guidance');
@@ -199,10 +223,10 @@ Rules:
 SAVED RESEARCH (extract threshold and basis):
 ${(savedResearchSources[0]?.content as string || '').substring(0, 2000)}
 
-COMPANY DATA:
+COMPANY DATA (VALIDATED - USE ACTUAL COUNTS):
 States with employees: ${companyEmployeeStates.join(', ')}
-${Object.entries(employeesByState).map(([s, names]) => `${s}: ${names.length} employees - Names: ${names.join(', ')}`).join('\n')}
-Total employees: ${totalEmployees ?? 'unknown'}
+${Object.entries(employeesByState).map(([s, names]) => `${s}: ${names.length} ACTUAL employees (names: ${names.join(', ')})`).join('\n')}
+Total employees: ${totalEmployees ?? 'unknown'} (but use sum of actual employees listed above for threshold checks)
 
 APPLICABLE JURISDICTIONS (intersection of company states and research): ${applicableJurisdictions.join(', ')}
 
@@ -222,8 +246,51 @@ ${lastUser}`;
       }
     }
 
+    // Handle content-only questions (just want to read the research, no applicability)
+    if (questionIntent === 'content-only' && savedResearchSources.length > 0) {
+      const contentPrompt = `Present the key points from this research based on the user's question. Use markdown formatting.
+
+QUESTION: ${lastUser}
+
+RESEARCH CONTENT:
+${(savedResearchSources[0]?.content as string || '').substring(0, 3000)}
+
+FORMATTING REQUIREMENTS (MANDATORY):
+- NEVER start with "Okay,", "Well,", "So,", "Basically," or filler words
+- Use **bold** for ALL numbers, deadlines, requirements, dollar amounts
+- Use ## headers for different sections
+- Use - bullets for lists
+- Start directly with the information requested
+
+Your formatted markdown answer:`;
+
+      try {
+        const contentRes = await genAI.getGenerativeModel({ model: modelName }).generateContent({ contents: [{ role: 'user', parts: [{ text: contentPrompt }] }] });
+        const content = contentRes.response.text().trim();
+        
+        return new Response(
+          JSON.stringify({ 
+            role: 'assistant', 
+            content,
+            title: displayTitle,
+            savedResearchSources: savedResearchSources,
+            settings: {
+              systemPrompt: baseSystemPrompt,
+              model: modelName,
+              sourcesFound: savedResearchSources.length,
+              jurisdiction: jurisdiction || "All Jurisdictions",
+              topic: topic || "All Topics",
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (e) {
+        console.log('Content-only answer failed:', (e as Error).message);
+      }
+    }
+
     // Handle direct answers based on AI threshold check - but make them conversational
-    if (thresholdCheckResult && (questionIntent === 'who-needs' || questionIntent === 'yes-no')) {
+    if (thresholdCheckResult && (questionIntent === 'who-needs' || questionIntent === 'yes-no' || questionIntent === 'explain')) {
       // Use AI to craft a natural conversational answer using the threshold check result
       try {
         const conversationalPrompt = `You are a helpful compliance assistant. Craft a brief, natural, conversational answer to this question using the analysis provided.
@@ -239,18 +306,64 @@ COMPANY CONTEXT:
 ${Object.entries(employeesByState).map(([s, names]) => `${s}: ${names.join(', ')}`).join('\n')}
 
 YOUR TASK:
-Write a natural, conversational 2-3 sentence answer that:
-- Directly addresses the person/entity mentioned in the question by name if applicable
-- Explains why or why not in plain language
-- References the specific law/jurisdiction
-- Feels like chatting with a knowledgeable colleague, not a robot
+Format your answer with markdown for readability. Follow these examples EXACTLY:
 
-If the question asks about a specific person, start with their name. Be warm and helpful.
+EXAMPLE 1 - Factual question "What's the deadline?":
+California employees must complete training within **6 months of hire** and refresh every **2 years**.
 
-Your answer:`;
+EXAMPLE 2 - Who needs question:
+The following employees need training:
+- **Edo Williams** (California)
+- **Sam Worthy** (California)
+- **Kelly Sim** (California)
+
+EXAMPLE 3 - Multi-part "Tell me about the law":
+## Key Requirements
+- Applies to employers with **5+ employees**
+- Training must be **1 hour** (non-supervisors) or **2 hours** (supervisors)
+- Complete within **6 months of hire**
+- Refresh every **2 years**
+
+## What's Covered
+Training must include harassment definitions, prevention strategies, and supervisor duties.
+
+CRITICAL FORMATTING REQUIREMENTS (MANDATORY):
+- Output MUST be in markdown format with ** and ## and -
+- NEVER start with "Okay,", "Well,", "So," or any filler words
+- ALWAYS use **bold** for: numbers, deadlines, employee names, dollar amounts, requirements
+- Multi-part answers: use ## headers and - bullet points
+- Yes/no questions: start with "Yes" or "No", then explain with markdown
+- All other questions: start directly, use markdown throughout
+
+FORBIDDEN: Plain text without bold/formatting. Your answer MUST include ** for key facts.
+
+Your formatted markdown answer:`;
 
         const conversationalRes = await genAI.getGenerativeModel({ model: modelName }).generateContent({ contents: [{ role: 'user', parts: [{ text: conversationalPrompt }] }] });
         const content = conversationalRes.response.text().trim();
+
+        // Generate follow-up questions
+        let followUpQuestions: string[] = [];
+        try {
+          const followUpPrompt = `Based on this Q&A, generate 3 specific follow-up questions using only the available context.
+
+QUESTION: ${lastUser}
+ANSWER: ${content}
+
+COMPANY: ${companyEmployeeStates.join(', ')} with ${Object.entries(employeesByState).map(([s, n]) => `${n.length} in ${s}`).join(', ')}
+RESEARCH: ${savedResearchSources.map(r => r.title).join(', ')}
+
+RULES:
+- Only suggest questions answerable with this data
+- No app/feature questions
+- Use actual employee names or states
+- Keep under 100 chars
+- Return only questions, one per line
+
+Questions:`;
+          const fRes = await genAI.getGenerativeModel({ model: modelName }).generateContent({ contents: [{ role: 'user', parts: [{ text: followUpPrompt }] }] });
+          followUpQuestions = fRes.response.text().split('\n').map(q => q.trim().replace(/^[-•\d\.]+\s*/, '')).filter(q => q.length > 0 && q.length < 150).slice(0, 3);
+        } catch {}
 
         return new Response(
           JSON.stringify({ 
@@ -258,6 +371,7 @@ Your answer:`;
             content,
             title: displayTitle,
             savedResearchSources: savedResearchSources,
+            followUpQuestions,
             settings: {
               systemPrompt: baseSystemPrompt,
               model: modelName,
@@ -304,8 +418,8 @@ Your answer:`;
       }
     }
 
-    // Short-circuit: if no applicable jurisdictions, return not applicable
-    if ((companyEmployeeStates.length > 0 && selectedResearchJurisdictions.length > 0) && applicableJurisdictions.length === 0) {
+    // Short-circuit: if no applicable jurisdictions BUT user just wants content, skip applicability
+    if ((companyEmployeeStates.length > 0 && selectedResearchJurisdictions.length > 0) && applicableJurisdictions.length === 0 && questionIntent !== 'content-only') {
       const statesStr = companyEmployeeStates.join(', ');
       const researchStr = selectedResearchJurisdictions.join(', ');
       const content = questionIntent === 'yes-no'
@@ -330,23 +444,41 @@ Your answer:`;
       );
     }
 
-    // For explain/general questions, use the full model with enhanced prompt
+    // For explain/general questions, use the full model with chat history (memory)
+    const aiModel = genAI.getGenerativeModel({ 
+      model: modelName,
+      generationConfig: {
+        temperature: (dbSettings.chatTemperature as number) ?? 0.7,
+        maxOutputTokens: (dbSettings.chatMaxTokens as number) ?? 1048576,
+      },
+    });
+
+    // Build conversation history for memory
+    let conversationContext = systemPrompt;
+    
+    // Add previous Q&A pairs for context
+    try {
+      if (messages && Array.isArray(messages) && messages.length > 1) {
+        conversationContext += '\n\n=== CONVERSATION HISTORY ===\n';
+        messages.slice(0, -1).forEach((m: any) => {
+          if (m && m.role && m.content) {
+            conversationContext += `\n${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}\n`;
+          }
+        });
+        conversationContext += '\n=== END HISTORY ===\n';
+      }
+    } catch (historyError) {
+      console.log('Failed to build conversation history:', historyError);
+    }
+
     const lastMessage = messages[messages.length - 1];
-    const prompt = systemPrompt 
+    const fullPrompt = conversationContext
       + (jurisdiction ? `\n\nQuestion Jurisdiction: ${jurisdiction}` : '')
       + (topic ? `\nQuestion Topic: ${topic}` : '')
       + "\n\nUser Question: " + lastMessage.content 
       + "\n\nYour Response:";
 
-    const aiModel = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: {
-        temperature: (dbSettings.chatTemperature as number) ?? 0.7,
-        maxOutputTokens: (dbSettings.chatMaxTokens as number) ?? 8192,
-      },
-    });
-
-    const result = await aiModel.generateContent(prompt);
+    const result = await aiModel.generateContent(fullPrompt);
     const response = await result.response;
     const text = response.text();
 
@@ -394,7 +526,7 @@ Generate 3 questions:`;
         followUpQuestions,
         settings: {
           systemPrompt: baseSystemPrompt,
-          model: model || (dbSettings.chatModel as string) || "gemini-2.0-flash-exp",
+          model: modelName,
           sourcesFound: savedResearchSources.length,
           jurisdiction: jurisdiction || "All Jurisdictions",
           topic: topic || "All Topics",

@@ -244,10 +244,10 @@ export async function POST(request: Request) {
     // Step 3: Generate AI response with Gemini (streaming)
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ 
-      model: (researchSettings.researchModel as string) || 'gemini-2.0-flash-exp',
+      model: (researchSettings.researchModel as string) || 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: (researchSettings.researchTemperature as number) ?? 0.5,
-        maxOutputTokens: (researchSettings.researchMaxTokens as number) ?? 8192,
+        maxOutputTokens: (researchSettings.researchMaxTokens as number) ?? 1048576,
       }
     });
 

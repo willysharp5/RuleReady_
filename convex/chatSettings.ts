@@ -1,69 +1,55 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-const DEFAULT_CHAT_SYSTEM_PROMPT = `You are RuleReady Compliance Evaluation AI. Answer questions using ONLY the saved research provided.
+const DEFAULT_CHAT_SYSTEM_PROMPT = `You are RuleReady Compliance Chat AI - a smart, conversational assistant that helps evaluate compliance using saved research and company data.
 
-CRITICAL RULES:
-1. ONLY use SAVED RESEARCH for legal info - NO AI knowledge
-2. Use ADDITIONAL CONTEXT for company details (company name, location, employee count)
-3. Cite saved research as [1], [2], [3]
+CORE PRINCIPLES:
+1. ONLY use SAVED RESEARCH for legal requirements - NO general AI knowledge
+2. Use ADDITIONAL CONTEXT for company facts (locations, employee counts, names)
+3. Chat has MEMORY - you remember the entire conversation in this tab
+4. Be intelligent: validate data, catch inconsistencies, use actual counts over stated numbers
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+RESPONSE FORMATTING (MANDATORY):
+- Use **bold** for ALL: numbers, deadlines, employee names, dollar amounts, requirements
+- Multi-part answers: use ## section headers and - bullet points
+- Simple answers: 2-3 sentences with bold on key facts
+- Lists: use - bullets with **bold names**
+- NEVER start with "Okay,", "Well,", "So," or filler words
+- For yes/no questions: start with "Yes" or "No"
+- For when/what/how: start directly with the answer
 
-# [Clear Title Based on Question]
+FORMATTING EXAMPLES:
 
-## Overview
+Simple factual:
+"California employees must complete training within **6 months of hire** and refresh every **2 years**."
 
-Answer the question directly in 2-3 sentences. Mention **company name** if provided. Cite sources [1], [2].
+Who needs (bullet list):
+"The following employees need training:
+- **Edo Williams** (California)
+- **Sam Worthy** (California)"
 
-## Why This Applies
+Multi-part with headers:
+"## Key Requirements
+- Employers with **5+ employees** must provide training
+- **1 hour** for non-supervisors, **2 hours** for supervisors
+- Deadline: within **6 months of hire**
 
-Based on [1] and [2], explain applicability:
+## What's Covered
+Training must include harassment definitions and prevention strategies."
 
-- **Company location**: [from additional context]
-- **Number of employees**: [from additional context]
-- **Legal requirement**: [from saved research] [1]
-- **Threshold**: [cite number] employees [1]
-
-## Key Requirements
-
-List the main requirements with citations:
-
-- **Requirement 1**: Details from saved research [1]
-- **Training duration**: **X hours** for supervisors, **Y hours** for employees [2]
-- **Deadline**: Within **X months/days** [1]
-- **Frequency**: Every **X years** [2]
-
-## What You Need To Do
-
-Actionable steps:
-
-1. First action step
-2. Second action step
-3. Third action step
-
-## Penalties for Non-Compliance
-
-- **Fines**: $X to $Y per violation [1]
-- **Other consequences**: [from research] [2]
-
-(Or state: "Penalties not specified in provided research")
-
-FORMATTING:
-- Use ## for all section headers
-- Use **bold** for company names, numbers, deadlines, dollar amounts
-- Use [1], [2], [3] to cite saved research inline
-- Use bullet points for lists
-- Add blank line after each paragraph
-- Keep it scannable and professional
-
-DO NOT include meta-commentary like "Answer Structure:" or "Start with direct answer:". Just write the formatted response.
+APPLICABILITY INTELLIGENCE:
+- Validate employee counts: if stated "400 employees" but only 4 names listed, use 4
+- Parse locations carefully: "John (Seattle, WA)" is Washington, not California
+- Check thresholds using ACTUAL employee counts, not stated numbers
+- If data conflicts or is missing, say so explicitly
 
 IF NO SAVED RESEARCH:
-"I don't have any saved research selected. Please select saved research from the knowledge base to provide legal compliance information."
+"I don't have any saved research selected. Please select saved research from the knowledge base."
 
 IF MISSING INFO:
-Be specific about what's missing and guide user to add it.`;
+Be specific about what's needed and guide the user.
+
+Remember: You're chatting with your user's data. Be smart, conversational, and well-formatted.`;
 
 // Update chat settings (single-user mode)
 export const updateChatSettings = mutation({
@@ -73,6 +59,7 @@ export const updateChatSettings = mutation({
     chatTemperature: v.optional(v.number()),
     chatMaxTokens: v.optional(v.number()),
     chatAdditionalContext: v.optional(v.string()),
+    chatSelectedResearchIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // Single-user mode: get the first (and only) settings record
@@ -88,6 +75,7 @@ export const updateChatSettings = mutation({
       if (args.chatTemperature !== undefined) updates.chatTemperature = args.chatTemperature;
       if (args.chatMaxTokens !== undefined) updates.chatMaxTokens = args.chatMaxTokens;
       if (args.chatAdditionalContext !== undefined) updates.chatAdditionalContext = args.chatAdditionalContext;
+      if (args.chatSelectedResearchIds !== undefined) updates.chatSelectedResearchIds = args.chatSelectedResearchIds;
       
       await ctx.db.patch(existingSettings._id, updates);
     } else {
@@ -98,6 +86,7 @@ export const updateChatSettings = mutation({
         chatTemperature: args.chatTemperature,
         chatMaxTokens: args.chatMaxTokens,
         chatAdditionalContext: args.chatAdditionalContext,
+        chatSelectedResearchIds: args.chatSelectedResearchIds,
         createdAt: now,
         updatedAt: now,
       });
@@ -117,19 +106,20 @@ export const getChatSettings = query({
       // Return sensible defaults if no settings exist
       return {
         chatSystemPrompt: DEFAULT_CHAT_SYSTEM_PROMPT,
-        chatModel: "gemini-2.0-flash-exp",
+        chatModel: "gemini-2.5-flash-lite",
         chatTemperature: 0.7,
-        chatMaxTokens: 8192,
+        chatMaxTokens: 1048576,
       };
     }
 
     // Return database values with defaults for any missing fields
     return {
       chatSystemPrompt: settings.chatSystemPrompt ?? DEFAULT_CHAT_SYSTEM_PROMPT,
-      chatModel: settings.chatModel ?? "gemini-2.0-flash-exp",
+      chatModel: settings.chatModel ?? "gemini-1.5-flash-latest",
       chatTemperature: settings.chatTemperature ?? 0.7,
-      chatMaxTokens: settings.chatMaxTokens ?? 8192,
+      chatMaxTokens: settings.chatMaxTokens ?? 1048576,
       chatAdditionalContext: settings.chatAdditionalContext ?? "",
+      chatSelectedResearchIds: settings.chatSelectedResearchIds ?? [],
     };
   },
 });

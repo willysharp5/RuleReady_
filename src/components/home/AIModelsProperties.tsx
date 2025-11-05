@@ -15,7 +15,7 @@ export function AIModelsProperties() {
   // Test state
   const [testPopoverOpen, setTestPopoverOpen] = useState(false)
   const [testLoading, setTestLoading] = useState(false)
-  const [selectedTestModel, setSelectedTestModel] = useState('gemini-2.0-flash-exp')
+  const [selectedTestModel, setSelectedTestModel] = useState('gemini-2.5-flash-lite')
   const [testResult, setTestResult] = useState<{
     success: boolean
     message: string
@@ -25,11 +25,11 @@ export function AIModelsProperties() {
 
   // Available Gemini models
   const geminiModels = [
-    { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)', description: 'Fast, efficient, current default' },
-    { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash Latest', description: 'Stable, fast' },
-    { id: 'gemini-1.5-flash-8b-latest', name: 'Gemini 1.5 Flash 8B Latest', description: 'Lightweight, cost-effective' },
+    { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', description: 'Fast, efficient, best quota - Default' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Latest stable version' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Most capable model' },
+    { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash Latest', description: 'Previous stable' },
     { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro Latest', description: 'Advanced reasoning' },
-    { id: 'gemini-2.0-flash-thinking-exp-1219', name: 'Gemini 2.0 Flash Thinking', description: 'Extended reasoning' },
   ]
 
   // Fetch active providers on mount

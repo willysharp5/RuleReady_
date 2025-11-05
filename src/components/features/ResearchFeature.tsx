@@ -90,6 +90,8 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [saveTemplate, setSaveTemplate] = useState('')
   
   const researchListRef = useRef<HTMLDivElement | null>(null)
+  const researchInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const hasScrolledForResearchConversation = useRef<string | null>(null)
   
   // Scroll to bottom function - defined early so useEffects can reference it
   const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
@@ -132,6 +134,9 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Load conversation messages when tab changes or conversation loads
   useEffect(() => {
     if (loadedConversation && activeTab.conversationId === conversationToLoad) {
+      const convId = activeTab.conversationId || 'new'
+      const shouldScroll = hasScrolledForResearchConversation.current !== convId
+      
       setIsLoadingConversation(true)
       // Update tab with loaded messages
       setTabs(prev => prev.map(tab => 
@@ -139,10 +144,13 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           ? { ...tab, messages: loadedConversation.messages || [] }
           : tab
       ))
-      // Give a moment for state to settle, then clear loading flag and scroll to bottom
+      // Give a moment for state to settle, then clear loading flag and scroll to bottom once
       setTimeout(() => {
         setIsLoadingConversation(false)
-        scrollToBottom('instant')
+        if (shouldScroll) {
+          scrollToBottom('instant')
+          hasScrolledForResearchConversation.current = convId
+        }
       }, 100)
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
@@ -283,26 +291,12 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }, [researchMessages.length, checkScrollPosition])
 
-  // Auto-scroll on new messages
-  // Auto-scroll to bottom ONLY when user is near bottom (not reading previous messages)
+  // Only update scroll button state when messages change, don't force scroll
   useEffect(() => {
-    const el = researchListRef.current
-    if (!el) return
-    
-    // Check if user is near bottom (within 200px)
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
-    
-    // Only auto-scroll if user is near bottom
-    if (isNearBottom) {
-      scrollToBottom('instant')
-      setShowScrollButton(false)
-    } else {
-      // User scrolled up, show scroll button
-      setShowScrollButton(true)
+    if (!isLoadingConversation) {
+      setTimeout(() => checkScrollPosition(), 100)
     }
-    
-    setTimeout(() => checkScrollPosition(), 100)
-  }, [researchMessages, checkScrollPosition, scrollToBottom])
+  }, [researchMessages.length, checkScrollPosition, isLoadingConversation])
 
   // Copy message handler - includes sources in markdown
   const handleCopyResearchMessage = async (message: any, messageId: string) => {
@@ -503,6 +497,13 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       content: ''
     }])
     
+    // Scroll to bottom to show the generating indicator (wait for DOM update)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => scrollToBottom('smooth'), 100)
+      })
+    })
+    
     // Create abort controller for this request
     const controller = new AbortController()
     setResearchAbortController(controller)
@@ -615,6 +616,11 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                   ))
                 } else if (parsed.type === 'followup') {
                   setResearchFollowUpQuestions(parsed.questions || [])
+                  // Scroll to bottom after research completes and focus input
+                  setTimeout(() => {
+                    scrollToBottom('smooth')
+                    researchInputRef.current?.focus()
+                  }, 100)
                 }
               } catch (parseError) {
                 // Silently skip malformed JSON chunks - they happen at chunk boundaries
@@ -814,7 +820,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
       setResearchState({
         systemPrompt: defaultPrompt,
         firecrawlConfig: defaultConfig,
-        model: researchState.model || 'gemini-2.0-flash-exp',
+        model: researchState.model || 'gemini-2.5-flash-lite',
         selectedTemplate: '',
         jurisdiction: '',
         topic: '',
@@ -1500,6 +1506,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
         {/* Text Composer - Always Visible */}
         <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
           <Textarea
+            ref={researchInputRef}
             value={researchQuery}
             onChange={(e) => setResearchQuery(e.target.value)}
             onKeyDown={(e) => {

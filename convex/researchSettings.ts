@@ -81,9 +81,9 @@ export const getResearchSettings = query({
       // Return sensible defaults if no settings exist
       return {
         researchSystemPrompt: DEFAULT_RESEARCH_SYSTEM_PROMPT,
-        researchModel: "gemini-2.0-flash-exp",
+        researchModel: "gemini-2.5-flash-lite",
         researchTemperature: 0.5,
-        researchMaxTokens: 8192,
+        researchMaxTokens: 1048576,
         researchFirecrawlConfig: DEFAULT_FIRECRAWL_CONFIG,
       };
     }
@@ -91,9 +91,9 @@ export const getResearchSettings = query({
     // Return database values with defaults for any missing fields
     return {
       researchSystemPrompt: settings.researchSystemPrompt ?? DEFAULT_RESEARCH_SYSTEM_PROMPT,
-      researchModel: settings.researchModel ?? "gemini-2.0-flash-exp",
+      researchModel: settings.researchModel ?? "gemini-1.5-flash-latest",
       researchTemperature: settings.researchTemperature ?? 0.5,
-      researchMaxTokens: settings.researchMaxTokens ?? 8192,
+      researchMaxTokens: settings.researchMaxTokens ?? 1048576,
       researchFirecrawlConfig: settings.researchFirecrawlConfig ?? DEFAULT_FIRECRAWL_CONFIG,
     };
   },

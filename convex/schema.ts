@@ -28,6 +28,8 @@ const schema = defineSchema({
     editorMaxTokens: v.optional(v.number()),
     // Chat Additional Context (persisted between sessions)
     chatAdditionalContext: v.optional(v.string()),
+    // Chat Selected Research IDs (persisted between sessions)
+    chatSelectedResearchIds: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),

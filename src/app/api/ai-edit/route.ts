@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     // Initialize Gemini with editor settings
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: (editorSettings.editorModel as string) || 'gemini-2.0-flash-exp',
+      model: (editorSettings.editorModel as string) || 'gemini-2.5-flash-lite',
       generationConfig: {
         temperature: (editorSettings.editorTemperature as number) ?? 0.3,
         maxOutputTokens: (editorSettings.editorMaxTokens as number) ?? 2048,

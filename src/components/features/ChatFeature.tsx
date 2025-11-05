@@ -66,6 +66,8 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   const [viewingSavedResearch, setViewingSavedResearch] = useState<any>(null)
   
   const chatListRef = useRef<HTMLDivElement | null>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const hasScrolledForConversation = useRef<string | null>(null)
   
   // Scroll to bottom function - defined early so useEffects can reference it
   const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
@@ -109,6 +111,10 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   useEffect(() => {
     const activeTab = tabs.find(t => t.id === activeTabId)
     if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
+      // Only scroll if we haven't already scrolled for this conversation
+      const convId = activeTab.conversationId || 'new'
+      const shouldScroll = hasScrolledForConversation.current !== convId
+      
       setIsLoadingConversation(true)
       // Update tab with loaded messages
       setTabs(prev => prev.map(tab => 
@@ -116,10 +122,13 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
           ? { ...tab, messages: loadedConversation.messages || [] }
           : tab
       ))
-      // Give a moment for state to settle, then clear loading flag and scroll to bottom
+      // Give a moment for state to settle, then clear loading flag and scroll to bottom once
       setTimeout(() => {
         setIsLoadingConversation(false)
-        scrollToBottom('instant')
+        if (shouldScroll) {
+          scrollToBottom('instant')
+          hasScrolledForConversation.current = convId
+        }
       }, 100)
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
@@ -171,30 +180,10 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [chatFollowUpQuestions, setChatFollowUpQuestions] = useState<string[]>([])
   
-  // Chat configuration state
-  const [chatSystemPrompt, setChatSystemPrompt] = useState(`You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the compliance data in the internal database.
+  // Chat configuration state (loaded from DB, this is just initial fallback)
+  const [chatSystemPrompt, setChatSystemPrompt] = useState(`You are RuleReady Compliance Chat AI - a smart, conversational assistant.
 
-CRITICAL RULES:
-1. ONLY use information that exists in the provided database sources
-2. DO NOT use your general knowledge or training data
-3. If the database has NO relevant information, say: "I don't have information about [topic] in the database" and STOP
-4. DO NOT attempt to answer questions when database sources are missing or insufficient
-5. DO NOT make assumptions or inferences beyond what the database explicitly states
-
-WHEN DATABASE HAS INFORMATION:
-- Cite which jurisdiction and topic the information comes from
-- Distinguish between federal and state requirements
-- Mention effective dates when relevant
-- Note penalties or deadlines when applicable
-- Be specific and detailed based on database content
-
-WHEN DATABASE LACKS INFORMATION:
-- Clearly state what information is missing
-- Do NOT provide general compliance advice
-- Do NOT suggest what "typically" or "usually" applies
-- Simply acknowledge the limitation and stop
-
-You are a database query tool, not a general compliance advisor.`)
+Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be direct and well-formatted.`)
 
   // Check if user is near bottom of chat
   const checkScrollPosition = useCallback(() => {
@@ -219,22 +208,12 @@ You are a database query tool, not a general compliance advisor.`)
     }
   }, [chatMessages.length, checkScrollPosition])
 
-  // Auto-scroll to bottom when new messages arrive
+  // Only update scroll button state when messages change, don't force scroll
   useEffect(() => {
-    const el = chatListRef.current
-    if (!el) return
-    
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
-    
-    if (isNearBottom) {
-      scrollToBottom('instant')
-      setShowScrollButton(false)
-    } else {
-      setShowScrollButton(true)
+    if (!isLoadingConversation) {
+      setTimeout(() => checkScrollPosition(), 100)
     }
-    
-    setTimeout(() => checkScrollPosition(), 100)
-  }, [chatMessages, checkScrollPosition, scrollToBottom])
+  }, [chatMessages.length, checkScrollPosition, isLoadingConversation])
 
   // Copy message handler
   const handleCopyMessage = async (message: any, messageId: string) => {
@@ -296,6 +275,13 @@ You are a database query tool, not a general compliance advisor.`)
       content: ''
     }])
     
+    // Scroll to bottom to show the generating indicator (wait for DOM update)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => scrollToBottom('smooth'), 100)
+      })
+    })
+    
     // Create abort controller for this request
     const controller = new AbortController()
     setChatAbortController(controller)
@@ -317,7 +303,7 @@ You are a database query tool, not a general compliance advisor.`)
         signal: controller.signal,
         body: JSON.stringify({
           messages,
-          model: chatState?.model || 'gemini-2.0-flash-exp',
+          model: chatState?.model || 'gemini-2.5-flash-lite',
           jurisdiction: chatState?.jurisdiction || chatJurisdiction || undefined,
           topic: chatState?.topic || chatTopic || undefined,
           systemPrompt: chatState?.systemPrompt || chatSystemPrompt,
@@ -348,6 +334,12 @@ You are a database query tool, not a general compliance advisor.`)
       if (data.followUpQuestions && Array.isArray(data.followUpQuestions)) {
         setChatFollowUpQuestions(data.followUpQuestions)
       }
+      
+      // Scroll to bottom after receiving response and focus input
+      setTimeout(() => {
+        scrollToBottom('smooth')
+        chatInputRef.current?.focus()
+      }, 100)
 
     } catch (error: any) {
       const isAbort = error.name === 'AbortError' || 
@@ -928,6 +920,7 @@ You are a database query tool, not a general compliance advisor.`
         {/* Text Composer */}
         <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
           <Textarea
+            ref={chatInputRef}
             value={chatQuery}
             onChange={(e) => setChatQuery(e.target.value)}
             onKeyDown={(e) => {
