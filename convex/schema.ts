@@ -26,6 +26,8 @@ const schema = defineSchema({
     editorModel: v.optional(v.string()),
     editorTemperature: v.optional(v.number()),
     editorMaxTokens: v.optional(v.number()),
+    // Chat Additional Context (persisted between sessions)
+    chatAdditionalContext: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),

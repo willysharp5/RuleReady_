@@ -25,7 +25,7 @@ interface ChatState {
 interface ChatPropertiesProps {
   chatState?: ChatState
   setChatState?: (state: ChatState) => void
-  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string }) => Promise<{ success: boolean }>
+  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string; chatAdditionalContext?: string }) => Promise<{ success: boolean }>
 }
 
 export function ChatProperties({ chatState, setChatState, updateChatSettings }: ChatPropertiesProps = {}) {
@@ -51,6 +51,7 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   
   // Debounce timer refs
   const promptSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const contextSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   
   // Saving indicators
   const [isSavingPrompt, setIsSavingPrompt] = useState(false)
@@ -87,6 +88,21 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
         setTimeout(() => setPromptSaved(false), 2000)
       }
     }, 1000) // Save 1 second after user stops typing
+  }
+
+  const handleAdditionalContextChange = (value: string) => {
+    if (setChatState && chatState) {
+      setChatState({ ...chatState, additionalContext: value })
+    }
+    if (!updateChatSettings) return;
+    if (contextSaveTimerRef.current) clearTimeout(contextSaveTimerRef.current)
+    contextSaveTimerRef.current = setTimeout(() => {
+      updateChatSettings({
+        chatSystemPrompt: chatState?.systemPrompt,
+        chatModel: chatState?.model,
+        chatAdditionalContext: value,
+      })
+    }, 500)
   }
   
   const handleModelChange = (model: string) => {
@@ -343,14 +359,10 @@ Be specific about what's missing and guide user to add it.`
               placeholder="Paste compliance documents, rules text, or any reference information you want the AI to consider..."
               className="w-full px-3 py-2 text-xs border border-zinc-200 rounded-md resize-y min-h-[100px] max-h-[400px]"
               value={chatState?.additionalContext || ''}
-              onChange={(e) => {
-                if (setChatState && chatState) {
-                  setChatState({ ...chatState, additionalContext: e.target.value })
-                }
-              }}
+              onChange={(e) => handleAdditionalContextChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500 mt-1">
-              Included in your next chat query. Cleared when you refresh the page.
+              Included in your next chat query. Persisted to your settings until you clear it.
             </p>
           </div>
           
@@ -464,6 +476,13 @@ Use this company information to evaluate compliance requirements. The company ha
               onClick={() => {
                 if (setChatState && chatState) {
                   setChatState({ ...chatState, additionalContext: '' })
+                }
+                if (updateChatSettings) {
+                  updateChatSettings({
+                    chatSystemPrompt: chatState?.systemPrompt,
+                    chatModel: chatState?.model,
+                    chatAdditionalContext: ''
+                  })
                 }
               }}
             >

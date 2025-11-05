@@ -136,6 +136,7 @@ You are a database query tool, not a general compliance advisor.`,
         ...prev,
         systemPrompt: chatSettingsQuery.chatSystemPrompt,
         model: chatSettingsQuery.chatModel,
+        additionalContext: chatSettingsQuery.chatAdditionalContext || ''
       }))
       setChatSettingsLoaded(true)
     }

@@ -72,6 +72,7 @@ export const updateChatSettings = mutation({
     chatModel: v.optional(v.string()),
     chatTemperature: v.optional(v.number()),
     chatMaxTokens: v.optional(v.number()),
+    chatAdditionalContext: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Single-user mode: get the first (and only) settings record
@@ -86,6 +87,7 @@ export const updateChatSettings = mutation({
       if (args.chatModel !== undefined) updates.chatModel = args.chatModel;
       if (args.chatTemperature !== undefined) updates.chatTemperature = args.chatTemperature;
       if (args.chatMaxTokens !== undefined) updates.chatMaxTokens = args.chatMaxTokens;
+      if (args.chatAdditionalContext !== undefined) updates.chatAdditionalContext = args.chatAdditionalContext;
       
       await ctx.db.patch(existingSettings._id, updates);
     } else {
@@ -95,6 +97,7 @@ export const updateChatSettings = mutation({
         chatModel: args.chatModel,
         chatTemperature: args.chatTemperature,
         chatMaxTokens: args.chatMaxTokens,
+        chatAdditionalContext: args.chatAdditionalContext,
         createdAt: now,
         updatedAt: now,
       });
@@ -126,6 +129,7 @@ export const getChatSettings = query({
       chatModel: settings.chatModel ?? "gemini-2.0-flash-exp",
       chatTemperature: settings.chatTemperature ?? 0.7,
       chatMaxTokens: settings.chatMaxTokens ?? 8192,
+      chatAdditionalContext: settings.chatAdditionalContext ?? "",
     };
   },
 });

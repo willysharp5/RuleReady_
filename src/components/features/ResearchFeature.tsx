@@ -89,6 +89,21 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [saveTopic, setSaveTopic] = useState('')
   const [saveTemplate, setSaveTemplate] = useState('')
   
+  const researchListRef = useRef<HTMLDivElement | null>(null)
+  
+  // Scroll to bottom function - defined early so useEffects can reference it
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
+    const el = researchListRef.current
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior
+        })
+      })
+    }
+  }, [])
+  
   // Load saved conversations as tabs on mount
   useEffect(() => {
     if (allConversationsQuery && !tabsLoaded) {
@@ -124,10 +139,13 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           ? { ...tab, messages: loadedConversation.messages || [] }
           : tab
       ))
-      // Give a moment for state to settle, then clear loading flag
-      setTimeout(() => setIsLoadingConversation(false), 100)
+      // Give a moment for state to settle, then clear loading flag and scroll to bottom
+      setTimeout(() => {
+        setIsLoadingConversation(false)
+        scrollToBottom('instant')
+      }, 100)
     }
-  }, [loadedConversation, conversationToLoad, activeTabId])
+  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
   
   // When switching tabs, load that tab's conversation if not already loaded
   useEffect(() => {
@@ -186,7 +204,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       setResearchState({ ...researchState, urls })
     }
   }
-  const researchListRef = useRef<HTMLDivElement | null>(null)
+  
   const [copiedResearchMessageId, setCopiedResearchMessageId] = useState<string | null>(null)
   
   // Save research modal state
@@ -241,19 +259,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     topicKey: string
     topicName: string
   } | null>(null)
-  
-  // Scroll to bottom function
-  const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
-    const el = researchListRef.current
-    if (el) {
-      requestAnimationFrame(() => {
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior
-        })
-      })
-    }
-  }, [])
 
   // Check if user is near bottom of chat
   const checkScrollPosition = useCallback(() => {

@@ -65,6 +65,21 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'up' | 'down' | null>>({})
   const [viewingSavedResearch, setViewingSavedResearch] = useState<any>(null)
   
+  const chatListRef = useRef<HTMLDivElement | null>(null)
+  
+  // Scroll to bottom function - defined early so useEffects can reference it
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
+    const el = chatListRef.current
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior
+        })
+      })
+    }
+  }, [])
+  
   // Load saved conversations as tabs on mount
   useEffect(() => {
     if (allConversationsQuery && !tabsLoaded) {
@@ -101,10 +116,13 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
           ? { ...tab, messages: loadedConversation.messages || [] }
           : tab
       ))
-      // Give a moment for state to settle, then clear loading flag
-      setTimeout(() => setIsLoadingConversation(false), 100)
+      // Give a moment for state to settle, then clear loading flag and scroll to bottom
+      setTimeout(() => {
+        setIsLoadingConversation(false)
+        scrollToBottom('instant')
+      }, 100)
     }
-  }, [loadedConversation, conversationToLoad, activeTabId])
+  }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom])
   
   // When switching tabs, load that tab's conversation if not already loaded
   useEffect(() => {
@@ -148,10 +166,10 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     }
   }
   
-  const chatListRef = useRef<HTMLDivElement | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [chatAbortController, setChatAbortController] = useState<AbortController | null>(null)
   const [showScrollButton, setShowScrollButton] = useState(false)
+  const [chatFollowUpQuestions, setChatFollowUpQuestions] = useState<string[]>([])
   
   // Chat configuration state
   const [chatSystemPrompt, setChatSystemPrompt] = useState(`You are RuleReady Compliance Chat AI. Your role is to answer questions STRICTLY based on the compliance data in the internal database.
@@ -177,19 +195,6 @@ WHEN DATABASE LACKS INFORMATION:
 - Simply acknowledge the limitation and stop
 
 You are a database query tool, not a general compliance advisor.`)
-  
-  // Scroll to bottom function
-  const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
-    const el = chatListRef.current
-    if (el) {
-      requestAnimationFrame(() => {
-        el.scrollTo({
-          top: el.scrollHeight,
-          behavior
-        })
-      })
-    }
-  }, [])
 
   // Check if user is near bottom of chat
   const checkScrollPosition = useCallback(() => {
@@ -338,6 +343,11 @@ You are a database query tool, not a general compliance advisor.`)
             }
           : m
       ))
+      
+      // Set follow-up questions if provided
+      if (data.followUpQuestions && Array.isArray(data.followUpQuestions)) {
+        setChatFollowUpQuestions(data.followUpQuestions)
+      }
 
     } catch (error: any) {
       const isAbort = error.name === 'AbortError' || 
@@ -738,9 +748,9 @@ You are a database query tool, not a general compliance advisor.`
                     <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-purple-100 text-purple-700'}`}>
                       {m.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                     </div>
-                    <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[85%] ${m.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}>
+                    <div className={`px-4 py-3 rounded-2xl leading-relaxed shadow-sm max-w-[85%] ${m.role === 'user' ? 'bg-zinc-900 text-white text-base font-medium' : 'bg-gray-50 border border-gray-200 text-gray-900 text-sm'}`}>
                       {m.role === 'user' ? (
-                        <p>{m.content}</p>
+                        <p className="text-base font-medium">{m.content}</p>
                       ) : (
                         <>
                           <div className="compliance-chat-content">
@@ -893,6 +903,28 @@ You are a database query tool, not a general compliance advisor.`
       
       {/* Bottom composer */}
       <form onSubmit={handleChatSubmit} className="flex-shrink-0">
+        {/* Follow-up Questions */}
+        {chatFollowUpQuestions.length > 0 && (
+          <div className="max-w-3xl mx-auto mb-3 px-4">
+            <div className="text-xs font-medium text-gray-600 mb-2">Suggested questions:</div>
+            <div className="flex flex-wrap gap-2">
+              {chatFollowUpQuestions.map((q, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setChatQuery(q)
+                    setChatFollowUpQuestions([])
+                  }}
+                  className="text-xs px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-full transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* Text Composer */}
         <div className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border px-3 py-2">
           <Textarea
