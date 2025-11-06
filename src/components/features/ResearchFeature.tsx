@@ -297,6 +297,28 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
+  // On first mount or when switching to this feature, restore settings for active tab
+  useEffect(() => {
+    if (activeTab?.conversationId) {
+      const cachedSettings = tabSettingsCache.current.get(activeTab.conversationId)
+      if (cachedSettings && setResearchState) {
+        // Restore from cache without triggering another load
+        setResearchState((prev: any) => ({
+          ...prev,
+          jurisdiction: cachedSettings.jurisdiction,
+          topic: cachedSettings.topic,
+          selectedTemplate: cachedSettings.selectedTemplate,
+          urls: cachedSettings.urls,
+          additionalContext: cachedSettings.additionalContext
+        }))
+        setResearchJurisdiction(cachedSettings.jurisdiction)
+        setResearchTopic(cachedSettings.topic)
+        setSelectedResearchTemplate(cachedSettings.selectedTemplate)
+        setResearchUrls(cachedSettings.urls)
+      }
+    }
+  }, []) // Only run once on mount
+  
   // Sync researchMessages with active tab
   const [researchQuery, setResearchQuery] = useState('')
   const researchMessages = activeTab.messages

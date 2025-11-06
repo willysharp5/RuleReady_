@@ -263,6 +263,26 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
+  // On first mount or when switching to this feature, restore settings for active tab
+  useEffect(() => {
+    if (activeTab?.conversationId) {
+      const cachedSettings = tabSettingsCache.current.get(activeTab.conversationId)
+      if (cachedSettings && setChatState) {
+        // Restore from cache without triggering another load
+        setChatState((prev: any) => ({
+          ...prev,
+          jurisdiction: cachedSettings.jurisdiction,
+          topic: cachedSettings.topic,
+          additionalContext: cachedSettings.additionalContext,
+          selectedResearchIds: cachedSettings.selectedResearchIds,
+          savedResearchContent: cachedSettings.savedResearchContent
+        }))
+        setChatJurisdiction(cachedSettings.jurisdiction)
+        setChatTopic(cachedSettings.topic)
+      }
+    }
+  }, []) // Only run once on mount
+  
   // Sync messages with active tab
   const [chatQuery, setChatQuery] = useState('')
   const chatMessages = activeTab.messages
