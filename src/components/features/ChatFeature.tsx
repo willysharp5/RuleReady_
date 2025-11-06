@@ -189,6 +189,7 @@ const defaultTab: ChatTab = createChatTab('tab-1', 'Chat 1')
 const [tabs, setTabs] = useState<ChatTab[]>([defaultTab])
 const tabsRef = useRef(tabs)
 const sessionHydrated = useRef(false)
+const [tabsHydrated, setTabsHydrated] = useState(false)
 const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
@@ -222,19 +223,20 @@ useEffect(() => {
     }
   }
   sessionHydrated.current = true
+  setTabsHydrated(true)
 }, [])
 
 // Persist tabs metadata to session storage when they change
 useEffect(() => {
-  if (!sessionHydrated.current) return
+  if (!sessionHydrated.current || !tabsHydrated) return
   persistTabsToSession(tabs)
-}, [tabs])
+}, [tabs, tabsHydrated])
 
 // Persist active tab id
 useEffect(() => {
-  if (!sessionHydrated.current || typeof window === 'undefined') return
+  if (!sessionHydrated.current || !tabsHydrated || typeof window === 'undefined') return
   window.sessionStorage.setItem('rr-chat-active-tab', activeTabId)
-}, [activeTabId])
+}, [activeTabId, tabsHydrated])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -439,24 +441,26 @@ useEffect(() => {
   
   // When switching tabs, restore settings from tab cache or load from database
   useEffect(() => {
+    if (!tabsHydrated) return
+
     // Only run when actually switching tabs (not on every render)
     if (previousActiveTabId.current === activeTabId) {
       return
     }
-    
+
     // Before switching, save current settings to ref-based cache (instant, no async state issues)
     if (previousActiveTabId.current && chatState) {
       tabSettingsCache.current.set(previousActiveTabId.current, buildCacheEntryFromState(chatState))
     }
-    
+
     // Get the tab we're switching TO
     const newActiveTab = tabs.find(t => t.id === activeTabId)
-    
+
     previousActiveTabId.current = activeTabId
-    
+
     // Check ref cache first (instant reads)
     const cachedSettings = tabSettingsCache.current.get(activeTabId)
-    
+
     if (cachedSettings) {
       // Restore from ref cache
       if (setChatState) {
@@ -478,12 +482,12 @@ useEffect(() => {
         setChatSystemPrompt(cachedSettings.systemPrompt)
       }
 
-    if (
-      newActiveTab?.conversationId &&
-      !settingsLoadedForConversation.current.has(newActiveTab.conversationId)
-    ) {
-      setConversationToLoad(newActiveTab.conversationId)
-    }
+      if (
+        newActiveTab?.conversationId &&
+        !settingsLoadedForConversation.current.has(newActiveTab.conversationId)
+      ) {
+        setConversationToLoad(newActiveTab.conversationId)
+      }
     } else if (newActiveTab?.conversationId) {
       // No cached settings - load from database if not already loaded
       if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
@@ -506,36 +510,10 @@ useEffect(() => {
       setChatJurisdiction('')
       setChatTopic('')
     }
-  }, [activeTabId, setChatState])
+  }, [activeTabId, chatState, setChatState, tabs, tabsHydrated])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
-  
-  // On first mount or when switching to this feature, restore settings for active tab
-  useEffect(() => {
-    if (activeTab) {
-      const cachedSettings = tabSettingsCache.current.get(activeTab.id)
-      if (cachedSettings && setChatState) {
-        // Restore from cache without triggering another load
-        setChatState(prev => ({
-          ...prev,
-          systemPrompt: cachedSettings.systemPrompt,
-          model: cachedSettings.model,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          additionalContext: cachedSettings.additionalContext,
-          selectedResearchIds: cachedSettings.selectedResearchIds,
-          savedResearchContent: cachedSettings.savedResearchContent,
-          lastPromptSent: cachedSettings.lastPromptSent
-        }))
-        setChatJurisdiction(cachedSettings.jurisdiction)
-        setChatTopic(cachedSettings.topic)
-        if (cachedSettings.systemPrompt) {
-          setChatSystemPrompt(cachedSettings.systemPrompt)
-        }
-      }
-    }
-  }, []) // Only run once on mount
   
   // Sync messages with active tab
   const [chatQuery, setChatQuery] = useState('')
