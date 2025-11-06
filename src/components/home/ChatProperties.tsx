@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { Dispatch, SetStateAction, useState } from 'react'
 import { Settings, Info, Tag, Building2, X, BookOpen } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
@@ -11,25 +11,14 @@ import { Button } from '@/components/ui/button'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { AdminOnly } from '@/components/AdminOnly'
-
-interface ChatState {
-  systemPrompt: string
-  model?: string
-  jurisdiction: string
-  topic: string
-  additionalContext?: string
-  savedResearchContent?: string
-  selectedResearchIds?: string[]
-  lastPromptSent?: string
-}
+import type { ChatFeatureState } from '@/components/features/ChatFeature'
 
 interface ChatPropertiesProps {
-  chatState?: ChatState
-  setChatState?: (state: ChatState | ((prev: ChatState) => ChatState)) => void
-  updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string; chatAdditionalContext?: string; chatSelectedResearchIds?: string[] }) => Promise<{ success: boolean }>
+  chatState?: ChatFeatureState
+  setChatState?: Dispatch<SetStateAction<ChatFeatureState>>
 }
 
-export function ChatProperties({ chatState, setChatState, updateChatSettings }: ChatPropertiesProps = {}) {
+export function ChatProperties({ chatState, setChatState }: ChatPropertiesProps = {}) {
   // Query data
   const jurisdictionsQuery = useQuery(api.complianceQueries.getJurisdictions)
   const topicsQuery = useQuery(api.complianceQueries.getTopics)
@@ -140,38 +129,20 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
         <SavedResearchSelect
           value={selectedResearchItems}
           onChange={(items) => {
-            if (setChatState && chatState) {
-              const researchIds = items.map(i => i._id);
-              if (items.length > 0) {
-                // Set research IDs and content separately from additional context
-                const combinedContent = items.map(item => 
+            if (!setChatState) return
+
+            const researchIds = items.map(i => i._id)
+            const combinedContent = items.length > 0
+              ? items.map(item => 
                   `[SAVED RESEARCH] ${item.title}\n${item.jurisdiction ? `Jurisdiction: ${item.jurisdiction}\n` : ''}${item.topic ? `Topic: ${item.topic}\n` : ''}\n${item.content}`
                 ).join('\n\n---\n\n')
-                
-                setChatState({ 
-                  ...chatState, 
-                  selectedResearchIds: researchIds,
-                  savedResearchContent: combinedContent
-                })
-              } else {
-                // Clear selection
-                setChatState({ 
-                  ...chatState, 
-                  selectedResearchIds: [],
-                  savedResearchContent: ''
-                })
-              }
-              
-              // Persist to database
-              if (updateChatSettings) {
-                updateChatSettings({
-                  chatSystemPrompt: chatState.systemPrompt,
-                  chatModel: chatState.model,
-                  chatAdditionalContext: chatState.additionalContext,
-                  chatSelectedResearchIds: researchIds
-                })
-              }
-            }
+              : ''
+
+            setChatState(prev => ({
+              ...prev,
+              selectedResearchIds: researchIds,
+              savedResearchContent: combinedContent
+            }))
           }}
           items={savedResearch}
           placeholder="Select saved research to use as knowledge base..."
@@ -197,20 +168,12 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (setChatState && chatState) {
-                  setChatState({ 
-                    ...chatState, 
+                if (setChatState) {
+                  setChatState(prev => ({
+                    ...prev,
                     selectedResearchIds: [],
                     savedResearchContent: ''
-                  })
-                }
-                if (updateChatSettings) {
-                  updateChatSettings({
-                    chatSystemPrompt: chatState?.systemPrompt,
-                    chatModel: chatState?.model,
-                    chatAdditionalContext: chatState?.additionalContext,
-                    chatSelectedResearchIds: []
-                  })
+                  }))
                 }
               }}
               className="h-auto px-2"
@@ -242,8 +205,11 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
           <JurisdictionSelect
             value={selectedJurisdiction}
             onChange={(j) => {
-              if (setChatState && chatState) {
-                setChatState({ ...chatState, jurisdiction: j?.name || '' })
+              if (setChatState) {
+                setChatState(prev => ({
+                  ...prev,
+                  jurisdiction: j?.name || ''
+                }))
               }
             }}
             placeholder="All Jurisdictions"
@@ -263,8 +229,11 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
           <TopicSelect
             value={selectedTopic}
             onChange={(t) => {
-              if (setChatState && chatState) {
-                setChatState({ ...chatState, topic: t?.name || '' })
+              if (setChatState) {
+                setChatState(prev => ({
+                  ...prev,
+                  topic: t?.name || ''
+                }))
               }
             }}
             placeholder="All Topics"
@@ -392,8 +361,11 @@ ${stateEmployees.map(e => `  - ${e.name} (${e.city}, ${state})`).join('\n')}`;
 COMPLIANCE SCENARIO:
 Use this company information to evaluate compliance requirements. The company has employees in ${employeeStates.length} state${employeeStates.length !== 1 ? 's' : ''}: ${employeeStates.join(', ')}.`;
 
-                if (setChatState && chatState) {
-                  setChatState({ ...chatState, additionalContext: companyContext });
+                if (setChatState) {
+                  setChatState(prev => ({
+                    ...prev,
+                    additionalContext: companyContext
+                  }))
                 }
               }}
             >
@@ -405,15 +377,11 @@ Use this company information to evaluate compliance requirements. The company ha
               type="button"
               className="text-xs px-2 py-1 border border-red-300 rounded hover:bg-red-50 text-red-600"
               onClick={() => {
-                if (setChatState && chatState) {
-                  setChatState({ ...chatState, additionalContext: '' })
-                }
-                if (updateChatSettings) {
-                  updateChatSettings({
-                    chatSystemPrompt: chatState?.systemPrompt,
-                    chatModel: chatState?.model,
-                    chatAdditionalContext: ''
-                  })
+                if (setChatState) {
+                  setChatState(prev => ({
+                    ...prev,
+                    additionalContext: ''
+                  }))
                 }
               }}
             >
@@ -587,17 +555,29 @@ Use this company information to evaluate compliance requirements. The company ha
                 // Saved research info
                 const hasResearch = chatState.selectedResearchIds && chatState.selectedResearchIds.length > 0;
                 parts.push(
-                  <div key="research" className="font-bold text-sm text-blue-700 mt-3">
+                  <div key="research" className="font-bold text-sm text-purple-700 mt-3">
                     Saved Research:
                   </div>
                 );
                 parts.push(
-                  <div key="research-info" className="text-xs italic text-zinc-500 ml-2">
+                  <div key="research-info" className="text-xs italic text-purple-600 ml-2">
                     {hasResearch 
                       ? `Using ${chatState.selectedResearchIds?.length} saved research item(s) as knowledge base`
                       : 'No saved research selected - AI will ask you to provide it'}
                   </div>
                 );
+                if (hasResearch && selectedResearchItems.length > 0) {
+                  parts.push(
+                    <div key="research-list" className="ml-3 mt-1 space-y-1">
+                      {selectedResearchItems.map((item: { _id: string; title: string }) => (
+                        <div key={item._id} className="flex items-center gap-2 text-xs text-purple-600 italic">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-purple-400" />
+                          <span className="truncate">{item.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
                 
                 // System instructions summary
                 parts.push(

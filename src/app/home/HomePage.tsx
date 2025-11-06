@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { MessageCircle, Search, FileText, MapPin, Layers, Zap, BookOpen, LogOut, Shield } from 'lucide-react'
 import { LeftNavigation } from '@/components/home/LeftNavigation'
 import { RightPropertiesPanel } from '@/components/home/RightPropertiesPanel'
-import ChatFeature from '@/components/features/ChatFeature'
+import ChatFeature, { ChatFeatureState } from '@/components/features/ChatFeature'
 import ResearchFeature from '@/components/features/ResearchFeature'
 import SavedResearchFeature from '@/components/features/SavedResearchFeature'
 import TemplatesFeature from '@/components/features/TemplatesFeature'
@@ -89,7 +89,6 @@ export default function HomePage() {
   
   // Load chat settings from database
   const chatSettingsQuery = useQuery(api.chatSettings.getChatSettings)
-  const updateChatSettings = useMutation(api.chatSettings.updateChatSettings)
   
   // Research state - lifted to share between feature and properties
   const [researchState, setResearchState] = useState({
@@ -106,16 +105,7 @@ export default function HomePage() {
   })
   
   // Chat state - lifted to share between feature and properties
-  const [chatState, setChatState] = useState<{
-    systemPrompt: string
-    model: string
-    jurisdiction: string
-    topic: string
-    additionalContext: string
-    selectedResearchIds: string[]
-    savedResearchContent?: string
-    lastPromptSent: string
-  }>({
+  const [chatState, setChatState] = useState<ChatFeatureState>({
     systemPrompt: `You are RuleReady Compliance Chat AI - a smart, conversational assistant that helps evaluate compliance using saved research and company data.
 
 CORE PRINCIPLES:
@@ -151,11 +141,13 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
     topic: '',
     additionalContext: '',
     selectedResearchIds: [],
+    savedResearchContent: '',
     lastPromptSent: '',
   })
   
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   const [chatSettingsLoaded, setChatSettingsLoaded] = useState(false)
+  const [chatHydrated, setChatHydrated] = useState(false)
   
   // Load research settings from database on mount
   useEffect(() => {
@@ -184,7 +176,7 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
   
   // Load chat settings from database on mount
   useEffect(() => {
-    if (chatSettingsQuery && !chatSettingsLoaded) {
+    if (chatSettingsQuery && !chatSettingsLoaded && !chatHydrated) {
       const loadedIds = chatSettingsQuery.chatSelectedResearchIds || [];
       
        // Rebuild savedResearchContent from IDs if we have research data
@@ -208,7 +200,7 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
       }))
       setChatSettingsLoaded(true)
     }
-  }, [chatSettingsQuery, chatSettingsLoaded, allSavedResearchQuery])
+  }, [chatSettingsQuery, chatSettingsLoaded, allSavedResearchQuery, chatHydrated])
   
   const handleLogout = async () => {
     try {
@@ -266,7 +258,11 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
         <main className="flex-1 overflow-auto bg-white">
           <div className="max-w-[800px] mx-auto p-6">
             {activeFeature === 'chat' && (
-              <ChatFeature chatState={chatState} setChatState={setChatState} />
+              <ChatFeature 
+                chatState={chatState} 
+                setChatState={setChatState}
+                onHydrated={() => setChatHydrated(true)}
+              />
             )}
             {activeFeature === 'research' && (
               <ResearchFeature researchState={researchState} setResearchState={setResearchState} />
@@ -289,7 +285,6 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
           chatState={chatState}
           setChatState={setChatState}
           updateResearchSettings={updateResearchSettings}
-          updateChatSettings={updateChatSettings}
           onDismissError={() => setResearchState(prev => ({ ...prev, configError: null }))}
         />
       </div>

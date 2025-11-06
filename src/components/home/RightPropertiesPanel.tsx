@@ -18,11 +18,10 @@ interface RightPropertiesPanelProps {
   chatState?: any
   setChatState?: (state: any) => void
   updateResearchSettings?: any
-  updateChatSettings?: any
   onDismissError?: () => void
 }
 
-export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState, chatState, setChatState, updateResearchSettings, updateChatSettings, onDismissError }: RightPropertiesPanelProps) {
+export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, researchState, setResearchState, chatState, setChatState, updateResearchSettings, onDismissError }: RightPropertiesPanelProps) {
   return (
     <>
       {/* Floating Config Error Popover */}
@@ -84,7 +83,6 @@ export function RightPropertiesPanel({ activeFeature, isOpen, onToggle, research
             <ChatProperties 
               chatState={chatState}
               setChatState={setChatState}
-              updateChatSettings={updateChatSettings}
             />
           )}
           {activeFeature === 'research' && (
