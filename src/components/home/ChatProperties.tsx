@@ -140,7 +140,8 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
         <SavedResearchSelect
           value={selectedResearchItems}
           onChange={(items) => {
-            if (setChatState && chatState) {
+            console.log('[ChatProperties] 📚 Saved Research selected:', items.length, 'items')
+            if (setChatState) {
               const researchIds = items.map(i => i._id);
               if (items.length > 0) {
                 // Set research IDs and content separately from additional context
@@ -148,28 +149,23 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
                   `[SAVED RESEARCH] ${item.title}\n${item.jurisdiction ? `Jurisdiction: ${item.jurisdiction}\n` : ''}${item.topic ? `Topic: ${item.topic}\n` : ''}\n${item.content}`
                 ).join('\n\n---\n\n')
                 
-                setChatState({ 
-                  ...chatState, 
-                  selectedResearchIds: researchIds,
-                  savedResearchContent: combinedContent
+                console.log('[ChatProperties] Setting selectedResearchIds:', researchIds)
+                setChatState((prev) => {
+                  console.log('[ChatProperties] Previous state:', prev.selectedResearchIds)
+                  return { 
+                    ...prev, 
+                    selectedResearchIds: researchIds,
+                    savedResearchContent: combinedContent
+                  }
                 })
               } else {
                 // Clear selection
-                setChatState({ 
-                  ...chatState, 
+                console.log('[ChatProperties] Clearing saved research')
+                setChatState((prev) => ({ 
+                  ...prev, 
                   selectedResearchIds: [],
                   savedResearchContent: ''
-                })
-              }
-              
-              // Persist to database
-              if (updateChatSettings) {
-                updateChatSettings({
-                  chatSystemPrompt: chatState.systemPrompt,
-                  chatModel: chatState.model,
-                  chatAdditionalContext: chatState.additionalContext,
-                  chatSelectedResearchIds: researchIds
-                })
+                }))
               }
             }
           }}
@@ -197,20 +193,12 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (setChatState && chatState) {
-                  setChatState({ 
-                    ...chatState, 
+                if (setChatState) {
+                  setChatState((prev) => ({ 
+                    ...prev, 
                     selectedResearchIds: [],
                     savedResearchContent: ''
-                  })
-                }
-                if (updateChatSettings) {
-                  updateChatSettings({
-                    chatSystemPrompt: chatState?.systemPrompt,
-                    chatModel: chatState?.model,
-                    chatAdditionalContext: chatState?.additionalContext,
-                    chatSelectedResearchIds: []
-                  })
+                  }))
                 }
               }}
               className="h-auto px-2"
@@ -605,6 +593,35 @@ Use this company information to evaluate compliance requirements. The company ha
                     System Instructions: [View in AI Settings accordion above]
                   </div>
                 );
+                
+                // Selected Knowledge Base (Saved Research) - Purple text like Research tab
+                if (hasResearch && savedResearch.length > 0) {
+                  const selectedItems = savedResearch.filter((r: { _id: string; title: string; jurisdiction?: string; topic?: string }) => 
+                    chatState.selectedResearchIds?.includes(r._id)
+                  );
+                  
+                  if (selectedItems.length > 0) {
+                    parts.push(
+                      <div key="knowledge-base-header" className="font-bold text-sm text-purple-700 mt-2">
+                        Knowledge Base Selected:
+                      </div>
+                    );
+                    
+                    selectedItems.forEach((item: { _id: string; title: string; jurisdiction?: string; topic?: string }, idx: number) => {
+                      parts.push(
+                        <div key={`kb-${idx}`} className="flex items-baseline gap-1 ml-2">
+                          <span className="text-xs text-zinc-600">•</span>
+                          <span className="text-xs italic text-zinc-500">{item.title}</span>
+                          {(item.jurisdiction || item.topic) && (
+                            <span className="text-xs italic text-zinc-400">
+                              ({[item.jurisdiction, item.topic].filter(Boolean).join(' • ')})
+                            </span>
+                          )}
+                        </div>
+                      );
+                    });
+                  }
+                }
                 
                 return <>{parts}</>;
               })()}

@@ -40,12 +40,10 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     conversationToLoad ? { conversationId: conversationToLoad as any } : 'skip'
   )
   
-  // Track which conversations have had their settings loaded
-  const settingsLoadedForConversation = useRef<Set<string>>(new Set())
   const previousActiveTabId = useRef<string | null>(null)
   
-  // Use ref-based cache for instant reads (state updates aren't synchronous)
-  const tabSettingsCache = useRef<Map<string, {
+  // Store current settings per tab (in memory, updates immediately)
+  const tabSettings = useRef<Map<string, {
     jurisdiction: string
     topic: string
     additionalContext: string
@@ -115,7 +113,7 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
         
         setTabs(loadedTabs)
         setActiveTabId(loadedTabs[0].id)
-        // Trigger loading of first conversation
+        // Load ONLY the first tab
         setConversationToLoad(loadedTabs[0].conversationId)
       }
       
@@ -132,11 +130,7 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
       const convId = activeTab.conversationId || 'new'
       
-      // Skip if we've already processed this exact conversation load
-      if (lastLoadedConversationId.current === convId) {
-        return
-      }
-      
+      // Always process - allow reloading to pick up changes
       lastLoadedConversationId.current = convId
       
       // Only scroll if we haven't already scrolled for this conversation
@@ -148,20 +142,22 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
       if (loadedConversation.settingsSnapshot && setChatState) {
         const snapshot = loadedConversation.settingsSnapshot
         
-        // Mark this conversation as having loaded settings
-        if (activeTab.conversationId) {
-          settingsLoadedForConversation.current.add(activeTab.conversationId)
-          
-          // Also cache in ref for instant tab switching
-          tabSettingsCache.current.set(activeTab.conversationId, {
-            jurisdiction: snapshot.jurisdiction || '',
-            topic: snapshot.topic || '',
-            additionalContext: snapshot.additionalContext || '',
-            selectedResearchIds: snapshot.selectedResearchIds || [],
-            savedResearchContent: snapshot.savedResearchContent || ''
-          })
-        }
+        console.log('[ChatFeature] 💾 Loaded from DB:', convId, {
+          jurisdiction: snapshot.jurisdiction,
+          topic: snapshot.topic,
+          selectedResearchIds: snapshot.selectedResearchIds?.length || 0
+        })
         
+        // Save to memory for this tab
+        tabSettings.current.set(activeTab.id, {
+          jurisdiction: snapshot.jurisdiction || '',
+          topic: snapshot.topic || '',
+          additionalContext: snapshot.additionalContext || '',
+          selectedResearchIds: snapshot.selectedResearchIds || [],
+          savedResearchContent: snapshot.savedResearchContent || ''
+        })
+        
+        // Update global state
         setChatState({
           systemPrompt: snapshot.systemPrompt || '',
           model: snapshot.model,
@@ -195,55 +191,56 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setChatState])
   
-  // When switching tabs, restore settings from tab cache or load from database
+  // When switching tabs, save current and restore new tab's settings
   useEffect(() => {
-    // Only run when actually switching tabs (not on every render)
+    // Only run when actually switching tabs
     if (previousActiveTabId.current === activeTabId) {
       return
     }
     
-    // Before switching, save current settings to ref-based cache (instant, no async state issues)
+    console.log('[ChatFeature] 🔄 Tab switch:', previousActiveTabId.current, '→', activeTabId)
+    
+    // SAVE current tab's settings before switching
     if (previousActiveTabId.current && chatState) {
-      const cacheData = {
+      console.log('[ChatFeature] 💾 Saving settings for:', previousActiveTabId.current)
+      tabSettings.current.set(previousActiveTabId.current, {
         jurisdiction: chatState.jurisdiction || '',
         topic: chatState.topic || '',
         additionalContext: chatState.additionalContext || '',
         selectedResearchIds: chatState.selectedResearchIds || [],
         savedResearchContent: (chatState as any).savedResearchContent || ''
-      }
-      tabSettingsCache.current.set(previousActiveTabId.current, cacheData)
+      })
     }
     
-    // Get the tab we're switching TO
-    const newActiveTab = tabs.find(t => t.id === activeTabId)
-    
     previousActiveTabId.current = activeTabId
+    const activeTab = tabs.find(t => t.id === activeTabId)
+    if (!activeTab) return
     
-    // Check ref cache first (instant reads)
-    const cachedSettings = tabSettingsCache.current.get(activeTabId)
+    // Check if we have in-memory settings for this tab
+    const savedSettings = tabSettings.current.get(activeTabId)
     
-    if (cachedSettings) {
-      // Restore from ref cache
+    if (savedSettings) {
+      // Restore from memory (user made changes)
+      console.log('[ChatFeature] ⚡ Restoring from MEMORY:', activeTabId, savedSettings.selectedResearchIds?.length, 'research items')
       if (setChatState) {
         setChatState((prev: any) => ({
           ...prev,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          additionalContext: cachedSettings.additionalContext,
-          selectedResearchIds: cachedSettings.selectedResearchIds,
-          savedResearchContent: cachedSettings.savedResearchContent
+          jurisdiction: savedSettings.jurisdiction,
+          topic: savedSettings.topic,
+          additionalContext: savedSettings.additionalContext,
+          selectedResearchIds: savedSettings.selectedResearchIds,
+          savedResearchContent: savedSettings.savedResearchContent
         }))
       }
-      setChatJurisdiction(cachedSettings.jurisdiction)
-      setChatTopic(cachedSettings.topic)
-    } else if (newActiveTab?.conversationId) {
-      // No cached settings - load from database if not already loaded
-      if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
-        setConversationToLoad(newActiveTab.conversationId)
-      }
+      setChatJurisdiction(savedSettings.jurisdiction)
+      setChatTopic(savedSettings.topic)
+    } else if (activeTab.conversationId) {
+      // No memory - load from database
+      console.log('[ChatFeature] 📂 Loading from DB:', activeTab.conversationId)
+      setConversationToLoad(activeTab.conversationId)
     } else {
-      // New tab without saved conversation - reset to defaults
-      setConversationToLoad(null)
+      // New tab - reset to defaults
+      console.log('[ChatFeature] ✨ New tab - defaults')
       if (setChatState) {
         setChatState((prev: any) => ({
           ...prev,
@@ -258,30 +255,12 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
       setChatJurisdiction('')
       setChatTopic('')
     }
-  }, [activeTabId, setChatState])
+  }, [activeTabId, setChatState, tabs])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
-  // On first mount or when switching to this feature, restore settings for active tab
-  useEffect(() => {
-    if (activeTab?.conversationId) {
-      const cachedSettings = tabSettingsCache.current.get(activeTab.conversationId)
-      if (cachedSettings && setChatState) {
-        // Restore from cache without triggering another load
-        setChatState((prev: any) => ({
-          ...prev,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          additionalContext: cachedSettings.additionalContext,
-          selectedResearchIds: cachedSettings.selectedResearchIds,
-          savedResearchContent: cachedSettings.savedResearchContent
-        }))
-        setChatJurisdiction(cachedSettings.jurisdiction)
-        setChatTopic(cachedSettings.topic)
-      }
-    }
-  }, []) // Only run once on mount
+  // Removed - causing Tab 2 to load on mount
   
   // Sync messages with active tab
   const [chatQuery, setChatQuery] = useState('')
@@ -691,15 +670,22 @@ You are a database query tool, not a general compliance advisor.`
   }
   
   const handleRenameTab = async (tabId: string, newTitle: string) => {
+    // Prevent empty titles - if empty, keep the old title
+    const trimmedTitle = newTitle.trim()
+    if (!trimmedTitle) {
+      setIsEditingTab(null)
+      return
+    }
+    
     setTabs(prev => prev.map(tab => 
-      tab.id === tabId ? { ...tab, title: newTitle } : tab
+      tab.id === tabId ? { ...tab, title: trimmedTitle } : tab
     ))
     
     const tab = tabs.find(t => t.id === tabId)
     if (tab?.conversationId) {
       await updateConversationTitle({
         conversationId: tab.conversationId as any,
-        title: newTitle
+        title: trimmedTitle
       })
     }
     
@@ -832,10 +818,16 @@ You are a database query tool, not a general compliance advisor.`
                   type="text"
                   value={editingTabTitle}
                   onChange={(e) => setEditingTabTitle(e.target.value)}
-                  onBlur={() => handleRenameTab(tab.id, editingTabTitle)}
+                  onBlur={() => {
+                    // Delay slightly to allow onChange to process final character
+                    setTimeout(() => handleRenameTab(tab.id, editingTabTitle), 10)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleRenameTab(tab.id, editingTabTitle)
-                    if (e.key === 'Escape') setIsEditingTab(null)
+                    if (e.key === 'Escape') {
+                      setIsEditingTab(null)
+                      setEditingTabTitle('')
+                    }
                   }}
                   className="flex-1 px-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                   autoFocus

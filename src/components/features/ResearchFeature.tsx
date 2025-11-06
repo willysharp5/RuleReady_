@@ -297,27 +297,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
-  // On first mount or when switching to this feature, restore settings for active tab
-  useEffect(() => {
-    if (activeTab?.conversationId) {
-      const cachedSettings = tabSettingsCache.current.get(activeTab.conversationId)
-      if (cachedSettings && setResearchState) {
-        // Restore from cache without triggering another load
-        setResearchState((prev: any) => ({
-          ...prev,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          selectedTemplate: cachedSettings.selectedTemplate,
-          urls: cachedSettings.urls,
-          additionalContext: cachedSettings.additionalContext
-        }))
-        setResearchJurisdiction(cachedSettings.jurisdiction)
-        setResearchTopic(cachedSettings.topic)
-        setSelectedResearchTemplate(cachedSettings.selectedTemplate)
-        setResearchUrls(cachedSettings.urls)
-      }
-    }
-  }, []) // Only run once on mount
+  // Removed - was causing extra loads on mount
   
   // Sync researchMessages with active tab
   const [researchQuery, setResearchQuery] = useState('')
@@ -1127,6 +1107,29 @@ These appear AFTER "Based on these sources:" in your prompt.`
     setActiveTabId(newTab.id)
   }
   
+  const handleRenameTab = async (tabId: string, newTitle: string) => {
+    // Prevent empty titles - if empty, keep the old title
+    const trimmedTitle = newTitle.trim()
+    if (!trimmedTitle) {
+      setIsEditingTab(null)
+      return
+    }
+    
+    setTabs(prev => prev.map(tab => 
+      tab.id === tabId ? { ...tab, title: trimmedTitle } : tab
+    ))
+    
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab?.conversationId) {
+      await updateConversationTitle({
+        conversationId: tab.conversationId as any,
+        title: trimmedTitle
+      })
+    }
+    
+    setIsEditingTab(null)
+  }
+  
   const handleCloseTab = async (tabId: string) => {
     if (tabs.length === 1) return // Don't close last tab
     
@@ -1146,22 +1149,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
     }
     
     setShowDeleteTabConfirm(null)
-  }
-  
-  const handleRenameTab = async (tabId: string, newTitle: string) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === tabId ? { ...tab, title: newTitle } : tab
-    ))
-    
-    const tab = tabs.find(t => t.id === tabId)
-    if (tab?.conversationId) {
-      await updateConversationTitle({
-        conversationId: tab.conversationId as any,
-        title: newTitle
-      })
-    }
-    
-    setIsEditingTab(null)
   }
 
   const handleOpenSaveModal = (message: any) => {
@@ -1473,10 +1460,16 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   type="text"
                   value={editingTabTitle}
                   onChange={(e) => setEditingTabTitle(e.target.value)}
-                  onBlur={() => handleRenameTab(tab.id, editingTabTitle)}
+                  onBlur={() => {
+                    // Delay slightly to allow onChange to process final character
+                    setTimeout(() => handleRenameTab(tab.id, editingTabTitle), 10)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleRenameTab(tab.id, editingTabTitle)
-                    if (e.key === 'Escape') setIsEditingTab(null)
+                    if (e.key === 'Escape') {
+                      setIsEditingTab(null)
+                      setEditingTabTitle('')
+                    }
                   }}
                   className="flex-1 px-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                   autoFocus
