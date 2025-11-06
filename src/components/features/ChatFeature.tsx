@@ -12,6 +12,10 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { TiptapEditorModal } from '@/components/TiptapEditorModal'
 
+const DEFAULT_CHAT_PROMPT = `You are RuleReady Compliance Chat AI - a smart, conversational assistant.
+
+Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be direct and well-formatted.`
+
 export type ChatFeatureState = {
   systemPrompt: string
   model?: string
@@ -48,7 +52,7 @@ export default function ChatFeature({ chatState, setChatState, onHydrated }: Cha
   const settingsLoadedForConversation = useRef<Set<string>>(new Set())
   const previousActiveTabId = useRef<string | null>(null)
   
-  type TabSettingsCacheEntry = {
+  type SettingsSnapshot = {
     systemPrompt: string
     model?: string
     jurisdiction: string
@@ -63,21 +67,28 @@ type ChatTab = {
   id: string
   title: string
   conversationId: string | null
-  messages: any[]
+  messages: ChatMessage[]
   hasUnsavedChanges: boolean
   followUpQuestions: string[]
+}
+
+type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  [key: string]: any
 }
 
 const createChatTab = (id: string, title: string, conversationId: string | null = null): ChatTab => ({
   id,
   title,
   conversationId,
-  messages: [],
+  messages: [] as ChatMessage[],
   hasUnsavedChanges: false,
   followUpQuestions: []
 })
 
-  const buildCacheEntryFromState = (state?: ChatFeatureState): TabSettingsCacheEntry => ({
+  const buildSnapshotFromState = (state?: ChatFeatureState): SettingsSnapshot => ({
     systemPrompt: state?.systemPrompt || '',
     model: state?.model,
     jurisdiction: state?.jurisdiction || '',
@@ -90,25 +101,10 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     lastPromptSent: state?.lastPromptSent || ''
   })
 
-  const cloneCacheEntry = (entry: Partial<TabSettingsCacheEntry> | undefined): TabSettingsCacheEntry => ({
-    systemPrompt: entry?.systemPrompt || '',
-    model: entry?.model,
-    jurisdiction: entry?.jurisdiction || '',
-    topic: entry?.topic || '',
-    additionalContext: entry?.additionalContext || '',
-    selectedResearchIds: Array.isArray(entry?.selectedResearchIds)
-      ? [...entry!.selectedResearchIds!]
-      : [],
-    savedResearchContent: entry?.savedResearchContent || '',
-    lastPromptSent: entry?.lastPromptSent || ''
-  })
-
-  // Use ref-based cache for instant reads (state updates aren't synchronous)
-  const tabSettingsCache = useRef<Map<string, TabSettingsCacheEntry>>(new Map())
-  const lastPersistedSettings = useRef<Map<string, TabSettingsCacheEntry>>(new Map())
+  const lastPersistedSettings = useRef<Map<string, SettingsSnapshot>>(new Map())
   const settingsSaveTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  const areSettingsEqual = (a: TabSettingsCacheEntry, b: TabSettingsCacheEntry) => {
+  const areSettingsEqual = (a: SettingsSnapshot, b: SettingsSnapshot) => {
     if (a === b) return true
     if (!a || !b) return false
 
@@ -125,72 +121,45 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     )
   }
 
-  const persistSettingsToSession = () => {
-    if (typeof window === 'undefined') return
-    const serialized: Record<string, TabSettingsCacheEntry> = {}
-    tabSettingsCache.current.forEach((value, key) => {
-      serialized[key] = {
-        ...value,
-        selectedResearchIds: [...value.selectedResearchIds]
-      }
+  // Tab management
+  const initialTabRef = useRef(createChatTab(`tab-${Date.now()}`, 'Chat 1'))
+  const [tabs, setTabs] = useState<ChatTab[]>([initialTabRef.current])
+  const tabsRef = useRef<ChatTab[]>([initialTabRef.current])
+  const tabsInitialized = useRef(false)
+  const [activeTabId, setActiveTabId] = useState<string | null>(initialTabRef.current.id)
+  const [chatSystemPrompt, setChatSystemPrompt] = useState(chatState?.systemPrompt || DEFAULT_CHAT_PROMPT)
+  const defaultChatStateRef = useRef<ChatFeatureState>({
+    systemPrompt: chatState?.systemPrompt || DEFAULT_CHAT_PROMPT,
+    model: chatState?.model,
+    jurisdiction: '',
+    topic: '',
+    additionalContext: '',
+    selectedResearchIds: [],
+    savedResearchContent: '',
+    lastPromptSent: ''
+  })
+  const [chatJurisdiction, setChatJurisdiction] = useState('')
+  const [chatTopic, setChatTopic] = useState('')
+  const applyDefaultChatState = useCallback(() => {
+    if (!setChatState) return
+
+    const defaults = defaultChatStateRef.current
+
+    setChatState({
+      systemPrompt: defaults.systemPrompt,
+      model: defaults.model,
+      jurisdiction: '',
+      topic: '',
+      additionalContext: '',
+      selectedResearchIds: [],
+      savedResearchContent: '',
+      lastPromptSent: ''
     })
 
-    try {
-      window.sessionStorage.setItem('rr-chat-tab-settings', JSON.stringify(serialized))
-    } catch (error) {
-      console.error('Failed to persist chat tab settings to session storage:', error)
-    }
-  }
-
-const persistTabsToSession = (tabsToPersist: ChatTab[]) => {
-  if (typeof window === 'undefined') return
-  try {
-    const serialized = tabsToPersist.map(tab => ({
-      id: tab.id,
-      title: tab.title,
-      conversationId: tab.conversationId
-    }))
-    window.sessionStorage.setItem('rr-chat-tabs', JSON.stringify(serialized))
-  } catch (error) {
-    console.error('Failed to persist chat tabs to session storage:', error)
-  }
-}
-
-const loadTabsFromSession = (): ChatTab[] | null => {
-  if (typeof window === 'undefined') return null
-  try {
-    const saved = window.sessionStorage.getItem('rr-chat-tabs')
-    if (!saved) return null
-    const parsed = JSON.parse(saved)
-    if (!Array.isArray(parsed)) return null
-    return parsed.map((tab: any, index: number) => ({
-      id: typeof tab?.id === 'string' ? tab.id : `tab-${Date.now()}-${index}`,
-      title: typeof tab?.title === 'string' ? tab.title : `Chat ${index + 1}`,
-      conversationId: typeof tab?.conversationId === 'string' ? tab.conversationId : null,
-      messages: [],
-      hasUnsavedChanges: false,
-      followUpQuestions: []
-    }))
-  } catch (error) {
-    console.error('Failed to parse chat tabs from session storage:', error)
-    return null
-  }
-}
-
-const loadActiveTabFromSession = (fallbackId: string): string => {
-  if (typeof window === 'undefined') return fallbackId
-  const saved = window.sessionStorage.getItem('rr-chat-active-tab')
-  return typeof saved === 'string' && saved.trim().length > 0 ? saved : fallbackId
-}
-  
-// Tab management
-const defaultTab: ChatTab = createChatTab('tab-1', 'Chat 1')
-
-const [tabs, setTabs] = useState<ChatTab[]>([defaultTab])
-const tabsRef = useRef(tabs)
-const sessionHydrated = useRef(false)
-const [tabsHydrated, setTabsHydrated] = useState(false)
-const [activeTabId, setActiveTabId] = useState('tab-1')
+    setChatJurisdiction('')
+    setChatTopic('')
+    setChatSystemPrompt(defaults.systemPrompt)
+  }, [setChatState, setChatSystemPrompt])
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
@@ -199,69 +168,20 @@ const [activeTabId, setActiveTabId] = useState('tab-1')
   const [deleteTabPosition, setDeleteTabPosition] = useState({ x: 0, y: 0 })
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'up' | 'down' | null>>({})
   const [viewingSavedResearch, setViewingSavedResearch] = useState<any>(null)
-
+  const chatListRef = useRef<HTMLDivElement | null>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const hasScrolledForConversation = useRef<string | null>(null)
+ 
   useEffect(() => {
     tabsRef.current = tabs
   }, [tabs])
 
-// Load tabs and active tab from session storage on mount
-useEffect(() => {
-  const storedTabs = loadTabsFromSession()
-  if (storedTabs && storedTabs.length > 0) {
-    setTabs(storedTabs)
-    tabsRef.current = storedTabs
-    const savedActive = loadActiveTabFromSession(storedTabs[0].id)
-    if (storedTabs.some(tab => tab.id === savedActive)) {
-      setActiveTabId(savedActive)
-    } else {
-      setActiveTabId(storedTabs[0].id)
-    }
-  } else {
-    if (typeof window !== 'undefined') {
-      const savedActive = loadActiveTabFromSession(defaultTab.id)
-      setActiveTabId(savedActive)
-    }
-  }
-  sessionHydrated.current = true
-  setTabsHydrated(true)
-}, [])
-
-// Persist tabs metadata to session storage when they change
-useEffect(() => {
-  if (!sessionHydrated.current || !tabsHydrated) return
-  persistTabsToSession(tabs)
-}, [tabs, tabsHydrated])
-
-// Persist active tab id
-useEffect(() => {
-  if (!sessionHydrated.current || !tabsHydrated || typeof window === 'undefined') return
-  window.sessionStorage.setItem('rr-chat-active-tab', activeTabId)
-}, [activeTabId, tabsHydrated])
-
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    try {
-      const saved = window.sessionStorage.getItem('rr-chat-tab-settings')
-      if (!saved) return
-
-      const parsed = JSON.parse(saved)
-      if (!parsed || typeof parsed !== 'object') return
-
-      Object.entries(parsed as Record<string, Partial<TabSettingsCacheEntry>>).forEach(([tabId, entry]) => {
-        const normalized = cloneCacheEntry(entry)
-        tabSettingsCache.current.set(tabId, normalized)
-        lastPersistedSettings.current.set(tabId, normalized)
-      })
-    } catch (error) {
-      console.error('Failed to load chat tab settings from session storage:', error)
+    if (!activeTabId && tabs.length > 0) {
+      setActiveTabId(tabs[0].id)
     }
-  }, [])
-  
-  const chatListRef = useRef<HTMLDivElement | null>(null)
-  const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
-  const hasScrolledForConversation = useRef<string | null>(null)
-  
+  }, [activeTabId, tabs])
+
   // Scroll to bottom function - defined early so useEffects can reference it
   const scrollToBottom = useCallback((behavior: 'smooth' | 'instant' = 'smooth') => {
     const el = chatListRef.current
@@ -275,83 +195,53 @@ useEffect(() => {
     }
   }, [])
   
-const tabsAreEqual = (a: ChatTab[], b: ChatTab[]) => {
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i++) {
-    const tabA = a[i]
-    const tabB = b[i]
-    if (
-      tabA.id !== tabB.id ||
-      tabA.title !== tabB.title ||
-      tabA.conversationId !== tabB.conversationId
-    ) {
-      return false
-    }
-  }
-  return true
-}
+  // Sync tabs from the database and lazily load conversations on demand
+  useEffect(() => {
+    if (!allConversationsQuery) return
 
-// Sync tabs with saved conversations from database
-useEffect(() => {
-  if (!allConversationsQuery) return
+    const conversations = allConversationsQuery || []
+    const mappedTabs: ChatTab[] = conversations.map((conv: any) => ({
+      id: conv._id,
+      title: conv.title,
+      conversationId: conv._id,
+      messages: [],
+      hasUnsavedChanges: false,
+      followUpQuestions: []
+    }))
 
-  const conversations = allConversationsQuery || []
-  const existingTabs = tabsRef.current
-  const existingById = new Map(existingTabs.map(tab => [tab.id, tab]))
-  const mergedTabs: ChatTab[] = []
+    if (!tabsInitialized.current) {
+      const initialTabs = mappedTabs.length > 0 ? mappedTabs : [createChatTab(`tab-${Date.now()}`, 'Chat 1')]
+      tabsInitialized.current = true
+      tabsRef.current = initialTabs
+      setTabs(initialTabs)
 
-  conversations.forEach((conv: any) => {
-    const existing = existingById.get(conv._id)
-    if (existing) {
-      mergedTabs.push({
-        ...existing,
-        id: conv._id,
-        title: conv.title,
-        conversationId: conv._id
-      })
-      existingById.delete(conv._id)
-    } else {
-      mergedTabs.push(createChatTab(conv._id, conv.title, conv._id))
-    }
-  })
+      const firstTab = initialTabs[0]
+      const firstId = firstTab ? firstTab.id : null
+      setActiveTabId(firstId)
 
-  existingTabs.forEach(tab => {
-    if (!mergedTabs.some(t => t.id === tab.id)) {
-      const shouldKeepPlaceholder =
-        mergedTabs.length === 0 ||
-        Boolean(tab.conversationId) ||
-        tab.messages.length > 0 ||
-        tab.hasUnsavedChanges ||
-        tab.followUpQuestions.length > 0
-
-      if (shouldKeepPlaceholder) {
-        mergedTabs.push(tab)
+      if (firstTab?.conversationId) {
+        setConversationToLoad(firstTab.conversationId)
+      } else {
+        applyDefaultChatState()
+        onHydrated?.()
       }
+      return
     }
-  })
 
-  if (mergedTabs.length === 0) {
-    mergedTabs.push(defaultTab)
-  }
+    setTabs((prevTabs: ChatTab[]) => {
+      const nonConversationTabs = prevTabs.filter(tab => !tab.conversationId)
+      const merged = [...mappedTabs]
 
-  if (!tabsAreEqual(mergedTabs, existingTabs)) {
-    setTabs(mergedTabs)
-  }
+      nonConversationTabs.forEach(tab => {
+        if (!merged.some(existing => existing.id === tab.id)) {
+          merged.push(tab)
+        }
+      })
 
-  const activeExists = mergedTabs.some(tab => tab.id === activeTabId)
-  const nextActiveId = activeExists ? activeTabId : mergedTabs[0].id
-
-  if (nextActiveId !== activeTabId) {
-    setActiveTabId(nextActiveId)
-  }
-
-  const activeTab = mergedTabs.find(tab => tab.id === nextActiveId)
-  if (activeTab?.conversationId) {
-    setConversationToLoad(activeTab.conversationId)
-  } else {
-    setConversationToLoad(null)
-  }
-}, [allConversationsQuery])
+      tabsRef.current = merged
+      return merged
+    })
+  }, [allConversationsQuery, applyDefaultChatState, onHydrated])
   
   // Track the last loaded conversation to prevent re-running
   const lastLoadedConversationId = useRef<string | null>(null)
@@ -377,14 +267,13 @@ useEffect(() => {
       // Restore settings from this conversation's settingsSnapshot
       if (loadedConversation.settingsSnapshot && setChatState) {
         const snapshot = loadedConversation.settingsSnapshot
-        const tabCacheKey = activeTab.id
+        const conversationId = activeTab.conversationId
 
-        // Mark this conversation as having loaded settings
-        if (activeTab.conversationId) {
-          settingsLoadedForConversation.current.add(activeTab.conversationId)
+        if (conversationId) {
+          settingsLoadedForConversation.current.add(conversationId)
         }
 
-        const loadedSnapshot: TabSettingsCacheEntry = {
+        const loadedSnapshot: SettingsSnapshot = {
           systemPrompt: snapshot.systemPrompt || '',
           model: snapshot.model,
           jurisdiction: snapshot.jurisdiction || '',
@@ -395,12 +284,11 @@ useEffect(() => {
           lastPromptSent: snapshot.lastPromptSent || ''
         }
 
-        // Cache in refs for instant tab switching and persistence comparison
-        tabSettingsCache.current.set(tabCacheKey, loadedSnapshot)
-        lastPersistedSettings.current.set(tabCacheKey, loadedSnapshot)
-        persistSettingsToSession()
-
-        setChatState(prev => ({
+        if (conversationId) {
+          lastPersistedSettings.current.set(conversationId, loadedSnapshot)
+        }
+ 
+        setChatState((prev: ChatFeatureState) => ({
           ...prev,
           systemPrompt: loadedSnapshot.systemPrompt,
           model: loadedSnapshot.model,
@@ -423,7 +311,7 @@ useEffect(() => {
       }
       
       // Update tab with loaded messages and follow-up questions
-      setTabs(prev => prev.map(tab => 
+      setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
         tab.id === activeTabId 
           ? { ...tab, messages: loadedConversation.messages || [], followUpQuestions: loadedConversation.followUpQuestions || [] }
           : tab
@@ -439,129 +327,76 @@ useEffect(() => {
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setChatState])
   
-  // When switching tabs, restore settings from tab cache or load from database
+  // When switching tabs, load from the database or reset to defaults
   useEffect(() => {
-    if (!tabsHydrated) return
+    if (!tabsInitialized.current || !activeTabId) return
 
-    // Only run when actually switching tabs (not on every render)
-    if (previousActiveTabId.current === activeTabId) {
-      return
-    }
-
-    // Before switching, save current settings to ref-based cache (instant, no async state issues)
-    if (previousActiveTabId.current && chatState) {
-      tabSettingsCache.current.set(previousActiveTabId.current, buildCacheEntryFromState(chatState))
-    }
-
-    // Get the tab we're switching TO
     const newActiveTab = tabs.find(t => t.id === activeTabId)
+    if (!newActiveTab) return
 
-    previousActiveTabId.current = activeTabId
+    if (newActiveTab.conversationId) {
+      setConversationToLoad(newActiveTab.conversationId)
 
-    // Check ref cache first (instant reads)
-    const cachedSettings = tabSettingsCache.current.get(activeTabId)
-
-    if (cachedSettings) {
-      // Restore from ref cache
-      if (setChatState) {
-        setChatState(prev => ({
+      const persisted = lastPersistedSettings.current.get(newActiveTab.conversationId)
+      if (persisted && setChatState) {
+        setChatState((prev: ChatFeatureState) => ({
           ...prev,
-          systemPrompt: cachedSettings.systemPrompt,
-          model: cachedSettings.model,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          additionalContext: cachedSettings.additionalContext,
-          selectedResearchIds: cachedSettings.selectedResearchIds,
-          savedResearchContent: cachedSettings.savedResearchContent,
-          lastPromptSent: cachedSettings.lastPromptSent
+          systemPrompt: persisted.systemPrompt,
+          model: persisted.model,
+          jurisdiction: persisted.jurisdiction,
+          topic: persisted.topic,
+          additionalContext: persisted.additionalContext,
+          selectedResearchIds: persisted.selectedResearchIds,
+          savedResearchContent: persisted.savedResearchContent,
+          lastPromptSent: persisted.lastPromptSent
         }))
-      }
-      setChatJurisdiction(cachedSettings.jurisdiction)
-      setChatTopic(cachedSettings.topic)
-      if (cachedSettings.systemPrompt) {
-        setChatSystemPrompt(cachedSettings.systemPrompt)
-      }
-
-      if (
-        newActiveTab?.conversationId &&
-        !settingsLoadedForConversation.current.has(newActiveTab.conversationId)
-      ) {
-        setConversationToLoad(newActiveTab.conversationId)
-      }
-    } else if (newActiveTab?.conversationId) {
-      // No cached settings - load from database if not already loaded
-      if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
-        setConversationToLoad(newActiveTab.conversationId)
+        setChatJurisdiction(persisted.jurisdiction)
+        setChatTopic(persisted.topic)
+        setChatSystemPrompt(persisted.systemPrompt || DEFAULT_CHAT_PROMPT)
       }
     } else {
-      // New tab without saved conversation - reset to defaults
       setConversationToLoad(null)
-      if (setChatState) {
-        setChatState(prev => ({
-          ...prev,
-          jurisdiction: '',
-          topic: '',
-          additionalContext: '',
-          selectedResearchIds: [],
-          savedResearchContent: '',
-          lastPromptSent: ''
-        }))
-      }
-      setChatJurisdiction('')
-      setChatTopic('')
+      applyDefaultChatState()
     }
-  }, [activeTabId, chatState, setChatState, tabs, tabsHydrated])
+
+    previousActiveTabId.current = activeTabId
+  }, [activeTabId, tabs, applyDefaultChatState, setChatState])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
   // Sync messages with active tab
   const [chatQuery, setChatQuery] = useState('')
-  const chatMessages = activeTab.messages
-  const setChatMessages = (messages: any) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, messages: typeof messages === 'function' ? messages(tab.messages) : messages, hasUnsavedChanges: true }
-        : tab
-    ))
+  const chatMessages = (activeTab?.messages as ChatMessage[]) || []
+  const setChatMessages = (updater: ((messages: ChatMessage[]) => ChatMessage[]) | ChatMessage[]) => {
+    setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => {
+      if (tab.id !== activeTabId) {
+        return tab
+      }
+
+      const nextMessages = typeof updater === 'function'
+        ? (updater as (messages: ChatMessage[]) => ChatMessage[])(tab.messages as ChatMessage[])
+        : (updater as ChatMessage[])
+
+      return {
+        ...tab,
+        messages: nextMessages,
+        hasUnsavedChanges: true
+      }
+    }))
   }
   
   const [isChatting, setIsChatting] = useState(false)
-  const [chatJurisdiction, setChatJurisdiction] = useState('')
-  const [chatTopic, setChatTopic] = useState('')
   
   useEffect(() => {
-    if (!chatState) return
+    if (!chatState || !activeTabId) return
 
     const activeTab = tabs.find(t => t.id === activeTabId)
     if (!activeTab) return
 
-    let tabId = activeTab.id
-    const snapshot = buildCacheEntryFromState(chatState)
-    const cachedSnapshot: TabSettingsCacheEntry = {
-      ...snapshot,
-      selectedResearchIds: [...snapshot.selectedResearchIds]
-    }
+    if (isLoadingConversation) return
 
-    tabSettingsCache.current.set(tabId, cachedSnapshot)
-    persistSettingsToSession()
-
-    const lastSaved = lastPersistedSettings.current.get(tabId)
-    if (lastSaved && areSettingsEqual(lastSaved, snapshot)) {
-      return
-    }
-
-    if (isLoadingConversation) {
-      return
-    }
-
-    const activeConversationId = activeTab.conversationId
-    if (
-      activeConversationId &&
-      !settingsLoadedForConversation.current.has(activeConversationId)
-    ) {
-      return
-    }
+    const snapshot = buildSnapshotFromState(chatState)
 
     const hasMeaningfulSettings = Boolean(
       snapshot.selectedResearchIds.length > 0 ||
@@ -575,12 +410,20 @@ useEffect(() => {
       return
     }
 
+    const existingSnapshot = activeTab.conversationId
+      ? lastPersistedSettings.current.get(activeTab.conversationId)
+      : undefined
+
+    if (existingSnapshot && areSettingsEqual(existingSnapshot, snapshot)) {
+      return
+    }
+
     if (settingsSaveTimeout.current) {
       clearTimeout(settingsSaveTimeout.current)
     }
 
     settingsSaveTimeout.current = setTimeout(async () => {
-      const tabLatest = tabsRef.current.find(t => t.id === tabId)
+      const tabLatest = tabsRef.current.find(t => t.id === activeTabId)
       if (!tabLatest) {
         settingsSaveTimeout.current = null
         return
@@ -608,48 +451,31 @@ useEffect(() => {
           followUpQuestions: tabLatest.followUpQuestions || []
         })
 
+        let conversationId = tabLatest.conversationId as string | null
+
         if (result?.conversationId && !tabLatest.conversationId) {
-          const newConversationId = result.conversationId as string
-          settingsLoadedForConversation.current.add(newConversationId)
+          conversationId = result.conversationId as string
+          settingsLoadedForConversation.current.add(conversationId)
 
-          const previousTabId = tabLatest.id
-
-          setTabs(prev => prev.map(tab =>
-            tab.id === previousTabId
-              ? { ...tab, id: newConversationId, conversationId: newConversationId }
+          setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab =>
+            tab.id === tabLatest.id
+              ? { ...tab, conversationId }
               : tab
           ))
-
-          setActiveTabId(prevId => (prevId === previousTabId ? newConversationId : prevId))
-
-          const cacheEntry = tabSettingsCache.current.get(previousTabId)
-          if (cacheEntry) {
-            tabSettingsCache.current.delete(previousTabId)
-            tabSettingsCache.current.set(newConversationId, cacheEntry)
-          }
-
-          const persistedEntry = lastPersistedSettings.current.get(previousTabId)
-          if (persistedEntry) {
-            lastPersistedSettings.current.delete(previousTabId)
-            lastPersistedSettings.current.set(newConversationId, persistedEntry)
-          }
-
-          persistSettingsToSession()
-
-          tabId = newConversationId
         }
 
-        lastPersistedSettings.current.set(tabId, {
-          ...snapshot,
-          selectedResearchIds: [...snapshot.selectedResearchIds]
-        })
-        persistSettingsToSession()
+        if (conversationId) {
+          lastPersistedSettings.current.set(conversationId, {
+            ...snapshot,
+            selectedResearchIds: [...snapshot.selectedResearchIds]
+          })
+        }
       } catch (error) {
         console.error('Failed to persist chat settings:', error)
       } finally {
         settingsSaveTimeout.current = null
       }
-    }, 800)
+    }, 500)
 
     return () => {
       if (settingsSaveTimeout.current) {
@@ -663,7 +489,7 @@ useEffect(() => {
   const updateJurisdiction = (value: string) => {
     setChatJurisdiction(value)
     if (setChatState) {
-      setChatState(prev => ({
+      setChatState((prev: ChatFeatureState) => ({
         ...prev,
         jurisdiction: value
       }))
@@ -673,7 +499,7 @@ useEffect(() => {
   const updateTopic = (value: string) => {
     setChatTopic(value)
     if (setChatState) {
-      setChatState(prev => ({
+      setChatState((prev: ChatFeatureState) => ({
         ...prev,
         topic: value
       }))
@@ -687,16 +513,12 @@ useEffect(() => {
   // Get follow-up questions from active tab
   const chatFollowUpQuestions = activeTab?.followUpQuestions || []
   const setChatFollowUpQuestions = (questions: string[]) => {
-    setTabs(prev => prev.map(tab => 
+    setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
       tab.id === activeTabId ? { ...tab, followUpQuestions: questions } : tab
     ))
   }
   
   // Chat configuration state (loaded from DB, this is just initial fallback)
-  const [chatSystemPrompt, setChatSystemPrompt] = useState(`You are RuleReady Compliance Chat AI - a smart, conversational assistant.
-
-Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be direct and well-formatted.`)
-
   // Check if user is near bottom of chat
   const checkScrollPosition = useCallback(() => {
     const el = chatListRef.current
@@ -768,7 +590,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
 
     // Add user message to chat
     const userMessageId = Date.now().toString()
-    setChatMessages(prev => [...prev, {
+    setChatMessages((prevMessages: ChatMessage[]) => [...prevMessages, {
       id: userMessageId,
       role: 'user',
       content: chatQuery
@@ -781,7 +603,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
     
     // Create assistant message that will stream
     const assistantMessageId = (Date.now() + 1).toString()
-    setChatMessages(prev => [...prev, {
+    setChatMessages((prevMessages: ChatMessage[]) => [...prevMessages, {
       id: assistantMessageId,
       role: 'assistant',
       content: ''
@@ -806,7 +628,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
       
       // Update parent state with prompt preview
       if (setChatState) {
-        setChatState(prev => ({
+        setChatState((prev: ChatFeatureState) => ({
           ...prev,
           lastPromptSent: promptPreview
         }))
@@ -835,7 +657,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
       const data = await response.json()
       
       // Update assistant message with response
-      setChatMessages(prev => prev.map(m =>
+      setChatMessages((prevMessages: ChatMessage[]) => prevMessages.map(m =>
         m.id === assistantMessageId
           ? {
               ...m,
@@ -861,7 +683,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
                       (error.message && error.message.toLowerCase().includes('abort'))
       
       if (isAbort) {
-        setChatMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+        setChatMessages((prevMessages: ChatMessage[]) => prevMessages.filter(m => m.id !== assistantMessageId))
         return
       }
       
@@ -873,7 +695,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
         duration: 5000
       })
       
-      setChatMessages(prev => prev.filter(m => m.id !== assistantMessageId))
+      setChatMessages((prevMessages: ChatMessage[]) => prevMessages.filter(m => m.id !== assistantMessageId))
     } finally {
       setIsChatting(false)
       setChatAbortController(null)
@@ -890,7 +712,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
 
   const handleClearChat = async () => {
     // Clear messages in UI
-    setTabs(prev => prev.map(tab => 
+    setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
       tab.id === activeTabId 
         ? { ...tab, messages: [] }
         : tab
@@ -956,7 +778,7 @@ You are a database query tool, not a general compliance advisor.`
     updateTopic('')
     
     if (setChatState) {
-      setChatState(prev => ({
+      setChatState((prev: ChatFeatureState) => ({
         ...prev,
         systemPrompt: defaultPrompt,
         jurisdiction: '',
@@ -1006,14 +828,14 @@ You are a database query tool, not a general compliance advisor.`
         
         // Store conversation ID in the active tab (only if new)
         if (result.conversationId && !result.isUpdate) {
-          setTabs(prev => prev.map(tab => 
+          setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
             tab.id === activeTabId 
               ? { ...tab, conversationId: result.conversationId as string, hasUnsavedChanges: false }
               : tab
           ))
         } else if (result.isUpdate) {
           // Just mark as saved
-          setTabs(prev => prev.map(tab => 
+          setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
             tab.id === activeTabId 
               ? { ...tab, hasUnsavedChanges: false }
               : tab
@@ -1030,10 +852,11 @@ You are a database query tool, not a general compliance advisor.`
 
   const handleAddTab = () => {
     const newTabNumber = tabs.length + 1
-  const newTabId = `tab-${Date.now()}`
-  const newTab = createChatTab(newTabId, `Chat ${newTabNumber}`)
-    setTabs(prev => [...prev, newTab])
+    const newTabId = `tab-${Date.now()}`
+    const newTab = createChatTab(newTabId, `Chat ${newTabNumber}`)
+    setTabs((prevTabs: ChatTab[]) => [...prevTabs, newTab])
     setActiveTabId(newTab.id)
+    applyDefaultChatState()
   }
   
   const handleCloseTab = async (tabId: string) => {
@@ -1044,22 +867,20 @@ You are a database query tool, not a general compliance advisor.`
     // Delete from database if it has a conversationId
     if (tabToClose?.conversationId) {
       await deleteConversation({ conversationId: tabToClose.conversationId as any })
+      lastPersistedSettings.current.delete(tabToClose.conversationId)
     }
     
     const newTabs = tabs.filter(t => t.id !== tabId)
     setTabs(newTabs)
     
     if (activeTabId === tabId) {
-      setActiveTabId(newTabs[0].id)
+      const fallbackId = newTabs[0]?.id || null
+      setActiveTabId(fallbackId)
+      if (!fallbackId) {
+        applyDefaultChatState()
+      }
     }
     
-  tabSettingsCache.current.delete(tabId)
-  lastPersistedSettings.current.delete(tabId)
-  persistSettingsToSession()
-  if (sessionHydrated.current) {
-    persistTabsToSession(newTabs)
-  }
-  
     setShowDeleteTabConfirm(null)
   }
   
@@ -1074,7 +895,7 @@ You are a database query tool, not a general compliance advisor.`
     const safeTitle = trimmedTitle.length > 0 ? trimmedTitle : existingTab.title
 
     if (safeTitle !== existingTab.title) {
-      setTabs(prev => prev.map(tab => 
+      setTabs((prevTabs: ChatTab[]) => prevTabs.map(tab => 
         tab.id === tabId ? { ...tab, title: safeTitle } : tab
       ))
 
