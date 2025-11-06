@@ -18,7 +18,6 @@ import type * as editorSettings from "../editorSettings.js";
 import type * as helpers from "../helpers.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_sanitize from "../lib/sanitize.js";
-import type * as migrations from "../migrations.js";
 import type * as researchConversations from "../researchConversations.js";
 import type * as researchSettings from "../researchSettings.js";
 import type * as savedResearch from "../savedResearch.js";
@@ -51,7 +50,6 @@ declare const fullApi: ApiFromModules<{
   helpers: typeof helpers;
   "lib/encryption": typeof lib_encryption;
   "lib/sanitize": typeof lib_sanitize;
-  migrations: typeof migrations;
   researchConversations: typeof researchConversations;
   researchSettings: typeof researchSettings;
   savedResearch: typeof savedResearch;

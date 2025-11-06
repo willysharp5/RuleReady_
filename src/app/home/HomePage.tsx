@@ -235,7 +235,7 @@ Remember: You're chatting with your user's data. Be smart, conversational, and w
       {/* Header */}
       <header className="sticky top-0 z-50 h-16 border-b border-zinc-200 bg-white px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
+          <h1 className="text-xl font-semibold text-purple-500">RuleReady</h1>
           {isAdmin && (
             <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
               <Shield className="h-3 w-3" />

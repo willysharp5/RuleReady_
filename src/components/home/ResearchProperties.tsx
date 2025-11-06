@@ -125,23 +125,23 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
         }
         
         // Check format
-    try {
-      new URL(url)
-    } catch {
+        try {
+          new URL(url)
+        } catch {
           const result = { isValid: false, message: 'Invalid URL format' }
           setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
           validatedUrls.current.set(url, result)
-      return
-    }
-    
+          return
+        }
+        
         // Mark as validating
         validatingUrls.current.add(urlKey)
-    setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: true, message: 'Checking URL...' } }))
-    
-    try {
-      const response = await fetch(`/api/validate-url?url=${encodeURIComponent(url)}`)
-      const data = await response.json()
-      
+        setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: true, message: 'Checking URL...' } }))
+        
+        try {
+          const response = await fetch(`/api/validate-url?url=${encodeURIComponent(url)}`)
+          const data = await response.json()
+          
           const result = {
             isValid: data.valid,
             message: data.valid ? (data.message || 'URL is accessible') : (data.message || 'URL not accessible')
@@ -149,7 +149,7 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
           
           setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
           validatedUrls.current.set(url, result)
-    } catch (error) {
+        } catch (error) {
           const result = { isValid: false, message: 'Could not validate URL' }
           setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
           validatedUrls.current.set(url, result)
@@ -213,7 +213,7 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
     // Update local state immediately using functional update to prevent stale state
     if (setResearchState) {
       setResearchState((prev: any) => ({ ...prev, firecrawlConfig: config }))
-      }
+    }
   }
   
   const handleAdditionalContextChange = (context: string) => {
@@ -412,7 +412,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                       if (setResearchState) {
                         setResearchState((prev: any) => {
                           const newUrls = (prev.urls || ['']).filter((_: string, i: number) => i !== index)
-                        // If we removed the last URL, ensure at least one empty field remains
+                          // If we removed the last URL, ensure at least one empty field remains
                           return { ...prev, urls: newUrls.length > 0 ? newUrls : [''] }
                         })
                       }
@@ -519,7 +519,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
             
             <div>
               <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
+                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
                 <button
                   type="button"
                   className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"

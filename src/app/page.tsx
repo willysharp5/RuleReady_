@@ -25,11 +25,11 @@ export default function LandingPage() {
       const data = await response.json()
       
       if (data.success) {
-      router.push('/home')
+        router.push('/home')
         router.refresh()
-        } else {
-      setError('Incorrect password')
-      setPassword('')
+      } else {
+        setError('Incorrect password')
+        setPassword('')
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
