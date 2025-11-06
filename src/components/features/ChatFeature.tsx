@@ -320,8 +320,7 @@ useEffect(() => {
         Boolean(tab.conversationId) ||
         tab.messages.length > 0 ||
         tab.hasUnsavedChanges ||
-        tab.followUpQuestions.length > 0 ||
-        tab.id === activeTabId
+        tab.followUpQuestions.length > 0
 
       if (shouldKeepPlaceholder) {
         mergedTabs.push(tab)
@@ -330,7 +329,7 @@ useEffect(() => {
   })
 
   if (mergedTabs.length === 0) {
-    mergedTabs.push(createChatTab('tab-1', 'Chat 1'))
+    mergedTabs.push(defaultTab)
   }
 
   if (!tabsAreEqual(mergedTabs, existingTabs)) {
@@ -478,6 +477,13 @@ useEffect(() => {
       if (cachedSettings.systemPrompt) {
         setChatSystemPrompt(cachedSettings.systemPrompt)
       }
+
+    if (
+      newActiveTab?.conversationId &&
+      !settingsLoadedForConversation.current.has(newActiveTab.conversationId)
+    ) {
+      setConversationToLoad(newActiveTab.conversationId)
+    }
     } else if (newActiveTab?.conversationId) {
       // No cached settings - load from database if not already loaded
       if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
@@ -568,6 +574,14 @@ useEffect(() => {
     }
 
     if (isLoadingConversation) {
+      return
+    }
+
+    const activeConversationId = activeTab.conversationId
+    if (
+      activeConversationId &&
+      !settingsLoadedForConversation.current.has(activeConversationId)
+    ) {
       return
     }
 
