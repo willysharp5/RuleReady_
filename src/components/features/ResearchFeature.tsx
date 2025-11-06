@@ -58,6 +58,19 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     conversationToLoad ? { conversationId: conversationToLoad as any } : 'skip'
   )
   
+  // Track which conversations have had their settings loaded
+  const settingsLoadedForConversation = useRef<Set<string>>(new Set())
+  const previousActiveTabId = useRef<string | null>(null)
+  
+  // Use ref-based cache for instant reads (state updates aren't synchronous)
+  const tabSettingsCache = useRef<Map<string, {
+    jurisdiction: string
+    topic: string
+    selectedTemplate: string
+    urls: string[]
+    additionalContext: string
+  }>>(new Map())
+  
   // Tab management
   const [tabs, setTabs] = useState<Array<{
     id: string
@@ -134,10 +147,21 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     }
   }, [allConversationsQuery, tabsLoaded])
   
+  // Track the last loaded conversation to prevent re-running
+  const lastLoadedConversationId = useRef<string | null>(null)
+  
   // Load conversation messages when tab changes or conversation loads
   useEffect(() => {
     if (loadedConversation && activeTab.conversationId === conversationToLoad) {
       const convId = activeTab.conversationId || 'new'
+      
+      // Skip if we've already processed this exact conversation load
+      if (lastLoadedConversationId.current === convId) {
+        return
+      }
+      
+      lastLoadedConversationId.current = convId
+      
       const shouldScroll = hasScrolledForResearchConversation.current !== convId
       
       setIsLoadingConversation(true)
@@ -153,6 +177,23 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           cleanSystemPrompt = cleanSystemPrompt.split('IMPORTANT: Structure your response using this template format:')[0].trim();
         }
         
+        // Mark this conversation as having loaded settings
+        if (activeTab.conversationId) {
+          settingsLoadedForConversation.current.add(activeTab.conversationId)
+          
+          // Also cache in ref for instant tab switching
+          tabSettingsCache.current.set(activeTab.conversationId, {
+            jurisdiction: snapshot.jurisdiction || '',
+            topic: snapshot.topic || '',
+            selectedTemplate: snapshot.selectedTemplate || '',
+            urls: snapshot.urls || [''],
+            additionalContext: snapshot.additionalContext || ''
+          })
+        }
+        
+        // Set flag to enable sync
+        isSyncingFromConversation.current = true
+        
         setResearchState({
           systemPrompt: cleanSystemPrompt,
           firecrawlConfig: snapshot.firecrawlConfig || '',
@@ -163,13 +204,8 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           urls: snapshot.urls || [''],
           additionalContext: snapshot.additionalContext || '',
           configError: null,
-          lastPromptSent: ''
+          lastPromptSent: snapshot.lastPromptSent || ''
         })
-        
-        // Also update local state
-        setResearchJurisdiction(snapshot.jurisdiction || '')
-        setResearchTopic(snapshot.topic || '')
-        setSelectedResearchTemplate(snapshot.selectedTemplate || '')
       }
       
       // Update tab with loaded messages and follow-up questions
@@ -189,14 +225,74 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setResearchState])
   
-  // When switching tabs, load that tab's conversation if not already loaded
+  // When switching tabs, restore settings from tab cache or load from database
   useEffect(() => {
-    const activeTab = tabs.find(t => t.id === activeTabId)
-    if (activeTab?.conversationId && activeTab.messages.length === 0) {
-      // Tab has conversationId but no messages loaded yet
-      setConversationToLoad(activeTab.conversationId)
+    // Only run when actually switching tabs (not on every render)
+    if (previousActiveTabId.current === activeTabId) {
+      return
     }
-  }, [activeTabId, tabs])
+    
+    // Before switching, save current settings to ref-based cache (instant, no async state issues)
+    if (previousActiveTabId.current && researchState) {
+      const cacheData = {
+        jurisdiction: researchState.jurisdiction || '',
+        topic: researchState.topic || '',
+        selectedTemplate: researchState.selectedTemplate || '',
+        urls: researchState.urls || [''],
+        additionalContext: researchState.additionalContext || ''
+      }
+      tabSettingsCache.current.set(previousActiveTabId.current, cacheData)
+    }
+    
+    // Get the tab we're switching TO
+    const newActiveTab = tabs.find(t => t.id === activeTabId)
+    
+    previousActiveTabId.current = activeTabId
+    
+    // Check ref cache first (instant reads)
+    const cachedSettings = tabSettingsCache.current.get(activeTabId)
+    
+    if (cachedSettings) {
+      // Restore from ref cache
+      if (setResearchState) {
+        setResearchState((prev: any) => ({
+          ...prev,
+          jurisdiction: cachedSettings.jurisdiction,
+          topic: cachedSettings.topic,
+          selectedTemplate: cachedSettings.selectedTemplate,
+          urls: cachedSettings.urls,
+          additionalContext: cachedSettings.additionalContext
+        }))
+      }
+      setResearchJurisdiction(cachedSettings.jurisdiction)
+      setResearchTopic(cachedSettings.topic)
+      setSelectedResearchTemplate(cachedSettings.selectedTemplate)
+      setResearchUrls(cachedSettings.urls)
+    } else if (newActiveTab?.conversationId) {
+      // No cached settings - load from database if not already loaded
+      if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
+        setConversationToLoad(newActiveTab.conversationId)
+      }
+    } else {
+      // New tab without saved conversation - reset to defaults
+      setConversationToLoad(null)
+      if (setResearchState) {
+        setResearchState((prev: any) => ({
+          ...prev,
+          jurisdiction: '',
+          topic: '',
+          selectedTemplate: '',
+          urls: [''],
+          additionalContext: '',
+          lastPromptSent: ''
+        }))
+      }
+      setResearchJurisdiction('')
+      setResearchTopic('')
+      setSelectedResearchTemplate('')
+      setResearchUrls([''])
+    }
+  }, [activeTabId, setResearchState])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
@@ -225,24 +321,25 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const [researchTopic, setResearchTopic] = useState('')
   const [selectedResearchTemplate, setSelectedResearchTemplate] = useState<string>('')
   
-  // Sync parent state TO local state when parent changes (e.g., from conversation restore)
+  // Track if we're currently loading a conversation to prevent sync during user edits
+  const isSyncingFromConversation = useRef(false)
+  
+  // Only sync parent state to local state when loading a conversation (not during user edits)
   useEffect(() => {
-    if (researchState) {
-      if (researchState.jurisdiction !== researchJurisdiction) {
-        setResearchJurisdiction(researchState.jurisdiction || '')
-      }
-      if (researchState.topic !== researchTopic) {
-        setResearchTopic(researchState.topic || '')
-      }
-      if (researchState.selectedTemplate !== selectedResearchTemplate) {
-        setSelectedResearchTemplate(researchState.selectedTemplate || '')
-      }
-      // Sync URLs - check if arrays are different
-      if (researchState.urls && JSON.stringify(researchState.urls) !== JSON.stringify(researchUrls)) {
-        setResearchUrls(researchState.urls.length > 0 ? researchState.urls : [''])
-      }
+    // Only sync when we're loading a conversation
+    if (!isLoadingConversation || !isSyncingFromConversation.current) {
+      return
     }
-  }, [researchState?.jurisdiction, researchState?.topic, researchState?.selectedTemplate, researchState?.urls])
+    
+    if (researchState) {
+      setResearchJurisdiction(researchState.jurisdiction || '')
+      setResearchTopic(researchState.topic || '')
+      setSelectedResearchTemplate(researchState.selectedTemplate || '')
+      setResearchUrls(researchState.urls && researchState.urls.length > 0 ? researchState.urls : [''])
+    }
+    
+    isSyncingFromConversation.current = false
+  }, [isLoadingConversation])
   
   // Sync local state changes back to parent
   const updateJurisdiction = (value: string) => {
@@ -654,19 +751,19 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                   }
                   
                   // Update parent state to show error in right panel
-                  if (setResearchState && researchState) {
-                    setResearchState({
-                      ...researchState,
+                  if (setResearchState) {
+                    setResearchState((prev: any) => ({
+                      ...prev,
                       configError: warningDetails
-                    })
+                    }))
                   }
                 } else if (parsed.type === 'prompt') {
                   // Store the final prompt for debugging
-                  if (setResearchState && researchState) {
-                    setResearchState({
-                      ...researchState,
+                  if (setResearchState) {
+                    setResearchState((prev: any) => ({
+                      ...prev,
                       lastPromptSent: parsed.prompt
-                    })
+                    }))
                   }
                 } else if (parsed.type === 'sources') {
                   sources = parsed
@@ -794,6 +891,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
             urls: researchState?.urls || [],
             additionalContext: researchState?.additionalContext,
+            lastPromptSent: researchState?.lastPromptSent || '',
           },
           followUpQuestions: currentTab?.followUpQuestions || [],
           truncateSources: false, // Don't auto-truncate
@@ -854,6 +952,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                         selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
                         urls: researchState?.urls || [],
                         additionalContext: researchState?.additionalContext,
+                        lastPromptSent: researchState?.lastPromptSent || '',
                       },
                       followUpQuestions: currentTab?.followUpQuestions || [],
                       truncateSources: true, // Enable truncation
@@ -923,6 +1022,7 @@ These appear AFTER "Based on these sources:" in your prompt.`)
             selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
             urls: researchState?.urls || [],
             additionalContext: researchState?.additionalContext,
+            lastPromptSent: researchState?.lastPromptSent || '',
           },
           followUpQuestions: []
         })

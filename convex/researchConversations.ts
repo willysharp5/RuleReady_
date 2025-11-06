@@ -60,6 +60,7 @@ export const saveConversation = mutation({
       selectedTemplate: v.optional(v.string()),
       urls: v.optional(v.array(v.string())),
       additionalContext: v.optional(v.string()),
+      lastPromptSent: v.optional(v.string()),
     }),
     followUpQuestions: v.optional(v.array(v.string())),
     truncateSources: v.optional(v.boolean()), // Whether to truncate source content

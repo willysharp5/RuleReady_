@@ -40,6 +40,19 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     conversationToLoad ? { conversationId: conversationToLoad as any } : 'skip'
   )
   
+  // Track which conversations have had their settings loaded
+  const settingsLoadedForConversation = useRef<Set<string>>(new Set())
+  const previousActiveTabId = useRef<string | null>(null)
+  
+  // Use ref-based cache for instant reads (state updates aren't synchronous)
+  const tabSettingsCache = useRef<Map<string, {
+    jurisdiction: string
+    topic: string
+    additionalContext: string
+    selectedResearchIds: string[]
+    savedResearchContent: string
+  }>>(new Map())
+  
   // Tab management
   const [tabs, setTabs] = useState<Array<{
     id: string
@@ -110,12 +123,23 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     }
   }, [allConversationsQuery, tabsLoaded])
   
+  // Track the last loaded conversation to prevent re-running
+  const lastLoadedConversationId = useRef<string | null>(null)
+  
   // Load conversation messages when tab changes or conversation loads
   useEffect(() => {
     const activeTab = tabs.find(t => t.id === activeTabId)
     if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
-      // Only scroll if we haven't already scrolled for this conversation
       const convId = activeTab.conversationId || 'new'
+      
+      // Skip if we've already processed this exact conversation load
+      if (lastLoadedConversationId.current === convId) {
+        return
+      }
+      
+      lastLoadedConversationId.current = convId
+      
+      // Only scroll if we haven't already scrolled for this conversation
       const shouldScroll = hasScrolledForConversation.current !== convId
       
       setIsLoadingConversation(true)
@@ -123,6 +147,21 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
       // Restore settings from this conversation's settingsSnapshot
       if (loadedConversation.settingsSnapshot && setChatState) {
         const snapshot = loadedConversation.settingsSnapshot
+        
+        // Mark this conversation as having loaded settings
+        if (activeTab.conversationId) {
+          settingsLoadedForConversation.current.add(activeTab.conversationId)
+          
+          // Also cache in ref for instant tab switching
+          tabSettingsCache.current.set(activeTab.conversationId, {
+            jurisdiction: snapshot.jurisdiction || '',
+            topic: snapshot.topic || '',
+            additionalContext: snapshot.additionalContext || '',
+            selectedResearchIds: snapshot.selectedResearchIds || [],
+            savedResearchContent: snapshot.savedResearchContent || ''
+          })
+        }
+        
         setChatState({
           systemPrompt: snapshot.systemPrompt || '',
           model: snapshot.model,
@@ -131,7 +170,7 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
           additionalContext: snapshot.additionalContext || '',
           selectedResearchIds: snapshot.selectedResearchIds || [],
           savedResearchContent: snapshot.savedResearchContent || '',
-          lastPromptSent: ''
+          lastPromptSent: snapshot.lastPromptSent || ''
         })
         
         // Also update local state
@@ -156,14 +195,70 @@ export default function ChatFeature({ chatState, setChatState }: ChatFeatureProp
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setChatState])
   
-  // When switching tabs, load that tab's conversation if not already loaded
+  // When switching tabs, restore settings from tab cache or load from database
   useEffect(() => {
-    const activeTab = tabs.find(t => t.id === activeTabId)
-    if (activeTab?.conversationId && activeTab.messages.length === 0) {
-      // Tab has conversationId but no messages loaded yet
-      setConversationToLoad(activeTab.conversationId)
+    // Only run when actually switching tabs (not on every render)
+    if (previousActiveTabId.current === activeTabId) {
+      return
     }
-  }, [activeTabId, tabs])
+    
+    // Before switching, save current settings to ref-based cache (instant, no async state issues)
+    if (previousActiveTabId.current && chatState) {
+      const cacheData = {
+        jurisdiction: chatState.jurisdiction || '',
+        topic: chatState.topic || '',
+        additionalContext: chatState.additionalContext || '',
+        selectedResearchIds: chatState.selectedResearchIds || [],
+        savedResearchContent: (chatState as any).savedResearchContent || ''
+      }
+      tabSettingsCache.current.set(previousActiveTabId.current, cacheData)
+    }
+    
+    // Get the tab we're switching TO
+    const newActiveTab = tabs.find(t => t.id === activeTabId)
+    
+    previousActiveTabId.current = activeTabId
+    
+    // Check ref cache first (instant reads)
+    const cachedSettings = tabSettingsCache.current.get(activeTabId)
+    
+    if (cachedSettings) {
+      // Restore from ref cache
+      if (setChatState) {
+        setChatState((prev: any) => ({
+          ...prev,
+          jurisdiction: cachedSettings.jurisdiction,
+          topic: cachedSettings.topic,
+          additionalContext: cachedSettings.additionalContext,
+          selectedResearchIds: cachedSettings.selectedResearchIds,
+          savedResearchContent: cachedSettings.savedResearchContent
+        }))
+      }
+      setChatJurisdiction(cachedSettings.jurisdiction)
+      setChatTopic(cachedSettings.topic)
+    } else if (newActiveTab?.conversationId) {
+      // No cached settings - load from database if not already loaded
+      if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
+        setConversationToLoad(newActiveTab.conversationId)
+      }
+    } else {
+      // New tab without saved conversation - reset to defaults
+      setConversationToLoad(null)
+      if (setChatState) {
+        setChatState((prev: any) => ({
+          ...prev,
+          jurisdiction: '',
+          topic: '',
+          additionalContext: '',
+          selectedResearchIds: [],
+          savedResearchContent: '',
+          lastPromptSent: ''
+        }))
+      }
+      setChatJurisdiction('')
+      setChatTopic('')
+    }
+  }, [activeTabId, setChatState])
   
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
@@ -431,6 +526,7 @@ Use **bold** for key facts, ## headers for sections, and - bullets for lists. Be
             additionalContext: chatState?.additionalContext,
             selectedResearchIds: chatState?.selectedResearchIds,
             savedResearchContent: (chatState as any)?.savedResearchContent,
+            lastPromptSent: chatState?.lastPromptSent || '',
           }
         })
       } catch (error) {
@@ -511,6 +607,7 @@ You are a database query tool, not a general compliance advisor.`
             additionalContext: chatState?.additionalContext,
             selectedResearchIds: chatState?.selectedResearchIds,
             savedResearchContent: (chatState as any)?.savedResearchContent,
+            lastPromptSent: chatState?.lastPromptSent || '',
           },
           followUpQuestions: currentTab?.followUpQuestions || []
         })

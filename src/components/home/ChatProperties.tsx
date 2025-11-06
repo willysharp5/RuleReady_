@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Settings, Info, Tag, Building2, X, BookOpen } from 'lucide-react'
 import { AccordionSection } from './AccordionSection'
 import { JurisdictionSelect } from '@/components/ui/jurisdiction-select'
@@ -25,7 +25,7 @@ interface ChatState {
 
 interface ChatPropertiesProps {
   chatState?: ChatState
-  setChatState?: (state: ChatState) => void
+  setChatState?: (state: ChatState | ((prev: ChatState) => ChatState)) => void
   updateChatSettings?: (args: { chatSystemPrompt?: string; chatModel?: string; chatAdditionalContext?: string; chatSelectedResearchIds?: string[] }) => Promise<{ success: boolean }>
 }
 
@@ -50,74 +50,24 @@ export function ChatProperties({ chatState, setChatState, updateChatSettings }: 
   const [configOpen, setConfigOpen] = useState(false)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
   
-  // Debounce timer refs
-  const promptSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
-  const contextSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
-  
-  // Saving indicators
-  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
-  const [promptSaved, setPromptSaved] = useState(false)
-  
-  // Cleanup timers
-  useEffect(() => {
-    return () => {
-      if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
-    }
-  }, [])
-  
   const handleSystemPromptChange = (prompt: string) => {
-    // Update local state immediately
-    if (setChatState && chatState) {
-      setChatState({ ...chatState, systemPrompt: prompt })
+    // Update local state immediately using functional update to prevent stale state
+    if (setChatState) {
+      setChatState((prev) => ({ ...prev, systemPrompt: prompt }))
     }
-    
-    setPromptSaved(false)
-    setIsSavingPrompt(true)
-    
-    // Debounce database save
-    if (promptSaveTimerRef.current) {
-      clearTimeout(promptSaveTimerRef.current)
-    }
-    promptSaveTimerRef.current = setTimeout(async () => {
-      if (updateChatSettings) {
-        await updateChatSettings({
-          chatSystemPrompt: prompt,
-          chatModel: chatState?.model
-        })
-        setIsSavingPrompt(false)
-        setPromptSaved(true)
-        setTimeout(() => setPromptSaved(false), 2000)
-      }
-    }, 1000) // Save 1 second after user stops typing
   }
 
   const handleAdditionalContextChange = (value: string) => {
-    if (setChatState && chatState) {
-      setChatState({ ...chatState, additionalContext: value })
+    // Update local state immediately using functional update to prevent stale state
+    if (setChatState) {
+      setChatState((prev) => ({ ...prev, additionalContext: value }))
     }
-    if (!updateChatSettings) return;
-    if (contextSaveTimerRef.current) clearTimeout(contextSaveTimerRef.current)
-    contextSaveTimerRef.current = setTimeout(() => {
-      updateChatSettings({
-        chatSystemPrompt: chatState?.systemPrompt,
-        chatModel: chatState?.model,
-        chatAdditionalContext: value,
-      })
-    }, 500)
   }
   
   const handleModelChange = (model: string) => {
-    // Update local state immediately
-    if (setChatState && chatState) {
-      setChatState({ ...chatState, model })
-    }
-    
-    // Save to database immediately
-    if (updateChatSettings) {
-      updateChatSettings({
-        chatSystemPrompt: chatState?.systemPrompt,
-        chatModel: model
-      })
+    // Update local state immediately using functional update to prevent stale state
+    if (setChatState) {
+      setChatState((prev) => ({ ...prev, model }))
     }
   }
   
@@ -153,16 +103,9 @@ Always check the saved research content carefully. If penalties, deadlines, or o
 
 Remember: You're chatting with your user's data. Be smart, conversational, and well-formatted. Use ALL available information from the saved research.`
     
-    if (setChatState && chatState) {
-      setChatState({ ...chatState, systemPrompt: defaultPrompt })
-    }
-    
-    // Also save to database
-    if (updateChatSettings) {
-      updateChatSettings({
-        chatSystemPrompt: defaultPrompt,
-        chatModel: chatState?.model
-      })
+    // Update local state using functional update to prevent stale state
+    if (setChatState) {
+      setChatState((prev) => ({ ...prev, systemPrompt: defaultPrompt }))
     }
   }
 
@@ -510,15 +453,7 @@ Use this company information to evaluate compliance requirements. The company ha
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
-                {isSavingPrompt && (
-                  <span className="text-xs text-zinc-500">Saving...</span>
-                )}
-                {promptSaved && (
-                  <span className="text-xs text-green-600">✓ Saved</span>
-                )}
-              </div>
+              <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
               <button
                 type="button"
                 className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
@@ -535,7 +470,7 @@ Use this company information to evaluate compliance requirements. The company ha
               onChange={(e) => handleSystemPromptChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500 mt-1">
-              Auto-saves as you type.
+              Saved per-conversation automatically.
             </p>
           </div>
         </div>

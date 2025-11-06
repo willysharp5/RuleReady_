@@ -67,46 +67,104 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const [urlValidation, setUrlValidation] = useState<{[index: number]: { isValid: boolean | null, isValidating: boolean, message: string }}>({})
 
   
-  // Validate URL - Check if it's a real accessible URL
-  const validateUrl = async (url: string, index: number) => {
-    if (!url.trim()) {
-      setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: false, message: '' } }))
-      return
-    }
-    
-    // First check format
-    try {
-      new URL(url)
-    } catch {
-      setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: 'Invalid URL format' } }))
-      return
-    }
-    
-    // Set validating state
-    setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: true, message: 'Checking URL...' } }))
-    
-    // Actually check if URL is accessible via API route
-    try {
-      const response = await fetch(`/api/validate-url?url=${encodeURIComponent(url)}`)
-      const data = await response.json()
-      
-      if (data.valid) {
-        setUrlValidation(prev => ({ ...prev, [index]: { isValid: true, isValidating: false, message: data.message || 'URL is accessible' } }))
-      } else {
-        setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: data.message || 'URL not accessible' } }))
-      }
-    } catch (error) {
-      setUrlValidation(prev => ({ ...prev, [index]: { isValid: false, isValidating: false, message: 'Could not validate URL' } }))
-    }
-  }
+  // Track validated URLs to prevent re-validation
+  const validatedUrls = useRef<Map<string, { isValid: boolean, message: string }>>(new Map())
+  const validatingUrls = useRef<Set<string>>(new Set())
+  const lastUrlsRef = useRef<string>('')
   
-  // Debounce URL validation
+  // Debounce URL validation with proper cleanup
   useEffect(() => {
     const urls = researchState?.urls || ['']
-    urls.forEach((url, index) => {
-      const timer = setTimeout(() => validateUrl(url, index), 500)
-      return () => clearTimeout(timer)
+    const urlsString = JSON.stringify(urls)
+    
+    // Skip if URLs haven't actually changed
+    if (urlsString === lastUrlsRef.current) {
+      return
+    }
+    lastUrlsRef.current = urlsString
+    
+    const timers: NodeJS.Timeout[] = []
+    
+    // Clear validation for indices that no longer exist
+    setUrlValidation(prev => {
+      const newValidation: typeof prev = {}
+      urls.forEach((_, index) => {
+        if (prev[index]) {
+          newValidation[index] = prev[index]
+        }
+      })
+      return newValidation
     })
+    
+    urls.forEach((url, index) => {
+      if (!url.trim()) {
+        // Clear validation for empty URLs immediately
+        setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: false, message: '' } }))
+        return
+      }
+      
+      // Check if we've already validated this exact URL
+      const cachedResult = validatedUrls.current.get(url)
+      if (cachedResult) {
+        setUrlValidation(prev => ({ ...prev, [index]: { ...cachedResult, isValidating: false } }))
+        return
+      }
+      
+      // Skip if already validating this specific URL
+      const urlKey = `${index}-${url}`
+      if (validatingUrls.current.has(urlKey)) {
+        return
+      }
+      
+      // Debounce validation
+      const timer = setTimeout(async () => {
+        // Double-check URL still exists at this index before validating
+        const currentUrls = researchState?.urls || ['']
+        if (currentUrls[index] !== url) {
+          return // URL changed, skip validation
+        }
+        
+        // Check format
+        try {
+          new URL(url)
+        } catch {
+          const result = { isValid: false, message: 'Invalid URL format' }
+          setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
+          validatedUrls.current.set(url, result)
+          return
+        }
+        
+        // Mark as validating
+        validatingUrls.current.add(urlKey)
+        setUrlValidation(prev => ({ ...prev, [index]: { isValid: null, isValidating: true, message: 'Checking URL...' } }))
+        
+        try {
+          const response = await fetch(`/api/validate-url?url=${encodeURIComponent(url)}`)
+          const data = await response.json()
+          
+          const result = {
+            isValid: data.valid,
+            message: data.valid ? (data.message || 'URL is accessible') : (data.message || 'URL not accessible')
+          }
+          
+          setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
+          validatedUrls.current.set(url, result)
+        } catch (error) {
+          const result = { isValid: false, message: 'Could not validate URL' }
+          setUrlValidation(prev => ({ ...prev, [index]: { ...result, isValidating: false } }))
+          validatedUrls.current.set(url, result)
+        } finally {
+          validatingUrls.current.delete(urlKey)
+        }
+      }, 1500) // 1.5 second debounce
+      
+      timers.push(timer)
+    })
+    
+    // Cleanup all timers
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
   }, [researchState?.urls])
   
   // Get display names
@@ -122,16 +180,6 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
   const [systemPromptOpen, setSystemPromptOpen] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
   const [promptPreviewOpen, setPromptPreviewOpen] = useState(false)
-  
-  // Debounce timer refs
-  const promptSaveTimerRef = useRef<NodeJS.Timeout>()
-  const configSaveTimerRef = useRef<NodeJS.Timeout>()
-  
-  // Saving indicators
-  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
-  const [isSavingConfig, setIsSavingConfig] = useState(false)
-  const [promptSaved, setPromptSaved] = useState(false)
-  const [configSaved, setConfigSaved] = useState(false)
 
   const handleSystemPromptChange = (prompt: string) => {
     // Clean up - remove any template content that may have been pasted
@@ -148,89 +196,32 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
       })
     }
     
-    // Update local state immediately
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, systemPrompt: cleanPrompt })
+    // Update local state immediately using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, systemPrompt: cleanPrompt }))
     }
-    
-    setPromptSaved(false)
-    setIsSavingPrompt(true)
-    
-    // Debounce database save
-    if (promptSaveTimerRef.current) {
-      clearTimeout(promptSaveTimerRef.current)
-    }
-    promptSaveTimerRef.current = setTimeout(async () => {
-      if (updateResearchSettings) {
-        await updateResearchSettings({
-          researchSystemPrompt: cleanPrompt,
-          researchModel: researchState?.model,
-          researchFirecrawlConfig: researchState?.firecrawlConfig
-        })
-        setIsSavingPrompt(false)
-        setPromptSaved(true)
-        setTimeout(() => setPromptSaved(false), 2000)
-      }
-    }, 1000) // Save 1 second after user stops typing
   }
   
   const handleModelChange = (model: string) => {
-    // Update local state immediately
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, model })
-    }
-    
-    // Save to database immediately
-    if (updateResearchSettings) {
-      updateResearchSettings({
-        researchSystemPrompt: researchState?.systemPrompt,
-        researchModel: model,
-        researchFirecrawlConfig: researchState?.firecrawlConfig
-      })
+    // Update local state immediately using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, model }))
     }
   }
 
   const handleFirecrawlConfigChange = (config: string) => {
-    // Update local state immediately
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, firecrawlConfig: config })
+    // Update local state immediately using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, firecrawlConfig: config }))
     }
-    
-    setConfigSaved(false)
-    setIsSavingConfig(true)
-    
-    // Debounce database save
-    if (configSaveTimerRef.current) {
-      clearTimeout(configSaveTimerRef.current)
-    }
-    configSaveTimerRef.current = setTimeout(async () => {
-      if (updateResearchSettings) {
-        await updateResearchSettings({
-          researchSystemPrompt: researchState?.systemPrompt,
-          researchModel: researchState?.model,
-          researchFirecrawlConfig: config
-        })
-        setIsSavingConfig(false)
-        setConfigSaved(true)
-        setTimeout(() => setConfigSaved(false), 2000)
-      }
-    }, 1000) // Save 1 second after user stops typing
   }
   
   const handleAdditionalContextChange = (context: string) => {
-    // Update local state only (not saved to database)
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, additionalContext: context })
+    // Update local state immediately using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, additionalContext: context }))
     }
   }
-  
-  // Cleanup timers
-  useEffect(() => {
-    return () => {
-      if (promptSaveTimerRef.current) clearTimeout(promptSaveTimerRef.current)
-      if (configSaveTimerRef.current) clearTimeout(configSaveTimerRef.current)
-    }
-  }, [])
 
   const handleResetFirecrawlConfig = () => {
     const defaultConfig = JSON.stringify({
@@ -245,18 +236,9 @@ export function ResearchProperties({ researchState, setResearchState, updateRese
       }
     }, null, 2)
     
-    // Update local state
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, firecrawlConfig: defaultConfig })
-    }
-    
-    // Save to database
-    if (updateResearchSettings) {
-      updateResearchSettings({
-        researchSystemPrompt: researchState?.systemPrompt,
-        researchModel: researchState?.model,
-        researchFirecrawlConfig: defaultConfig
-      })
+    // Update local state using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, firecrawlConfig: defaultConfig }))
     }
   }
 
@@ -277,18 +259,9 @@ Note: If jurisdiction/topic filters are selected, you will receive additional in
 "Focus on jurisdiction: California" or "Focus on topic: Harassment Training"
 These appear AFTER "Based on these sources:" in your prompt.`
     
-    // Update local state
-    if (setResearchState && researchState) {
-      setResearchState({ ...researchState, systemPrompt: defaultPrompt, selectedTemplate: '' })
-    }
-    
-    // Save to database
-    if (updateResearchSettings) {
-      updateResearchSettings({
-        researchSystemPrompt: defaultPrompt,
-        researchModel: researchState?.model,
-        researchFirecrawlConfig: researchState?.firecrawlConfig
-      })
+    // Update local state using functional update to prevent stale state
+    if (setResearchState) {
+      setResearchState((prev: any) => ({ ...prev, systemPrompt: defaultPrompt, selectedTemplate: '' }))
     }
   }
 
@@ -317,28 +290,14 @@ These appear AFTER "Based on these sources:" in your prompt.`
             value={selectedTemplateObj}
             onChange={(template: any) => {
               if (!template) {
-                // No template selected - clear template ID only
-                if (setResearchState && researchState) {
-                  setResearchState({ ...researchState, selectedTemplate: '' })
-                }
-                
-                // Save cleared template ID to database
-                if (updateResearchSettings) {
-                  updateResearchSettings({
-                    researchSelectedTemplateId: ''
-                  })
+                // No template selected - clear template ID using functional update
+                if (setResearchState) {
+                  setResearchState((prev: any) => ({ ...prev, selectedTemplate: '' }))
                 }
               } else {
-                // Template selected - save only the template ID
-                if (setResearchState && researchState) {
-                  setResearchState({ ...researchState, selectedTemplate: template.templateId })
-                }
-                
-                // Save template ID to database (API will fetch template content dynamically)
-                if (updateResearchSettings) {
-                  updateResearchSettings({
-                    researchSelectedTemplateId: template.templateId
-                  })
+                // Template selected - save only the template ID using functional update
+                if (setResearchState) {
+                  setResearchState((prev: any) => ({ ...prev, selectedTemplate: template.templateId }))
                 }
                 
                 // Show success message
@@ -369,11 +328,11 @@ These appear AFTER "Based on these sources:" in your prompt.`
               ) : null
             }
             onChange={(jurisdiction: any) => {
-              if (setResearchState && researchState) {
-                setResearchState({
-                  ...researchState,
+              if (setResearchState) {
+                setResearchState((prev: any) => ({
+                  ...prev,
                   jurisdiction: jurisdiction?.displayName || jurisdiction?.name || ''
-                })
+                }))
               }
             }}
             placeholder="No jurisdiction selected"
@@ -390,8 +349,8 @@ These appear AFTER "Based on these sources:" in your prompt.`
           <TopicSelect
             value={topics.find((t: any) => t.name === researchState?.topic) || null}
             onChange={(topic: any) => {
-              if (setResearchState && researchState) {
-                setResearchState({ ...researchState, topic: topic?.name || '' })
+              if (setResearchState) {
+                setResearchState((prev: any) => ({ ...prev, topic: topic?.name || '' }))
               }
             }}
             placeholder="No topic selected"
@@ -419,10 +378,13 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     placeholder="https://example.com"
                     value={url}
                     onChange={(e) => {
-                      if (setResearchState && researchState) {
-                        const newUrls = [...(researchState.urls || [''])]
-                        newUrls[index] = e.target.value
-                        setResearchState({ ...researchState, urls: newUrls })
+                      if (setResearchState) {
+                        const newValue = e.target.value
+                        setResearchState((prev: any) => {
+                          const newUrls = [...(prev.urls || [''])]
+                          newUrls[index] = newValue
+                          return { ...prev, urls: newUrls }
+                        })
                       }
                     }}
                     className={`h-8 text-xs pr-8 ${
@@ -447,10 +409,12 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      if (setResearchState && researchState) {
-                        const newUrls = (researchState.urls || ['']).filter((_: string, i: number) => i !== index)
-                        // If we removed the last URL, ensure at least one empty field remains
-                        setResearchState({ ...researchState, urls: newUrls.length > 0 ? newUrls : [''] })
+                      if (setResearchState) {
+                        setResearchState((prev: any) => {
+                          const newUrls = (prev.urls || ['']).filter((_: string, i: number) => i !== index)
+                          // If we removed the last URL, ensure at least one empty field remains
+                          return { ...prev, urls: newUrls.length > 0 ? newUrls : [''] }
+                        })
                       }
                     }}
                     className="h-8 w-8 p-0 hover:bg-red-50"
@@ -464,9 +428,11 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      if (setResearchState && researchState) {
-                        const newUrls = [...(researchState.urls || ['']), '']
-                        setResearchState({ ...researchState, urls: newUrls })
+                      if (setResearchState) {
+                        setResearchState((prev: any) => {
+                          const newUrls = [...(prev.urls || ['']), '']
+                          return { ...prev, urls: newUrls }
+                        })
                       }
                     }}
                     className="h-8 w-8 p-0 bg-orange-100 hover:bg-orange-200"
@@ -553,15 +519,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
             
             <div>
               <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
-                  {isSavingPrompt && (
-                    <span className="text-xs text-zinc-500">Saving...</span>
-                  )}
-                  {promptSaved && (
-                    <span className="text-xs text-green-600">✓ Saved</span>
-                  )}
-                </div>
+                <label className="block text-xs font-medium text-zinc-700">System Prompt</label>
                 <button
                   type="button"
                   className="text-xs px-2 py-1 border border-purple-300 rounded hover:bg-purple-50 text-purple-700"
@@ -578,7 +536,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
                 onChange={(e) => handleSystemPromptChange(e.target.value)}
               />
               <p className="text-xs text-zinc-500 mt-1">
-                Auto-saves as you type. Template selection auto-updates this prompt.
+                Saved per-conversation automatically.
               </p>
             </div>
           </div>
@@ -595,12 +553,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-zinc-600">Firecrawl API</span>
                 <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">v2</span>
-                {isSavingConfig && (
-                  <span className="text-xs text-zinc-500">Saving...</span>
-                )}
-                {configSaved && (
-                  <span className="text-xs text-green-600">✓ Saved</span>
-                )}
               </div>
               <div className="flex gap-2">
                 <a
@@ -630,7 +582,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
               onChange={(e) => handleFirecrawlConfigChange(e.target.value)}
             />
             <p className="text-xs text-zinc-500">
-              Auto-saves as you type. Changes apply to your next research query.
+              Saved per-conversation automatically.
             </p>
           </div>
         </AccordionSection>
@@ -742,20 +694,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
                   );
                 }
                 
-                // Template info
-                if (hasTemplate) {
-                  const templateName = researchState?.selectedTemplate 
-                    ? templates?.find((t: any) => t.templateId === researchState.selectedTemplate)?.title || 'Template'
-                    : 'Template';
-                  
-                  parts.push(
-                    <div key="template" className="flex items-baseline gap-1 mt-1">
-                      <span className="font-bold text-sm text-purple-700">Using Template:</span>
-                      <span className="text-xs italic text-zinc-500">{templateName}</span>
-                    </div>
-                  );
-                }
-                
                 // Additional context summary - Purple bold label, gray italic details (matching jurisdiction/topic styling)
                 if (hasAdditionalContext) {
                   parts.push(
@@ -795,6 +733,17 @@ These appear AFTER "Based on these sources:" in your prompt.`
                     System instructions: [View in AI Settings accordion above]
                   </div>
                 );
+                
+                // Template used (if any)
+                if (researchState?.selectedTemplate) {
+                  const templateName = templates?.find((t: any) => t.templateId === researchState.selectedTemplate)?.title || researchState.selectedTemplate;
+                  parts.push(
+                    <div key="template-used" className="flex items-baseline gap-1 mt-1">
+                      <span className="font-bold text-sm text-purple-700">Template Used:</span>
+                      <span className="text-xs italic text-zinc-500">{templateName}</span>
+                    </div>
+                  );
+                }
                 
                 return <>{parts}</>;
               })()}
@@ -837,3 +786,4 @@ These appear AFTER "Based on these sources:" in your prompt.`
     </div>
   )
 }
+
