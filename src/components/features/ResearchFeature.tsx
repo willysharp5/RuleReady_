@@ -127,20 +127,26 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       const conversations = allConversationsQuery || []
       
       if (conversations.length > 0) {
-        // Create tabs from saved conversations
-        const loadedTabs = conversations.map((conv, idx) => ({
-          id: conv._id,
-          title: conv.title,
-          conversationId: conv._id,
-          messages: [], // Will load when tab is activated
-          hasUnsavedChanges: false,
-          followUpQuestions: []
-        }))
+        // Create tabs from saved conversations, preserving existing messages
+        setTabs(prevTabs => {
+          const loadedTabs = conversations.map((conv, idx) => {
+            const existingTab = prevTabs.find(t => t.id === conv._id)
+            return {
+              id: conv._id,
+              title: conv.title,
+              conversationId: conv._id,
+              messages: existingTab?.messages || [], // Preserve existing messages
+              hasUnsavedChanges: false,
+              followUpQuestions: existingTab?.followUpQuestions || []
+            }
+          })
+          
+          return loadedTabs
+        })
         
-        setTabs(loadedTabs)
-        setActiveTabId(loadedTabs[0].id)
+        setActiveTabId(conversations[0]._id)
         // Trigger loading of first conversation
-        setConversationToLoad(loadedTabs[0].conversationId)
+        setConversationToLoad(conversations[0]._id)
       }
       
       setTabsLoaded(true)
