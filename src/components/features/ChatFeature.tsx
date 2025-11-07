@@ -233,7 +233,20 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
 
     setTabs((prevTabs: ChatTab[]) => {
       const nonConversationTabs = prevTabs.filter(tab => !tab.conversationId)
-      const merged = [...mappedTabs]
+      
+      // Merge database tabs with existing tabs, preserving in-memory messages
+      const merged = mappedTabs.map(dbTab => {
+        const existingTab = prevTabs.find(t => t.id === dbTab.id)
+        if (existingTab) {
+          // Preserve messages and other runtime state from existing tab
+          return {
+            ...dbTab,
+            messages: existingTab.messages,
+            followUpQuestions: existingTab.followUpQuestions || []
+          }
+        }
+        return dbTab
+      })
 
       nonConversationTabs.forEach(tab => {
         if (!merged.some(existing => existing.id === tab.id)) {
@@ -257,27 +270,17 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
       const convId = activeTab.conversationId || 'new'
       
-      console.log('[ChatFeature] Load conversation effect triggered', { 
-        convId, 
-        hasMessages: activeTab.messages.length > 0,
-        isCreatedThisSession: conversationsCreatedThisSession.current.has(convId),
-        lastLoaded: lastLoadedConversationId.current
-      })
-      
       // Skip if we've already processed this exact conversation load
       if (lastLoadedConversationId.current === convId) {
-        console.log('[ChatFeature] Skipping - already loaded')
         return
       }
       
       // Skip if this conversation was just created in this session (has unsaved messages)
       if (conversationsCreatedThisSession.current.has(convId) && activeTab.messages.length > 0) {
-        console.log('[ChatFeature] Skipping load for newly created conversation with messages', { convId, messageCount: activeTab.messages.length })
         lastLoadedConversationId.current = convId
         return
       }
       
-      console.log('[ChatFeature] Loading conversation from database', { convId, dbMessageCount: loadedConversation.messages?.length })
       lastLoadedConversationId.current = convId
       
       // Only scroll if we haven't already scrolled for this conversation
@@ -406,13 +409,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
   const [chatQuery, setChatQuery] = useState('')
   const chatMessages = (activeTab?.messages as ChatMessage[]) || []
   
-  console.log('[ChatFeature] Render - chatMessages:', { 
-    count: chatMessages.length, 
-    activeTabId,
-    tabMessagesCount: activeTab?.messages?.length,
-    lastMessage: chatMessages[chatMessages.length - 1]
-  })
-  
   const setChatMessages = (updater: ((messages: ChatMessage[]) => ChatMessage[]) | ChatMessage[]) => {
     setTabs((prevTabs: ChatTab[]) => {
       const nextTabs = prevTabs.map(tab => {
@@ -423,12 +419,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
         const nextMessages = typeof updater === 'function'
           ? (updater as (messages: ChatMessage[]) => ChatMessage[])(tab.messages as ChatMessage[])
           : (updater as ChatMessage[])
-        
-        console.log('[ChatFeature] setChatMessages updating tab', {
-          tabId: tab.id,
-          oldCount: tab.messages.length,
-          newCount: nextMessages.length
-        })
 
         return {
           ...tab,
@@ -538,8 +528,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
             tab.id === tabLatest.id ? { ...tab, conversationId } : tab
           )
           setTabs(tabsRef.current)
-          
-          console.log('[ChatFeature] New conversation created', { conversationId, hasMessages: chatMessages.length > 0 })
           
           // Don't call setConversationToLoad - we don't want to reload from DB
           // Just update the tracking refs
@@ -665,8 +653,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('[ChatFeature] handleChatSubmit called', { chatQuery, isChatting })
-    
     if (!chatQuery.trim()) {
       addToast({
         variant: 'error',
@@ -676,8 +662,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       })
       return
     }
-
-    console.log('[ChatFeature] Adding user message and starting chat')
     
     // Add user message to chat
     const userMessageId = Date.now().toString()
@@ -691,8 +675,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     
     setChatQuery('')
     setIsChatting(true)
-    
-    console.log('[ChatFeature] isChatting set to true, creating assistant message')
     
     // Create assistant message that will stream
     const assistantMessageId = (Date.now() + 1).toString()
@@ -719,12 +701,6 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       const lastUserMessage = messages[messages.length - 1]?.content || ''
       const promptPreview = `${chatState?.systemPrompt || chatSystemPrompt}\n\nUser: ${lastUserMessage}\n\nAssistant:`
       
-      console.log('[ChatFeature] Sending request to API', { 
-        messagesCount: messages.length, 
-        model: chatState?.model,
-        hasResearch: !!chatState?.selectedResearchIds?.length 
-      })
-      
       // Update parent state with prompt preview
       if (setChatState) {
         setChatState((prev: ChatFeatureState) => ({
@@ -750,39 +726,21 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[ChatFeature] API error:', response.status, errorText)
         throw new Error(`Chat request failed: ${response.status}`)
       }
 
       const data = await response.json()
-      console.log('[ChatFeature] Received response', { hasContent: !!data.content, contentLength: data.content?.length })
       
       // Update assistant message with response
-      setChatMessages((prevMessages: ChatMessage[]) => {
-        console.log('[ChatFeature] Updating messages', { 
-          prevCount: prevMessages.length, 
-          assistantMessageId,
-          foundMessage: prevMessages.some(m => m.id === assistantMessageId)
-        })
-        
-        const updated = prevMessages.map(m =>
-          m.id === assistantMessageId
-            ? {
-                ...m,
-                content: data.content,
-                savedResearchSources: data.savedResearchSources || []
-              }
-            : m
-        )
-        
-        console.log('[ChatFeature] Updated messages', { 
-          newCount: updated.length,
-          lastMessageHasContent: !!updated[updated.length - 1]?.content
-        })
-        
-        return updated
-      })
+      setChatMessages((prevMessages: ChatMessage[]) => prevMessages.map(m =>
+        m.id === assistantMessageId
+          ? {
+              ...m,
+              content: data.content,
+              savedResearchSources: data.savedResearchSources || []
+            }
+          : m
+      ))
       
       // Set follow-up questions if provided
       if (data.followUpQuestions && Array.isArray(data.followUpQuestions)) {
