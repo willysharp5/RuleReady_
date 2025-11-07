@@ -257,17 +257,27 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     if (loadedConversation && activeTab && activeTab.conversationId === conversationToLoad) {
       const convId = activeTab.conversationId || 'new'
       
+      console.log('[ChatFeature] Load conversation effect triggered', { 
+        convId, 
+        hasMessages: activeTab.messages.length > 0,
+        isCreatedThisSession: conversationsCreatedThisSession.current.has(convId),
+        lastLoaded: lastLoadedConversationId.current
+      })
+      
       // Skip if we've already processed this exact conversation load
       if (lastLoadedConversationId.current === convId) {
+        console.log('[ChatFeature] Skipping - already loaded')
         return
       }
       
       // Skip if this conversation was just created in this session (has unsaved messages)
       if (conversationsCreatedThisSession.current.has(convId) && activeTab.messages.length > 0) {
         console.log('[ChatFeature] Skipping load for newly created conversation with messages', { convId, messageCount: activeTab.messages.length })
+        lastLoadedConversationId.current = convId
         return
       }
       
+      console.log('[ChatFeature] Loading conversation from database', { convId, dbMessageCount: loadedConversation.messages?.length })
       lastLoadedConversationId.current = convId
       
       // Only scroll if we haven't already scrolled for this conversation
@@ -520,6 +530,9 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
           settingsLoadedForConversation.current.add(conversationId)
           appliedDefaultForTab.current.delete(conversationId)
           conversationsCreatedThisSession.current.add(conversationId)
+          
+          // Mark this conversation as already loaded to prevent re-loading from DB
+          lastLoadedConversationId.current = conversationId
 
           tabsRef.current = tabsRef.current.map(tab =>
             tab.id === tabLatest.id ? { ...tab, conversationId } : tab
@@ -528,7 +541,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
           
           console.log('[ChatFeature] New conversation created', { conversationId, hasMessages: chatMessages.length > 0 })
           
-          setConversationToLoad(conversationId)
+          // Don't call setConversationToLoad - we don't want to reload from DB
+          // Just update the tracking refs
           lastAppliedConversationId.current = conversationId
           previousActiveTabId.current = activeTabId
         }
