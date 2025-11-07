@@ -248,6 +248,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
   
   // Track the last loaded conversation to prevent re-running
   const lastLoadedConversationId = useRef<string | null>(null)
+  // Track conversations created in this session to avoid overwriting their messages
+  const conversationsCreatedThisSession = useRef<Set<string>>(new Set())
   
   // Load conversation messages when tab changes or conversation loads
   useEffect(() => {
@@ -257,6 +259,12 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       
       // Skip if we've already processed this exact conversation load
       if (lastLoadedConversationId.current === convId) {
+        return
+      }
+      
+      // Skip if this conversation was just created in this session (has unsaved messages)
+      if (conversationsCreatedThisSession.current.has(convId) && activeTab.messages.length > 0) {
+        console.log('[ChatFeature] Skipping load for newly created conversation with messages', { convId, messageCount: activeTab.messages.length })
         return
       }
       
@@ -387,6 +395,14 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
   // Sync messages with active tab
   const [chatQuery, setChatQuery] = useState('')
   const chatMessages = (activeTab?.messages as ChatMessage[]) || []
+  
+  console.log('[ChatFeature] Render - chatMessages:', { 
+    count: chatMessages.length, 
+    activeTabId,
+    tabMessagesCount: activeTab?.messages?.length,
+    lastMessage: chatMessages[chatMessages.length - 1]
+  })
+  
   const setChatMessages = (updater: ((messages: ChatMessage[]) => ChatMessage[]) | ChatMessage[]) => {
     setTabs((prevTabs: ChatTab[]) => {
       const nextTabs = prevTabs.map(tab => {
@@ -397,6 +413,12 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
         const nextMessages = typeof updater === 'function'
           ? (updater as (messages: ChatMessage[]) => ChatMessage[])(tab.messages as ChatMessage[])
           : (updater as ChatMessage[])
+        
+        console.log('[ChatFeature] setChatMessages updating tab', {
+          tabId: tab.id,
+          oldCount: tab.messages.length,
+          newCount: nextMessages.length
+        })
 
         return {
           ...tab,
@@ -497,11 +519,14 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
           conversationId = result.conversationId as string
           settingsLoadedForConversation.current.add(conversationId)
           appliedDefaultForTab.current.delete(conversationId)
+          conversationsCreatedThisSession.current.add(conversationId)
 
           tabsRef.current = tabsRef.current.map(tab =>
             tab.id === tabLatest.id ? { ...tab, conversationId } : tab
           )
           setTabs(tabsRef.current)
+          
+          console.log('[ChatFeature] New conversation created', { conversationId, hasMessages: chatMessages.length > 0 })
           
           setConversationToLoad(conversationId)
           lastAppliedConversationId.current = conversationId
@@ -720,15 +745,30 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       console.log('[ChatFeature] Received response', { hasContent: !!data.content, contentLength: data.content?.length })
       
       // Update assistant message with response
-      setChatMessages((prevMessages: ChatMessage[]) => prevMessages.map(m =>
-        m.id === assistantMessageId
-          ? {
-              ...m,
-              content: data.content,
-              savedResearchSources: data.savedResearchSources || []
-            }
-          : m
-      ))
+      setChatMessages((prevMessages: ChatMessage[]) => {
+        console.log('[ChatFeature] Updating messages', { 
+          prevCount: prevMessages.length, 
+          assistantMessageId,
+          foundMessage: prevMessages.some(m => m.id === assistantMessageId)
+        })
+        
+        const updated = prevMessages.map(m =>
+          m.id === assistantMessageId
+            ? {
+                ...m,
+                content: data.content,
+                savedResearchSources: data.savedResearchSources || []
+              }
+            : m
+        )
+        
+        console.log('[ChatFeature] Updated messages', { 
+          newCount: updated.length,
+          lastMessageHasContent: !!updated[updated.length - 1]?.content
+        })
+        
+        return updated
+      })
       
       // Set follow-up questions if provided
       if (data.followUpQuestions && Array.isArray(data.followUpQuestions)) {
