@@ -393,6 +393,104 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     }
   }
   
+  // Unified auto-save for both settings and messages
+  const settingsSaveTimeout = useRef<NodeJS.Timeout | null>(null)
+  
+  useEffect(() => {
+    if (!researchState || !activeTabId) return
+ 
+    const activeTab = tabsRef.current.find(t => t.id === activeTabId)
+    if (!activeTab) return
+ 
+    // Don't auto-save while actively researching or loading
+    if (isLoadingConversation || isResearching) return
+
+    const hasMessages = researchMessages.length > 0
+
+    const hasMeaningfulSettings = Boolean(
+      researchState.selectedTemplate ||
+      researchState.jurisdiction ||
+      researchState.topic ||
+      (researchState.urls && researchState.urls.length > 0 && researchState.urls[0]) ||
+      (researchState.additionalContext && researchState.additionalContext.trim().length > 0)
+    )
+
+    // Skip if no conversation ID and no meaningful content
+    if (!activeTab.conversationId && !hasMeaningfulSettings && !hasMessages) {
+      return
+    }
+
+    if (settingsSaveTimeout.current) {
+      clearTimeout(settingsSaveTimeout.current)
+    }
+
+    settingsSaveTimeout.current = setTimeout(async () => {
+      const tabLatest = tabsRef.current.find(t => t.id === activeTabId)
+      if (!tabLatest) {
+        settingsSaveTimeout.current = null
+        return
+      }
+
+      try {
+        const result = await saveConversation({
+          conversationId: tabLatest.conversationId as any || undefined,
+          title: tabLatest.title,
+          messages: researchMessages,
+          filters: {
+            jurisdiction: researchState.jurisdiction || undefined,
+            topic: researchState.topic || undefined,
+            templateUsed: researchState.selectedTemplate || undefined,
+          },
+          settingsSnapshot: {
+            systemPrompt: researchState.systemPrompt,
+            firecrawlConfig: researchState.firecrawlConfig,
+            model: researchState.model,
+            jurisdiction: researchState.jurisdiction,
+            topic: researchState.topic,
+            selectedTemplate: researchState.selectedTemplate,
+            urls: researchState.urls || [],
+            additionalContext: researchState.additionalContext,
+            lastPromptSent: researchState.lastPromptSent || '',
+          },
+          followUpQuestions: tabLatest.followUpQuestions || [],
+          truncateSources: false
+        })
+
+        let conversationId = tabLatest.conversationId as string | null
+
+        if (result?.conversationId && !tabLatest.conversationId) {
+          conversationId = result.conversationId as string
+          settingsLoadedForConversation.current.add(conversationId)
+          conversationsCreatedThisSession.current.add(conversationId)
+          
+          // Mark this conversation as already loaded to prevent re-loading from DB
+          lastLoadedConversationId.current = conversationId
+
+          tabsRef.current = tabsRef.current.map(tab =>
+            tab.id === tabLatest.id ? { ...tab, conversationId } : tab
+          )
+          setTabs(tabsRef.current)
+          
+          // Don't call setConversationToLoad - we don't want to reload from DB
+          // Just update the tracking refs
+          lastAppliedConversationId.current = conversationId
+          previousActiveTabId.current = activeTabId
+        }
+      } catch (error) {
+        console.error('Failed to persist research:', error)
+      } finally {
+        settingsSaveTimeout.current = null
+      }
+    }, 500)
+
+    return () => {
+      if (settingsSaveTimeout.current) {
+        clearTimeout(settingsSaveTimeout.current)
+        settingsSaveTimeout.current = null
+      }
+    }
+  }, [researchState, activeTabId, isLoadingConversation, isResearching, saveConversation, researchMessages])
+  
   const [copiedResearchMessageId, setCopiedResearchMessageId] = useState<string | null>(null)
   
   // Save research modal state
@@ -882,150 +980,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
     }
   }
 
-  // Auto-save active tab conversation after messages update (debounced)
-  useEffect(() => {
-    // Only auto-save if we have at least one complete exchange (user + assistant)
-    const hasCompleteExchange = researchMessages.length >= 2 && 
-                                researchMessages.some(m => m.role === 'assistant');
-    
-    // Don't save if we're loading an existing conversation or actively researching
-    if (!hasCompleteExchange || isResearching || isLoadingConversation) return;
-    
-      const autoSaveTimer = setTimeout(async () => {
-      try {
-        // Pass existing conversationId if tab already has one
-        const currentTab = tabs.find(t => t.id === activeTabId)
-        
-        const result = await saveConversation({
-          conversationId: currentTab?.conversationId as any || undefined,
-          title: currentTab?.title, // Use tab title (Chat 1, Chat 2, etc.)
-          messages: researchMessages,
-          filters: {
-            jurisdiction: researchState?.jurisdiction || researchJurisdiction,
-            topic: researchState?.topic || researchTopic,
-            templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
-          },
-          settingsSnapshot: {
-            systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
-            firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
-            model: researchState?.model,
-            jurisdiction: researchState?.jurisdiction || researchJurisdiction,
-            topic: researchState?.topic || researchTopic,
-            selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
-            urls: researchState?.urls || [],
-            additionalContext: researchState?.additionalContext,
-            lastPromptSent: researchState?.lastPromptSent || '',
-          },
-          followUpQuestions: currentTab?.followUpQuestions || [],
-          truncateSources: false, // Don't auto-truncate
-        })
-        
-        // Store conversation ID in the active tab (only if new)
-        if (result.conversationId && !result.isUpdate) {
-          const conversationId = result.conversationId as string
-          settingsLoadedForConversation.current.add(conversationId)
-          conversationsCreatedThisSession.current.add(conversationId)
-          lastLoadedConversationId.current = conversationId
-          
-          const updatedTabs = tabsRef.current.map(tab =>
-            tab.id === activeTabId
-              ? { ...tab, conversationId, hasUnsavedChanges: false }
-              : tab
-          )
-          tabsRef.current = updatedTabs
-          setTabs(updatedTabs)
-          
-          lastAppliedConversationId.current = conversationId
-          previousActiveTabId.current = activeTabId
-        } else if (result.isUpdate) {
-          // Just mark as saved
-          const updatedTabs = tabsRef.current.map(tab =>
-            tab.id === activeTabId
-              ? { ...tab, hasUnsavedChanges: false }
-              : tab
-          )
-          tabsRef.current = updatedTabs
-          setTabs(updatedTabs)
-        }
-      } catch (error: any) {
-        // Check if error is "Document too large"
-        if (error.message && error.message.includes('Document too large')) {
-          // Extract size from error message if available
-          const sizeMatch = error.message.match(/(\d+)KB/)
-          const sizeKB = sizeMatch ? sizeMatch[1] : 'unknown'
-          
-          // Show error popover asking if user wants to truncate
-          setErrorPopover({
-            isOpen: true,
-            variant: 'warning',
-            icon: 'database',
-            title: 'Conversation Too Large to Save',
-            message: `This conversation (${sizeKB}KB) exceeds the database limit (900KB).\n\nWhat happens next:\n• Source content will be shortened to 500 characters each\n• Titles, URLs, and your questions stay intact\n• Your AI answers remain complete\n\nClick "Truncate & Save" to proceed or X to cancel (conversation won't be saved).`,
-            actions: [
-              {
-                label: 'Truncate & Save',
-                variant: 'primary',
-                onClick: async () => {
-                  // Retry save with truncation enabled
-                  try {
-                    const currentTab = tabs.find(t => t.id === activeTabId)
-                    await saveConversation({
-                      conversationId: currentTab?.conversationId as any || undefined,
-                      title: currentTab?.title,
-                      messages: researchMessages,
-                      filters: {
-                        jurisdiction: researchState?.jurisdiction || researchJurisdiction,
-                        topic: researchState?.topic || researchTopic,
-                        templateUsed: researchState?.selectedTemplate || selectedResearchTemplate,
-                      },
-                      settingsSnapshot: {
-                        systemPrompt: researchState?.systemPrompt || researchSystemPrompt,
-                        firecrawlConfig: researchState?.firecrawlConfig || researchFirecrawlConfig,
-                        model: researchState?.model,
-                        jurisdiction: researchState?.jurisdiction || researchJurisdiction,
-                        topic: researchState?.topic || researchTopic,
-                        selectedTemplate: researchState?.selectedTemplate || selectedResearchTemplate,
-                        urls: researchState?.urls || [],
-                        additionalContext: researchState?.additionalContext,
-                        lastPromptSent: researchState?.lastPromptSent || '',
-                      },
-                      followUpQuestions: currentTab?.followUpQuestions || [],
-                      truncateSources: true, // Enable truncation
-                    })
-                    
-                    addToast({
-                      variant: 'success',
-                      title: 'Saved with truncation',
-                      description: 'Conversation saved successfully with truncated sources',
-                      duration: 3000
-                    })
-                  } catch (retryError) {
-                    setErrorPopover({
-                      isOpen: true,
-                      variant: 'error',
-                      icon: 'database',
-                      title: 'Still Too Large',
-                      message: 'Even with truncated sources, this conversation is too large to save.\n\n' +
-                        'Options:\n\n' +
-                        '• Click "Clear Chat" to start fresh\n' +
-                        '• Delete some messages manually\n' +
-                        '• Save individual research results instead\n\n' +
-                        'Conversations with many research queries can grow very large.'
-                    })
-                  }
-                }
-              }
-            ]
-          })
-        } else {
-          // Silent failure for other auto-save errors
-          console.error('Auto-save failed:', error)
-        }
-      }
-    }, 2000) // Auto-save 2 seconds after last message
-    
-    return () => clearTimeout(autoSaveTimer)
-  }, [researchMessages, isResearching, isLoadingConversation, activeTabId])
 
   const handleClearChat = async () => {
     // Clear messages in UI
