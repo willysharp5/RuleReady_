@@ -64,6 +64,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   const tabsInitialized = useRef(false)
   const conversationsCreatedThisSession = useRef<Set<string>>(new Set())
   const lastAppliedConversationId = useRef<string | null>(null)
+  const lastPersistedSettings = useRef<Map<string, any>>(new Map())
   
   // Tab management
   const [tabs, setTabs] = useState<Array<{
@@ -144,6 +145,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
         hasUnsavedChanges: false,
         followUpQuestions: []
       }]
+      
       tabsInitialized.current = true
       tabsRef.current = initialTabs
       setTabs(initialTabs)
@@ -226,6 +228,15 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
         if (activeTab.conversationId) {
           settingsLoadedForConversation.current.add(activeTab.conversationId)
           conversationsCreatedThisSession.current.delete(activeTab.conversationId)
+          
+          // Store in lastPersistedSettings for comparison
+          lastPersistedSettings.current.set(activeTab.conversationId, {
+            jurisdiction: snapshot.jurisdiction || '',
+            topic: snapshot.topic || '',
+            selectedTemplate: snapshot.selectedTemplate || '',
+            urls: snapshot.urls || [''],
+            additionalContext: snapshot.additionalContext || ''
+          })
         }
         
         // Set flag to enable sync
@@ -281,8 +292,24 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       lastAppliedConversationId.current = newActiveTab.conversationId
       previousActiveTabId.current = activeTabId
 
-      // Load this conversation's settings from database
-      if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
+      // Check if we have persisted settings for this conversation
+      const persisted = lastPersistedSettings.current.get(newActiveTab.conversationId)
+      
+      if (persisted && setResearchState) {
+        setResearchState((prev: any) => ({
+          ...prev,
+          jurisdiction: persisted.jurisdiction,
+          topic: persisted.topic,
+          selectedTemplate: persisted.selectedTemplate,
+          urls: persisted.urls,
+          additionalContext: persisted.additionalContext
+        }))
+        setResearchJurisdiction(persisted.jurisdiction)
+        setResearchTopic(persisted.topic)
+        setSelectedResearchTemplate(persisted.selectedTemplate)
+        setResearchUrls(persisted.urls)
+      } else if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
+        // Load this conversation's settings from database
         setConversationToLoad(newActiveTab.conversationId)
       }
     } else {
@@ -315,13 +342,16 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Sync researchMessages with active tab
   const [researchQuery, setResearchQuery] = useState('')
   const researchMessages = activeTab.messages
+  
   const setResearchMessages = (messages: any) => {
     setTabs(prev => {
-      const nextTabs = prev.map(tab => 
-        tab.id === activeTabId 
-          ? { ...tab, messages: typeof messages === 'function' ? messages(tab.messages) : messages, hasUnsavedChanges: true }
-          : tab
-      )
+      const nextTabs = prev.map(tab => {
+        if (tab.id !== activeTabId) return tab
+        
+        const nextMessages = typeof messages === 'function' ? messages(tab.messages) : messages
+        
+        return { ...tab, messages: nextMessages, hasUnsavedChanges: true }
+      })
       tabsRef.current = nextTabs
       return nextTabs
     })
@@ -475,6 +505,17 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
           // Just update the tracking refs
           lastAppliedConversationId.current = conversationId
           previousActiveTabId.current = activeTabId
+        }
+        
+        // Store the persisted settings
+        if (conversationId) {
+          lastPersistedSettings.current.set(conversationId, {
+            jurisdiction: researchState.jurisdiction,
+            topic: researchState.topic,
+            selectedTemplate: researchState.selectedTemplate,
+            urls: researchState.urls || [],
+            additionalContext: researchState.additionalContext || ''
+          })
         }
       } catch (error) {
         console.error('Failed to persist research:', error)
