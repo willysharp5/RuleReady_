@@ -418,7 +418,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     const activeTab = tabsRef.current.find(t => t.id === activeTabId)
     if (!activeTab) return
  
-    if (isLoadingConversation) return
+    // Don't auto-save while actively chatting or loading
+    if (isLoadingConversation || isChatting) return
 
     const snapshot = buildSnapshotFromState(chatState)
     const hasMessages = chatMessages.length > 0
@@ -526,7 +527,7 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
         settingsSaveTimeout.current = null
       }
     }
-  }, [chatState, activeTabId, isLoadingConversation, saveConversation, chatMessages])
+  }, [chatState, activeTabId, isLoadingConversation, isChatting, saveConversation, chatMessages])
   
   // Sync local state changes back to parent
   const updateJurisdiction = (value: string) => {
@@ -625,6 +626,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('[ChatFeature] handleChatSubmit called', { chatQuery, isChatting })
+    
     if (!chatQuery.trim()) {
       addToast({
         variant: 'error',
@@ -635,6 +638,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       return
     }
 
+    console.log('[ChatFeature] Adding user message and starting chat')
+    
     // Add user message to chat
     const userMessageId = Date.now().toString()
     setChatMessages((prevMessages: ChatMessage[]) => [...prevMessages, {
@@ -647,6 +652,8 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
     
     setChatQuery('')
     setIsChatting(true)
+    
+    console.log('[ChatFeature] isChatting set to true, creating assistant message')
     
     // Create assistant message that will stream
     const assistantMessageId = (Date.now() + 1).toString()
@@ -673,6 +680,12 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       const lastUserMessage = messages[messages.length - 1]?.content || ''
       const promptPreview = `${chatState?.systemPrompt || chatSystemPrompt}\n\nUser: ${lastUserMessage}\n\nAssistant:`
       
+      console.log('[ChatFeature] Sending request to API', { 
+        messagesCount: messages.length, 
+        model: chatState?.model,
+        hasResearch: !!chatState?.selectedResearchIds?.length 
+      })
+      
       // Update parent state with prompt preview
       if (setChatState) {
         setChatState((prev: ChatFeatureState) => ({
@@ -698,10 +711,13 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[ChatFeature] API error:', response.status, errorText)
         throw new Error(`Chat request failed: ${response.status}`)
       }
 
       const data = await response.json()
+      console.log('[ChatFeature] Received response', { hasContent: !!data.content, contentLength: data.content?.length })
       
       // Update assistant message with response
       setChatMessages((prevMessages: ChatMessage[]) => prevMessages.map(m =>
