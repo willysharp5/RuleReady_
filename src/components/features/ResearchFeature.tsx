@@ -61,15 +61,9 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Track which conversations have had their settings loaded
   const settingsLoadedForConversation = useRef<Set<string>>(new Set())
   const previousActiveTabId = useRef<string | null>(null)
-  
-  // Use ref-based cache for instant reads (state updates aren't synchronous)
-  const tabSettingsCache = useRef<Map<string, {
-    jurisdiction: string
-    topic: string
-    selectedTemplate: string
-    urls: string[]
-    additionalContext: string
-  }>>(new Map())
+  const tabsInitialized = useRef(false)
+  const conversationsCreatedThisSession = useRef<Set<string>>(new Set())
+  const lastAppliedConversationId = useRef<string | null>(null)
   
   // Tab management
   const [tabs, setTabs] = useState<Array<{
@@ -81,12 +75,13 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     followUpQuestions: string[]
   }>>([{
     id: 'tab-1',
-    title: 'Chat 1',
+    title: 'Research 1',
     conversationId: null,
     messages: [],
     hasUnsavedChanges: false,
     followUpQuestions: []
   }])
+  const tabsRef = useRef(tabs)
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [isEditingTab, setIsEditingTab] = useState<string | null>(null)
   const [editingTabTitle, setEditingTabTitle] = useState('')
@@ -121,37 +116,75 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     }
   }, [])
   
-  // Load saved conversations as tabs on mount
+  // Sync tabs ref with state
   useEffect(() => {
-    if (allConversationsQuery && !tabsLoaded) {
-      const conversations = allConversationsQuery || []
+    tabsRef.current = tabs
+  }, [tabs])
+  
+  // Sync tabs from the database and lazily load conversations on demand
+  useEffect(() => {
+    if (!allConversationsQuery) return
       
-      if (conversations.length > 0) {
-        // Create tabs from saved conversations, preserving existing messages
-        setTabs(prevTabs => {
-          const loadedTabs = conversations.map((conv, idx) => {
-            const existingTab = prevTabs.find(t => t.id === conv._id)
-            return {
-              id: conv._id,
-              title: conv.title,
-              conversationId: conv._id,
-              messages: existingTab?.messages || [], // Preserve existing messages
-              hasUnsavedChanges: false,
-              followUpQuestions: existingTab?.followUpQuestions || []
-            }
-          })
-          
-          return loadedTabs
-        })
+    const conversations = allConversationsQuery || []
+    const mappedTabs = conversations.map((conv: any) => ({
+      id: conv._id,
+      title: conv.title,
+      conversationId: conv._id,
+      messages: [],
+      hasUnsavedChanges: false,
+      followUpQuestions: []
+    }))
         
-        setActiveTabId(conversations[0]._id)
-        // Trigger loading of first conversation
-        setConversationToLoad(conversations[0]._id)
+    if (!tabsInitialized.current) {
+      const initialTabs = mappedTabs.length > 0 ? mappedTabs : [{
+        id: 'tab-1',
+        title: 'Research 1',
+        conversationId: null,
+        messages: [],
+        hasUnsavedChanges: false,
+        followUpQuestions: []
+      }]
+      tabsInitialized.current = true
+      tabsRef.current = initialTabs
+      setTabs(initialTabs)
+
+      const firstTab = initialTabs[0]
+      const firstId = firstTab ? firstTab.id : null
+      setActiveTabId(firstId)
+
+      if (firstTab?.conversationId) {
+        setConversationToLoad(firstTab.conversationId)
       }
-      
-      setTabsLoaded(true)
+      return
     }
-  }, [allConversationsQuery, tabsLoaded])
+
+    setTabs((prevTabs) => {
+      const nonConversationTabs = prevTabs.filter(tab => !tab.conversationId)
+      
+      // Merge database tabs with existing tabs, preserving in-memory messages and settings
+      const merged = mappedTabs.map((dbTab: any) => {
+        const existingTab = prevTabs.find(t => t.id === dbTab.id)
+        if (existingTab) {
+          // Preserve messages and other runtime state from existing tab
+          return {
+            ...dbTab,
+            messages: existingTab.messages,
+            followUpQuestions: existingTab.followUpQuestions || []
+          }
+        }
+        return dbTab
+      })
+
+      nonConversationTabs.forEach(tab => {
+        if (!merged.some(existing => existing.id === tab.id)) {
+          merged.push(tab)
+        }
+      })
+
+      tabsRef.current = merged
+      return merged
+    })
+  }, [allConversationsQuery])
   
   // Track the last loaded conversation to prevent re-running
   const lastLoadedConversationId = useRef<string | null>(null)
@@ -163,6 +196,12 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       
       // Skip if we've already processed this exact conversation load
       if (lastLoadedConversationId.current === convId) {
+        return
+      }
+      
+      // Skip if this conversation was just created in this session (has unsaved messages)
+      if (conversationsCreatedThisSession.current.has(convId) && activeTab.messages.length > 0) {
+        lastLoadedConversationId.current = convId
         return
       }
       
@@ -186,15 +225,7 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
         // Mark this conversation as having loaded settings
         if (activeTab.conversationId) {
           settingsLoadedForConversation.current.add(activeTab.conversationId)
-          
-          // Also cache in ref for instant tab switching
-          tabSettingsCache.current.set(activeTab.conversationId, {
-            jurisdiction: snapshot.jurisdiction || '',
-            topic: snapshot.topic || '',
-            selectedTemplate: snapshot.selectedTemplate || '',
-            urls: snapshot.urls || [''],
-            additionalContext: snapshot.additionalContext || ''
-          })
+          conversationsCreatedThisSession.current.delete(activeTab.conversationId)
         }
         
         // Set flag to enable sync
@@ -215,11 +246,15 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       }
       
       // Update tab with loaded messages and follow-up questions
-      setTabs(prev => prev.map(tab => 
-        tab.id === activeTabId 
-          ? { ...tab, messages: loadedConversation.messages || [], followUpQuestions: loadedConversation.followUpQuestions || [] }
-          : tab
-      ))
+      setTabs(prev => {
+        const nextTabs = prev.map(tab => 
+          tab.id === activeTabId 
+            ? { ...tab, messages: loadedConversation.messages || [], followUpQuestions: loadedConversation.followUpQuestions || [] }
+            : tab
+        )
+        tabsRef.current = nextTabs
+        return nextTabs
+      })
       // Give a moment for state to settle, then clear loading flag and scroll to bottom once
       setTimeout(() => {
         setIsLoadingConversation(false)
@@ -231,57 +266,31 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
     }
   }, [loadedConversation, conversationToLoad, activeTabId, scrollToBottom, setResearchState])
   
-  // When switching tabs, restore settings from tab cache or load from database
+  // When switching tabs, load from the database
   useEffect(() => {
-    // Only run when actually switching tabs (not on every render)
-    if (previousActiveTabId.current === activeTabId) {
-      return
-    }
-    
-    // Before switching, save current settings to ref-based cache (instant, no async state issues)
-    if (previousActiveTabId.current && researchState) {
-      const cacheData = {
-        jurisdiction: researchState.jurisdiction || '',
-        topic: researchState.topic || '',
-        selectedTemplate: researchState.selectedTemplate || '',
-        urls: researchState.urls || [''],
-        additionalContext: researchState.additionalContext || ''
+    if (!tabsInitialized.current || !activeTabId) return
+
+    const newActiveTab = tabsRef.current.find(t => t.id === activeTabId)
+    if (!newActiveTab) return
+
+    if (newActiveTab.conversationId) {
+      if (lastAppliedConversationId.current === newActiveTab.conversationId && previousActiveTabId.current === activeTabId) {
+        return
       }
-      tabSettingsCache.current.set(previousActiveTabId.current, cacheData)
-    }
-    
-    // Get the tab we're switching TO
-    const newActiveTab = tabs.find(t => t.id === activeTabId)
-    
-    previousActiveTabId.current = activeTabId
-    
-    // Check ref cache first (instant reads)
-    const cachedSettings = tabSettingsCache.current.get(activeTabId)
-    
-    if (cachedSettings) {
-      // Restore from ref cache
-      if (setResearchState) {
-        setResearchState((prev: any) => ({
-          ...prev,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          selectedTemplate: cachedSettings.selectedTemplate,
-          urls: cachedSettings.urls,
-          additionalContext: cachedSettings.additionalContext
-        }))
-      }
-      setResearchJurisdiction(cachedSettings.jurisdiction)
-      setResearchTopic(cachedSettings.topic)
-      setSelectedResearchTemplate(cachedSettings.selectedTemplate)
-      setResearchUrls(cachedSettings.urls)
-    } else if (newActiveTab?.conversationId) {
-      // No cached settings - load from database if not already loaded
+
+      lastAppliedConversationId.current = newActiveTab.conversationId
+      previousActiveTabId.current = activeTabId
+
+      // Load this conversation's settings from database
       if (!settingsLoadedForConversation.current.has(newActiveTab.conversationId)) {
         setConversationToLoad(newActiveTab.conversationId)
       }
     } else {
-      // New tab without saved conversation - reset to defaults
       setConversationToLoad(null)
+      lastAppliedConversationId.current = null
+      previousActiveTabId.current = activeTabId
+
+      // Reset to defaults for new tabs
       if (setResearchState) {
         setResearchState((prev: any) => ({
           ...prev,
@@ -303,45 +312,31 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
   // Get active tab
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
   
-  // On first mount or when switching to this feature, restore settings for active tab
-  useEffect(() => {
-    if (activeTab?.conversationId) {
-      const cachedSettings = tabSettingsCache.current.get(activeTab.conversationId)
-      if (cachedSettings && setResearchState) {
-        // Restore from cache without triggering another load
-        setResearchState((prev: any) => ({
-          ...prev,
-          jurisdiction: cachedSettings.jurisdiction,
-          topic: cachedSettings.topic,
-          selectedTemplate: cachedSettings.selectedTemplate,
-          urls: cachedSettings.urls,
-          additionalContext: cachedSettings.additionalContext
-        }))
-        setResearchJurisdiction(cachedSettings.jurisdiction)
-        setResearchTopic(cachedSettings.topic)
-        setSelectedResearchTemplate(cachedSettings.selectedTemplate)
-        setResearchUrls(cachedSettings.urls)
-      }
-    }
-  }, []) // Only run once on mount
-  
   // Sync researchMessages with active tab
   const [researchQuery, setResearchQuery] = useState('')
   const researchMessages = activeTab.messages
   const setResearchMessages = (messages: any) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, messages: typeof messages === 'function' ? messages(tab.messages) : messages, hasUnsavedChanges: true }
-        : tab
-    ))
+    setTabs(prev => {
+      const nextTabs = prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, messages: typeof messages === 'function' ? messages(tab.messages) : messages, hasUnsavedChanges: true }
+          : tab
+      )
+      tabsRef.current = nextTabs
+      return nextTabs
+    })
   }
   
   // Get follow-up questions from active tab
   const researchFollowUpQuestions = activeTab?.followUpQuestions || []
   const setResearchFollowUpQuestions = (questions: string[]) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId ? { ...tab, followUpQuestions: questions } : tab
-    ))
+    setTabs(prev => {
+      const nextTabs = prev.map(tab => 
+        tab.id === activeTabId ? { ...tab, followUpQuestions: questions } : tab
+      )
+      tabsRef.current = nextTabs
+      return nextTabs
+    })
   }
   
   const [isResearching, setIsResearching] = useState(false)
@@ -927,18 +922,30 @@ These appear AFTER "Based on these sources:" in your prompt.`)
         
         // Store conversation ID in the active tab (only if new)
         if (result.conversationId && !result.isUpdate) {
-          setTabs(prev => prev.map(tab => 
-            tab.id === activeTabId 
-              ? { ...tab, conversationId: result.conversationId as string, hasUnsavedChanges: false }
+          const conversationId = result.conversationId as string
+          settingsLoadedForConversation.current.add(conversationId)
+          conversationsCreatedThisSession.current.add(conversationId)
+          lastLoadedConversationId.current = conversationId
+          
+          const updatedTabs = tabsRef.current.map(tab =>
+            tab.id === activeTabId
+              ? { ...tab, conversationId, hasUnsavedChanges: false }
               : tab
-          ))
+          )
+          tabsRef.current = updatedTabs
+          setTabs(updatedTabs)
+          
+          lastAppliedConversationId.current = conversationId
+          previousActiveTabId.current = activeTabId
         } else if (result.isUpdate) {
           // Just mark as saved
-          setTabs(prev => prev.map(tab => 
-            tab.id === activeTabId 
+          const updatedTabs = tabsRef.current.map(tab =>
+            tab.id === activeTabId
               ? { ...tab, hasUnsavedChanges: false }
               : tab
-          ))
+          )
+          tabsRef.current = updatedTabs
+          setTabs(updatedTabs)
         }
       } catch (error: any) {
         // Check if error is "Document too large"
@@ -1022,11 +1029,15 @@ These appear AFTER "Based on these sources:" in your prompt.`)
 
   const handleClearChat = async () => {
     // Clear messages in UI
-    setTabs(prev => prev.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, messages: [] }
-        : tab
-    ))
+    setTabs(prev => {
+      const nextTabs = prev.map(tab => 
+        tab.id === activeTabId 
+          ? { ...tab, messages: [] }
+          : tab
+      )
+      tabsRef.current = nextTabs
+      return nextTabs
+    })
     
     // Also update database to remove messages (keep conversation shell)
     const currentTab = tabs.find(t => t.id === activeTabId)
@@ -1123,13 +1134,15 @@ These appear AFTER "Based on these sources:" in your prompt.`
     const newTabNumber = tabs.length + 1
     const newTab = {
       id: `tab-${Date.now()}`,
-      title: `Chat ${newTabNumber}`,
+      title: `Research ${newTabNumber}`,
       conversationId: null,
       messages: [],
       hasUnsavedChanges: false,
       followUpQuestions: []
     }
-    setTabs(prev => [...prev, newTab])
+    const nextTabs = [...tabsRef.current, newTab]
+    tabsRef.current = nextTabs
+    setTabs(nextTabs)
     setActiveTabId(newTab.id)
   }
   
@@ -1144,6 +1157,7 @@ These appear AFTER "Based on these sources:" in your prompt.`
     }
     
     const newTabs = tabs.filter(t => t.id !== tabId)
+    tabsRef.current = newTabs
     setTabs(newTabs)
     
     // Switch to another tab if closing active tab
@@ -1155,9 +1169,13 @@ These appear AFTER "Based on these sources:" in your prompt.`
   }
   
   const handleRenameTab = async (tabId: string, newTitle: string) => {
-    setTabs(prev => prev.map(tab => 
-      tab.id === tabId ? { ...tab, title: newTitle } : tab
-    ))
+    setTabs(prev => {
+      const nextTabs = prev.map(tab => 
+        tab.id === tabId ? { ...tab, title: newTitle } : tab
+      )
+      tabsRef.current = nextTabs
+      return nextTabs
+    })
     
     const tab = tabs.find(t => t.id === tabId)
     if (tab?.conversationId) {
