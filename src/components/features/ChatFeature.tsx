@@ -726,7 +726,19 @@ const createChatTab = (id: string, title: string, conversationId: string | null 
       })
 
       if (!response.ok) {
-        throw new Error(`Chat request failed: ${response.status}`)
+        // Try to get error details from the response body
+        let errorDetails = `Chat request failed: ${response.status}`
+        try {
+          const errorData = await response.json()
+          if (errorData.details) {
+            errorDetails = `${errorData.error || 'Chat request failed'}: ${errorData.details}`
+          } else if (errorData.error) {
+            errorDetails = errorData.error
+          }
+        } catch {
+          // Failed to parse error body, use default message
+        }
+        throw new Error(errorDetails)
       }
 
       const data = await response.json()

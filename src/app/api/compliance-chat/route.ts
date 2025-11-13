@@ -534,8 +534,16 @@ Generate 3 questions:`;
     );
     
   } catch (error) {
+    console.error('Compliance chat API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to process compliance chat request', details: (error as Error).message }),
+      JSON.stringify({ 
+        error: 'Failed to process compliance chat request', 
+        details: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
