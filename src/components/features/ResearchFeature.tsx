@@ -1003,6 +1003,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     }
                     return m;
                   }))
+                } else if (parsed.type === 'debug') {
+                  console.log('[ResearchFeature] Debug event:', parsed.message);
                 } else if (parsed.type === 'followup') {
                   setResearchFollowUpQuestions(parsed.questions || [])
                   // Scroll to bottom after research completes and focus input

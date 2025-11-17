@@ -459,27 +459,44 @@ ${context}`;
           })}\n\n`));
           
           // Send sources first (including scraped URLs, internal, and web sources)
-          // CRITICAL: Truncate content/markdown fields to avoid exceeding SSE payload limits
-          const truncateSources = (sourcesArray: any[]) => sourcesArray.map((s: any) => ({
-            ...s,
-            content: s.content ? s.content.substring(0, 500) : undefined,
-            markdown: s.markdown ? s.markdown.substring(0, 500) : undefined,
+          // CRITICAL: Send ONLY display metadata, exclude all content to minimize payload
+          const minimalSources = (sourcesArray: any[]) => sourcesArray.map((s: any) => ({
+            url: s.url,
+            title: s.title,
+            description: s.description?.substring(0, 200),
+            siteName: s.siteName,
+            favicon: s.favicon,
+            image: s.image
           }));
           
-          const truncatedScraped = truncateSources(scrapedUrlSources);
-          const truncatedWeb = truncateSources(sources);
+          const minimalNews = newsResults.map((n: any) => ({
+            url: n.url,
+            title: n.title,
+            description: n.description?.substring(0, 200),
+            source: n.source,
+            publishedDate: n.publishedDate,
+            image: n.image
+          }));
           
           const sourcesPayload = {
             type: 'sources',
-            scrapedUrlSources: truncatedScraped,
+            scrapedUrlSources: minimalSources(scrapedUrlSources),
             internalSources,
-            sources: truncatedWeb,
-            newsResults,
+            sources: minimalSources(sources),
+            newsResults: minimalNews,
             imageResults
           };
           
-          const sourcesJson = JSON.stringify(sourcesPayload);
-          const sourcesSize = new TextEncoder().encode(sourcesJson).length;
+          let sourcesJson: string;
+          let sourcesSize: number;
+          try {
+            sourcesJson = JSON.stringify(sourcesPayload);
+            sourcesSize = new TextEncoder().encode(sourcesJson).length;
+          } catch (jsonError) {
+            console.error(`[${requestId}] Failed to stringify sources:`, jsonError);
+            sourcesJson = JSON.stringify({ type: 'sources', scrapedUrlSources: [], internalSources: [], sources: [], newsResults: [], imageResults: [] });
+            sourcesSize = sourcesJson.length;
+          }
           
           console.log(`[${requestId}] Sending sources to client:`, {
             scrapedUrlSources: scrapedUrlSources.length,
@@ -487,16 +504,31 @@ ${context}`;
             webSources: sources.length,
             newsResults: newsResults.length,
             imageResults: imageResults.length,
-            payloadSizeKB: Math.round(sourcesSize / 1024)
+            payloadSizeKB: Math.round(sourcesSize / 1024),
+            payloadSizeBytes: sourcesSize
           });
           
           controller.enqueue(encoder.encode(`data: ${sourcesJson}\n\n`));
+          
+          // Also send a simple test event to verify SSE is working
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'debug',
+            message: 'Sources sent, awaiting AI response'
+          })}\n\n`));
 
           // Stream AI response
+          let firstChunk = true;
           for await (const chunk of result.stream) {
             try {
               const text = chunk.text();
               if (text) {
+                // Send sources again after first chunk as fallback (in case first send was buffered)
+                if (firstChunk) {
+                  console.log(`[${requestId}] Re-sending sources after first AI chunk as fallback`);
+                  controller.enqueue(encoder.encode(`data: ${sourcesJson}\n\n`));
+                  firstChunk = false;
+                }
+                
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'text',
                   content: text
