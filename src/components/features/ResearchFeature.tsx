@@ -929,6 +929,14 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                   }
                 } else if (parsed.type === 'sources') {
                   sources = parsed
+                  console.log('[ResearchFeature] Received sources:', {
+                    scrapedCount: (parsed.scrapedUrlSources || []).length,
+                    internalCount: (parsed.internalSources || []).length,
+                    webCount: (parsed.sources || []).length,
+                    newsCount: (parsed.newsResults || []).length,
+                    hasWebSources: !!parsed.sources,
+                    hasNewsResults: !!parsed.newsResults
+                  });
                   // Update assistant message with sources
                   setResearchMessages(prev => prev.map(m =>
                     m.id === assistantMessageId

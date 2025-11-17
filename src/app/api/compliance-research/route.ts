@@ -253,6 +253,15 @@ export async function POST(request: Request) {
       webResults = searchData.web || [];
       newsData = searchData.news || [];
       imagesData = searchData.images || [];
+      
+      console.log(`[${requestId}] Firecrawl search results:`, {
+        webCount: webResults.length,
+        newsCount: newsData.length,
+        imagesCount: imagesData.length,
+        hasWeb: !!searchData.web,
+        hasNews: !!searchData.news,
+        searchDataKeys: Object.keys(searchData)
+      });
     }
     
     // Transform sources (skip if refinement mode - already transformed)
@@ -283,6 +292,13 @@ export async function POST(request: Request) {
         source: item.source || new URL(item.url).hostname,
         image: item.imageUrl
       })).filter((item: any) => item.url);
+      
+      console.log(`[${requestId}] Transformed sources:`, {
+        webSourcesCount: sources.length,
+        newsResultsCount: newsResults.length,
+        scrapedUrlCount: scrapedUrlSources.length,
+        internalCount: internalSources.length
+      });
     }
     
     const imageResults = imagesData.map((item: any) => {
@@ -443,6 +459,14 @@ ${context}`;
           })}\n\n`));
           
           // Send sources first (including scraped URLs, internal, and web sources)
+          console.log(`[${requestId}] Sending sources to client:`, {
+            scrapedUrlSources: scrapedUrlSources.length,
+            internalSources: internalSources.length,
+            webSources: sources.length,
+            newsResults: newsResults.length,
+            imageResults: imageResults.length
+          });
+          
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'sources',
             scrapedUrlSources,
