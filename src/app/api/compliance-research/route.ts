@@ -459,22 +459,38 @@ ${context}`;
           })}\n\n`));
           
           // Send sources first (including scraped URLs, internal, and web sources)
+          // CRITICAL: Truncate content/markdown fields to avoid exceeding SSE payload limits
+          const truncateSources = (sourcesArray: any[]) => sourcesArray.map((s: any) => ({
+            ...s,
+            content: s.content ? s.content.substring(0, 500) : undefined,
+            markdown: s.markdown ? s.markdown.substring(0, 500) : undefined,
+          }));
+          
+          const truncatedScraped = truncateSources(scrapedUrlSources);
+          const truncatedWeb = truncateSources(sources);
+          
+          const sourcesPayload = {
+            type: 'sources',
+            scrapedUrlSources: truncatedScraped,
+            internalSources,
+            sources: truncatedWeb,
+            newsResults,
+            imageResults
+          };
+          
+          const sourcesJson = JSON.stringify(sourcesPayload);
+          const sourcesSize = new TextEncoder().encode(sourcesJson).length;
+          
           console.log(`[${requestId}] Sending sources to client:`, {
             scrapedUrlSources: scrapedUrlSources.length,
             internalSources: internalSources.length,
             webSources: sources.length,
             newsResults: newsResults.length,
-            imageResults: imageResults.length
+            imageResults: imageResults.length,
+            payloadSizeKB: Math.round(sourcesSize / 1024)
           });
           
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'sources',
-            scrapedUrlSources,
-            internalSources,
-            sources,
-            newsResults,
-            imageResults
-          })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${sourcesJson}\n\n`));
 
           // Stream AI response
           for await (const chunk of result.stream) {
