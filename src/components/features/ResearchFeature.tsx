@@ -1645,6 +1645,19 @@ These appear AFTER "Based on these sources:" in your prompt.`
                           )}
                           
                           {/* Sources - Web */}
+                          {(() => {
+                            console.log('[ResearchFeature] Rendering message:', {
+                              messageId: m.id,
+                              role: m.role,
+                              hasWebSources: !!m.webSources,
+                              webSourcesLength: m.webSources?.length,
+                              webSourcesType: typeof m.webSources,
+                              webSourcesIsArray: Array.isArray(m.webSources),
+                              hasNewsResults: !!m.newsResults,
+                              newsResultsLength: m.newsResults?.length
+                            });
+                            return null;
+                          })()}
                           {m.webSources && m.webSources.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-gray-300">
                               <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
