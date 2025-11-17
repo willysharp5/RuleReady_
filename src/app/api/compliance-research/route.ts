@@ -478,11 +478,14 @@ ${context}`;
             image: n.image
           }));
           
+          const minimalWeb = minimalSources(sources);
+          const minimalScraped = minimalSources(scrapedUrlSources);
+          
           const sourcesPayload = {
             type: 'sources',
-            scrapedUrlSources: minimalSources(scrapedUrlSources),
+            scrapedUrlSources: minimalScraped,
             internalSources,
-            sources: minimalSources(sources),
+            sources: minimalWeb,
             newsResults: minimalNews,
             imageResults
           };
@@ -508,7 +511,35 @@ ${context}`;
             payloadSizeBytes: sourcesSize
           });
           
-          controller.enqueue(encoder.encode(`data: ${sourcesJson}\n\n`));
+          // Try sending sources in smaller chunks to avoid any SSE limits
+          // Send counts first
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'sources_start',
+            webCount: minimalWeb.length,
+            newsCount: minimalNews.length
+          })}\n\n`));
+          
+          // Send web sources one at a time
+          for (let i = 0; i < minimalWeb.length; i++) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'source_web',
+              index: i,
+              source: minimalWeb[i]
+            })}\n\n`));
+          }
+          
+          // Send news results one at a time
+          for (let i = 0; i < minimalNews.length; i++) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              type: 'source_news',
+              index: i,
+              source: minimalNews[i]
+            })}\n\n`));
+          }
+          
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'sources_end'
+          })}\n\n`));
           
           // Also send a simple test event to verify SSE is working
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -517,18 +548,10 @@ ${context}`;
           })}\n\n`));
 
           // Stream AI response
-          let firstChunk = true;
           for await (const chunk of result.stream) {
             try {
               const text = chunk.text();
               if (text) {
-                // Send sources again after first chunk as fallback (in case first send was buffered)
-                if (firstChunk) {
-                  console.log(`[${requestId}] Re-sending sources after first AI chunk as fallback`);
-                  controller.enqueue(encoder.encode(`data: ${sourcesJson}\n\n`));
-                  firstChunk = false;
-                }
-                
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                   type: 'text',
                   content: text

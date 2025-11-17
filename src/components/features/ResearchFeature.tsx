@@ -875,6 +875,8 @@ These appear AFTER "Based on these sources:" in your prompt.`)
       
       let answer = ''
       let sources: any = {}
+      let webSourcesAccumulator: any[] = []
+      let newsResultsAccumulator: any[] = []
       
       try {
         while (true) {
@@ -1003,6 +1005,42 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     }
                     return m;
                   }))
+                } else if (parsed.type === 'sources_start') {
+                  console.log('[ResearchFeature] Starting to receive sources:', { webCount: parsed.webCount, newsCount: parsed.newsCount });
+                  webSourcesAccumulator = [];
+                  newsResultsAccumulator = [];
+                } else if (parsed.type === 'source_web') {
+                  console.log('[ResearchFeature] Received web source:', parsed.index);
+                  webSourcesAccumulator.push(parsed.source);
+                } else if (parsed.type === 'source_news') {
+                  console.log('[ResearchFeature] Received news source:', parsed.index);
+                  newsResultsAccumulator.push(parsed.source);
+                } else if (parsed.type === 'sources_end') {
+                  console.log('[ResearchFeature] All sources received:', { 
+                    webCount: webSourcesAccumulator.length, 
+                    newsCount: newsResultsAccumulator.length 
+                  });
+                  // Update assistant message with accumulated sources
+                  setResearchMessages(prev => prev.map(m => {
+                    if (m.id === assistantMessageId) {
+                      const updatedMessage = {
+                        ...m,
+                        scrapedUrlSources: [],
+                        internalSources: [],
+                        webSources: webSourcesAccumulator,
+                        newsResults: newsResultsAccumulator
+                      };
+                      console.log('[ResearchFeature] Updated message with chunked sources:', {
+                        messageId: updatedMessage.id,
+                        hasWebSources: !!updatedMessage.webSources,
+                        webSourcesCount: updatedMessage.webSources?.length,
+                        hasNewsResults: !!updatedMessage.newsResults,
+                        newsResultsCount: updatedMessage.newsResults?.length
+                      });
+                      return updatedMessage;
+                    }
+                    return m;
+                  }));
                 } else if (parsed.type === 'debug') {
                   console.log('[ResearchFeature] Debug event:', parsed.message);
                 } else if (parsed.type === 'followup') {
