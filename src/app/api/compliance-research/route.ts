@@ -253,15 +253,6 @@ export async function POST(request: Request) {
       webResults = searchData.web || [];
       newsData = searchData.news || [];
       imagesData = searchData.images || [];
-      
-      console.log(`[${requestId}] Firecrawl search results:`, {
-        webCount: webResults.length,
-        newsCount: newsData.length,
-        imagesCount: imagesData.length,
-        hasWeb: !!searchData.web,
-        hasNews: !!searchData.news,
-        searchDataKeys: Object.keys(searchData)
-      });
     }
     
     // Transform sources (skip if refinement mode - already transformed)
@@ -292,13 +283,6 @@ export async function POST(request: Request) {
         source: item.source || new URL(item.url).hostname,
         image: item.imageUrl
       })).filter((item: any) => item.url);
-      
-      console.log(`[${requestId}] Transformed sources:`, {
-        webSourcesCount: sources.length,
-        newsResultsCount: newsResults.length,
-        scrapedUrlCount: scrapedUrlSources.length,
-        internalCount: internalSources.length
-      });
     }
     
     const imageResults = imagesData.map((item: any) => {
@@ -490,28 +474,7 @@ ${context}`;
             imageResults
           };
           
-          let sourcesJson: string;
-          let sourcesSize: number;
-          try {
-            sourcesJson = JSON.stringify(sourcesPayload);
-            sourcesSize = new TextEncoder().encode(sourcesJson).length;
-          } catch (jsonError) {
-            console.error(`[${requestId}] Failed to stringify sources:`, jsonError);
-            sourcesJson = JSON.stringify({ type: 'sources', scrapedUrlSources: [], internalSources: [], sources: [], newsResults: [], imageResults: [] });
-            sourcesSize = sourcesJson.length;
-          }
-          
-          console.log(`[${requestId}] Sending sources to client:`, {
-            scrapedUrlSources: scrapedUrlSources.length,
-            internalSources: internalSources.length,
-            webSources: sources.length,
-            newsResults: newsResults.length,
-            imageResults: imageResults.length,
-            payloadSizeKB: Math.round(sourcesSize / 1024),
-            payloadSizeBytes: sourcesSize
-          });
-          
-          // Try sending sources in smaller chunks to avoid any SSE limits
+          // Send sources in smaller chunks to avoid SSE payload limits
           // Send counts first
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'sources_start',
@@ -539,12 +502,6 @@ ${context}`;
           
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'sources_end'
-          })}\n\n`));
-          
-          // Also send a simple test event to verify SSE is working
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-            type: 'debug',
-            message: 'Sources sent, awaiting AI response'
           })}\n\n`));
 
           // Stream AI response

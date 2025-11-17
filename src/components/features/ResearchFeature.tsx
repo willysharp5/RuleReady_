@@ -203,7 +203,6 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
       
       // CRITICAL: Don't reload from database while actively researching - it would overwrite in-memory sources
       if (isResearching) {
-        console.log('[ResearchFeature] Skipping conversation load - research in progress');
         return
       }
       
@@ -894,16 +893,6 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               try {
                 const parsed = JSON.parse(data)
                 
-                // Log ALL events to see what's being received
-                if (parsed && parsed.type) {
-                  console.log('[ResearchFeature] SSE event received:', parsed.type, parsed.type === 'sources' ? {
-                    hasSources: !!parsed.sources,
-                    sourcesCount: parsed.sources?.length,
-                    hasNews: !!parsed.newsResults,
-                    newsCount: parsed.newsResults?.length
-                  } : '');
-                }
-                
                 if (!parsed || !parsed.type) continue
                 
                 if (parsed.type === 'firecrawl_error') {
@@ -947,102 +936,46 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                   }
                 } else if (parsed.type === 'sources') {
                   sources = parsed
-                  console.log('[ResearchFeature] Received sources:', {
-                    scrapedCount: (parsed.scrapedUrlSources || []).length,
-                    internalCount: (parsed.internalSources || []).length,
-                    webCount: (parsed.sources || []).length,
-                    newsCount: (parsed.newsResults || []).length,
-                    hasWebSources: !!parsed.sources,
-                    hasNewsResults: !!parsed.newsResults,
-                    parsedKeys: Object.keys(parsed)
-                  });
-                  
-                  const webSourcesToSet = parsed.sources || [];
-                  const newsResultsToSet = parsed.newsResults || [];
-                  
-                  console.log('[ResearchFeature] Setting webSources:', webSourcesToSet.length, 'newsResults:', newsResultsToSet.length);
-                  
                   // Update assistant message with sources
-                  setResearchMessages(prev => {
-                    const updated = prev.map(m => {
-                      if (m.id === assistantMessageId) {
-                        const updatedMessage = {
+                  setResearchMessages(prev => prev.map(m =>
+                    m.id === assistantMessageId
+                      ? {
                           ...m,
                           scrapedUrlSources: parsed.scrapedUrlSources || [],
                           internalSources: parsed.internalSources || [],
-                          webSources: webSourcesToSet,
-                          newsResults: newsResultsToSet
-                        };
-                        console.log('[ResearchFeature] Updated message with sources:', {
-                          messageId: updatedMessage.id,
-                          hasWebSources: !!updatedMessage.webSources,
-                          webSourcesCount: updatedMessage.webSources?.length,
-                          hasNewsResults: !!updatedMessage.newsResults,
-                          newsResultsCount: updatedMessage.newsResults?.length
-                        });
-                        return updatedMessage;
-                      }
-                      return m;
-                    });
-                    return updated;
-                  })
+                          webSources: parsed.sources || [],
+                          newsResults: parsed.newsResults || []
+                        }
+                      : m
+                  ))
                 } else if (parsed.type === 'text') {
                   answer += parsed.content
                   // Update assistant message with streaming content
-                  setResearchMessages(prev => prev.map(m => {
-                    if (m.id === assistantMessageId) {
-                      const updated = { ...m, content: answer };
-                      // Log to verify sources are preserved during content updates
-                      if (answer.length < 100) { // Only log early in the stream to avoid spam
-                        console.log('[ResearchFeature] Updating content, sources preserved?', {
-                          hasWebSources: !!updated.webSources,
-                          webSourcesCount: updated.webSources?.length,
-                          hasNewsResults: !!updated.newsResults,
-                          newsResultsCount: updated.newsResults?.length
-                        });
-                      }
-                      return updated;
-                    }
-                    return m;
-                  }))
+                  setResearchMessages(prev => prev.map(m =>
+                    m.id === assistantMessageId
+                      ? { ...m, content: answer }
+                      : m
+                  ))
                 } else if (parsed.type === 'sources_start') {
-                  console.log('[ResearchFeature] Starting to receive sources:', { webCount: parsed.webCount, newsCount: parsed.newsCount });
                   webSourcesAccumulator = [];
                   newsResultsAccumulator = [];
                 } else if (parsed.type === 'source_web') {
-                  console.log('[ResearchFeature] Received web source:', parsed.index);
                   webSourcesAccumulator.push(parsed.source);
                 } else if (parsed.type === 'source_news') {
-                  console.log('[ResearchFeature] Received news source:', parsed.index);
                   newsResultsAccumulator.push(parsed.source);
                 } else if (parsed.type === 'sources_end') {
-                  console.log('[ResearchFeature] All sources received:', { 
-                    webCount: webSourcesAccumulator.length, 
-                    newsCount: newsResultsAccumulator.length 
-                  });
                   // Update assistant message with accumulated sources
-                  setResearchMessages(prev => prev.map(m => {
-                    if (m.id === assistantMessageId) {
-                      const updatedMessage = {
-                        ...m,
-                        scrapedUrlSources: [],
-                        internalSources: [],
-                        webSources: webSourcesAccumulator,
-                        newsResults: newsResultsAccumulator
-                      };
-                      console.log('[ResearchFeature] Updated message with chunked sources:', {
-                        messageId: updatedMessage.id,
-                        hasWebSources: !!updatedMessage.webSources,
-                        webSourcesCount: updatedMessage.webSources?.length,
-                        hasNewsResults: !!updatedMessage.newsResults,
-                        newsResultsCount: updatedMessage.newsResults?.length
-                      });
-                      return updatedMessage;
-                    }
-                    return m;
-                  }));
-                } else if (parsed.type === 'debug') {
-                  console.log('[ResearchFeature] Debug event:', parsed.message);
+                  setResearchMessages(prev => prev.map(m =>
+                    m.id === assistantMessageId
+                      ? {
+                          ...m,
+                          scrapedUrlSources: [],
+                          internalSources: [],
+                          webSources: webSourcesAccumulator,
+                          newsResults: newsResultsAccumulator
+                        }
+                      : m
+                  ));
                 } else if (parsed.type === 'followup') {
                   setResearchFollowUpQuestions(parsed.questions || [])
                   // Scroll to bottom after research completes and focus input
@@ -1656,11 +1589,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
                         <p>{m.content}</p>
                       ) : (
                         <>
-                          {/* Debug info - always show for now */}
-                          <div className="mb-2 text-xs text-gray-400 font-mono">
-                            Debug: {m.scrapedUrlSources?.length || 0} scraped, {m.internalSources?.length || 0} internal, {m.webSources?.length || 0} web, {m.newsResults?.length || 0} news
-                          </div>
-                          
                           <div className="compliance-research-content">
                             {m.content ? (
                               <ReactMarkdown 
@@ -1731,19 +1659,6 @@ These appear AFTER "Based on these sources:" in your prompt.`
                           )}
                           
                           {/* Sources - Web */}
-                          {(() => {
-                            console.log('[ResearchFeature] Rendering message:', {
-                              messageId: m.id,
-                              role: m.role,
-                              hasWebSources: !!m.webSources,
-                              webSourcesLength: m.webSources?.length,
-                              webSourcesType: typeof m.webSources,
-                              webSourcesIsArray: Array.isArray(m.webSources),
-                              hasNewsResults: !!m.newsResults,
-                              newsResultsLength: m.newsResults?.length
-                            });
-                            return null;
-                          })()}
                           {m.webSources && m.webSources.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-gray-300">
                               <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-1">
