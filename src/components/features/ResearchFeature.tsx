@@ -201,6 +201,12 @@ export default function ResearchFeature({ researchState, setResearchState }: Res
         return
       }
       
+      // CRITICAL: Don't reload from database while actively researching - it would overwrite in-memory sources
+      if (isResearching) {
+        console.log('[ResearchFeature] Skipping conversation load - research in progress');
+        return
+      }
+      
       // Skip if this conversation was just created in this session (has unsaved messages)
       if (conversationsCreatedThisSession.current.has(convId) && activeTab.messages.length > 0) {
         lastLoadedConversationId.current = convId
@@ -885,6 +891,16 @@ These appear AFTER "Based on these sources:" in your prompt.`)
               
               try {
                 const parsed = JSON.parse(data)
+                
+                // Log ALL events to see what's being received
+                if (parsed && parsed.type) {
+                  console.log('[ResearchFeature] SSE event received:', parsed.type, parsed.type === 'sources' ? {
+                    hasSources: !!parsed.sources,
+                    sourcesCount: parsed.sources?.length,
+                    hasNews: !!parsed.newsResults,
+                    newsCount: parsed.newsResults?.length
+                  } : '');
+                }
                 
                 if (!parsed || !parsed.type) continue
                 
