@@ -935,28 +935,58 @@ These appear AFTER "Based on these sources:" in your prompt.`)
                     webCount: (parsed.sources || []).length,
                     newsCount: (parsed.newsResults || []).length,
                     hasWebSources: !!parsed.sources,
-                    hasNewsResults: !!parsed.newsResults
+                    hasNewsResults: !!parsed.newsResults,
+                    parsedKeys: Object.keys(parsed)
                   });
+                  
+                  const webSourcesToSet = parsed.sources || [];
+                  const newsResultsToSet = parsed.newsResults || [];
+                  
+                  console.log('[ResearchFeature] Setting webSources:', webSourcesToSet.length, 'newsResults:', newsResultsToSet.length);
+                  
                   // Update assistant message with sources
-                  setResearchMessages(prev => prev.map(m =>
-                    m.id === assistantMessageId
-                      ? {
+                  setResearchMessages(prev => {
+                    const updated = prev.map(m => {
+                      if (m.id === assistantMessageId) {
+                        const updatedMessage = {
                           ...m,
                           scrapedUrlSources: parsed.scrapedUrlSources || [],
                           internalSources: parsed.internalSources || [],
-                          webSources: parsed.sources || [],
-                          newsResults: parsed.newsResults || []
-                        }
-                      : m
-                  ))
+                          webSources: webSourcesToSet,
+                          newsResults: newsResultsToSet
+                        };
+                        console.log('[ResearchFeature] Updated message with sources:', {
+                          messageId: updatedMessage.id,
+                          hasWebSources: !!updatedMessage.webSources,
+                          webSourcesCount: updatedMessage.webSources?.length,
+                          hasNewsResults: !!updatedMessage.newsResults,
+                          newsResultsCount: updatedMessage.newsResults?.length
+                        });
+                        return updatedMessage;
+                      }
+                      return m;
+                    });
+                    return updated;
+                  })
                 } else if (parsed.type === 'text') {
                   answer += parsed.content
                   // Update assistant message with streaming content
-                  setResearchMessages(prev => prev.map(m =>
-                    m.id === assistantMessageId
-                      ? { ...m, content: answer }
-                      : m
-                  ))
+                  setResearchMessages(prev => prev.map(m => {
+                    if (m.id === assistantMessageId) {
+                      const updated = { ...m, content: answer };
+                      // Log to verify sources are preserved during content updates
+                      if (answer.length < 100) { // Only log early in the stream to avoid spam
+                        console.log('[ResearchFeature] Updating content, sources preserved?', {
+                          hasWebSources: !!updated.webSources,
+                          webSourcesCount: updated.webSources?.length,
+                          hasNewsResults: !!updated.newsResults,
+                          newsResultsCount: updated.newsResults?.length
+                        });
+                      }
+                      return updated;
+                    }
+                    return m;
+                  }))
                 } else if (parsed.type === 'followup') {
                   setResearchFollowUpQuestions(parsed.questions || [])
                   // Scroll to bottom after research completes and focus input
